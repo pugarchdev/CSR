@@ -1,32 +1,19 @@
-"use client";
-
-import { useState, useEffect } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { 
-  ArrowRight, ShieldCheck, HeartHandshake, Compass, Coins, MapPin, 
+  HeartHandshake, Compass, Coins, 
   Building2, Landmark, GraduationCap, Stethoscope, Droplet, Trees, 
-  HelpCircle, Star, ArrowUpRight, ShieldAlert, Award, FileText, 
-  CheckCircle2, ChevronDown, Bell, Newspaper, Users, Briefcase, ChevronRight
+  HelpCircle, Star, ShieldAlert, Award, FileText, 
+  Bell, Newspaper, Users, ChevronRight
 } from "lucide-react";
 import dynamic from "next/dynamic";
-
-const ImpactSphere = dynamic(() => import("@/components/ImpactSphere"), {
-  ssr: false,
-  loading: () => (
-    <div className="h-[500px] w-full flex items-center justify-center">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 rounded-full border-2 border-[#f97316] border-t-transparent animate-spin" />
-        <span className="text-xs text-slate-400 font-semibold">Loading interactive sphere...</span>
-      </div>
-    </div>
-  )
-});
+import HeroSection from "@/components/HeroSection";
+import CitizenCounter from "@/components/CitizenCounter";
+import FaqAccordion from "@/components/FaqAccordion";
 
 const GisMap = dynamic(() => import("@/components/GisMap"), {
   ssr: false,
   loading: () => (
-    <div className="h-[580px] w-full flex items-center justify-center bg-slate-950/40 rounded-3xl border border-slate-800/80">
+    <div className="h-[580px] w-full flex items-center justify-center bg-slate-955/40 rounded-3xl border border-slate-800/80">
       <div className="flex flex-col items-center gap-3">
         <div className="w-8 h-8 rounded-full border-2 border-[#1e3a8a] border-t-transparent animate-spin" />
         <span className="text-xs text-slate-400 font-semibold">Initializing digital GIS network...</span>
@@ -36,17 +23,6 @@ const GisMap = dynamic(() => import("@/components/GisMap"), {
 });
 
 export default function LandingPage() {
-  const [activeFaq, setActiveFaq] = useState<number | null>(null);
-  const [citizenCounter, setCitizenCounter] = useState(245380);
-
-  // Simulate a live beneficiary increment counter
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCitizenCounter(prev => prev + Math.floor(Math.random() * 4) + 1);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
-
   const faqs = [
     { 
       q: "How does the platform verify NGO compliance?", 
@@ -92,59 +68,7 @@ export default function LandingPage() {
         <div className="absolute top-[30vh] right-1/4 w-[400px] h-[400px] bg-orange-600/5 rounded-full filter blur-[100px] pointer-events-none" />
 
         {/* 2. Hero Section */}
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center min-h-[60vh] relative z-10 pt-4">
-          <motion.div 
-            className="flex flex-col gap-6"
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-          >
-            <div className="flex items-center gap-2 text-indigo-700 font-bold text-xs tracking-wider uppercase border border-indigo-700/20 w-fit px-4 py-1.5 rounded-full bg-indigo-50/50 backdrop-blur-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#f97316] animate-ping" />
-              Maharashtra CSR Authority (MahaCSR)
-            </div>
-            
-            <h1 className="font-heading font-extrabold text-5xl md:text-6xl tracking-tight leading-none text-slate-50">
-              State-Wide Portal <br />
-              for Corporate <br />
-              <span className="bg-gradient-to-r from-[#FF9933] via-indigo-750 to-[#138808] text-transparent bg-clip-text">
-                Social Responsibility
-              </span>
-            </h1>
-            
-            <p className="text-slate-300 text-base leading-relaxed max-w-lg font-sans">
-              Empowering development through institutional synergy. Connect corporate capital with verified grassroot NGOs across 36 districts of Maharashtra on a fully audited, milestone-backed platform.
-            </p>
-
-            <div className="flex flex-wrap gap-4 mt-2">
-              <Link 
-                href="/marketplace" 
-                className="bg-indigo-700 hover:bg-indigo-650 text-white px-6 py-3.5 rounded-xl font-heading font-bold flex items-center gap-2 group transition-all shadow-md hover:translate-y-[-1px]"
-              >
-                Explore Project Directory 
-                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-              </Link>
-              <Link 
-                href="/register" 
-                className="bg-slate-900 hover:bg-slate-955 text-slate-100 border border-slate-800 px-6 py-3.5 rounded-xl font-heading font-bold transition-all shadow-sm hover:translate-y-[-1px]"
-              >
-                Register Organization
-              </Link>
-            </div>
-          </motion.div>
-
-          {/* Interactive ThreeJS Sphere representing network of matching projects */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1, ease: "easeOut" }}
-            className="w-full flex justify-center lg:justify-end"
-          >
-            <div className="w-full max-w-[480px]">
-              <ImpactSphere />
-            </div>
-          </motion.div>
-        </section>
+        <HeroSection />
 
         {/* 3. Live Statistics Banner */}
         <section className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-sm z-10 relative">
@@ -252,7 +176,7 @@ export default function LandingPage() {
               ].map((n, i) => (
                 <div key={i} className="flex flex-col gap-1">
                   <span className="text-xs font-bold text-slate-50 leading-snug">{n.title}</span>
-                  <p className="text-[11px] text-slate-300 leading-relaxed">{n.desc}</p>
+                  <p className="text-[11px] text-slate-305 leading-relaxed">{n.desc}</p>
                   <span className="text-[9px] text-slate-400 mt-0.5">{n.date}</span>
                 </div>
               ))}
@@ -268,7 +192,7 @@ export default function LandingPage() {
             <div className="flex flex-col gap-3">
               <div className="p-3 bg-blue-50/50 border border-blue-100 rounded-xl flex flex-col gap-1">
                 <span className="text-xs font-bold text-indigo-700">CSR-1 Validation Drive</span>
-                <span className="text-[10px] text-slate-300">Online validation portal open for self-service matching.</span>
+                <span className="text-[10px] text-slate-305">Online validation portal open for self-service matching.</span>
               </div>
               <div className="p-3 bg-slate-955 border border-slate-800 rounded-xl flex flex-col gap-1">
                 <span className="text-xs font-bold text-slate-50">Scheduled Server Maintenance</span>
@@ -280,27 +204,7 @@ export default function LandingPage() {
         </section>
 
         {/* 6. Live Citizen Beneficiary Counter Banner */}
-        <section className="bg-slate-900 border border-slate-800 rounded-3xl p-8 flex flex-col md:flex-row justify-between items-center gap-6 z-10 relative shadow-sm">
-          <div className="flex flex-col gap-1 text-center md:text-left">
-            <h3 className="font-heading font-extrabold text-2xl text-slate-50 flex items-center gap-2 justify-center md:justify-start">
-              <Users className="text-[#f97316]" size={24} />
-              Citizen Impact Tracker
-            </h3>
-            <p className="text-slate-300 text-xs">Real-time count of rural and underserved citizens receiving benefits via verified CSR tranches.</p>
-          </div>
-          <div className="flex flex-col items-center">
-            <div className="bg-slate-955 border border-slate-800 rounded-2xl px-6 py-4 flex gap-1 shadow-inner relative overflow-hidden">
-              {citizenCounter.toLocaleString("en-IN").split("").map((char, i) => (
-                <span key={i} className={`font-heading font-extrabold text-3xl md:text-4xl px-1.5 ${char === "," ? "text-slate-400" : "text-[#1e3a8a] bg-slate-900 border border-slate-800 rounded shadow-sm"}`}>
-                  {char}
-                </span>
-              ))}
-            </div>
-            <span className="text-[9px] text-[#138808] font-bold mt-2 uppercase tracking-widest flex items-center gap-1 animate-pulse">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#138808]" /> Live Beneficiaries Served
-            </span>
-          </div>
-        </section>
+        <CitizenCounter />
 
         {/* 7. Focus Sectors Grid */}
         <section className="flex flex-col gap-12 relative z-10">
@@ -365,7 +269,7 @@ export default function LandingPage() {
                   <span className="font-heading font-extrabold text-2xl text-blue-500/25 leading-none">{item.step}</span>
                   <div className="flex flex-col">
                     <span className="font-bold text-sm text-slate-100">{item.title}</span>
-                    <span className="text-xs text-slate-305 leading-relaxed mt-0.5">{item.desc}</span>
+                    <span className="text-xs text-slate-350 leading-relaxed mt-0.5">{item.desc}</span>
                   </div>
                 </div>
               ))}
@@ -442,31 +346,7 @@ export default function LandingPage() {
         </section>
 
         {/* 11. FAQ Accordion Module */}
-        <section className="flex flex-col gap-12 max-w-3xl mx-auto w-full relative z-10">
-          <div className="text-center flex flex-col gap-3">
-            <h2 className="font-heading font-bold text-3xl text-slate-50">Common Questions</h2>
-            <p className="text-slate-300 text-sm">Answers to regulatory, audit, and operational concerns.</p>
-          </div>
-
-          <div className="flex flex-col gap-4">
-            {faqs.map((faq, idx) => (
-              <div key={idx} className="bg-slate-900 rounded-2xl overflow-hidden border border-slate-800">
-                <button 
-                  onClick={() => setActiveFaq(activeFaq === idx ? null : idx)}
-                  className="w-full text-left p-5 font-bold text-slate-100 flex justify-between items-center hover:bg-slate-955 transition-colors"
-                >
-                  <span>{faq.q}</span>
-                  <span className="text-[#f97316] text-xl leading-none">{activeFaq === idx ? "−" : "+"}</span>
-                </button>
-                {activeFaq === idx && (
-                  <div className="p-5 bg-slate-955/40 text-slate-300 text-sm leading-relaxed border-t border-slate-800">
-                    {faq.a}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
+        <FaqAccordion faqs={faqs} />
 
         {/* 12. Corporate Collaborators Logos Banner */}
         <section className="flex flex-col gap-6 text-center border-t border-slate-800 pt-8 relative z-10">

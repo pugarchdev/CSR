@@ -217,7 +217,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
             onClick={toggleLanguage}
             className="text-[10px] font-bold border border-slate-300 hover:border-[#1e3a8a] bg-white px-2.5 py-1.5 rounded-lg text-slate-600 hover:text-[#1e3a8a] transition-colors"
           >
-            {activeLanguage === "EN" ? "मराठी" : "EN"}
+            {activeLanguage === "EN"}
           </button>
 
           {isDashboard ? (
