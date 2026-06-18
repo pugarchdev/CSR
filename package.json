@@ -1,0 +1,8 @@
+{
+  "name": "mahacsr-workspace",
+  "version": "1.0.0",
+  "description": "MahaCSR platform root workspace launcher",
+  "scripts": {
+    "dev": "npx concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\""
+  }
+}

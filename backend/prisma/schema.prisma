@@ -1,0 +1,269 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  SUPER_ADMIN
+  COMPANY_ADMIN
+  COMPANY_MEMBER
+  NGO_ADMIN
+  NGO_MEMBER
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum ProjectStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  FUNDED
+  COMPLETED
+}
+
+enum MilestoneStatus {
+  PENDING
+  APPROVED_BY_NGO
+  APPROVED_BY_COMPANY
+  RELEASED
+}
+
+enum ReportType {
+  CSR
+  IMPACT
+  BENEFICIARY
+  ANNUAL
+}
+
+enum NotificationType {
+  EMAIL
+  SMS
+  IN_APP
+}
+
+model User {
+  id                 String          @id @default(uuid())
+  email              String          @unique
+  passwordHash       String
+  role               Role            @default(NGO_MEMBER)
+  isVerified         Boolean         @default(false)
+  otpCode            String?
+  otpExpiresAt       DateTime?
+  refreshToken       String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  
+  // Relations
+  ngoId              String?
+  ngo                NGO?            @relation(fields: [ngoId], references: [id])
+  companyId          String?
+  company            Company?        @relation(fields: [companyId], references: [id])
+  messages           Message[]
+  notifications      Notification[]
+  auditLogs          AuditLog[]
+  reportsCreated     Report[]
+}
+
+model NGO {
+  id                 String             @id @default(uuid())
+  name               String
+  registrationNumber String             @unique
+  darpanNumber       String             @unique
+  csr1Number         String             @unique
+  pan                String             @unique
+  certificate12AUrl  String
+  certificate80GUrl  String
+  address            String
+  state              String             @default("Maharashtra")
+  district           String
+  taluka             String
+  village            String?
+  website            String?
+  socialLinks        Json?              // { twitter, facebook, linkedin }
+  impactStatistics   Json?              // { beneficiariesServed, projectsCompleted }
+  status             VerificationStatus @default(PENDING)
+  rejectionReason    String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  // Relations
+  users              User[]
+  projects           Project[]
+  chats              Chat[]
+  documents          Document[]
+  reports            Report[]
+}
+
+model Company {
+  id                 String             @id @default(uuid())
+  name               String
+  cin                String             @unique
+  gst                String             @unique
+  pan                String             @unique
+  csrBudget          Decimal
+  csrPolicyUrl       String?
+  focusAreas         String[]           // Array of categories, e.g., ["Education", "Healthcare"]
+  contactInfo        Json               // { phone, alternateEmail }
+  status             VerificationStatus @default(PENDING)
+  rejectionReason    String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  // Relations
+  users              User[]
+  chats              Chat[]
+  documents          Document[]
+  matchScores        MatchScore[]
+  reports            Report[]
+}
+
+model Project {
+  id                 String             @id @default(uuid())
+  ngoId              String
+  ngo                NGO                @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  title              String
+  description        String
+  focusArea          String
+  sdgGoal            String
+  beneficiaryCount   Int
+  budgetRequested    Decimal
+  budgetFunded       Decimal            @default(0)
+  state              String             @default("Maharashtra")
+  district           String
+  taluka             String
+  village            String?
+  startDate          DateTime
+  endDate            DateTime
+  status             ProjectStatus      @default(DRAFT)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  // Relations
+  milestones         Milestone[]
+  documents          Document[]
+  chats              Chat[]
+  matchScores        MatchScore[]
+}
+
+model Milestone {
+  id                 String             @id @default(uuid())
+  projectId          String
+  project            Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name               String
+  description        String
+  amount             Decimal
+  dueDate            DateTime
+  status             MilestoneStatus    @default(PENDING)
+  completionEvidence String?            // S3 document link for proof
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+}
+
+model Chat {
+  id                 String             @id @default(uuid())
+  projectId          String?
+  project            Project?           @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  ngoId              String
+  ngo                NGO                @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  companyId          String
+  company            Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  // Relations
+  messages           Message[]
+  documents          Document[]
+
+  @@unique([ngoId, companyId, projectId])
+}
+
+model Message {
+  id                 String             @id @default(uuid())
+  chatId             String
+  chat               Chat               @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  senderId           String
+  sender             User               @relation(fields: [senderId], references: [id])
+  text               String?
+  fileUrl            String?
+  fileType           String?
+  readBy             String[]           // Array of User IDs who read the message
+  createdAt          DateTime           @default(now())
+}
+
+model Document {
+  id                 String             @id @default(uuid())
+  title              String
+  fileUrl            String
+  fileType           String
+  expiryDate         DateTime?
+  ngoId              String?
+  ngo                NGO?               @relation(fields: [ngoId], references: [id])
+  companyId          String?
+  company            Company?           @relation(fields: [companyId], references: [id])
+  projectId          String?
+  project            Project?           @relation(fields: [projectId], references: [id])
+  chatId             String?
+  chat               Chat?              @relation(fields: [chatId], references: [id])
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+}
+
+model MatchScore {
+  id                 String             @id @default(uuid())
+  companyId          String
+  company            Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  projectId          String
+  project            Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  score              Int                // 0 - 100
+  factors            Json               // Breakdown details, e.g. { locationMatch: true, budgetFit: 0.8 }
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@unique([companyId, projectId])
+}
+
+model Report {
+  id                 String             @id @default(uuid())
+  title              String
+  type               ReportType
+  content            Json               // Analytical structure of the report
+  fileUrl            String?            // S3 PDF/Excel export URL
+  createdById        String
+  createdBy          User               @relation(fields: [createdById], references: [id])
+  ngoId              String?
+  ngo                NGO?               @relation(fields: [ngoId], references: [id])
+  companyId          String?
+  company            Company?           @relation(fields: [companyId], references: [id])
+  createdAt          DateTime           @default(now())
+}
+
+model Notification {
+  id                 String             @id @default(uuid())
+  userId             String
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title              String
+  message            String
+  isRead             Boolean            @default(false)
+  type               NotificationType   @default(IN_APP)
+  createdAt          DateTime           @default(now())
+}
+
+model AuditLog {
+  id                 String             @id @default(uuid())
+  userId             String?
+  user               User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action             String
+  details            Json
+  ipAddress          String?
+  createdAt          DateTime           @default(now())
+}
