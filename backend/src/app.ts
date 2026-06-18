@@ -25,8 +25,12 @@ const app = express();
 const server = http.createServer(app);
 
 // CORS setup
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",")
+  : ["http://localhost:3000", "http://127.0.0.1:3000", "https://csr-seven.vercel.app","https://csr-backend-five.vercel.app"];
+
 const corsOptions = {
-  origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
+  origin: allowedOrigins,
   credentials: true,
   methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]

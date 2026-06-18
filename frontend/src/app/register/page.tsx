@@ -81,7 +81,7 @@ export default function RegisterPage() {
         }
       };
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/auth/register`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "https://csr-backend-five.vercel.app/api"}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -108,7 +108,7 @@ export default function RegisterPage() {
     setSuccessMsg("");
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/auth/verify-otp`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "https://csr-backend-five.vercel.app/api"}/auth/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
