@@ -70,18 +70,18 @@ export default function AdminPanel({ params }: { params?: { tab?: string } }) {
   };
 
   return (
-    <div className="px-6 md:px-12 py-10 max-w-7xl mx-auto flex flex-col gap-8 bg-slate-950 text-slate-100 min-h-screen">
+    <div className="px-6 md:px-10 py-8 max-w-7xl mx-auto flex flex-col gap-7 min-h-screen">
       
       {/* Header */}
-      <div className="flex flex-col gap-1 border-b border-slate-800 pb-6">
+      <div className="flex flex-col gap-1">
         <span className="text-[#f97316] font-bold text-xs uppercase tracking-widest flex items-center gap-1.5">
-          <ShieldAlert size={14} /> SUPER ADMIN CONTROL CABINET (महाराष्ट्र शासन)
+          <ShieldAlert size={14} /> SUPER ADMIN CONTROL CABINET (Super Admin)
         </span>
-        <h1 className="font-heading font-extrabold text-4xl text-slate-100 tracking-tight">Super Admin Portal</h1>
+        <h1 className="font-heading font-extrabold text-2xl text-slate-900 tracking-tight">Super Admin Portal</h1>
       </div>
 
       {/* Admin Tab Swapper */}
-      <div className="flex gap-2 border-b border-slate-800 pb-px overflow-x-auto">
+      <div className="flex gap-1 border-b border-slate-200 pb-px overflow-x-auto bg-white rounded-t-lg px-2 pt-1">
         {[
           { id: "dashboard", label: "System Status", icon: Server },
           { id: "users", label: "User Accounts", icon: Users },
@@ -94,13 +94,13 @@ export default function AdminPanel({ params }: { params?: { tab?: string } }) {
             <button
               key={tab.id}
               onClick={() => handleTabChange(tab.id as AdminTab)}
-              className={`flex items-center gap-2 px-5 py-3 text-xs font-bold border-b-2 transition-all shrink-0 ${
+              className={`flex items-center gap-2 px-4 py-2.5 text-[11px] font-semibold border-b-2 transition-all shrink-0 ${
                 isActive 
-                  ? "border-[#f97316] text-[#f97316] bg-slate-900/50" 
-                  : "border-transparent text-slate-400 hover:text-slate-200"
+                  ? "border-[#f97316] text-[#f97316] bg-orange-50/30" 
+                  : "border-transparent text-slate-500 hover:text-[#f97316] hover:bg-slate-50"
               }`}
             >
-              <tab.icon size={14} />
+              <tab.icon size={13} />
               {tab.label}
             </button>
           );
@@ -109,8 +109,8 @@ export default function AdminPanel({ params }: { params?: { tab?: string } }) {
 
       {/* 1. System Status Dashboard */}
       {activeTab === "dashboard" && (
-        <div className="flex flex-col gap-8 animate-fadeIn">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="flex flex-col gap-7 animate-fadeIn">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             <StatsCard label="System Accounts" value={users.length + 195} icon={Users} />
             <StatsCard label="Server CPU Load" value="8.4%" icon={Activity} />
             <StatsCard label="Active DB Connections" value="48 Connections" icon={Server} />
@@ -119,15 +119,18 @@ export default function AdminPanel({ params }: { params?: { tab?: string } }) {
 
           <Card>
             <CardHeader>
-              <h3 className="font-heading font-bold text-lg text-slate-200">State Sourcing Aggregates</h3>
+              <h3 className="govt-section-header">
+                <Activity size={20} />
+                State Sourcing Aggregates
+              </h3>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl flex flex-col gap-1">
-                <span className="text-slate-500 text-[10px] font-bold uppercase">Aggregate Funds Sourced</span>
-                <span className="text-slate-200 font-extrabold text-2xl">₹18.40 Crore</span>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-1">
+                <span className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Aggregate Funds Sourced</span>
+                <span className="text-[#1e3a8a] font-extrabold text-2xl">₹18.40 Crore</span>
               </div>
-              <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl flex flex-col gap-1">
-                <span className="text-slate-500 text-[10px] font-bold uppercase">Average Match Score</span>
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-1">
+                <span className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Average Match Score</span>
                 <span className="text-[#f97316] font-extrabold text-2xl">86.5% Rating</span>
               </div>
             </CardContent>
@@ -137,30 +140,33 @@ export default function AdminPanel({ params }: { params?: { tab?: string } }) {
 
       {/* 2. User Accounts */}
       {activeTab === "users" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start animate-fadeIn">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start animate-fadeIn">
           
           <Card className="lg:col-span-2">
             <CardHeader>
-              <h3 className="font-heading font-bold text-xl text-slate-100">User Account Directories</h3>
+              <h3 className="govt-section-header">
+                <Users size={20} />
+                User Account Directories
+              </h3>
             </CardHeader>
             <CardContent className="p-0 overflow-x-auto">
-              <table className="w-full text-left text-sm text-slate-350">
-                <thead className="text-xs uppercase text-slate-500 border-b border-slate-800 bg-slate-950/65 font-bold">
+              <table className="govt-table">
+                <thead>
                   <tr>
-                    <th className="py-3 px-5">User Name</th>
-                    <th className="py-3 px-5">Registered Email</th>
-                    <th className="py-3 px-5">Designated Role</th>
-                    <th className="py-3 px-5 text-right">Access Action</th>
+                    <th>User Name</th>
+                    <th>Registered Email</th>
+                    <th>Designated Role</th>
+                    <th className="text-right">Access Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800 font-medium">
+                <tbody>
                   {users.map((u) => (
-                    <tr key={u.id} className="hover:bg-slate-900/40">
-                      <td className="py-4 px-5 text-slate-200 font-bold">{u.name}</td>
-                      <td className="py-4 px-5">{u.email}</td>
-                      <td className="py-4 px-5 text-[#f97316]">{u.role}</td>
-                      <td className="py-4 px-5 text-right">
-                        <Button variant="danger" size="sm" onClick={() => handleRemoveUser(u.id)} className="flex items-center gap-1.5 ml-auto">
+                    <tr key={u.id}>
+                      <td className="font-bold text-slate-800">{u.name}</td>
+                      <td>{u.email}</td>
+                      <td><span className="govt-badge govt-badge-funded">{u.role}</span></td>
+                      <td className="text-right">
+                        <Button variant="danger" size="sm" onClick={() => handleRemoveUser(u.id)} className="flex items-center gap-1.5 py-1.5 px-3 text-xs ml-auto">
                           <Trash size={12} /> Revoke
                         </Button>
                       </td>
@@ -173,43 +179,46 @@ export default function AdminPanel({ params }: { params?: { tab?: string } }) {
 
           <Card>
             <CardHeader>
-              <h3 className="font-heading font-bold text-lg text-slate-200">Provision User Account</h3>
+              <h3 className="govt-section-header text-base">
+                <Plus size={18} />
+                Provision User Account
+              </h3>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleAddUser} className="flex flex-col gap-4 text-xs font-semibold text-slate-400">
+              <form onSubmit={handleAddUser} className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <span>Full Name:</span>
+                  <span className="text-xs font-semibold text-slate-600 font-sans">Full Name:</span>
                   <input 
                     type="text" 
                     value={newUName} 
                     onChange={(e) => setNewUName(e.target.value)}
-                    className="bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-slate-200 focus:outline-none" 
+                    className="govt-input" 
                     required 
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <span>Registered Email:</span>
+                  <span className="text-xs font-semibold text-slate-600 font-sans">Registered Email:</span>
                   <input 
                     type="email" 
                     value={newUEmail} 
                     onChange={(e) => setNewUEmail(e.target.value)}
-                    className="bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-slate-200 focus:outline-none" 
+                    className="govt-input" 
                     required 
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <span>Select Role:</span>
+                  <span className="text-xs font-semibold text-slate-600 font-sans">Select Role:</span>
                   <select 
                     value={newURole} 
                     onChange={(e) => setNewURole(e.target.value)}
-                    className="bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-slate-200 focus:outline-none"
+                    className="govt-input"
                   >
                     <option>NGO Admin</option>
                     <option>Company Auditor</option>
                     <option>Gov Auditor</option>
                   </select>
                 </div>
-                <Button type="submit" className="py-2.5">Provision Account</Button>
+                <Button type="submit" variant="accent" className="py-2.5 text-sm">Provision Account</Button>
               </form>
             </CardContent>
           </Card>
@@ -221,30 +230,33 @@ export default function AdminPanel({ params }: { params?: { tab?: string } }) {
       {activeTab === "roles" && (
         <Card className="animate-fadeIn">
           <CardHeader>
-            <h3 className="font-heading font-bold text-xl text-slate-100">Access Roles Matrix</h3>
+            <h3 className="govt-section-header">
+              <ShieldCheck size={20} />
+              Access Roles Matrix
+            </h3>
           </CardHeader>
           <CardContent className="p-0 overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-350">
-              <thead className="text-xs uppercase text-slate-500 border-b border-slate-800 bg-slate-950/65 font-bold">
+            <table className="govt-table">
+              <thead>
                 <tr>
-                  <th className="py-3 px-5">Role Identifier</th>
-                  <th className="py-3 px-5">Description Scope</th>
-                  <th className="py-3 px-5 text-right">System Tier</th>
+                  <th>Role Identifier</th>
+                  <th>Description Scope</th>
+                  <th className="text-right">System Tier</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800 font-medium">
+              <tbody>
                 {[
                   { id: "Superadmin", desc: "Full root access to system variables, database configurations, and roles management.", tier: "Tier 1" },
                   { id: "Gov Auditor", desc: "Audit and verify NGO credentials, approve marketplace proposals, and publish GR circulars.", tier: "Tier 2" },
                   { id: "Company Auditor", desc: "Manage corporate sliders, inspect milestone escrow uploads, and release tranches.", tier: "Tier 3" },
                   { id: "NGO Admin", desc: "Register NGO records, submit project proposals, and log served beneficiaries.", tier: "Tier 4" }
                 ].map((r, index) => (
-                  <tr key={index} className="hover:bg-slate-900/40">
-                    <td className="py-4 px-5 text-slate-250 font-bold flex items-center gap-2">
+                  <tr key={index}>
+                    <td className="font-bold text-slate-800 flex items-center gap-2">
                       <Lock size={14} className="text-[#f97316]" /> {r.id}
                     </td>
-                    <td className="py-4 px-5 text-slate-400 max-w-md leading-relaxed">{r.desc}</td>
-                    <td className="py-4 px-5 text-right font-bold text-indigo-650">{r.tier}</td>
+                    <td className="text-slate-600 text-xs max-w-md leading-relaxed">{r.desc}</td>
+                    <td className="text-right font-bold text-[#1e3a8a]">{r.tier}</td>
                   </tr>
                 ))}
               </tbody>
@@ -257,26 +269,27 @@ export default function AdminPanel({ params }: { params?: { tab?: string } }) {
       {activeTab === "permissions" && (
         <Card className="animate-fadeIn">
           <CardHeader>
-            <h3 className="font-heading font-bold text-xl text-slate-100">Roles Permission Toggles</h3>
+            <h3 className="govt-section-header">
+              <Sliders size={20} />
+              Roles Permission Toggles
+            </h3>
           </CardHeader>
-          <CardContent className="flex flex-col gap-6 text-xs font-semibold text-slate-400">
-            <div className="flex flex-col gap-4">
-              {[
-                { perm: "Verify NGO Credentials", roles: ["Superadmin", "Gov Auditor"] },
-                { perm: "Release Escrow Payments", roles: ["Superadmin", "Company Auditor"] },
-                { perm: "Publish Government Circulars", roles: ["Superadmin", "Gov Auditor"] },
-                { perm: "Modify Database Configurations", roles: ["Superadmin"] }
-              ].map((p, index) => (
-                <div key={index} className="flex justify-between items-center p-4 bg-slate-900 border border-slate-800 rounded-2xl">
-                  <span className="text-slate-200 font-bold">{p.perm}</span>
-                  <div className="flex gap-2">
-                    {p.roles.map((r, ri) => (
-                      <span key={ri} className="bg-indigo-50 border border-indigo-100 text-indigo-750 px-2.5 py-1 rounded-xl text-[10px] font-bold">{r}</span>
-                    ))}
-                  </div>
+          <CardContent className="flex flex-col gap-3">
+            {[
+              { perm: "Verify NGO Credentials", roles: ["Superadmin", "Gov Auditor"] },
+              { perm: "Release Escrow Payments", roles: ["Superadmin", "Company Auditor"] },
+              { perm: "Publish Government Circulars", roles: ["Superadmin", "Gov Auditor"] },
+              { perm: "Modify Database Configurations", roles: ["Superadmin"] }
+            ].map((p, index) => (
+              <div key={index} className="flex justify-between items-center p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                <span className="text-slate-800 font-bold text-sm">{p.perm}</span>
+                <div className="flex gap-2">
+                  {p.roles.map((r, ri) => (
+                    <span key={ri} className="govt-badge govt-badge-verified">{r}</span>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </CardContent>
         </Card>
       )}
@@ -285,25 +298,28 @@ export default function AdminPanel({ params }: { params?: { tab?: string } }) {
       {activeTab === "audit" && (
         <Card className="animate-fadeIn">
           <CardHeader>
-            <h3 className="font-heading font-bold text-xl text-slate-100">System Logs & Event Audits</h3>
+            <h3 className="govt-section-header">
+              <FileText size={20} />
+              System Logs & Event Audits
+            </h3>
           </CardHeader>
           <CardContent className="p-0 overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-350">
-              <thead className="text-xs uppercase text-slate-500 border-b border-slate-800 bg-slate-950/65 font-bold">
+            <table className="govt-table">
+              <thead>
                 <tr>
-                  <th className="py-3 px-5">Time</th>
-                  <th className="py-3 px-5">User</th>
-                  <th className="py-3 px-5">Action Logged</th>
-                  <th className="py-3 px-5 text-right">Client IP</th>
+                  <th>Time</th>
+                  <th>User</th>
+                  <th>Action Logged</th>
+                  <th className="text-right">Client IP</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800 font-medium">
+              <tbody>
                 {systemLogs.map((log, idx) => (
-                  <tr key={idx} className="hover:bg-slate-900/40">
-                    <td className="py-4 px-5 text-slate-500">{log.time}</td>
-                    <td className="py-4 px-5 text-slate-200 font-bold">{log.user}</td>
-                    <td className="py-4 px-5 text-slate-400">{log.action}</td>
-                    <td className="py-4 px-5 text-right text-indigo-650 font-bold">{log.ip}</td>
+                  <tr key={idx}>
+                    <td className="text-slate-500">{log.time}</td>
+                    <td className="font-bold text-slate-800">{log.user}</td>
+                    <td className="text-slate-600 text-xs">{log.action}</td>
+                    <td className="text-right font-bold text-[#1e3a8a]">{log.ip}</td>
                   </tr>
                 ))}
               </tbody>

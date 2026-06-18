@@ -50,25 +50,25 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
             exit={{ opacity: 0, scale: 0.95, y: 15 }}
             transition={{ type: "spring", duration: 0.3 }}
             className={cn(
-              "w-full max-w-lg glass-panel p-6 rounded-3xl z-10 flex flex-col gap-5 relative border border-white/10 shadow-glass",
+              "w-full max-w-lg bg-white p-6 rounded-xl border border-slate-200 shadow-xl z-10 flex flex-col gap-5 relative",
               className
             )}
           >
             
             {/* Header */}
-            <div className="flex justify-between items-center pb-2 border-b border-white/5">
-              <h3 className="font-heading font-extrabold text-2xl text-white tracking-tight">{title}</h3>
+            <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+              <h3 className="font-heading font-bold text-lg text-slate-900 tracking-tight">{title}</h3>
               <button 
                 onClick={onClose}
                 aria-label="Close modal"
-                className="text-zinc-500 hover:text-white transition-colors duration-150 p-1 rounded-lg hover:bg-white/5"
+                className="text-slate-400 hover:text-slate-700 transition-colors duration-150 p-1.5 rounded-lg hover:bg-slate-100"
               >
                 <X size={18} />
               </button>
             </div>
 
             {/* Content body */}
-            <div className="text-zinc-300 text-sm overflow-y-auto max-h-[70vh] pr-1">
+            <div className="text-slate-600 text-sm overflow-y-auto max-h-[70vh] pr-1">
               {children}
             </div>
 
