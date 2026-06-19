@@ -24,6 +24,7 @@ import auditRoutes from "./routes/auditRoutes";
 import documentRoutes from "./routes/documentRoutes";
 import reportRoutes from "./routes/reportRoutes";
 import adminRoutes from "./routes/adminRoutes";
+import onboardingRoutes from "./routes/onboardingRoutes";
 
 // Middlewares
 import { errorHandler } from "./middlewares/errorMiddleware";
@@ -67,6 +68,7 @@ app.use("/api/audit-logs", auditRoutes);
 app.use("/api/documents", documentRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/onboarding", onboardingRoutes);
 
 // Base route
 app.get("/", (req, res) => {

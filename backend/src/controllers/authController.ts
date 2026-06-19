@@ -43,6 +43,22 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
 
     // Create Profile depending on Role
     if (role === Role.NGO_ADMIN) {
+      // Check if NGO already exists
+      const existingNgo = await prisma.nGO.findFirst({
+        where: {
+          OR: [
+            { registrationNumber: profile.registrationNumber },
+            { pan: profile.pan }
+          ]
+        }
+      });
+
+      if (existingNgo) {
+        return res.status(400).json({
+          error: "NGO already registered with this Registration Number or PAN"
+        });
+      }
+
       const ngo = await prisma.nGO.create({
         data: {
           name: profile.name,
@@ -62,6 +78,23 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
       });
       createdNgoId = ngo.id;
     } else if (role === Role.COMPANY_ADMIN) {
+      // Check if Company already exists
+      const existingCompany = await prisma.company.findFirst({
+        where: {
+          OR: [
+            { cin: profile.cin },
+            { gst: profile.gst },
+            { pan: profile.pan }
+          ]
+        }
+      });
+
+      if (existingCompany) {
+        return res.status(400).json({
+          error: "Company already registered with this CIN, GST, or PAN"
+        });
+      }
+
       const company = await prisma.company.create({
         data: {
           name: profile.name,
