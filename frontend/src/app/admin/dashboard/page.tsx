@@ -65,7 +65,7 @@ export default function AdminDashboardPage() {
       />
 
       {/* KPI Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 18 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-[18px]">
         {kpis.map((kpi) => (
           <GovCard key={kpi.label}>
             <GovCardBody>
@@ -98,43 +98,45 @@ export default function AdminDashboardPage() {
           </div>
         </GovCardHeader>
         <GovCardBody>
-          <table className="gov-table">
-            <thead>
-              <tr>
-                <th>Application ID</th>
-                <th>Organization</th>
-                <th>State</th>
-                <th>Status</th>
-                <th>Risk</th>
-                <th>Assigned Reviewer</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentApplications.map((app) => (
-                <tr key={app.id}>
-                  <td>
-                    <strong>{app.id}</strong>
-                  </td>
-                  <td>{app.org}</td>
-                  <td>{app.state}</td>
-                  <td>
-                    <GovStatusBadge variant={app.statusVariant}>{app.status}</GovStatusBadge>
-                  </td>
-                  <td>{app.risk}</td>
-                  <td>{app.reviewer}</td>
-                  <td>
-                    <GovButton variant="secondary">Open</GovButton>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="gov-table">
+              <thead>
+                <tr>
+                  <th>Application ID</th>
+                  <th>Organization</th>
+                  <th>State</th>
+                  <th>Status</th>
+                  <th>Risk</th>
+                  <th>Assigned Reviewer</th>
+                  <th>Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {recentApplications.map((app) => (
+                  <tr key={app.id}>
+                    <td>
+                      <strong>{app.id}</strong>
+                    </td>
+                    <td>{app.org}</td>
+                    <td>{app.state}</td>
+                    <td>
+                      <GovStatusBadge variant={app.statusVariant}>{app.status}</GovStatusBadge>
+                    </td>
+                    <td>{app.risk}</td>
+                    <td>{app.reviewer}</td>
+                    <td>
+                      <GovButton variant="secondary">Open</GovButton>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </GovCardBody>
       </GovCard>
 
       {/* Quick Actions */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 18, marginTop: 18 }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-[18px] mt-[18px]">
         <GovCard>
           <GovCardHeader>
             <GovCardTitle>Pending Actions</GovCardTitle>

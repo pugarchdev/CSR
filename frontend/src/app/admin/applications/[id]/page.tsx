@@ -34,7 +34,7 @@ export default function AdminApplicationReviewPage({ params }: { params: Promise
         }
       />
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 360px", gap: 18 }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-[18px]">
         {/* Main Content */}
         <section>
           <GovCard>
@@ -44,108 +44,114 @@ export default function AdminApplicationReviewPage({ params }: { params: Promise
             <GovCardBody>
               <h4 className="gov-section-title">Organization Summary</h4>
 
-              <table className="gov-table">
-                <tbody>
-                  <tr>
-                    <th style={{ width: "30%" }}>Application ID</th>
-                    <td>{id}</td>
-                  </tr>
-                  <tr>
-                    <th>Legal Name</th>
-                    <td>Aarohan Rural Development Trust</td>
-                  </tr>
-                  <tr>
-                    <th>Entity Type</th>
-                    <td>Trust</td>
-                  </tr>
-                  <tr>
-                    <th>PAN</th>
-                    <td>AAAAA****F</td>
-                  </tr>
-                  <tr>
-                    <th>Registration Number</th>
-                    <td>MAH/2015/12345</td>
-                  </tr>
-                  <tr>
-                    <th>CSR-1 Status</th>
-                    <td>
-                      <GovStatusBadge variant="warning">Pending Verification</GovStatusBadge>
-                    </td>
-                  </tr>
-                  <tr>
-                    <th>District</th>
-                    <td>Pune</td>
-                  </tr>
-                  <tr>
-                    <th>FCRA Applicable</th>
-                    <td>No</td>
-                  </tr>
-                  <tr>
-                    <th>Submitted On</th>
-                    <td>15-Jun-2026</td>
-                  </tr>
-                </tbody>
-              </table>
+              <div className="overflow-x-auto">
+                <table className="gov-table">
+                  <tbody>
+                    <tr>
+                      <th style={{ width: "30%" }}>Application ID</th>
+                      <td>{id}</td>
+                    </tr>
+                    <tr>
+                      <th>Legal Name</th>
+                      <td>Aarohan Rural Development Trust</td>
+                    </tr>
+                    <tr>
+                      <th>Legal Type</th>
+                      <td>Trust</td>
+                    </tr>
+                    <tr>
+                      <th>PAN</th>
+                      <td>AAAAA****F</td>
+                    </tr>
+                    <tr>
+                      <th>Registration Number</th>
+                      <td>MAH/2015/12345</td>
+                    </tr>
+                    <tr>
+                      <th>CSR-1 Status</th>
+                      <td>
+                        <GovStatusBadge variant="warning">Pending Verification</GovStatusBadge>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>District</th>
+                      <td>Pune</td>
+                    </tr>
+                    <tr>
+                      <th>FCRA Applicable</th>
+                      <td>No</td>
+                    </tr>
+                    <tr>
+                      <th>Submitted On</th>
+                      <td>15-Jun-2026</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
 
               <h4 className="gov-section-title" style={{ marginTop: 24 }}>Document Verification</h4>
 
-              <table className="gov-table">
-                <thead>
-                  <tr>
-                    <th>Document</th>
-                    <th>Status</th>
-                    <th>Risk</th>
-                    <th>Reviewer Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mockDocuments.map((doc) => (
-                    <tr key={doc.name}>
-                      <td>{doc.name}</td>
-                      <td>
-                        <GovStatusBadge variant={doc.statusVariant}>{doc.status}</GovStatusBadge>
-                      </td>
-                      <td>{doc.risk}</td>
-                      <td>
-                        <GovButton variant="secondary">Review</GovButton>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="gov-table">
+                  <thead>
+                    <tr>
+                      <th>Document</th>
+                      <th>Status</th>
+                      <th>Risk</th>
+                      <th>Reviewer Action</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {mockDocuments.map((doc) => (
+                      <tr key={doc.name}>
+                        <td>{doc.name}</td>
+                        <td>
+                          <GovStatusBadge variant={doc.statusVariant}>{doc.status}</GovStatusBadge>
+                        </td>
+                        <td>{doc.risk}</td>
+                        <td>
+                          <GovButton variant="secondary">Review</GovButton>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
               <h4 className="gov-section-title" style={{ marginTop: 24 }}>Bank Account Details</h4>
 
-              <table className="gov-table">
-                <tbody>
-                  <tr>
-                    <th style={{ width: "30%" }}>Account Holder</th>
-                    <td>Aarohan Rural Development Trust</td>
-                  </tr>
-                  <tr>
-                    <th>Bank Name</th>
-                    <td>State Bank of India</td>
-                  </tr>
-                  <tr>
-                    <th>Branch</th>
-                    <td>Pune Main Branch</td>
-                  </tr>
-                  <tr>
-                    <th>Account Number</th>
-                    <td>****6789</td>
-                  </tr>
-                  <tr>
-                    <th>IFSC Code</th>
-                    <td>SBIN0001234</td>
-                  </tr>
-                  <tr>
-                    <th>Verification Status</th>
-                    <td>
-                      <GovStatusBadge variant="warning">Pending Penny Drop</GovStatusBadge>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <div className="overflow-x-auto">
+                <table className="gov-table">
+                  <tbody>
+                    <tr>
+                      <th style={{ width: "30%" }}>Account Holder</th>
+                      <td>Aarohan Rural Development Trust</td>
+                    </tr>
+                    <tr>
+                      <th>Bank Name</th>
+                      <td>State Bank of India</td>
+                    </tr>
+                    <tr>
+                      <th>Branch</th>
+                      <td>Pune Main Branch</td>
+                    </tr>
+                    <tr>
+                      <th>Account Number</th>
+                      <td>****6789</td>
+                    </tr>
+                    <tr>
+                      <th>IFSC Code</th>
+                      <td>SBIN0001234</td>
+                    </tr>
+                    <tr>
+                      <th>Verification Status</th>
+                      <td>
+                        <GovStatusBadge variant="warning">Pending Penny Drop</GovStatusBadge>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </GovCardBody>
           </GovCard>
         </section>

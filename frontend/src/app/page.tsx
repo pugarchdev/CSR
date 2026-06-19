@@ -1,25 +1,76 @@
 import Link from "next/link";
-import { ArrowRight, Building2, CheckCircle2, ClipboardList, FileText, Landmark, MapPin, ShieldCheck, Users } from "lucide-react";
+import {
+  ArrowRight,
+  BarChart3,
+  Building2,
+  CheckCircle2,
+  ClipboardCheck,
+  CloudUpload,
+  FileCheck2,
+  Headphones,
+  Landmark,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
+import HeroSection from "@/components/HeroSection";
+import GisMap from "@/components/GisMap";
 
-const serviceCards = [
+const workflow = [
+  {
+    title: "Register",
+    detail: "Register as NGO, Company, or Government Entity",
+    icon: Users,
+  },
+  {
+    title: "Onboard",
+    detail: "Complete onboarding and upload statutory documents",
+    icon: CloudUpload,
+  },
+  {
+    title: "Verify",
+    detail: "Administrator verifies documents before approval",
+    icon: ShieldCheck,
+  },
+  {
+    title: "Approve & Publish",
+    detail: "Approved entities can publish proposals and manage CSR",
+    icon: CheckCircle2,
+  },
+];
+
+const roleCards = [
   {
     title: "For NGOs",
     detail: "Register credentials, maintain CSR-1 records, publish proposals, and submit milestone evidence.",
+    action: "Register as NGO",
     href: "/register",
-    icon: Landmark,
+    icon: Users,
+    tone: "green",
   },
   {
     title: "For Corporates",
     detail: "Discover verified projects, track recommended matches, approve tranches, and generate reports.",
-    href: "/marketplace",
+    action: "Register as Corporate",
+    href: "/register",
     icon: Building2,
+    tone: "blue",
   },
   {
     title: "For Government Entities",
-    detail: "Register a department, district office, or local body for restricted access after administrator approval.",
+    detail: "Register departments, district offices, or local bodies for restricted access and approval workflows.",
+    action: "Register as Government Entity",
     href: "/register",
-    icon: ShieldCheck,
+    icon: Landmark,
+    tone: "orange",
   },
+];
+
+const stats = [
+  ["11,000+", "Beneficiaries Served", "+ 18% YoY"],
+  ["10.92 Cr+", "Allocated CSR Funds", "+ 23% YoY"],
+  ["6,000+", "Active Projects", "+ 15% YoY"],
+  ["5,000+", "Active NGOs", "+ 20% YoY"],
+  ["36", "Districts Covered", "100% Maharashtra"],
 ];
 
 const recommendations = [
@@ -29,178 +80,223 @@ const recommendations = [
   "Create an officer review queue with SLA labels for pending NGO, company, and project approvals.",
 ];
 
+const notices = [
+  ["CSR policy notices published by authorized officers", "Policy Notice", "Official", "15 May 2025"],
+  ["CSR-1, Darpan, PAN, 12A/80G, GST, and board authorization guidance", "Document Checklist", "Reference", "10 May 2025"],
+  ["Entity approvals, rejections, and query notices after administrative verification", "Approval Orders", "Workflow", "08 May 2025"],
+];
+
+const pillars = [
+  {
+    title: "Credential Verification",
+    detail: "Verify CSR-1, NGO Darpan, PAN, 12A/80G, audited statements, and office location checks.",
+    icon: ShieldCheck,
+  },
+  {
+    title: "Matching & Approval",
+    detail: "Project proposals ranked by focus area, district priority, budget fit, and implementation history.",
+    icon: ClipboardCheck,
+  },
+  {
+    title: "Milestone Monitoring",
+    detail: "Evidence upload, officer review, tranche readiness, audit trail, and downloadable compliance reports.",
+    icon: BarChart3,
+  },
+];
+
+const cardTone = {
+  green: "border-emerald-200 bg-emerald-50/45 text-emerald-700",
+  blue: "border-blue-200 bg-blue-50/55 text-blue-700",
+  orange: "border-orange-200 bg-orange-50/55 text-orange-700",
+};
+
 export default function LandingPage() {
   return (
-    <div className="bg-[#f6f8fb] text-gov-ink">
-      <section className="border-b border-gov-line bg-white">
-        <div className="h-1.5 bg-gradient-to-r from-[#FF9933] via-white to-[#138808]" />
-        <div className="mx-auto max-w-7xl px-6 py-12 md:px-10 lg:py-16">
-          <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
-            <div className="flex flex-col gap-6">
-              <div className="w-fit border border-gov-line bg-gov-mist px-3 py-1 text-xs font-bold uppercase tracking-wide text-gov-blue">
-                Government of Maharashtra | CSR Facilitation Portal
-              </div>
-              <div className="flex flex-col gap-4">
-                <h1 className="max-w-4xl text-4xl font-extrabold leading-[1.08] text-gov-navy md:text-5xl">
-                  MahaCSR single window for verified CSR funding, monitoring, and public accountability.
-                </h1>
-                <p className="max-w-3xl text-base leading-7 text-gov-muted">
-                  A formal state portal for connecting eligible corporate CSR capital with verified NGOs, district
-                  priorities, milestone evidence, and official compliance reporting under Section 135.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <Link
-                  href="/marketplace"
-                  className="inline-flex min-h-10 items-center gap-2 bg-gov-blue px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-gov-navy"
-                >
-                  View CSR Directory <ArrowRight size={16} />
-                </Link>
-                <Link
-                  href="/knowledge"
-                  className="inline-flex min-h-10 items-center gap-2 border border-gov-blue bg-white px-5 py-2.5 text-sm font-bold text-gov-blue hover:bg-[#e8f0f8]"
-                >
-                  Compliance Helpdesk
-                </Link>
-              </div>
-            </div>
+    <div className="bg-[#f5f7fb] text-[#10244a]">
+      <HeroSection />
 
-            <div className="border border-gov-line bg-white p-6 shadow-sm">
-              <div className="border-b border-gov-line pb-4">
-                <span className="text-xs font-bold uppercase tracking-wide text-gov-muted">Public register workflow</span>
-                <h2 className="mt-1 text-xl font-extrabold text-gov-navy">Registration and approval workflow</h2>
-              </div>
-              <div className="mt-5 grid grid-cols-1 gap-3.5">
-                {[
-                  ["1", "Register as NGO, company, or government entity"],
-                  ["2", "Complete onboarding and upload statutory documents"],
-                  ["3", "Admin verifies documents before account approval"],
-                  ["4", "Approved entities can publish proposals or manage CSR projects"],
-                ].map(([value, label]) => (
-                  <div key={label} className="flex gap-3 border border-gov-line bg-gov-mist p-3">
-                    <div className="grid h-8 w-8 shrink-0 place-items-center bg-gov-blue text-sm font-extrabold text-white">{value}</div>
-                    <div className="text-sm font-semibold leading-6 text-slate-700">{label}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 border border-amber-200 bg-amber-50 p-3 text-xs font-semibold leading-5 text-amber-900">
-                Public statistics should be displayed only from approved records and audited reports.
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <main className="mx-auto flex max-w-7xl flex-col gap-10 px-6 py-12 md:px-10">
-        <section className="grid grid-cols-1 gap-5 md:grid-cols-3">
-          {serviceCards.map((card) => (
-            <Link
-              href={card.href}
-              key={card.title}
-              className="border border-gov-line bg-white p-6 shadow-sm transition hover:border-gov-blue hover:shadow-md hover:no-underline"
-            >
-              <div className="grid h-11 w-11 place-items-center border border-amber-200 bg-amber-50 text-gov-saffron">
-                <card.icon size={22} />
-              </div>
-              <h2 className="mt-4 text-lg font-extrabold text-gov-navy">{card.title}</h2>
-              <p className="mt-2 text-sm leading-6 text-gov-muted">{card.detail}</p>
-            </Link>
-          ))}
-        </section>
-
-        <section className="grid grid-cols-1 gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="border border-gov-line bg-white p-6 shadow-sm">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-gov-saffron">
-              <ClipboardList size={16} /> Portal recommendations
-            </div>
-            <h2 className="mt-3 text-2xl font-extrabold text-gov-navy">Recommended improvements for stronger governance</h2>
-            <div className="mt-5 flex flex-col gap-3">
-              {recommendations.map((item) => (
-                <div key={item} className="flex gap-3 border border-gov-line bg-gov-mist p-3 text-sm leading-6 text-slate-700">
-                  <CheckCircle2 className="mt-1 shrink-0 text-gov-green" size={16} />
-                  <span>{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="border border-gov-line bg-white p-6 shadow-sm">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-gov-blue">
-              <FileText size={16} /> Circulars and notices
-            </div>
-            <div className="mt-5 flex flex-col divide-y divide-gov-line border border-gov-line">
-              {[
-                ["CSR policy notices", "Government resolutions and circulars published by authorized officers", "Official"],
-                ["Document checklists", "CSR-1, Darpan, PAN, 12A/80G, CIN, GST, and board authorization guidance", "Reference"],
-                ["Approval orders", "Entity approvals, rejections, and query notices after administrative verification", "Workflow"],
-              ].map(([code, title, date]) => (
-                <div key={code} className="grid grid-cols-1 gap-2 bg-white p-4 md:grid-cols-[150px_1fr_100px]">
-                  <span className="text-xs font-extrabold text-gov-blue">{code}</span>
-                  <span className="text-sm font-semibold text-slate-800">{title}</span>
-                  <span className="text-xs font-bold text-gov-muted md:text-right">{date}</span>
-                </div>
-              ))}
-            </div>
-            <Link href="/about/circulars" className="mt-4 inline-flex text-sm font-bold text-gov-blue">
-              View all circulars
-            </Link>
-          </div>
-        </section>
-
-        <section className="border border-gov-line bg-white p-6 shadow-sm">
-          <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+      <main className="mx-auto flex w-full max-w-[1180px] flex-col gap-6 px-4 pb-10 pt-8 sm:px-6 md:px-8 lg:pt-14">
+        <section className="rounded-lg border border-[#d8e2ef] bg-white p-4 shadow-[0_8px_26px_rgba(15,35,70,0.06)] sm:p-5 md:p-6">
+          <div className="flex flex-col gap-4 border-b border-[#d8e2ef] pb-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-gov-saffron">
-                <MapPin size={16} /> District view
-              </div>
-              <h2 className="mt-2 text-2xl font-extrabold text-gov-navy">District CSR register</h2>
+              <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#456aa4]">Registration & Approval Workflow</div>
+              <h2 className="mt-1 break-words text-xl font-extrabold leading-tight text-[#102c60] sm:text-2xl">From Registration to Approval</h2>
             </div>
-            <p className="max-w-xl text-sm leading-6 text-gov-muted">
-              District data should be published only after records are approved by the administrative verification workflow.
-            </p>
+            <div className="rounded-md border border-[#d8e2ef] bg-[#f8fbff] px-4 py-3 text-xs font-semibold leading-5 text-[#48627f] md:max-w-[390px]">
+              Public statistics are displayed only from approved records and audited reports.
+            </div>
           </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            {[
-              ["Verified entities", "Published after document approval by the admin desk."],
-              ["Approved project shelf", "Projects become visible after proposal review and sanction."],
-              ["CSR utilization", "District-wise utilization is generated from audited reports."],
-            ].map(([title, detail]) => (
-              <div key={title} className="border border-gov-line bg-gov-mist p-4">
-                <h3 className="text-sm font-extrabold text-gov-navy">{title}</h3>
-                <p className="mt-2 text-xs leading-6 text-gov-muted">{detail}</p>
+
+          <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {workflow.map((step, index) => (
+              <div key={step.title} className="relative rounded-md border border-[#cfdcf0] bg-[#f9fbff] p-5">
+                <div className="absolute -top-4 left-1/2 grid h-8 w-8 -translate-x-1/2 place-items-center rounded-full bg-[#245ddc] text-xs font-extrabold text-white shadow-md">
+                  {index + 1}
+                </div>
+                <step.icon className="mt-3 text-[#2464e8]" size={28} />
+                <h3 className="mt-3 text-sm font-extrabold text-[#112c62]">{step.title}</h3>
+                <p className="mt-1 text-[11px] font-medium leading-5 text-[#516986]">{step.detail}</p>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="grid grid-cols-1 gap-5 md:grid-cols-3">
-          {[
-            ["Credential verification", "CSR-1, NGO Darpan, PAN, 12A/80G, audited statements, and office location checks."],
-            ["Matching and approval", "Project proposals ranked by focus area, district priority, budget fit, and implementation history."],
-            ["Milestone monitoring", "Evidence upload, officer review, tranche readiness, audit trail, and downloadable compliance reports."],
-          ].map(([title, detail], index) => (
-            <div key={title} className="border border-gov-line bg-white p-6 shadow-sm">
-              <div className="text-3xl font-extrabold text-slate-400">0{index + 1}</div>
-              <h3 className="mt-2 text-lg font-extrabold text-gov-navy">{title}</h3>
-              <p className="mt-2 text-sm leading-6 text-gov-muted">{detail}</p>
-            </div>
-          ))}
+        <section className="rounded-lg border border-[#d8e2ef] bg-white p-4 shadow-[0_8px_26px_rgba(15,35,70,0.06)] sm:p-5 md:p-6">
+          <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#456aa4]">Access by Role</div>
+          <h2 className="mt-1 break-words text-xl font-extrabold leading-tight text-[#102c60] sm:text-2xl">Choose your role to get started</h2>
+          <div className="mt-5 grid gap-5 lg:grid-cols-3">
+            {roleCards.map((card) => (
+              <Link
+                key={card.title}
+                href={card.href}
+                className={`rounded-md border p-6 transition hover:-translate-y-0.5 hover:shadow-md hover:no-underline ${cardTone[card.tone as keyof typeof cardTone]}`}
+              >
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center lg:flex-col lg:items-start xl:flex-row xl:items-center">
+                  <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full border border-current/20 bg-white/75">
+                    <card.icon size={34} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold">{card.title}</h3>
+                    <p className="mt-2 text-xs font-medium leading-5 text-slate-600">{card.detail}</p>
+                    <span className="mt-5 inline-flex items-center gap-2 text-xs font-extrabold">
+                      {card.action} <ArrowRight size={14} />
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
         </section>
 
-        <section className="border border-gov-blue bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-            <div>
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-gov-saffron">
-                <Users size={16} /> Public service desk
+        <section className="rounded-lg border border-[#d8e2ef] bg-white p-4 shadow-[0_8px_26px_rgba(15,35,70,0.06)] sm:p-5 md:p-6">
+          <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#456aa4]">MahaCSR at a Glance</div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            {stats.map(([value, label, delta], index) => (
+              <div key={label} className="rounded-md border border-[#d8e2ef] bg-white p-4">
+                <div className="flex items-center gap-3">
+                  <div className={`grid h-10 w-10 place-items-center rounded-md ${index === 1 ? "bg-orange-50 text-orange-600" : "bg-blue-50 text-blue-600"}`}>
+                    {index === 1 ? <FileCheck2 size={20} /> : <Users size={20} />}
+                  </div>
+                  <div>
+                    <div className="text-xl font-extrabold text-[#102c60]">{value}</div>
+                    <div className="text-xs font-semibold text-[#516986]">{label}</div>
+                  </div>
+                </div>
+                <div className="mt-3 text-[11px] font-extrabold text-emerald-700">{delta}</div>
               </div>
-              <h2 className="mt-2 text-2xl font-extrabold text-gov-navy">Need help with registration, CSR filings, or project approval?</h2>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-gov-muted">
-                Use the knowledge center for templates, compliance guidance, support tickets, and official helpdesk chat.
-              </p>
+            ))}
+          </div>
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+          <div className="rounded-lg border border-[#d8e2ef] bg-white p-4 shadow-[0_8px_26px_rgba(15,35,70,0.06)] sm:p-5 md:p-6">
+            <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#456aa4]">Recommended Improvements for Stronger Governance</div>
+            <div className="mt-5 flex flex-col gap-3">
+              {recommendations.map((item) => (
+                <div key={item} className="flex items-center gap-3 rounded-md border border-[#d8e2ef] bg-white p-3">
+                  <CheckCircle2 className="shrink-0 text-emerald-600" size={18} />
+                  <p className="flex-1 text-sm font-semibold leading-6 text-[#364d69]">{item}</p>
+                  <ArrowRight className="shrink-0 text-[#245ddc]" size={17} />
+                </div>
+              ))}
             </div>
-            <Link href="/knowledge" className="inline-flex min-h-10 items-center justify-center bg-gov-blue px-5 py-2.5 text-sm font-bold text-white hover:bg-gov-navy">
-              Open Knowledge Center
+            <div className="mt-5 text-center">
+              <Link href="/reports" className="inline-flex min-h-10 items-center rounded-md border border-[#cfdcf0] px-5 text-xs font-extrabold text-[#245ddc] hover:bg-blue-50 hover:no-underline">
+                View All Recommendations
+              </Link>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-[#d8e2ef] bg-white p-4 shadow-[0_8px_26px_rgba(15,35,70,0.06)] sm:p-5 md:p-6">
+            <div className="flex items-center justify-between">
+              <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#456aa4]">Circulars & Notices</div>
+              <Link href="/circulars" className="text-xs font-extrabold text-[#245ddc] hover:no-underline">View All</Link>
+            </div>
+            <div className="mt-5 flex flex-wrap gap-3 border-b border-[#d8e2ef] pb-3 text-xs font-extrabold">
+              <span className="rounded bg-[#245ddc] px-4 py-2 text-white">All</span>
+              <span className="px-2 py-2 text-[#4c6380]">Policy Notices</span>
+              <span className="px-2 py-2 text-[#4c6380]">Government Resolutions</span>
+              <span className="px-2 py-2 text-[#4c6380]">Circulars</span>
+            </div>
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full min-w-[620px] border-collapse text-left text-xs">
+                <thead className="bg-[#f8fbff] text-[#102c60]">
+                  <tr>
+                    <th className="border border-[#d8e2ef] px-3 py-3">Title</th>
+                    <th className="border border-[#d8e2ef] px-3 py-3">Category</th>
+                    <th className="border border-[#d8e2ef] px-3 py-3">Type</th>
+                    <th className="border border-[#d8e2ef] px-3 py-3">Date</th>
+                  </tr>
+                </thead>
+                <tbody className="text-[#4c6380]">
+                  {notices.map(([title, category, type, date]) => (
+                    <tr key={title}>
+                      <td className="border border-[#d8e2ef] px-3 py-3 font-semibold">{title}</td>
+                      <td className="border border-[#d8e2ef] px-3 py-3">{category}</td>
+                      <td className="border border-[#d8e2ef] px-3 py-3">{type}</td>
+                      <td className="border border-[#d8e2ef] px-3 py-3">{date}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Link href="/circulars" className="mt-5 inline-flex min-h-10 items-center rounded-md border border-[#cfdcf0] px-5 text-xs font-extrabold text-[#245ddc] hover:bg-blue-50 hover:no-underline">
+              View All Notices & Circulars
             </Link>
+          </div>
+        </section>
+
+        <section className="rounded-lg border border-[#d8e2ef] bg-white p-4 shadow-[0_8px_26px_rgba(15,35,70,0.06)] sm:p-5 md:p-6">
+          <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#456aa4]">District CSR Register</div>
+              <h2 className="mt-1 break-words text-lg font-extrabold text-[#102c60]">Visualize CSR activity across Maharashtra</h2>
+          <div className="mt-5">
+            <GisMap />
+          </div>
+        </section>
+
+        <section className="rounded-lg border border-[#d8e2ef] bg-white p-5 shadow-[0_8px_26px_rgba(15,35,70,0.06)] md:p-6">
+          <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#456aa4]">Our Process Pillars</div>
+          <h2 className="mt-1 text-lg font-extrabold text-[#102c60]">How MahaCSR drives accountable impact</h2>
+          <div className="mt-5 grid gap-5 lg:grid-cols-3">
+            {pillars.map((pillar, index) => (
+              <div key={pillar.title} className="rounded-md border border-[#d8e2ef] bg-white p-5">
+                <div className="flex items-start gap-5">
+                  <div className="relative grid h-16 w-16 shrink-0 place-items-center rounded-full border border-blue-100 bg-blue-50 text-[#245ddc]">
+                    <span className="absolute -left-2 -top-2 grid h-7 w-7 place-items-center rounded-full bg-[#245ddc] text-[11px] font-extrabold text-white">0{index + 1}</span>
+                    <pillar.icon size={30} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-extrabold text-[#102c60]">{pillar.title}</h3>
+                    <p className="mt-2 text-xs font-medium leading-5 text-[#516986]">{pillar.detail}</p>
+                    <Link href="/knowledge" className="mt-4 inline-flex items-center gap-2 text-xs font-extrabold text-[#245ddc] hover:no-underline">
+                      Learn more <ArrowRight size={14} />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-lg bg-[#062a5d] px-6 py-6 text-white shadow-[0_12px_30px_rgba(6,42,93,0.2)] md:px-8">
+          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
+              <Headphones className="shrink-0 text-blue-100" size={44} />
+              <div>
+                <h2 className="text-xl font-extrabold">Need help with registration, CSR filings, or project approval?</h2>
+                <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-blue-100">
+                  Use the knowledge center for templates, compliance guidance, support tickets, and official helpdesk chat.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Link href="/knowledge" className="inline-flex min-h-11 items-center rounded-md border border-white/45 px-5 text-sm font-extrabold text-white hover:bg-white/10 hover:no-underline">
+                Knowledge Center
+              </Link>
+              <Link href="/contact" className="inline-flex min-h-11 items-center rounded-md bg-[#ff7a1a] px-5 text-sm font-extrabold text-white hover:bg-[#ea6508] hover:no-underline">
+                Contact Helpdesk
+              </Link>
+            </div>
           </div>
         </section>
       </main>

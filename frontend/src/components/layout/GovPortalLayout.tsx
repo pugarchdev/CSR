@@ -36,7 +36,7 @@ const navGroups: NavGroup[] = [
     roles: ["SUPER_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN"],
     links: [
       { label: "Dashboard", to: "/admin/dashboard" },
-      { label: "Users", to: "/admin/users" },
+      { label: "Users", to: "/admin/users-roles" },
       { label: "NGO Registry", to: "/admin/ngo-registry" },
       { label: "Companies", to: "/admin/companies" },
       { label: "Projects", to: "/admin/projects" },

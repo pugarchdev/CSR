@@ -221,9 +221,9 @@ export default function ImpactSphere() {
   }, []);
 
   return (
-    <div className="relative w-full h-[500px] flex items-center justify-center">
+    <div className="relative w-full h-[320px] md:h-[450px] lg:h-[500px] flex items-center justify-center">
       {/* Decorative Blur Ring background */}
-      <div className="absolute w-72 h-72 rounded-full bg-blue-50 filter blur-3xl pointer-events-none" />
+      <div className="absolute w-72 h-72 rounded-full bg-indigo-500/10 filter blur-3xl pointer-events-none" />
       <div ref={containerRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
     </div>
   );

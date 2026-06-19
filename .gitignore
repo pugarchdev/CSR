@@ -58,3 +58,9 @@ tmp/
 temp/
 graphify-out
 hooks.json
+
+# Chrome profiles and browser dev tools caches
+.chrome-profile-*/
+.chrome-profile-mobile-*/
+.chrome-profile-mobile-5/
+

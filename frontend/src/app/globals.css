@@ -319,3 +319,48 @@ body {
 .csr-directory-page .active {
   color: #d97706;
 }
+
+/* Hero Section Namespace Overrides to bypass global light-mode forces */
+.hero-section-wrap [class*="text-slate-50"],
+.hero-section-wrap [class*="text-slate-100"] {
+  color: #f8fafc !important;
+}
+
+.hero-section-wrap [class*="text-slate-200"] {
+  color: #e2e8f0 !important;
+}
+
+.hero-section-wrap [class*="text-slate-300"] {
+  color: #cbd5e1 !important;
+}
+
+.hero-section-wrap [class*="text-slate-450"],
+.hero-section-wrap [class*="text-slate-400"] {
+  color: #94a3b8 !important;
+}
+
+.hero-section-wrap [class*="bg-slate-900"] {
+  background-color: #0f172a !important;
+}
+
+.hero-section-wrap [class*="border-slate-800"] {
+  border-color: #1e293b !important;
+}
+
+.hero-section-bg {
+  background-image: linear-gradient(to right, rgba(9, 21, 46, 0.70), rgba(15, 30, 65, 0.40)), url('/mahacsr_hero_bg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Animations for premium user experience */
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(0.98); }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 4s ease-in-out infinite;
+}
+

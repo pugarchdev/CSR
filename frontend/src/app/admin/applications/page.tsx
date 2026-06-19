@@ -101,7 +101,7 @@ export default function ApplicationsListPage() {
       />
 
       {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <GovCard>
           <GovCardBody>
             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--gov-text-muted)", marginBottom: 8 }}>
@@ -147,7 +147,7 @@ export default function ApplicationsListPage() {
       {/* Filters */}
       <GovCard style={{ marginBottom: 24 }}>
         <GovCardBody>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 16, alignItems: "end" }}>
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-end">
             <div>
               <label style={{ display: "block", marginBottom: 6, fontSize: 12, fontWeight: 700 }}>
                 Search Applications

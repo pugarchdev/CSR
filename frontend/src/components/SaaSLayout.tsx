@@ -7,7 +7,7 @@ import {
   Building2, Landmark, Search, Bell, Mail, ChevronLeft, ChevronRight,
   Layers, Sparkles, Award, Coins, Compass, FileText, BarChart2,
   HelpCircle, Menu, X, LogOut, ShieldCheck, BookOpen, ShieldAlert,
-  Clock, Users
+  Clock, Users, Globe2, ChevronDown, ArrowUp, MapPin, Phone
 } from "lucide-react";
 import { Button } from "./ui/Button";
 import { apiFetch, getStoredUser } from "@/lib/api";
@@ -172,13 +172,13 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
     if (pathname.startsWith("/admin")) {
       return [
         { label: "Dashboard", href: "/admin/dashboard", icon: Layers },
-        { label: "Users", href: "/admin/users", icon: Users },
-        { label: "NGO Registry", href: "/admin/ngos", icon: Landmark },
+        { label: "Users", href: "/admin/users-roles", icon: Users },
+        { label: "NGO Registry", href: "/admin/ngo-registry", icon: Landmark },
         { label: "Companies", href: "/admin/companies", icon: Building2 },
         { label: "Projects", href: "/admin/projects", icon: Compass },
-        { label: "Verification Queue", href: "/admin/queue", icon: Clock },
+        { label: "Verification Queue", href: "/admin/applications", icon: Clock },
         { label: "Reports", href: "/admin/reports", icon: BarChart2 },
-        { label: "Audit Trail", href: "/admin/audit", icon: FileText }
+        { label: "Audit Trail", href: "/admin/audit-trail", icon: FileText }
       ];
     }
 
@@ -195,36 +195,58 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#f6f8fb] text-slate-900 font-sans">
-      
-      {/* Tri-color Top Ribbon */}
-      <div className="fixed top-0 left-0 right-0 h-1 z-[60] bg-gradient-to-r from-[#FF9933] via-white to-[#138808]" />
+      {!isDashboard && (
+        <div className="bg-[#062a5d] text-white">
+          <div className="mx-auto flex min-h-9 max-w-[1180px] flex-wrap items-center justify-between gap-3 px-4 text-[11px] font-semibold sm:px-6 md:px-8">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-extrabold leading-none">MH</span>
+              <span>Government of Maharashtra</span>
+              <span className="hidden opacity-70 sm:inline">| Maharashtra Government</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <a href="#main-content" className="hidden text-white hover:text-white hover:no-underline md:inline">Skip to main content</a>
+              <span className="font-extrabold">A+</span>
+              <span className="font-extrabold">A</span>
+              <span className="font-extrabold">A-</span>
+              <span className="inline-flex items-center gap-1"><Globe2 size={13} /> English <ChevronDown size={12} /></span>
+            </div>
+          </div>
+        </div>
+      )}
 
-      {/* Sticky Navbar */}
-      <header className="fixed top-1 left-0 right-0 h-[68px] z-50 bg-white border-b border-gov-line flex justify-between items-center px-6 md:px-10 shadow-sm">
-        
+      {isDashboard && <div className="fixed top-0 left-0 right-0 h-1 z-[60] bg-gradient-to-r from-[#FF9933] via-white to-[#138808]" />}
+
+      <header
+        className={
+          isDashboard
+            ? "fixed top-1 left-0 right-0 h-[68px] z-50 bg-white border-b border-gov-line flex justify-between items-center px-6 md:px-10 shadow-sm"
+            : "sticky top-0 z-50 border-b border-[#d8e2ef] bg-white shadow-sm"
+        }
+      >
+        <div className={isDashboard ? "contents" : "mx-auto flex h-[80px] max-w-[1180px] items-center justify-between gap-3 px-4 sm:px-6 md:px-8"}>
         {/* Brand Logo */}
         <div className="flex items-center gap-4">
-          {isDashboard && (
-            <button 
-              className="lg:hidden text-slate-500 hover:text-slate-700"
-              onClick={() => setMobileMenuOpen(true)}
-            >
-              <Menu size={20} />
-            </button>
-          )}
+          <button 
+            className="lg:hidden text-slate-500 hover:text-slate-700 focus:outline-none"
+            onClick={() => setMobileMenuOpen(true)}
+            aria-label="Toggle Navigation Menu"
+          >
+            <Menu size={20} />
+          </button>
           
-          <Link href="/" className="flex items-center gap-3">
-            <svg viewBox="0 0 100 100" className="w-9 h-9" fill="none" stroke="currentColor">
+          <Link href="/" className="flex min-w-0 items-center gap-3 hover:no-underline">
+            <svg viewBox="0 0 100 100" className={isDashboard ? "w-9 h-9" : "h-10 w-10 sm:h-12 sm:w-12"} fill="none" stroke="currentColor">
               <polygon points="50,5 82,18 95,50 82,82 50,95 18,82 5,50 18,18" stroke="#1e3a8a" strokeWidth="4.5" fill="#eff6ff" />
               <path d="M28,32 L72,32 M32,44 L68,44 M28,56 L72,56 M36,68 L64,68" stroke="#f97316" strokeWidth="3" strokeLinecap="round" />
               <path d="M42,80 L58,80" stroke="#1e3a8a" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
-            <div className="flex flex-col leading-none">
-              <span className="font-heading font-extrabold text-lg tracking-tight text-[#1e3a8a]">
+            <div className="flex min-w-0 flex-col leading-none">
+              <span className={isDashboard ? "font-heading font-extrabold text-lg tracking-tight text-[#1e3a8a]" : "font-heading text-[22px] font-extrabold tracking-tight text-[#1e3a8a] sm:text-[28px]"}>
                 Maha<span className="text-[#f97316]">CSR</span>
               </span>
-              <span className="text-[8px] text-gray-500 tracking-wider font-extrabold mt-0.5 uppercase">
-                Govt. of Maharashtra | महाराष्ट्र शासन
+              <span className={isDashboard ? "text-[8px] text-gray-500 tracking-wider font-extrabold mt-0.5 uppercase" : "mt-1 hidden text-[11px] font-semibold leading-4 text-[#607086] min-[380px]:block"}>
+                {isDashboard ? "Government of Maharashtra" : "Corporate Social Responsibility Portal"}
+                {!isDashboard && <span className="block">Government of Maharashtra</span>}
               </span>
             </div>
           </Link>
@@ -232,11 +254,12 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
 
         {/* Public Navigation */}
         {!isDashboard && (
-          <nav className="hidden md:flex items-center gap-8 text-xs font-bold text-slate-600">
-            <Link href="/" className="hover:text-gov-blue transition-colors">Home</Link>
-            <Link href="/about" className="hover:text-gov-blue transition-colors">About Mandate</Link>
-            <Link href="/marketplace" className="hover:text-gov-blue transition-colors">Directories</Link>
-            <Link href="/knowledge" className="hover:text-gov-blue transition-colors">Knowledge Center</Link>
+          <nav className="hidden items-center gap-4 text-xs font-extrabold text-[#283d5c] lg:flex xl:gap-6">
+            <Link href="/" className="border-b-2 border-[#245ddc] px-1 py-8 text-[#245ddc] hover:no-underline">Home</Link>
+            <Link href="/about" className="inline-flex items-center gap-1 py-8 hover:text-[#245ddc] hover:no-underline">About MahaCSR <ChevronDown size={13} /></Link>
+            <Link href="/marketplace" className="inline-flex items-center gap-1 py-8 hover:text-[#245ddc] hover:no-underline">Directories <ChevronDown size={13} /></Link>
+            <Link href="/knowledge" className="inline-flex items-center gap-1 py-8 hover:text-[#245ddc] hover:no-underline">Knowledge Center <ChevronDown size={13} /></Link>
+            {/* <Link href="/reports" className="inline-flex items-center gap-1 py-8 hover:text-[#245ddc] hover:no-underline">Reports & Data <ChevronDown size={13} /></Link> */}
           </nav>
         )}
 
@@ -251,7 +274,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
             />
             <Search size={14} className="absolute left-3 text-slate-400" />
             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-0.5 pointer-events-none select-none text-[10px] font-extrabold text-slate-400 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded-md">
-              <span>⌘</span>
+              <span>Ctrl</span>
               <span>K</span>
             </div>
           </div>
@@ -350,21 +373,22 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
               </div>
             </>
           ) : (
-            <div className="flex items-center gap-3">
-              <Link href="/login" className="text-xs text-slate-500 hover:text-gov-blue font-bold px-2">
+            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+              <Link href="/login" className="inline-flex min-h-10 items-center rounded-md border border-[#245ddc] px-4 text-xs font-extrabold text-[#1e3a8a] hover:bg-blue-50 hover:no-underline sm:px-5">
                 Login
               </Link>
-              <Link href="/register" className="bg-gov-blue hover:bg-gov-navy text-white text-xs font-bold px-4 py-2 transition-all shadow-sm">
+              <Link href="/register" className="hidden min-h-10 items-center rounded-md bg-[#062a5d] px-5 text-xs font-extrabold text-white shadow-sm hover:bg-[#0b3a78] hover:no-underline sm:inline-flex">
                 Register
               </Link>
             </div>
           )}
 
         </div>
+        </div>
       </header>
 
       {/* Main Workspace */}
-      <div className="flex flex-1 pt-[69px]">
+      <div className={isDashboard ? "flex flex-1 pt-[69px]" : "flex flex-1"}>
         
         {/* Desktop Sidebar */}
         {isDashboard && (
@@ -417,8 +441,8 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
         )}
 
         {/* Mobile Sidebar */}
-        {isDashboard && mobileMenuOpen && (
-          <div className="fixed inset-0 z-50 flex lg:hidden bg-black/40 backdrop-blur-sm animate-fadeIn">
+        {mobileMenuOpen && (
+          <div className="fixed inset-0 z-50 flex bg-black/40 backdrop-blur-sm animate-fadeIn lg:hidden">
             <div className="w-64 bg-white p-5 flex flex-col justify-between h-full border-r border-gov-line shadow-xl">
               <div className="flex flex-col gap-4">
                 <div className="flex justify-between items-center pb-3 border-b border-gov-line">
@@ -426,7 +450,12 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                   <button onClick={() => setMobileMenuOpen(false)} className="text-slate-500 hover:text-gov-blue"><X size={18} /></button>
                 </div>
                 <div className="flex flex-col gap-0.5 overflow-y-auto max-h-[calc(100vh-160px)]">
-                  {dashboardNavigationItems.map((item) => {
+                  {(isDashboard ? dashboardNavigationItems : [
+                    { label: "Home", href: "/", icon: Layers },
+                    { label: "About Mandate", href: "/about", icon: HelpCircle },
+                    { label: "Directories", href: "/marketplace", icon: Compass },
+                    { label: "Knowledge Center", href: "/knowledge", icon: BookOpen }
+                  ]).map((item) => {
                     const isActive = pathname === item.href || 
                                      (item.href.endsWith("/overview") && pathname === item.href.replace("/overview", "")) ||
                                      (item.href !== "/" && pathname.startsWith(item.href));
@@ -448,13 +477,30 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                 </div>
               </div>
               <div className="flex flex-col gap-2 pt-3 border-t border-gov-line">
-                <button 
-                  onClick={handleLogout}
-                  className="w-full text-left px-3 py-2.5 text-xs text-rose-600 hover:bg-rose-50 rounded-lg flex items-center gap-3 transition-all"
-                >
-                  <LogOut size={16} />
-                  <span>Log Out</span>
-                </button>
+                {isDashboard ? (
+                  <button 
+                    onClick={handleLogout}
+                    className="w-full text-left px-3 py-2.5 text-xs text-rose-600 hover:bg-rose-50 rounded-lg flex items-center gap-3 transition-all"
+                  >
+                    <LogOut size={16} />
+                    <span>Log Out</span>
+                  </button>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <Link 
+                      href="/login" 
+                      className="w-full text-center py-2 rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-50 border border-slate-200"
+                    >
+                      Login
+                    </Link>
+                    <Link 
+                      href="/register" 
+                      className="w-full text-center py-2 rounded-lg text-xs font-bold text-white bg-gov-blue hover:bg-gov-navy shadow-sm"
+                    >
+                      Register
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -462,22 +508,79 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
 
         {/* Main Content */}
         <div className="flex-grow flex flex-col min-w-0">
-          <main className="flex-grow">
+          <main id="main-content" className="flex-grow">
             {children}
           </main>
-          
-          {/* Government Footer */}
-          <footer className="border-t border-gov-line bg-white py-5 px-6 md:px-10 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gov-muted font-medium shrink-0">
-            <div className="flex items-center gap-2">
-              <span className="font-heading font-extrabold text-[#1e3a8a] text-sm tracking-tight">MahaCSR</span>
-              <span>• Government of Maharashtra Enterprise CSR Platform. Approved under MCA Section 135.</span>
-            </div>
-            <div className="flex gap-6">
-              <Link href="#" className="hover:text-[#1e3a8a] transition-colors">Privacy Policy</Link>
-              <Link href="#" className="hover:text-[#1e3a8a] transition-colors">Compliance Audits</Link>
-              <Link href="#" className="hover:text-[#1e3a8a] transition-colors">Support Center</Link>
-            </div>
-          </footer>
+          {isDashboard ? (
+            <footer className="border-t border-gov-line bg-white py-5 px-6 md:px-10 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gov-muted font-medium shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="font-heading font-extrabold text-[#1e3a8a] text-sm tracking-tight">MahaCSR</span>
+                <span>Government of Maharashtra Enterprise CSR Platform. Approved under MCA Section 135.</span>
+              </div>
+              <div className="flex gap-6">
+                <Link href="#" className="hover:text-[#1e3a8a] transition-colors">Privacy Policy</Link>
+                <Link href="#" className="hover:text-[#1e3a8a] transition-colors">Compliance Audits</Link>
+                <Link href="#" className="hover:text-[#1e3a8a] transition-colors">Support Center</Link>
+              </div>
+            </footer>
+          ) : (
+            <footer className="bg-[#062a5d] text-white">
+              <div className="mx-auto grid max-w-[1090px] gap-10 px-5 py-10 md:grid-cols-[1.3fr_0.8fr_0.8fr_1.1fr] md:px-8">
+                <div>
+                  <Link href="/" className="inline-flex items-center gap-3 text-white hover:no-underline">
+                    <svg viewBox="0 0 100 100" className="h-12 w-12" fill="none" stroke="currentColor">
+                      <polygon points="50,5 82,18 95,50 82,82 50,95 18,82 5,50 18,18" stroke="#ffffff" strokeWidth="4.5" fill="rgba(255,255,255,0.06)" />
+                      <path d="M28,32 L72,32 M32,44 L68,44 M28,56 L72,56 M36,68 L64,68" stroke="#f97316" strokeWidth="3" strokeLinecap="round" />
+                    </svg>
+                    <div>
+                      <div className="text-2xl font-extrabold">Maha<span className="text-[#ff8a24]">CSR</span></div>
+                      <div className="mt-1 text-xs font-medium leading-5 text-blue-100">Corporate Social Responsibility Portal<br />Government of Maharashtra</div>
+                    </div>
+                  </Link>
+                  <div className="mt-8 flex gap-3">
+                    {["f", "X", "in", "yt"].map((item) => (
+                      <span key={item} className="grid h-9 w-9 place-items-center rounded-full border border-white/35 text-xs font-extrabold">{item}</span>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold">Quick Links</h3>
+                  <div className="mt-4 flex flex-col gap-3 text-sm text-blue-100">
+                    <Link href="/about" className="text-blue-100 hover:text-white">About MahaCSR</Link>
+                    <Link href="/marketplace" className="text-blue-100 hover:text-white">Directories</Link>
+                    <Link href="/knowledge" className="text-blue-100 hover:text-white">Knowledge Center</Link>
+                    {/* <Link href="/reports" className="text-blue-100 hover:text-white">Reports & Data</Link> */}
+                    <Link href="/help" className="text-blue-100 hover:text-white">Helpdesk</Link>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold">Information</h3>
+                  <div className="mt-4 flex flex-col gap-3 text-sm text-blue-100">
+                    <Link href="#" className="text-blue-100 hover:text-white">Privacy Policy</Link>
+                    <Link href="#" className="text-blue-100 hover:text-white">Terms of Use</Link>
+                    <Link href="#" className="text-blue-100 hover:text-white">Compliance Audits</Link>
+                    <Link href="#" className="text-blue-100 hover:text-white">Sitemap</Link>
+                    <Link href="#" className="text-blue-100 hover:text-white">Accessibility</Link>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold">Contact Us</h3>
+                  <div className="mt-4 flex flex-col gap-3 text-sm leading-6 text-blue-100">
+                    <span className="inline-flex gap-2"><MapPin className="mt-1 shrink-0" size={15} /> Maharashtra CSR Authority, 7th Floor, Mantralaya Annexe, Mumbai - 400 032, Maharashtra, India.</span>
+                    <span className="inline-flex items-center gap-2"><Mail size={15} /> support@mahacsr.gov.in</span>
+                    <span className="inline-flex items-center gap-2"><Phone size={15} /> 022-2202 1234</span>
+                  </div>
+                </div>
+              </div>
+              <div className="border-t border-white/10 bg-[#052653]">
+                <div className="mx-auto flex max-w-[1090px] flex-col gap-3 px-5 py-4 text-xs font-medium text-blue-100 md:flex-row md:items-center md:justify-between md:px-8">
+                  <span>(c) 2026 Government of Maharashtra. All rights reserved.</span>
+                  <span>Best viewed in Chrome 90+, Firefox 90+, Edge 90+, Safari 13+</span>
+                  <a href="#" className="inline-flex items-center gap-2 text-blue-100 hover:text-white hover:no-underline"><ArrowUp size={14} /> Back to top</a>
+                </div>
+              </div>
+            </footer>
+          )}
         </div>
 
       </div>
