@@ -56,3 +56,5 @@ ehthumbs.db
 .cache/
 tmp/
 temp/
+graphify-out
+hooks.json

@@ -108,6 +108,11 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
         }
       });
       createdCompanyId = company.id;
+    } else if (role === Role.PORTAL_ADMIN) {
+      // Government entity self-registration creates a restricted account only.
+      // Access must be granted later by a super admin through the user/role workflow.
+      createdNgoId = null;
+      createdCompanyId = null;
     }
 
     const user = await prisma.user.create({

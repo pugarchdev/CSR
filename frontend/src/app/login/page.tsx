@@ -63,11 +63,13 @@ function LoginForm() {
 
       const userRole = data.user.role;
       if (userRole === "NGO_ADMIN" || userRole === "NGO_MEMBER") {
-        router.push("/ngo-dashboard");
+        router.push(data.user.ngo?.status === "VERIFIED" ? "/ngo-dashboard" : "/onboarding");
       } else if (userRole === "COMPANY_ADMIN" || userRole === "COMPANY_MEMBER") {
         router.push("/company-dashboard");
       } else if (userRole === "SUPER_ADMIN") {
         router.push("/admin");
+      } else if (userRole === "PORTAL_ADMIN") {
+        router.push("/government-portal");
       } else {
         router.push("/");
       }

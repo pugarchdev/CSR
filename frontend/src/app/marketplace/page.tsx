@@ -55,150 +55,12 @@ interface Company {
   industry: string;
 }
 
-const mockProjects: Project[] = [
-  {
-    id: "proj-1",
-    title: "Gadchiroli Watershed & Afforestation Initiative",
-    description: "Building check dams, bunds, and reforestation to restore groundwater levels in Aheri taluka, Gadchiroli.",
-    focusArea: "Water Conservation",
-    sdgGoal: "SDG 6: Clean Water and Sanitation",
-    beneficiaryCount: 12000,
-    budgetRequested: 2500000,
-    district: "Gadchiroli",
-    taluka: "Aheri",
-    ngoName: "Sahyadri Eco Foundation",
-    ngoRating: 4.8,
-    matchScore: 92,
-    status: "Approved"
-  },
-  {
-    id: "proj-2",
-    title: "Pune Rural Digital Smart-Classrooms",
-    description: "Equipping 15 Zilla Parishad schools in Haveli and Mulshi talukas with smart interactive screens and content.",
-    focusArea: "Education & Literacy",
-    sdgGoal: "SDG 4: Quality Education",
-    beneficiaryCount: 6500,
-    budgetRequested: 3500000,
-    district: "Pune",
-    taluka: "Haveli",
-    ngoName: "Sahyadri Eco Foundation",
-    ngoRating: 4.8,
-    matchScore: 95,
-    status: "Submitted"
-  },
-  {
-    id: "proj-3",
-    title: "Nagpur Mobile Medical Clinics",
-    description: "Operating mobile primary health vehicles serving remote farming villages in Ramtek and Hingna districts.",
-    focusArea: "Healthcare & Sanitation",
-    sdgGoal: "SDG 3: Good Health and Well-being",
-    beneficiaryCount: 18000,
-    budgetRequested: 4800000,
-    district: "Nagpur",
-    taluka: "Ramtek",
-    ngoName: "Vidarbha Seva Samiti",
-    ngoRating: 4.2,
-    matchScore: 78,
-    status: "Approved"
-  },
-  {
-    id: "proj-4",
-    title: "Thane Women Vocational Training Centers",
-    description: "Empowering underemployed tribal women in Shahapur with tailoring, computer skills, and handicraft training.",
-    focusArea: "Skill Development",
-    sdgGoal: "SDG 8: Decent Work and Economic Growth",
-    beneficiaryCount: 3500,
-    budgetRequested: 1800000,
-    district: "Thane",
-    taluka: "Shahapur",
-    ngoName: "Udan Welfare Society",
-    ngoRating: 4.5,
-    matchScore: 90,
-    status: "Approved"
-  }
-];
-
-const mockNGOs: NGO[] = [
-  {
-    id: "ngo-1",
-    name: "Sahyadri Eco Foundation",
-    darpanId: "MH/2021/012345",
-    csr1Status: "Verified",
-    rating: 4.8,
-    district: "Pune",
-    taluka: "Haveli",
-    category: "Environment & Water",
-    projectsCount: 18,
-    totalFundingReceived: 8500000,
-    contact: "contact@sahyadri.org"
-  },
-  {
-    id: "ngo-2",
-    name: "Vidarbha Seva Samiti",
-    darpanId: "MH/2019/045612",
-    csr1Status: "Verified",
-    rating: 4.2,
-    district: "Nagpur",
-    taluka: "Ramtek",
-    category: "Healthcare & Social",
-    projectsCount: 12,
-    totalFundingReceived: 6200000,
-    contact: "info@vidarbhaseva.org"
-  },
-  {
-    id: "ngo-3",
-    name: "Udan Welfare Society",
-    darpanId: "MH/2020/098765",
-    csr1Status: "Verified",
-    rating: 4.5,
-    district: "Thane",
-    taluka: "Shahapur",
-    category: "Skill Development",
-    projectsCount: 22,
-    totalFundingReceived: 12500000,
-    contact: "office@udan.org"
-  }
-];
-
-const mockCompanies: Company[] = [
-  {
-    id: "comp-1",
-    name: "Tata Projects Limited",
-    focusArea: "Water & Infrastructure",
-    csrBudget: 120000000,
-    district: "Mumbai City",
-    policyLink: "https://tata.com/csr-policy",
-    projectsFunded: 45,
-    industry: "Construction"
-  },
-  {
-    id: "comp-2",
-    name: "Reliance Foundation",
-    focusArea: "Education & Health",
-    csrBudget: 180000000,
-    district: "Mumbai Suburban",
-    policyLink: "https://reliance.com/csr",
-    projectsFunded: 98,
-    industry: "Conglomerate"
-  },
-  {
-    id: "comp-3",
-    name: "Mahindra CSR Trust",
-    focusArea: "Environment & Rural",
-    csrBudget: 80000000,
-    district: "Pune",
-    policyLink: "https://mahindra.com/csr",
-    projectsFunded: 32,
-    industry: "Automotive"
-  }
-];
-
 export default function ProjectMarketplace({ params }: { params?: { tab?: string } }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<DirectoryTab>("projects");
-  const [projects, setProjects] = useState<Project[]>(mockProjects);
-  const [ngos, setNgos] = useState<NGO[]>(mockNGOs);
-  const [companies, setCompanies] = useState<Company[]>(mockCompanies);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [ngos, setNgos] = useState<NGO[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
 
   useEffect(() => {
     if (params?.tab) {
@@ -262,9 +124,9 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
           })));
         }
       } catch {
-        setProjects(mockProjects);
-        setNgos(mockNGOs);
-        setCompanies(mockCompanies);
+        setProjects([]);
+        setNgos([]);
+        setCompanies([]);
       }
     };
 
@@ -333,7 +195,7 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
   const comparedProjects = projects.filter(p => compareIds.includes(p.id));
 
   return (
-    <div className="px-6 md:px-12 py-10 max-w-7xl mx-auto flex flex-col gap-8 bg-slate-950 text-slate-100 min-h-screen">
+    <div className="csr-directory-page px-6 md:px-12 py-10 max-w-7xl mx-auto flex flex-col gap-8 bg-[#f6f8fb] text-gov-ink min-h-screen">
       
       {/* Header */}
       <div className="flex flex-col gap-1.5">
@@ -586,6 +448,17 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
                 </div>
               </div>
             ))}
+
+            {((activeTab === "projects" && filteredProjects.length === 0) ||
+              (activeTab === "ngos" && filteredNGOs.length === 0) ||
+              (activeTab === "companies" && filteredCompanies.length === 0)) && (
+              <div className="md:col-span-2 border border-gov-line bg-white p-8 text-center shadow-sm flex flex-col gap-2">
+                <h3 className="font-heading font-bold text-lg text-gov-ink">No approved records published yet</h3>
+                <p className="text-sm text-gov-muted max-w-xl mx-auto">
+                  Public directory entries will appear after onboarding, statutory document verification, and administrative approval.
+                </p>
+              </div>
+            )}
 
           </div>
         </div>

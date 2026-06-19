@@ -8,11 +8,21 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-                background: "var(--background)",
+        background: "var(--background)",
         foreground: "var(--foreground)",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
+        gov: {
+          navy: "#0b2e4a",
+          blue: "#12325a",
+          saffron: "#d97706",
+          green: "#166534",
+          mist: "#f5f7fb",
+          line: "#d7dee8",
+          ink: "#102033",
+          muted: "#5b6b80",
+        },
         primary: {
           DEFAULT: "#1e3a8a", // Navy Blue
           dark: "#172554",
@@ -24,35 +34,32 @@ module.exports = {
           blue: "#1d4ed8"
         },
         slate: {
-          50: '#0f172a',  // Inverted text
-          100: '#1e293b', // Inverted text
-          200: '#334155', // Inverted text
-          300: '#475569',
-          400: '#57667a',
-          450: '#57667a',
-          455: '#57667a',
-          500: '#64748b',
-          550: '#94a3b8',
-          600: '#94a3b8',
-          700: '#cbd5e1',
-          800: '#e2e8f0', // Inverted border
-          850: '#cbd5e1', // Inverted border
-          855: '#cbd5e1',
-          900: '#ffffff', // Inverted card bg
-          950: '#f8fafc', // Inverted main bg
-          955: '#f1f5f9', // Inverted header bg
+          50: "#f8fafc",
+          100: "#f1f5f9",
+          200: "#e2e8f0",
+          300: "#cbd5e1",
+          400: "#94a3b8",
+          500: "#64748b",
+          600: "#475569",
+          700: "#334155",
+          800: "#1e293b",
+          900: "#0f172a",
+          950: "#020617",
+          955: "#f1f5f9",
         },
         zinc: {
-          50: '#0f172a',
-          100: '#1e293b',
-          200: '#334155',
-          300: '#475569',
-          400: '#64748b',
-          500: '#94a3b8',
-          800: '#e2e8f0',
-          900: '#ffffff',
-          955: '#f1f5f9',
-          950: '#f8fafc',
+          50: "#fafafa",
+          100: "#f4f4f5",
+          200: "#e4e4e7",
+          300: "#d4d4d8",
+          400: "#a1a1aa",
+          500: "#71717a",
+          600: "#52525b",
+          700: "#3f3f46",
+          800: "#27272a",
+          900: "#18181b",
+          950: "#09090b",
+          955: "#f4f4f5",
         },
         violet: {
           50: '#fff7ed', // Mapped to orange/saffron tints
