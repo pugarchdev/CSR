@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import "../../styles/gov-theme.css";
@@ -66,28 +66,69 @@ interface GovPortalLayoutProps {
 
 export default function GovPortalLayout({ children, userRole, showSidebar }: GovPortalLayoutProps) {
   const pathname = usePathname();
-  const shouldShowSidebar = showSidebar ?? userRole !== "PUBLIC";
 
-  if (userRole !== "PUBLIC") {
-    return (
-      <main id="main-content" className="gov-main gov-public-main">
-        {children}
-      </main>
-    );
-  }
+  const getDefaultRoleFromPath = (path: string): string => {
+    if (path.startsWith("/admin")) return "SUPER_ADMIN";
+    if (path.startsWith("/dashboard") || path.startsWith("/ngo-dashboard") || path.startsWith("/onboarding")) return "NGO_ADMIN";
+    if (path.startsWith("/company-dashboard") || path.startsWith("/company")) return "COMPANY_ADMIN";
+    return "PUBLIC";
+  };
 
-  if (!shouldShowSidebar) {
-    return (
-      <main id="main-content" className="gov-main gov-public-main">
-        {children}
-      </main>
-    );
-  }
+  const [role, setRole] = useState<string>(
+    userRole || getDefaultRoleFromPath(pathname || "")
+  );
+  const [userEmail, setUserEmail] = useState<string>("user@mahacsr.gov.in");
+  const [userInitials, setUserInitials] = useState<string>("U");
+
+  useEffect(() => {
+    if (userRole) {
+      setRole(userRole);
+    } else if (typeof window !== "undefined") {
+      const user = localStorage.getItem("user");
+      if (user) {
+        try {
+          const userData = JSON.parse(user);
+          if (userData.role) {
+            setRole(userData.role);
+          }
+        } catch (e) {
+          console.error("Error parsing user data", e);
+        }
+      }
+    }
+  }, [userRole]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const user = localStorage.getItem("user");
+      if (user) {
+        try {
+          const userData = JSON.parse(user);
+          if (userData.email) {
+            setUserEmail(userData.email);
+            const initials = userData.name 
+              ? userData.name.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase()
+              : userData.email.substring(0, 2).toUpperCase();
+            setUserInitials(initials || "U");
+          }
+        } catch (e) {
+          console.error("Error parsing user data", e);
+        }
+      }
+    }
+  }, []);
+
+  const isAdminRole = ["SUPER_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN"].includes(role);
+  const isNgoRole = ["NGO_ADMIN", "NGO_MEMBER"].includes(role);
+  const isCompanyRole = ["COMPANY_ADMIN", "COMPANY_MEMBER"].includes(role);
+  const isPublic = role === "PUBLIC" || (!isAdminRole && !isNgoRole && !isCompanyRole);
+
+  const shouldShowSidebar = showSidebar ?? !isPublic;
 
   // Filter nav groups based on user role
   const filteredNavGroups = navGroups.filter((group) => {
     if (!group.roles) return true;
-    return group.roles.includes(userRole || "");
+    return group.roles.includes(role);
   });
 
   return (
@@ -147,7 +188,7 @@ export default function GovPortalLayout({ children, userRole, showSidebar }: Gov
                   fontSize: 14,
                 }}
               >
-                U
+                {userInitials}
               </button>
               
               <div
@@ -167,7 +208,7 @@ export default function GovPortalLayout({ children, userRole, showSidebar }: Gov
               >
                 <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--gov-border)" }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "var(--gov-text)" }}>User Account</div>
-                  <div style={{ fontSize: 10, color: "var(--gov-text-muted)", marginTop: 2 }}>user@mahacsr.gov.in</div>
+                  <div style={{ fontSize: 10, color: "var(--gov-text-muted)", marginTop: 2 }}>{userEmail}</div>
                 </div>
                 
                 <a

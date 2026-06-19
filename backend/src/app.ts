@@ -34,15 +34,41 @@ const app = express();
 const server = http.createServer(app);
 
 // CORS setup
-const allowedOrigins = process.env.ALLOWED_ORIGINS
+const configuredOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
   : getAllowedOrigins();
 
+const defaultAllowedOrigins = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "https://csr-seven.vercel.app"
+];
+
 const corsOptions = {
-  origin: allowedOrigins,
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // allow requests with no origin (like mobile apps, curl, or server-to-server)
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+    
+    const isAllowed = 
+      configuredOrigins.includes(origin) ||
+      defaultAllowedOrigins.includes(origin) ||
+      origin.endsWith(".vercel.app") ||
+      /^https?:\/\/localhost(:\d+)?$/.test(origin) ||
+      /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin);
+      
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      console.warn(`CORS request blocked for origin: ${origin}`);
+      callback(null, false);
+    }
+  },
   credentials: true,
   methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
+  allowedHeaders: ["Content-Type", "Authorization", "Cookie"]
 };
 app.use(cors(corsOptions));
 app.use(express.json());

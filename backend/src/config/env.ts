@@ -2,7 +2,6 @@ const requiredInProduction = [
   "DATABASE_URL",
   "JWT_SECRET",
   "JWT_REFRESH_SECRET",
-  "ALLOWED_ORIGINS",
   "CLOUDINARY_CLOUD_NAME",
   "CLOUDINARY_API_KEY",
   "CLOUDINARY_API_SECRET"
@@ -41,9 +40,9 @@ export const getAllowedOrigins = () => {
     return origins.split(",").map((origin) => origin.trim()).filter(Boolean);
   }
 
-  if (isProduction) {
-    throw new Error("ALLOWED_ORIGINS is required in production");
-  }
-
-  return ["http://localhost:3000", "http://127.0.0.1:3000"];
+  return [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://csr-seven.vercel.app"
+  ];
 };
