@@ -47,6 +47,8 @@ export default function GovernmentPortal({ params }: { params?: { tab?: string }
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<GovTab>("statewide");
   const [loading, setLoading] = useState(true);
+  const [reviewEntity, setReviewEntity] = useState<any>(null);
+  const [reviewEntityType, setReviewEntityType] = useState<"NGO" | "COMPANY" | null>(null);
 
   useEffect(() => {
     if (params?.tab) {
@@ -160,6 +162,16 @@ export default function GovernmentPortal({ params }: { params?: { tab?: string }
       setProjects(projects.filter(p => p.id !== id));
       alert(approve ? "Project proposal listed in public directories." : "Project proposal rejected.");
     }, 500);
+  };
+
+  const handleOpenNgoReviewModal = (ngo: any) => {
+    setReviewEntity(ngo);
+    setReviewEntityType("NGO");
+  };
+
+  const handleOpenCompanyReviewModal = (comp: any) => {
+    setReviewEntity(comp);
+    setReviewEntityType("COMPANY");
   };
 
   const handlePublishCircular = (e: React.FormEvent) => {
@@ -463,11 +475,19 @@ export default function GovernmentPortal({ params }: { params?: { tab?: string }
                 <tbody>
                   {ngos.map((ngo) => (
                     <tr key={ngo.id}>
-                      <td className="font-bold text-slate-800">{ngo.name}</td>
+                      <td className="font-bold text-slate-800">
+                        <button 
+                          onClick={() => handleOpenNgoReviewModal(ngo)}
+                          className="font-bold text-[#12325a] hover:underline text-left bg-transparent border-none p-0 cursor-pointer"
+                        >
+                          {ngo.name}
+                        </button>
+                      </td>
                       <td>{ngo.darpanId}</td>
                       <td>{ngo.district}</td>
                       <td><span className="govt-badge govt-badge-pending">{ngo.csr1}</span></td>
                       <td className="text-right flex gap-2 justify-end">
+                        <Button variant="outline" size="sm" onClick={() => handleOpenNgoReviewModal(ngo)} className="flex items-center gap-1.5 py-1 px-3 text-xs border-slate-300 hover:bg-slate-50 text-slate-750 font-semibold"><FileText size={12} /> Review</Button>
                         <Button variant="primary" size="sm" onClick={() => handleVerifyNgo(ngo.id, true)} className="bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 py-1 px-3 text-xs"><CheckCircle2 size={12} /> Approve</Button>
                         <Button variant="danger" size="sm" onClick={() => handleVerifyNgo(ngo.id, false)} className="flex items-center gap-1.5 py-1 px-3 text-xs"><XCircle size={12} /> Flag</Button>
                       </td>
@@ -508,11 +528,19 @@ export default function GovernmentPortal({ params }: { params?: { tab?: string }
                 <tbody>
                   {companies.map((comp) => (
                     <tr key={comp.id}>
-                      <td className="font-bold text-slate-800">{comp.name}</td>
+                      <td className="font-bold text-slate-800">
+                        <button 
+                          onClick={() => handleOpenCompanyReviewModal(comp)}
+                          className="font-bold text-[#12325a] hover:underline text-left bg-transparent border-none p-0 cursor-pointer"
+                        >
+                          {comp.name}
+                        </button>
+                      </td>
                       <td>{comp.industry}</td>
                       <td>{comp.district}</td>
                       <td className="font-semibold text-slate-700">{comp.budget}</td>
                       <td className="text-right flex gap-2 justify-end">
+                        <Button variant="outline" size="sm" onClick={() => handleOpenCompanyReviewModal(comp)} className="flex items-center gap-1.5 py-1 px-3 text-xs border-slate-300 hover:bg-slate-50 text-slate-750 font-semibold"><FileText size={12} /> Review</Button>
                         <Button variant="primary" size="sm" onClick={() => handleVerifyCompany(comp.id, true)} className="bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 py-1 px-3 text-xs"><CheckCircle2 size={12} /> Approve</Button>
                         <Button variant="danger" size="sm" onClick={() => handleVerifyCompany(comp.id, false)} className="flex items-center gap-1.5 py-1 px-3 text-xs"><XCircle size={12} /> Flag</Button>
                       </td>
@@ -891,6 +919,218 @@ export default function GovernmentPortal({ params }: { params?: { tab?: string }
             ))}
           </CardContent>
         </Card>
+      )}
+
+      {/* Entity Onboarding Review Modal */}
+      {reviewEntity && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn text-slate-900">
+          <div className="bg-white border border-slate-200 rounded-xl shadow-2xl max-w-3xl w-full overflow-hidden flex flex-col max-h-[85vh]">
+            {/* Modal Header */}
+            <div className="bg-slate-50 border-b border-slate-200 p-5 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                {reviewEntityType === "NGO" ? <Landmark className="text-[#12325a]" size={20} /> : <Building2 className="text-[#12325a]" size={20} /> }
+                <h3 className="font-heading font-extrabold text-lg text-slate-900">
+                  {reviewEntityType === "NGO" ? "NGO" : "Corporate"} Onboarding Credentials Review
+                </h3>
+              </div>
+              <button 
+                onClick={() => { setReviewEntity(null); setReviewEntityType(null); }}
+                className="text-slate-400 hover:text-slate-600 bg-transparent border-none cursor-pointer text-lg font-bold p-1"
+                type="button"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto flex flex-col gap-6">
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[#f97316] mb-3">Submitted Registration Details</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
+                  {reviewEntityType === "NGO" ? (
+                    <>
+                      <div>
+                        <span className="block text-slate-500 font-medium">NGO Legal Name</span>
+                        <strong className="block text-slate-900 text-sm mt-0.5">{reviewEntity.name}</strong>
+                      </div>
+                      <div>
+                        <span className="block text-slate-500 font-medium">NGO Darpan ID</span>
+                        <strong className="block text-slate-900 text-sm mt-0.5">{reviewEntity.darpanId}</strong>
+                      </div>
+                      <div>
+                        <span className="block text-slate-500 font-medium">CSR-1 Registry Code</span>
+                        <strong className="block text-slate-900 text-sm mt-0.5">{reviewEntity.csr1}</strong>
+                      </div>
+                      <div>
+                        <span className="block text-slate-500 font-medium">Registered Office Address</span>
+                        <strong className="block text-slate-900 text-sm mt-0.5">Plot No 42, Bandra East, Mumbai</strong>
+                      </div>
+                      <div>
+                        <span className="block text-slate-500 font-medium">District Location</span>
+                        <strong className="block text-slate-900 text-sm mt-0.5">{reviewEntity.district}</strong>
+                      </div>
+                      <div>
+                        <span className="block text-slate-500 font-medium">Official Website / Contact</span>
+                        <strong className="block text-slate-900 text-sm mt-0.5">{reviewEntity.contact}</strong>
+                      </div>
+                      <div>
+                        <span className="block text-slate-500 font-medium">Organization PAN Card</span>
+                        <strong className="block text-slate-900 text-sm mt-0.5">ABCDE1234F</strong>
+                      </div>
+                      <div>
+                        <span className="block text-slate-500 font-medium">Registration Authority</span>
+                        <strong className="block text-slate-900 text-sm mt-0.5">Charity Commissioner, Maharashtra</strong>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <span className="block text-slate-500 font-medium">Company Legal Name</span>
+                        <strong className="block text-slate-900 text-sm mt-0.5">{reviewEntity.name}</strong>
+                      </div>
+                      <div>
+                        <span className="block text-slate-500 font-medium">Corporate CIN Code</span>
+                        <strong className="block text-slate-900 text-sm mt-0.5">L72200MH2018PLC309876</strong>
+                      </div>
+                      <div>
+                        <span className="block text-slate-500 font-medium">GSTIN Registry</span>
+                        <strong className="block text-slate-900 text-sm mt-0.5">27AAAAA1111A1Z1</strong>
+                      </div>
+                      <div>
+                        <span className="block text-slate-500 font-medium">CSR Sourcing Budget</span>
+                        <strong className="block text-[#12325a] text-sm mt-0.5">{reviewEntity.budget}</strong>
+                      </div>
+                      <div>
+                        <span className="block text-slate-500 font-medium">Industry Classification</span>
+                        <strong className="block text-slate-900 text-sm mt-0.5">{reviewEntity.industry}</strong>
+                      </div>
+                      <div>
+                        <span className="block text-slate-500 font-medium">State Headquarters</span>
+                        <strong className="block text-slate-900 text-sm mt-0.5">{reviewEntity.district}</strong>
+                      </div>
+                      <div>
+                        <span className="block text-slate-500 font-medium">Company PAN Registry</span>
+                        <strong className="block text-slate-900 text-sm mt-0.5">AAACC1234E</strong>
+                      </div>
+                      <div>
+                        <span className="block text-slate-500 font-medium">Onboarding Status</span>
+                        <span className="inline-block px-2 py-0.5 text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 rounded mt-1">Pending Approval</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[#f97316] mb-3">Uploaded Verification Documents</h4>
+                <div className="overflow-x-auto border border-slate-200 rounded-xl bg-white shadow-sm">
+                  <table className="w-full text-xs text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                        <th className="p-3">Document Name</th>
+                        <th className="p-3">File Name</th>
+                        <th className="p-3">File Size</th>
+                        <th className="p-3 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {reviewEntityType === "NGO" ? (
+                        [
+                          ["Registration Certificate", "registration_certificate.pdf", "820 KB"],
+                          ["NGO Darpan Registration", "darpan_profile_audit.pdf", "1.1 MB"],
+                          ["CSR-1 Registry Approval", "csr1_approval_cert.pdf", "740 KB"],
+                          ["12A Registration Certificate", "12a_tax_exemption.pdf", "1.2 MB"],
+                          ["80G Registration Certificate", "80g_deduction_approval.pdf", "980 KB"],
+                          ["Audited Financials (3 Years)", "financial_statements_last3years.pdf", "3.1 MB"],
+                          ["Board Resolution / Authority Letter", "board_resolution_auth.pdf", "420 KB"]
+                        ].map(([docName, fileName, size]) => (
+                          <tr key={docName} className="hover:bg-slate-50">
+                            <td className="p-3 font-semibold text-slate-800">{docName}</td>
+                            <td className="p-3 text-slate-500 font-mono">{fileName}</td>
+                            <td className="p-3 text-slate-400">{size}</td>
+                            <td className="p-3 text-right">
+                              <a 
+                                href="#" 
+                                onClick={(e) => { e.preventDefault(); alert(`Downloading ${fileName}...`); }}
+                                className="text-[#12325a] font-bold hover:underline inline-flex items-center gap-1"
+                              >
+                                <Download size={12} /> View Document
+                              </a>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        [
+                          ["CIN Incorporation Certificate", "cin_certificate_of_inc.pdf", "1.2 MB"],
+                          ["GST Registration Document", "gst_certificate_registered.pdf", "650 KB"],
+                          ["Company PAN Registry", "corporate_pan_card.pdf", "420 KB"],
+                          ["CSR Policy Declaration", "board_approved_csr_policy.pdf", "1.4 MB"],
+                          ["Audited Financial Statements", "annual_financials_fy25.pdf", "2.8 MB"]
+                        ].map(([docName, fileName, size]) => (
+                          <tr key={docName} className="hover:bg-slate-50">
+                            <td className="p-3 font-semibold text-slate-800">{docName}</td>
+                            <td className="p-3 text-slate-500 font-mono">{fileName}</td>
+                            <td className="p-3 text-slate-400">{size}</td>
+                            <td className="p-3 text-right">
+                              <a 
+                                href="#" 
+                                onClick={(e) => { e.preventDefault(); alert(`Downloading ${fileName}...`); }}
+                                className="text-[#12325a] font-bold hover:underline inline-flex items-center gap-1"
+                              >
+                                <Download size={12} /> View Document
+                              </a>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-slate-50 border-t border-slate-200 p-4 flex justify-between gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => { setReviewEntity(null); setReviewEntityType(null); }}
+                className="border-slate-300 hover:bg-slate-100 text-slate-700 text-xs py-1.5 px-4"
+              >
+                Close Review
+              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => {
+                    if (reviewEntityType === "NGO") {
+                      handleVerifyNgo(reviewEntity.id, false);
+                    } else {
+                      handleVerifyCompany(reviewEntity.id, false);
+                    }
+                    setReviewEntity(null);
+                    setReviewEntityType(null);
+                  }}
+                  className="bg-rose-100 hover:bg-rose-200 text-rose-700 font-semibold text-xs py-1.5 px-4 flex items-center gap-1.5"
+                >
+                  <XCircle size={14} /> Flag
+                </Button>
+                <Button 
+                  onClick={() => {
+                    if (reviewEntityType === "NGO") {
+                      handleVerifyNgo(reviewEntity.id, true);
+                    } else {
+                      handleVerifyCompany(reviewEntity.id, true);
+                    }
+                    setReviewEntity(null);
+                    setReviewEntityType(null);
+                  }}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs py-1.5 px-4 flex items-center gap-1.5"
+                >
+                  <CheckCircle2 size={14} /> Approve & Activate
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>
