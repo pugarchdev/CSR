@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import GovPageHeader from "@/components/layout/GovPageHeader";
 import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
@@ -195,8 +195,38 @@ const initialForm: FormState = {
 };
 
 export default function OnboardingPage() {
-  const [currentStep, setCurrentStep] = useState(1); // Start from organization details
+  const [currentStep, setCurrentStep] = useState(0); // Start from Account & Contact
   const [form, setForm] = useState<FormState>(initialForm);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        try {
+          const user = JSON.parse(storedUser);
+          const ngo = user.ngo;
+          const company = user.company;
+          setForm((prev) => ({
+            ...prev,
+            accountEmail: prev.accountEmail || user.email || "",
+            primaryContactEmail: prev.primaryContactEmail || user.email || "",
+            legalName: prev.legalName || ngo?.name || company?.name || "",
+            displayName: prev.displayName || ngo?.name || company?.name || "",
+            pan: prev.pan || ngo?.pan || company?.pan || "",
+            registrationNumber: prev.registrationNumber || ngo?.registrationNumber || company?.cin || "",
+            ngoDarpanId: prev.ngoDarpanId || ngo?.darpanNumber || "",
+            csr1Number: prev.csr1Number || ngo?.csr1Number || "",
+            address: prev.address || ngo?.address || "",
+            district: prev.district || ngo?.district || "",
+            city: prev.city || ngo?.taluka || "",
+            organizationType: prev.organizationType || ngo?.organizationType || "TRUST",
+          }));
+        } catch (e) {
+          console.error("Error parsing user from localStorage:", e);
+        }
+      }
+    }
+  }, []);
 
   const step = onboardingSteps[currentStep];
 
@@ -1853,11 +1883,6 @@ export default function OnboardingPage() {
                       </tbody>
                     </table>
                   </div>
-
-                  <div style={{ marginTop: 24, display: "flex", justifyContent: "flex-end", gap: 10 }}>
-                    <GovButton variant="muted">Save Draft</GovButton>
-                    <GovButton variant="primary">Submit for Verification</GovButton>
-                  </div>
                 </div>
               )}
 
@@ -1878,13 +1903,23 @@ export default function OnboardingPage() {
                   Previous
                 </GovButton>
 
-                <GovButton
-                  variant="primary"
-                  disabled={currentStep === onboardingSteps.length - 1}
-                  onClick={() => setCurrentStep((s) => Math.min(onboardingSteps.length - 1, s + 1))}
-                >
-                  Save & Continue
-                </GovButton>
+                {currentStep === onboardingSteps.length - 1 ? (
+                  <GovButton
+                    variant="primary"
+                    onClick={() => {
+                      alert("Application submitted for verification successfully!");
+                    }}
+                  >
+                    Submit for Verification
+                  </GovButton>
+                ) : (
+                  <GovButton
+                    variant="primary"
+                    onClick={() => setCurrentStep((s) => Math.min(onboardingSteps.length - 1, s + 1))}
+                  >
+                    Save & Continue
+                  </GovButton>
+                )}
               </div>
             </GovCardBody>
           </GovCard>
@@ -1894,4 +1929,4 @@ export default function OnboardingPage() {
   );
 }
 
-// Made with Bob
+
