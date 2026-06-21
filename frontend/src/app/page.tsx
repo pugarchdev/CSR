@@ -115,7 +115,7 @@ export default function LandingPage() {
     <div className="bg-[#f5f7fb] text-[#10244a]">
       <HeroSection />
 
-      <main className="mx-auto flex w-full max-w-[1180px] flex-col gap-6 px-4 pb-10 pt-8 sm:px-6 md:px-8 lg:pt-14">
+      <main className="mx-auto flex w-full max-w-[1380px] flex-col gap-6 px-4 pb-10 pt-8 sm:px-6 md:px-8 lg:pt-14">
         <section className="rounded-lg border border-[#d8e2ef] bg-white p-4 shadow-[0_8px_26px_rgba(15,35,70,0.06)] sm:p-5 md:p-6">
           <div className="flex flex-col gap-4 border-b border-[#d8e2ef] pb-4 md:flex-row md:items-end md:justify-between">
             <div>

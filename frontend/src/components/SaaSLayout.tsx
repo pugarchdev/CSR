@@ -195,24 +195,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#f6f8fb] text-slate-900 font-sans">
-      {!isDashboard && (
-        <div className="bg-[#062a5d] text-white">
-          <div className="mx-auto flex min-h-9 max-w-[1180px] flex-wrap items-center justify-between gap-3 px-4 text-[11px] font-semibold sm:px-6 md:px-8">
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-extrabold leading-none">MH</span>
-              <span>Government of Maharashtra</span>
-              <span className="hidden opacity-70 sm:inline">| Maharashtra Government</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <a href="#main-content" className="hidden text-white hover:text-white hover:no-underline md:inline">Skip to main content</a>
-              <span className="font-extrabold">A+</span>
-              <span className="font-extrabold">A</span>
-              <span className="font-extrabold">A-</span>
-              <span className="inline-flex items-center gap-1"><Globe2 size={13} /> English <ChevronDown size={12} /></span>
-            </div>
-          </div>
-        </div>
-      )}
+     
 
       {isDashboard && <div className="fixed top-0 left-0 right-0 h-1 z-[60] bg-gradient-to-r from-[#FF9933] via-white to-[#138808]" />}
 
@@ -223,7 +206,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
             : "sticky top-0 z-50 border-b border-[#d8e2ef] bg-white shadow-sm"
         }
       >
-        <div className={isDashboard ? "contents" : "mx-auto flex h-[80px] max-w-[1180px] items-center justify-between gap-3 px-4 sm:px-6 md:px-8"}>
+        <div className={isDashboard ? "contents" : "mx-auto flex h-[80px] max-w-[1380px] items-center justify-between gap-3 px-4 sm:px-6 md:px-8"}>
         {/* Brand Logo */}
         <div className="flex items-center gap-4">
           <button 
@@ -255,7 +238,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
         {/* Public Navigation */}
         {!isDashboard && (
           <nav className="hidden items-center gap-4 text-xs font-extrabold text-[#283d5c] lg:flex xl:gap-6">
-            <Link href="/" className="border-b-2 border-[#245ddc] px-1 py-8 text-[#245ddc] hover:no-underline">Home</Link>
+            <Link href="/" className=" px-1 py-8 text-[#245ddc] hover:no-underline">Home</Link>
             <Link href="/about" className="inline-flex items-center gap-1 py-8 hover:text-[#245ddc] hover:no-underline">About MahaCSR <ChevronDown size={13} /></Link>
             <Link href="/marketplace" className="inline-flex items-center gap-1 py-8 hover:text-[#245ddc] hover:no-underline">Directories <ChevronDown size={13} /></Link>
             <Link href="/knowledge" className="inline-flex items-center gap-1 py-8 hover:text-[#245ddc] hover:no-underline">Knowledge Center <ChevronDown size={13} /></Link>
@@ -388,7 +371,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
       </header>
 
       {/* Main Workspace */}
-      <div className={isDashboard ? "flex flex-1 pt-[69px]" : "flex flex-1"}>
+      <div className={isDashboard ? "flex flex-1 pt-[72px]" : "flex flex-1"}>
         
         {/* Desktop Sidebar */}
         {isDashboard && (
@@ -508,7 +491,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
 
         {/* Main Content */}
         <div className="flex-grow flex flex-col min-w-0">
-          <main id="main-content" className="flex-grow">
+          <main id="main-content" className={`flex-grow ${isDashboard ? "px-6 py-6 md:px-10 md:py-8" : ""}`}>
             {children}
           </main>
           {isDashboard ? (
@@ -525,7 +508,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
             </footer>
           ) : (
             <footer className="bg-[#062a5d] text-white">
-              <div className="mx-auto grid max-w-[1090px] gap-10 px-5 py-10 md:grid-cols-[1.3fr_0.8fr_0.8fr_1.1fr] md:px-8">
+              <div className="mx-auto grid max-w-[1380px] gap-10 px-5 py-10 md:grid-cols-[1.3fr_0.8fr_0.8fr_1.1fr] md:px-8">
                 <div>
                   <Link href="/" className="inline-flex items-center gap-3 text-white hover:no-underline">
                     <svg viewBox="0 0 100 100" className="h-12 w-12" fill="none" stroke="currentColor">
@@ -573,7 +556,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                 </div>
               </div>
               <div className="border-t border-white/10 bg-[#052653]">
-                <div className="mx-auto flex max-w-[1090px] flex-col gap-3 px-5 py-4 text-xs font-medium text-blue-100 md:flex-row md:items-center md:justify-between md:px-8">
+                <div className="mx-auto flex max-w-[1380px] flex-col gap-3 px-5 py-4 text-xs font-medium text-blue-100 md:flex-row md:items-center md:justify-between md:px-8">
                   <span>(c) 2026 Government of Maharashtra. All rights reserved.</span>
                   <span>Best viewed in Chrome 90+, Firefox 90+, Edge 90+, Safari 13+</span>
                   <a href="#" className="inline-flex items-center gap-2 text-blue-100 hover:text-white hover:no-underline"><ArrowUp size={14} /> Back to top</a>

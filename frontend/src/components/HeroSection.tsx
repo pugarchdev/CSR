@@ -26,7 +26,7 @@ export default function HeroSection() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_20%,rgba(39,128,255,0.24),transparent_38%)]" />
       <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#f5f7fb] via-transparent to-transparent" />
 
-      <div className="relative mx-auto max-w-[1180px] px-4 pb-20 pt-10 sm:px-6 md:px-8 md:pb-24 md:pt-14 lg:pb-36">
+      <div className="relative mx-auto max-w-[1380px] px-4 pb-20 pt-10 sm:px-6 md:px-8 md:pb-24 md:pt-14 lg:pb-36">
         <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-8 items-center">
           
           {/* Left Column: Text & Actions */}

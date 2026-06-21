@@ -274,7 +274,7 @@ export default function OnboardingPage() {
         actions={<GovButton variant="secondary">Save Draft</GovButton>}
       />
 
-      <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 18 }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-5">
         {/* Stepper Sidebar */}
         <aside>
           <GovCard>
@@ -751,7 +751,7 @@ export default function OnboardingPage() {
                       <label className="gov-label">
                         CSR Focus Sectors <span className="gov-required">*</span>
                       </label>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginTop: 8 }}>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 mt-2">
                         {csrSectors.map((sector) => (
                           <label
                             key={sector}
@@ -1092,7 +1092,7 @@ export default function OnboardingPage() {
                   <div className="gov-form-grid">
                     <div className="gov-field full">
                       <label className="gov-label">Policies Adopted</label>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8, marginTop: 8 }}>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
                         {governancePolicyOptions.map((policy) => (
                           <label
                             key={policy}
@@ -1399,7 +1399,7 @@ export default function OnboardingPage() {
                       <label className="gov-label">
                         Beneficiary Groups Served <span className="gov-required">*</span>
                       </label>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginTop: 8 }}>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 mt-2">
                         {beneficiaryGroups.map((group) => (
                           <label
                             key={group}
@@ -1432,7 +1432,7 @@ export default function OnboardingPage() {
                       <label className="gov-label">
                         Available Impact Evidence <span className="gov-required">*</span>
                       </label>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8, marginTop: 8 }}>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
                         {impactEvidenceTypes.map((evidence) => (
                           <label
                             key={evidence}

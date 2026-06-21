@@ -800,4 +800,10 @@ textarea {
 .gov-gap-2 { gap: 16px; }
 .gov-gap-3 { gap: 24px; }
 
+.gov-table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Made with Bob */

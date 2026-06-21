@@ -159,7 +159,7 @@ export default function DashboardPage() {
       />
 
       {/* Quick Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {stats.map((stat) => (
           <GovCard key={stat.label}>
             <GovCardBody>
@@ -180,7 +180,7 @@ export default function DashboardPage() {
           <GovCardTitle>{isAdmin ? "Admin Modules" : "Available Modules"}</GovCardTitle>
         </GovCardHeader>
         <GovCardBody>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {modules.map((module) => (
               <div
                 key={module.title}
@@ -227,7 +227,7 @@ export default function DashboardPage() {
       </GovCard>
 
       {/* Quick Actions */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 18, marginTop: 24 }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
         <GovCard>
           <GovCardHeader>
             <GovCardTitle>Quick Actions</GovCardTitle>

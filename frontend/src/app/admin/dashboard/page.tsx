@@ -57,7 +57,7 @@ const recentApplications = [
 
 export default function AdminDashboardPage() {
   return (
-    <GovPortalLayout userRole="ADMIN">
+    <GovPortalLayout>
       <GovPageHeader
         breadcrumb="Home / Dashboard"
         title="Administrative Dashboard"

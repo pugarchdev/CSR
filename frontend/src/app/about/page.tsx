@@ -85,7 +85,7 @@ export default function AboutPage({ params }: { params?: { tab?: string } }) {
             </GovCardBody>
           </GovCard>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 18 }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <GovCard>
               <GovCardHeader>
                 <GovCardTitle>NGO Compliance Checks</GovCardTitle>
@@ -176,7 +176,7 @@ export default function AboutPage({ params }: { params?: { tab?: string } }) {
       )}
 
       {activeTab === "schedule" && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 18 }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[
             { index: "I", title: "Eradicating Hunger & Poverty", desc: "Initiatives targeting malnutrition, sanitation, and clean drinking water systems in rural communities.", sdg: "SDG 1 & 2" },
             { index: "II", title: "Promoting Education & Literacy", desc: "Zilla Parishad smart-classrooms, vocational teacher training, and science lab installations.", sdg: "SDG 4" },

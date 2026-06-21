@@ -81,7 +81,7 @@ export default function KnowledgeCenter() {
               and downloadable templates.
             </p>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(110px, 1fr))", gap: 10 }}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {["CSR-1", "Darpan", "12A/80G"].map((item) => (
               <div key={item} className="gov-mini-stat">
                 <div style={{ fontSize: 12, fontWeight: 800, color: "var(--gov-primary-dark)" }}>{item}</div>
@@ -101,7 +101,7 @@ export default function KnowledgeCenter() {
               <GovCardTitle>Compliance Guide Modules</GovCardTitle>
             </GovCardHeader>
             <GovCardBody>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {guides.map((guide, i) => (
                   <div
                     key={i}
