@@ -35,7 +35,7 @@ export default function AboutPage({ params }: { params?: { tab?: string } }) {
   ];
 
   return (
-    <>
+    <div className="px-6 md:px-12 py-10 max-w-7xl mx-auto flex flex-col gap-8 min-h-screen">
       <GovPageHeader
         breadcrumb="Home / About"
         title="About MahaCSR Portal"
@@ -248,7 +248,7 @@ export default function AboutPage({ params }: { params?: { tab?: string } }) {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
 

@@ -63,7 +63,7 @@ export default function KnowledgeCenter() {
   ];
 
   return (
-    <>
+    <div className="px-6 md:px-12 py-10 max-w-7xl mx-auto flex flex-col gap-8 min-h-screen">
       <GovPageHeader
         breadcrumb="Home / Knowledge Center"
         title="Compliance Hub & Help Center"
@@ -315,7 +315,7 @@ export default function KnowledgeCenter() {
           </GovCard>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
