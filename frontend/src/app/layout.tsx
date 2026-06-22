@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "../styles/gov-theme.css";
+import { QueryProvider } from "@/lib/queryProvider";
 import SaaSLayout from "@/components/SaaSLayout";
 
 export const metadata: Metadata = {
@@ -24,7 +25,9 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased min-h-screen bg-[#f8fafc] text-slate-900 selection:bg-blue-100 selection:text-blue-900">
-        <SaaSLayout>{children}</SaaSLayout>
+        <QueryProvider>
+          <SaaSLayout>{children}</SaaSLayout>
+        </QueryProvider>
       </body>
     </html>
   );

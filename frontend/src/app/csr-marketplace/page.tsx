@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
@@ -34,6 +34,7 @@ interface CSRRequirement {
 
 export default function CSRMarketplace() {
   const router = useRouter();
+  const pathname = usePathname();
   const [requirements, setRequirements] = useState<CSRRequirement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -283,7 +284,12 @@ export default function CSRMarketplace() {
                     </div>
 
                     <Button
-                      onClick={() => router.push(`/csr-marketplace/${req.id}`)}
+                      onClick={() => {
+                        const dest = pathname.startsWith("/company/marketplace")
+                          ? `/company/marketplace/${req.id}`
+                          : `/csr-marketplace/${req.id}`;
+                        router.push(dest);
+                      }}
                       className="w-full bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs py-2 flex items-center justify-center gap-1 shadow-sm"
                     >
                       View Details & Respond

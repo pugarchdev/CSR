@@ -1,8 +1,9 @@
 import { Router } from "express";
 import { register, login, verifyOtp, refresh, logout } from "../controllers/authController";
 import { validateRequest } from "../middlewares/validationMiddleware";
+import { asyncHandler } from "../middlewares/asyncHandler";
 import { z } from "zod";
-import { rateLimit } from "../middlewares/rateLimitMiddleware";
+import { authRateLimiter, strictRateLimiter } from "../middlewares/rateLimitMiddleware";
 
 const router = Router();
 
@@ -50,13 +51,13 @@ const verifyOtpSchema = z.object({
   })
 });
 
-const authRateLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 25, keyPrefix: "auth" });
-const otpRateLimit = rateLimit({ windowMs: 10 * 60 * 1000, max: 8, keyPrefix: "otp" });
+const authRateLimit = authRateLimiter;
+const otpRateLimit = strictRateLimiter;
 
-router.post("/register", authRateLimit, validateRequest(registerSchema), register);
-router.post("/verify-otp", otpRateLimit, validateRequest(verifyOtpSchema), verifyOtp);
-router.post("/login", authRateLimit, validateRequest(loginSchema), login);
-router.post("/refresh", refresh);
-router.post("/logout", logout);
+router.post("/register", authRateLimit, validateRequest(registerSchema), asyncHandler(register));
+router.post("/verify-otp", otpRateLimit, validateRequest(verifyOtpSchema), asyncHandler(verifyOtp));
+router.post("/login", authRateLimit, validateRequest(loginSchema), asyncHandler(login));
+router.post("/refresh", asyncHandler(refresh));
+router.post("/logout", asyncHandler(logout));
 
 export default router;

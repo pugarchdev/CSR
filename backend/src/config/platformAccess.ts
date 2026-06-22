@@ -119,6 +119,7 @@ export const ROLE_PERMISSION_MAP: Record<string, string[]> = {
     "requirement:view",
     "requirement:update",
     "requirement:submit",
+    "interest:view",
     "project:view",
     "report:view"
   ],
@@ -129,6 +130,7 @@ export const ROLE_PERMISSION_MAP: Record<string, string[]> = {
     "requirement:view",
     "requirement:update",
     "requirement:submit",
+    "interest:view",
     "project:view",
     "project:update",
     "report:view"

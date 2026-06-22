@@ -11,6 +11,7 @@ import {
   RoleScope
 } from "@prisma/client";
 import { TenantAwareRequest } from "../middlewares/tenantMiddleware";
+import { ensureOrganizationAdminRole } from "../utils/orgRoles";
 
 const audit = async (req: TenantAwareRequest, action: string, entityType: string, entityId: string | null, details: Record<string, unknown>) => {
   await prisma.auditLog.create({
@@ -254,6 +255,9 @@ const updateOnboardingStatus = async (
     status === OrganizationOnboardingStatus.SUSPENDED ? OnboardingReviewAction.SUSPENDED :
     OnboardingReviewAction.CLARIFICATION_REQUIRED;
   await recordOnboardingReview(req, updated.id, updated.tenantId, reviewAction, req.body.remarks || req.body.rejectionReason);
+  if (status === OrganizationOnboardingStatus.APPROVED) {
+    await ensureOrganizationAdminRole(updated.id, updated.tenantId);
+  }
   await audit(req, action, "Organization", updated.id, { status, remarks: req.body.remarks });
   return res.json(updated);
 };

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
@@ -10,6 +10,7 @@ import { PlusCircle, Search, FileText, ArrowRight, Eye, Edit, Trash } from "luci
 
 export default function MyCSRRequirements() {
   const router = useRouter();
+  const pathname = usePathname();
   const [requirements, setRequirements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -187,7 +188,12 @@ export default function MyCSRRequirements() {
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2">
                           <Button
-                            onClick={() => router.push(`/csr-marketplace/${req.id}`)}
+                            onClick={() => {
+                              const dest = pathname.startsWith("/department") || pathname.startsWith("/beneficiary")
+                                ? `/department/requirements/${req.id}`
+                                : `/csr-marketplace/${req.id}`;
+                              router.push(dest);
+                            }}
                             className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md"
                             title="View details"
                           >

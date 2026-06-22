@@ -24,6 +24,7 @@ const projectReadAccess = [
 ];
 
 router.get("/projects", ...projectReadAccess, listCsrProjects);
+router.get("/department/projects", ...projectReadAccess, listCsrProjects);
 router.get("/company/projects", ...projectReadAccess, listCsrProjects);
 router.get("/ngo/assigned-projects", ...projectReadAccess, listCsrProjects);
 router.get("/district/projects", ...projectReadAccess, listCsrProjects);

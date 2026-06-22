@@ -52,12 +52,19 @@ function LoginForm() {
         throw new Error(data.error || "Invalid email or password");
       }
 
+      const user = data.data?.user || data.user;
+      const accessToken = data.data?.accessToken || data.accessToken;
+
+      if (!user) {
+        throw new Error("Invalid response format: user data missing");
+      }
+
       // Save credentials in Zustand auth store
-      useAuthStore.getState().login(data.user);
+      useAuthStore.getState().login(user);
 
       // Save credentials in localStorage for session preservation
-      localStorage.setItem("accessToken", data.accessToken);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("user", JSON.stringify(user));
 
       // Redirect depending on user role
       const nextPath = searchParams.get("next");
@@ -66,8 +73,8 @@ function LoginForm() {
         return;
       }
 
-      const userRole = data.user.role;
-      const onboardingStatus = data.user.organization?.onboardingStatus;
+      const userRole = user.role;
+      const onboardingStatus = user.organization?.onboardingStatus;
       if (userRole === "MASTER_ADMIN") {
         router.push("/master/dashboard");
       } else if (onboardingStatus && onboardingStatus !== "APPROVED" && !["SUPER_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN", "DISTRICT_ADMIN"].includes(userRole)) {

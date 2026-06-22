@@ -147,10 +147,18 @@ export const listCompanyInterestsForAdmin = async (req: AuthenticatedRequest, re
     }
 
     if (status) where.status = status;
+    
+    let csrRequirementFilter: any = {};
     if (district || (req.user?.role === Role.DISTRICT_ADMIN && req.user.assignedDistrict)) {
-      where.csrRequirement = {
-        district: (district as string) || req.user?.assignedDistrict
-      };
+      csrRequirementFilter.district = (district as string) || req.user?.assignedDistrict;
+    }
+    if (req.user?.role === Role.BENEFICIARY_AGENCY) {
+      const profile = await prisma.beneficiaryProfile.findUnique({ where: { userId: req.user.id } });
+      csrRequirementFilter.beneficiaryProfileId = profile?.id || "__none__";
+    }
+
+    if (Object.keys(csrRequirementFilter).length > 0) {
+      where.csrRequirement = csrRequirementFilter;
     }
 
     const interests = await prisma.companyInterest.findMany({

@@ -13,7 +13,7 @@ import {
   Users,
 } from "lucide-react";
 import HeroSection from "@/components/HeroSection";
-import GisMap from "@/components/GisMap";
+import { GisMap } from "@/components/LazyComponents";
 
 const workflow = [
   {

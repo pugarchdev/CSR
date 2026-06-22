@@ -26,6 +26,13 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
   const [notifications, setNotifications] = useState<Array<{ id: string; title: string; message: string; isRead: boolean }>>([]);
   const [userEmail, setUserEmail] = useState("user@mahacsr.gov.in");
   const [tenantFeatures, setTenantFeatures] = useState<Record<string, boolean>>({});
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isLoggedIn = mounted && typeof window !== "undefined" && !!localStorage.getItem("accessToken");
 
   const isDashboard = pathname.startsWith("/ngo-dashboard") || 
                       pathname.startsWith("/company-dashboard") || 
@@ -51,7 +58,8 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                       pathname.startsWith("/chat") || 
                       pathname.startsWith("/analytics") || 
                       pathname.startsWith("/beneficiary") ||
-                      pathname.startsWith("/admin");
+                      pathname.startsWith("/admin") ||
+                      ((pathname.startsWith("/csr-marketplace") || pathname.startsWith("/marketplace")) && isLoggedIn);
 
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -183,7 +191,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
       { label: "Settings", href: "/organization/settings", icon: ShieldCheck }
     ];
 
-    if (pathname.startsWith("/master")) {
+    if (storedRole === "MASTER_ADMIN" || pathname.startsWith("/master")) {
       return [
         { label: "Dashboard", href: "/master/dashboard", icon: Layers },
         { label: "Tenants", href: "/master/tenants", icon: Globe2 },
@@ -195,16 +203,59 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
       ];
     }
 
-    if (pathname.startsWith("/beneficiary") || pathname.startsWith("/department")) {
+    if (storedRole === "BENEFICIARY_AGENCY" || pathname.startsWith("/beneficiary") || pathname.startsWith("/department")) {
       return departmentItems;
     }
 
-    if (pathname === "/company" || pathname.startsWith("/company/")) {
+    if (["COMPANY_ADMIN", "COMPANY_MEMBER"].includes(storedRole || "") || pathname === "/company" || pathname.startsWith("/company/")) {
       return companyItems;
     }
 
-    if (pathname === "/ngo" || pathname.startsWith("/ngo/")) {
+    if (["NGO_ADMIN", "NGO_MEMBER"].includes(storedRole || "") || pathname === "/ngo" || pathname.startsWith("/ngo/")) {
       return ngoOrganizationItems;
+    }
+
+    if (storedRole === "DISTRICT_ADMIN" || pathname.startsWith("/district")) {
+      return [
+        { label: "Dashboard", href: "/district/dashboard", icon: Layers },
+        { label: "Requirements", href: "/district/requirements", icon: Compass },
+        { label: "Projects", href: "/district/projects", icon: ShieldCheck },
+        { label: "Inspections", href: "/district/inspections", icon: Landmark, featureKey: "enableMilestoneMonitoring" },
+        { label: "Reports", href: "/district/reports", icon: BarChart2, featureKey: "enableReportsExport" }
+      ];
+    }
+
+    if (storedRole === "PORTAL_ADMIN" || pathname.startsWith("/government-portal")) {
+      return [
+        { label: "Statewide Monitor", href: "/government-portal/statewide", icon: Layers },
+        { label: "District Register", href: "/government-portal/district", icon: Compass },
+        { label: "Verification Queues", href: "/government-portal/ngo-verify", icon: Landmark },
+        { label: "Project Approvals", href: "/government-portal/project-verify", icon: ShieldCheck },
+        { label: "Compliance Audit", href: "/government-portal/compliance", icon: ShieldAlert },
+        { label: "GIS Heatmap", href: "/government-portal/heatmaps", icon: Compass },
+        { label: "Circulars", href: "/government-portal/circulars", icon: FileText },
+        { label: "Reports", href: "/government-portal/reports", icon: BarChart2 }
+      ];
+    }
+
+    if (["SUPER_ADMIN", "CSR_ADMIN"].includes(storedRole || "") || pathname.startsWith("/admin")) {
+      return [
+        { label: "Dashboard", href: "/admin/dashboard", icon: Layers },
+        { label: "Users", href: "/admin/users-roles", icon: Users },
+        { label: "Onboarding Approvals", href: "/admin/onboarding-approvals", icon: ShieldCheck },
+        { label: "Organizations", href: "/admin/organizations", icon: Landmark },
+        { label: "NGO Registry", href: "/admin/ngo-registry", icon: Landmark },
+        { label: "Companies", href: "/admin/companies", icon: Building2 },
+        { label: "Requirements Pending", href: "/admin/requirements/pending", icon: Clock, featureKey: "enableRequirementCreation" },
+        { label: "Company Interests", href: "/admin/company-interests", icon: Sparkles, featureKey: "enableCompanyInterest" },
+        { label: "NGO Selection", href: "/admin/ngo-selection", icon: Award, featureKey: "enableNGOSelection" },
+        { label: "Fund Monitoring", href: "/admin/fund-monitoring", icon: Coins, featureKey: "enableFundDisbursement" },
+        { label: "Projects", href: "/admin/projects", icon: Compass },
+        { label: "Verification Queue", href: "/admin/applications", icon: Clock },
+        { label: "Executive Dashboard", href: "/admin/executive-dashboard", icon: BarChart2 },
+        { label: "Reports", href: "/admin/reports", icon: BarChart2 },
+        { label: "Audit Trail", href: "/admin/audit-trail", icon: FileText }
+      ];
     }
 
     if (pathname.startsWith("/organization")) {
@@ -231,16 +282,6 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
         { label: "Users", href: "/organization/users", icon: Users },
         { label: "Roles", href: "/organization/roles", icon: ShieldAlert },
         { label: "Settings", href: "/organization/settings", icon: ShieldCheck }
-      ];
-    }
-
-    if (pathname.startsWith("/district")) {
-      return [
-        { label: "Dashboard", href: "/district/dashboard", icon: Layers },
-        { label: "Requirements", href: "/district/requirements", icon: Compass },
-        { label: "Projects", href: "/district/projects", icon: ShieldCheck },
-        { label: "Inspections", href: "/district/inspections", icon: Landmark, featureKey: "enableMilestoneMonitoring" },
-        { label: "Reports", href: "/district/reports", icon: BarChart2, featureKey: "enableReportsExport" }
       ];
     }
 
@@ -295,39 +336,6 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
       ];
     }
 
-    if (pathname.startsWith("/government-portal")) {
-      return [
-        { label: "Statewide Monitor", href: "/government-portal/statewide", icon: Layers },
-        { label: "District Register", href: "/government-portal/district", icon: Compass },
-        { label: "Verification Queues", href: "/government-portal/ngo-verify", icon: Landmark },
-        { label: "Project Approvals", href: "/government-portal/project-verify", icon: ShieldCheck },
-        { label: "Compliance Audit", href: "/government-portal/compliance", icon: ShieldAlert },
-        { label: "GIS Heatmap", href: "/government-portal/heatmaps", icon: Compass },
-        { label: "Circulars", href: "/government-portal/circulars", icon: FileText },
-        { label: "Reports", href: "/government-portal/reports", icon: BarChart2 }
-      ];
-    }
-
-    if (pathname.startsWith("/admin")) {
-      return [
-        { label: "Dashboard", href: "/admin/dashboard", icon: Layers },
-        { label: "Users", href: "/admin/users-roles", icon: Users },
-        { label: "Onboarding Approvals", href: "/admin/onboarding-approvals", icon: ShieldCheck },
-        { label: "Organizations", href: "/admin/organizations", icon: Landmark },
-        { label: "NGO Registry", href: "/admin/ngo-registry", icon: Landmark },
-        { label: "Companies", href: "/admin/companies", icon: Building2 },
-        { label: "Requirements Pending", href: "/admin/requirements/pending", icon: Clock, featureKey: "enableRequirementCreation" },
-        { label: "Company Interests", href: "/admin/company-interests", icon: Sparkles, featureKey: "enableCompanyInterest" },
-        { label: "NGO Selection", href: "/admin/ngo-selection", icon: Award, featureKey: "enableNGOSelection" },
-        { label: "Fund Monitoring", href: "/admin/fund-monitoring", icon: Coins, featureKey: "enableFundDisbursement" },
-        { label: "Projects", href: "/admin/projects", icon: Compass },
-        { label: "Verification Queue", href: "/admin/applications", icon: Clock },
-        { label: "Executive Dashboard", href: "/admin/executive-dashboard", icon: BarChart2 },
-        { label: "Reports", href: "/admin/reports", icon: BarChart2 },
-        { label: "Audit Trail", href: "/admin/audit-trail", icon: FileText }
-      ];
-    }
-
     return [
       { label: "Overview Console", href: "/ngo-dashboard", icon: Layers },
       { label: "Directories", href: "/marketplace", icon: Compass },
@@ -359,6 +367,14 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
       <p className="mt-2 text-sm leading-6">Contact your Portal Admin or Master Admin to enable this module for your State Portal.</p>
     </div>
   ) : children;
+
+  if (isDashboard && !mounted) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#f6f8fb]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-900"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-[#f6f8fb] text-slate-900 font-sans">

@@ -4,7 +4,8 @@ import {
   getMyInterests,
   getInterestsForRequirement,
   selectNGO,
-  updateInterestStatus
+  updateInterestStatus,
+  listCompanyInterestsForAdmin
 } from "../controllers/companyInterestController";
 import { authenticateToken, authorizeRoles } from "../middlewares/authMiddleware";
 import { checkFeatureEnabled, checkOrganizationApproved, checkPermission, checkTenantActive, resolveTenantContext } from "../middlewares/tenantMiddleware";
@@ -22,6 +23,16 @@ const companyTransaction = [
 
 router.post("/", ...companyTransaction, checkPermission("interest:create"), expressInterest);
 router.get("/my", ...companyTransaction, checkPermission("interest:view"), getMyInterests);
+router.get(
+  "/list",
+  authenticateToken,
+  authorizeRoles([Role.MASTER_ADMIN, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN, Role.DISTRICT_ADMIN, Role.BENEFICIARY_AGENCY]),
+  resolveTenantContext,
+  checkTenantActive,
+  checkFeatureEnabled("enableCompanyInterest"),
+  checkPermission("interest:view"),
+  listCompanyInterestsForAdmin
+);
 router.get(
   "/requirement/:requirementId",
   authenticateToken,

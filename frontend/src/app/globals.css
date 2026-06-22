@@ -24,6 +24,8 @@ body {
   font-family: var(--font-inter);
   overflow-x: hidden;
   letter-spacing: 0;
+  margin: 0;
+  padding: 0;
 }
 
 /* Government Panel Card */
@@ -60,7 +62,7 @@ body {
 }
 
 .govt-table thead th {
-  padding: 10px 16px;
+  padding: 8px 12px;
   font-weight: 600;
   font-size: 11px;
   text-transform: uppercase;
@@ -69,11 +71,11 @@ body {
 }
 
 .govt-table thead th:first-child {
-  border-radius: 8px 0 0 0;
+  border-radius: 6px 0 0 0;
 }
 
 .govt-table thead th:last-child {
-  border-radius: 0 8px 0 0;
+  border-radius: 0 6px 0 0;
 }
 
 .govt-table tbody tr {
@@ -90,7 +92,7 @@ body {
 }
 
 .govt-table tbody td {
-  padding: 12px 16px;
+  padding: 10px 12px;
   color: #334155;
   font-weight: 500;
 }
@@ -143,8 +145,8 @@ body {
   width: 100%;
   background: #ffffff;
   border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  padding: 9px 14px;
+  border-radius: 6px;
+  padding: 7px 12px;
   font-size: 13px;
   color: #1e293b;
   transition: border-color 0.2s, box-shadow 0.2s;

@@ -5,31 +5,48 @@ export const getAccessToken = () => {
   return localStorage.getItem("accessToken");
 };
 
-// In-memory cache to make page rendering and API fetches instant like a single-page app
-interface CacheEntry {
-  data: any;
-  timestamp: number;
-}
-const apiCache = new Map<string, CacheEntry>();
-const CACHE_TTL_MS = 60 * 1000; // 1-minute TTL for cached API data
-
 export const clearApiCache = () => {
-  apiCache.clear();
+  if (typeof window === "undefined") return;
+  Object.keys(localStorage)
+    .filter(key => key.startsWith("api_cache_"))
+    .forEach(key => localStorage.removeItem(key));
+};
+
+const CACHE_PREFIX = "api_cache_";
+const CACHE_TTL_MS = 60 * 1000;
+
+const getCachedData = <T>(path: string): T | null => {
+  if (typeof window === "undefined") return null;
+  
+  const cached = localStorage.getItem(CACHE_PREFIX + btoa(path));
+  if (!cached) return null;
+
+  try {
+    const { data, timestamp } = JSON.parse(cached);
+    if (Date.now() - timestamp < CACHE_TTL_MS) {
+      return data as T;
+    }
+    localStorage.removeItem(CACHE_PREFIX + btoa(path));
+  } catch {
+    localStorage.removeItem(CACHE_PREFIX + btoa(path));
+  }
+  return null;
+};
+
+const setCachedData = <T>(path: string, data: T): void => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(CACHE_PREFIX + btoa(path), JSON.stringify({ data, timestamp: Date.now() }));
 };
 
 export const apiFetch = async <T>(path: string, init: RequestInit = {}): Promise<T> => {
   const method = init.method || "GET";
   const isCacheable = method === "GET";
   
-  // Return cached result if valid
   if (isCacheable) {
-    const cached = apiCache.get(path);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-      return cached.data as T;
+    const cached = getCachedData<T>(path);
+    if (cached) {
+      return cached;
     }
-  } else {
-    // Invalidate cache immediately on mutation
-    apiCache.clear();
   }
 
   const token = getAccessToken();
@@ -65,15 +82,23 @@ export const apiFetch = async <T>(path: string, init: RequestInit = {}): Promise
     throw error;
   }
 
-  // Cache successful GET requests
-  if (isCacheable) {
-    apiCache.set(path, {
-      data,
-      timestamp: Date.now()
-    });
+  if (isCacheable && data) {
+    setCachedData(path, data);
   }
 
   return data as T;
+};
+
+export const invalidateCache = (pathPattern?: string): void => {
+  if (typeof window === "undefined") return;
+  
+  if (pathPattern) {
+    Object.keys(localStorage)
+      .filter(key => key.startsWith(CACHE_PREFIX) && key.includes(btoa(pathPattern)))
+      .forEach(key => localStorage.removeItem(key));
+  } else {
+    clearApiCache();
+  }
 };
 
 export const getStoredUser = () => {

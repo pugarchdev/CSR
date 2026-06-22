@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, usePathname } from "next/navigation";
 import { apiFetch, API_BASE_URL, getAccessToken } from "@/lib/api";
 import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
@@ -15,6 +15,7 @@ import {
 export default function CSRRequirementDetail() {
   const router = useRouter();
   const { id } = useParams();
+  const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
   const [requirement, setRequirement] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -438,10 +439,17 @@ export default function CSRRequirementDetail() {
       {/* Back to marketplace */}
       <div className="flex items-center gap-2">
         <Button 
-          onClick={() => router.push("/csr-marketplace")}
+          onClick={() => {
+            const backDest = pathname.startsWith("/company/marketplace")
+              ? "/company/marketplace"
+              : pathname.startsWith("/department/requirements")
+              ? "/department/requirements"
+              : "/csr-marketplace";
+            router.push(backDest);
+          }}
           className="bg-transparent hover:bg-slate-100 text-slate-700 font-bold border border-slate-200 py-1.5 px-3 flex items-center gap-1 text-xs"
         >
-          <ArrowLeft size={14} /> Back to Marketplace
+          <ArrowLeft size={14} /> Back
         </Button>
       </div>
 

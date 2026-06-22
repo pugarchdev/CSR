@@ -95,7 +95,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      apiFetch<any[]>("/projects").catch(() => []),
+      apiFetch<any[]>("/company/projects").catch(() => []),
       apiFetch<any[]>("/ngos").catch(() => []),
       apiFetch<any[]>("/matching").catch(() => [])
     ])

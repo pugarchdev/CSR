@@ -1,28 +1,37 @@
+import rateLimit from "express-rate-limit";
 import { Request, Response, NextFunction } from "express";
 
-interface Bucket {
-  count: number;
-  resetAt: number;
-}
+export const generalRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests. Please try again later." },
+});
 
-const buckets = new Map<string, Bucket>();
+export const authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many login attempts. Please try again in 15 minutes." },
+  skipSuccessfulRequests: false,
+});
 
-export const rateLimit = (options: { windowMs: number; max: number; keyPrefix?: string }) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    const key = `${options.keyPrefix || "default"}:${req.ip}:${req.originalUrl}`;
-    const now = Date.now();
-    const bucket = buckets.get(key);
+export const strictRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests from this IP. Please try again in 1 hour." },
+});
 
-    if (!bucket || bucket.resetAt <= now) {
-      buckets.set(key, { count: 1, resetAt: now + options.windowMs });
-      return next();
-    }
-
-    if (bucket.count >= options.max) {
-      return res.status(429).json({ error: "Too many requests. Please try again later." });
-    }
-
-    bucket.count += 1;
-    return next();
-  };
+export const createCustomRateLimiter = (windowMs: number, max: number, message?: string) => {
+  return rateLimit({
+    windowMs,
+    max,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: message || "Too many requests. Please try again later." },
+  });
 };

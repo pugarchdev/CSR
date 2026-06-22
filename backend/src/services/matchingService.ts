@@ -4,12 +4,16 @@ import { createClient } from "redis";
 // Optional redis client
 let redisClient: any = null;
 (async () => {
-  try {
-    redisClient = createClient({ url: process.env.REDIS_URL || "redis://localhost:6379" });
-    await redisClient.connect();
-    console.log("Redis connected successfully for Matching Engine Caching.");
-  } catch (err) {
-    console.warn("Redis connection failed. Matching Engine running in dynamic mode (no cache).");
+  if (process.env.REDIS_URL || process.env.REDIS_ENABLED === "true") {
+    try {
+      redisClient = createClient({ url: process.env.REDIS_URL || "redis://localhost:6379" });
+      await redisClient.connect();
+      console.log("Redis connected successfully for Matching Engine Caching.");
+    } catch (err) {
+      console.info("Redis connection optional: Matching Engine running in dynamic mode (no cache).");
+    }
+  } else {
+    console.log("Matching Engine running in dynamic mode (no cache).");
   }
 })();
 

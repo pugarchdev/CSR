@@ -4,6 +4,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import { Server } from "socket.io";
+import helmet from "helmet";
 import { assertProductionEnv } from "./config/env";
 import { applyCorsHeaders, corsOriginDelegate } from "./config/cors";
 
@@ -69,12 +70,17 @@ app.use((req, res, next) => {
 });
 
 app.use(cors(corsOptions));
-app.use(express.json());
+app.use(helmet());
+app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 
-// Logger middleware
+// Logger middleware - sanitized for security
+const SENSITIVE_PATHS = ["/api/auth/login", "/api/auth/register", "/api/auth/verify-otp"];
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  const isSensitive = SENSITIVE_PATHS.some((path) => req.path.startsWith(path));
+  const logMethod = req.method;
+  const logPath = isSensitive ? "/api/auth/**" : req.path;
+  console.log(`[${new Date().toISOString()}] ${logMethod} ${logPath}`);
   next();
 });
 
@@ -116,6 +122,11 @@ app.use("/api/csr-dashboard", csrDashboardRoutes);
 // Base route
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to MahaCSR API Platform Gateway" });
+});
+
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
 // Error handling middleware

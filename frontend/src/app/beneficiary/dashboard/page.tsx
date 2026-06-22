@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
 import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
@@ -24,6 +24,7 @@ interface DashboardStats {
 
 export default function BeneficiaryDashboard() {
   const router = useRouter();
+  const pathname = usePathname();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentRequirements, setRecentRequirements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -489,7 +490,12 @@ export default function BeneficiaryDashboard() {
                             </td>
                             <td className="px-6 py-4 text-right">
                               <Button 
-                                onClick={() => router.push(`/csr-marketplace/${req.id}`)}
+                                onClick={() => {
+                                  const dest = pathname.startsWith("/department") || pathname.startsWith("/beneficiary")
+                                    ? `/department/requirements/${req.id}`
+                                    : `/csr-marketplace/${req.id}`;
+                                  router.push(dest);
+                                }}
                                 className="bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs py-1 px-3"
                               >
                                 View
