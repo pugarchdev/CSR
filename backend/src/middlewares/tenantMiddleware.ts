@@ -16,7 +16,15 @@ const DEFAULT_TENANT_CODE = "MH-CSR";
 
 export const resolveTenantContext = async (req: TenantAwareRequest, res: Response, next: NextFunction) => {
   try {
-    if (!req.user) return res.status(401).json({ error: "Unauthorized access" });
+    if (!req.user) {
+      const tenant = await prisma.tenant.findUnique({ where: { code: DEFAULT_TENANT_CODE } });
+      req.tenantContext = {
+        tenantId: tenant?.id || null,
+        organizationId: null,
+        isMasterAdmin: false
+      };
+      return next();
+    }
 
     if (req.user.role === Role.MASTER_ADMIN) {
       req.tenantContext = {

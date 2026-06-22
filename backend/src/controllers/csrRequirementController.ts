@@ -220,16 +220,30 @@ export const getCSRRequirementById = async (req: AuthenticatedRequest, res: Resp
 
     if (!requirement) return res.status(404).json({ error: "Requirement not found" });
 
-    // Access control: Draft/Rejected only visible to owner and super admin
+    // Access control: Draft/Rejected/Pending etc. only visible to owner and admins;
+    // normal users and guest/public can only view verified/listed/published/completed requirements.
     const role = req.user?.role;
-    const isOwner = requirement.beneficiaryProfile.userId === req.user?.id;
+    const isOwner = req.user ? requirement.beneficiaryProfile.userId === req.user.id : false;
     const isAdmin = role === Role.SUPER_ADMIN || role === Role.DISTRICT_ADMIN || role === Role.PORTAL_ADMIN;
 
-    if (
-      (requirement.status === CSRRequirementStatus.DRAFT || requirement.status === CSRRequirementStatus.REJECTED) &&
-      !isOwner && !isAdmin
-    ) {
-      return res.status(404).json({ error: "Requirement not found" });
+    if (!isOwner && !isAdmin) {
+      const visibleStatuses: CSRRequirementStatus[] = [
+        CSRRequirementStatus.VERIFIED,
+        CSRRequirementStatus.MARKETPLACE_LISTED,
+        CSRRequirementStatus.NGO_APPLICATIONS_OPEN,
+        CSRRequirementStatus.COMPANY_INTEREST_RECEIVED,
+        CSRRequirementStatus.NGO_SELECTED,
+        CSRRequirementStatus.AGREEMENT_PENDING,
+        CSRRequirementStatus.AGREEMENT_SIGNED,
+        CSRRequirementStatus.EXECUTION_STARTED,
+        CSRRequirementStatus.IN_PROGRESS,
+        CSRRequirementStatus.COMPLETION_SUBMITTED,
+        CSRRequirementStatus.COMPLETED,
+        CSRRequirementStatus.IMPACT_REPORT_GENERATED
+      ];
+      if (!visibleStatuses.includes(requirement.status)) {
+        return res.status(404).json({ error: "Requirement not found" });
+      }
     }
 
     return res.json(requirement);

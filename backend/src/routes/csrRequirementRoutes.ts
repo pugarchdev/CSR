@@ -18,7 +18,7 @@ import {
   confirmProjectHandover,
   getDepartmentCompanyInterests
 } from "../controllers/csrRequirementController";
-import { authenticateToken, authorizeRoles } from "../middlewares/authMiddleware";
+import { authenticateToken, authorizeRoles, optionalAuthenticateToken } from "../middlewares/authMiddleware";
 import { checkFeatureEnabled, checkOrganizationApproved, checkPermission, checkPublicFeatureEnabled, checkTenantActive, resolveTenantContext } from "../middlewares/tenantMiddleware";
 import { Role } from "@prisma/client";
 
@@ -69,6 +69,6 @@ router.post("/:id/confirm-handover", ...departmentTransaction, checkPermission("
 router.post("/:requirementId/documents", ...departmentTransaction, checkPermission("requirement:update"), addRequirementDocument);
 
 // Get detail by ID must be after special routes to avoid path collision
-router.get("/:id", authenticateToken, resolveTenantContext, checkTenantActive, checkPermission("requirement:view"), getCSRRequirementById);
+router.get("/:id", optionalAuthenticateToken, resolveTenantContext, checkTenantActive, getCSRRequirementById);
 
 export default router;
