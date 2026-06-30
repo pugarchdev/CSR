@@ -146,6 +146,18 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
     const publicPrefixes = [
       "/about",
       "/partner-with-maharashtra",
+      "/pitch-development-need",
+      "/track",
+      "/standard-mou-template",
+      "/csr-impact-dashboard",
+      "/district-csr-ranking",
+      "/statistics",
+      "/downloads",
+      "/faqs",
+      "/feedback",
+      "/gallery",
+      "/stories",
+      "/events",
       "/framework-policy",
       "/document-library",
       "/workflow",
@@ -727,6 +739,16 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                   >
                     Partner with Maharashtra
                   </Link>
+                  <Link
+                    href="/pitch-development-need"
+                    className={`px-4 h-[48px] flex items-center border-b-[3px] transition-all hover:bg-white/5 hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-gov-saffron/50 ${
+                      pathname === "/pitch-development-need"
+                        ? "border-[#FF9933] text-white font-extrabold bg-white/10"
+                        : "border-transparent text-white/90 hover:text-white"
+                    }`}
+                  >
+                    Pitch a Development Need
+                  </Link>
                   {publicNavGroups.map((group) => {
                     const isActive = pathname === group.href || group.links.some((link) => pathname === link.href || pathname.startsWith(link.href + "/"));
                     return (
@@ -843,6 +865,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                   {(isDashboard ? dashboardNavigationItems : [
                     { label: "Home", href: "/", icon: Layers },
                     { label: "Partner with Maharashtra", href: "/partner-with-maharashtra", icon: Handshake },
+                    { label: "Pitch a Development Need", href: "/pitch-development-need", icon: Sparkles },
                     ...publicNavGroups.flatMap((group) => group.links.map((link) => ({
                       label: link.label,
                       href: link.href,
@@ -941,6 +964,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                   <div className="mt-4 flex flex-col gap-3 text-sm text-blue-100">
                     <Link href="/about" className="text-blue-100 hover:text-white">About MahaCSR</Link>
                     <Link href="/partner-with-maharashtra" className="text-blue-100 hover:text-white">Partner with Maharashtra</Link>
+                    <Link href="/pitch-development-need" className="text-blue-100 hover:text-white">Pitch a Development Need</Link>
                     <Link href="/public-development-needs" className="text-blue-100 hover:text-white">Public Development Needs (Live)</Link>
                     <Link href="/workflow" className="text-blue-100 hover:text-white">Workflow</Link>
                     <Link href="/knowledge" className="text-blue-100 hover:text-white">Knowledge Center</Link>

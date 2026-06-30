@@ -93,6 +93,8 @@ textarea {
 .gov-page {
   min-height: 100vh;
   background: var(--gov-bg);
+  font-family: var(--gov-font);
+  letter-spacing: 0;
 }
 
 .gov-container {
@@ -361,13 +363,16 @@ textarea {
   margin: 0;
   font-size: 22px;
   color: var(--gov-primary-dark);
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: 0;
 }
 
 .gov-page-description {
   margin: 6px 0 0;
   color: var(--gov-text-secondary);
   max-width: 900px;
+  font-size: 14px;
+  line-height: 1.65;
 }
 
 /* ============================================
@@ -391,7 +396,8 @@ textarea {
   margin: 0;
   font-size: 16px;
   color: var(--gov-primary-dark);
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: 0;
 }
 
 .gov-card-body {
@@ -566,16 +572,18 @@ textarea {
   background: #eef2f7;
   color: var(--gov-primary-dark);
   text-align: left;
-  font-weight: 700;
+  font-weight: 800;
   border: 1px solid var(--gov-border);
   padding: 10px;
   font-size: 12px;
+  letter-spacing: 0;
 }
 
 .gov-table td {
   border: 1px solid var(--gov-border);
   padding: 10px;
   vertical-align: top;
+  line-height: 1.6;
 }
 
 .gov-table tbody tr:hover {

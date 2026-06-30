@@ -276,11 +276,7 @@ export default function LandingPage() {
                 </div>
               ))}
             </div>
-            <div className="mt-5 text-center">
-              <Link href="/reports" className="inline-flex min-h-10 items-center rounded-md border border-[#cfdcf0] px-5 text-xs font-extrabold text-[#245ddc] hover:bg-blue-50 hover:no-underline">
-                View All Recommendations
-              </Link>
-            </div>
+            
           </div>
 
           <div className="rounded-lg border border-[#d8e2ef] bg-white p-4 shadow-[0_8px_26px_rgba(15,35,70,0.06)] sm:p-5 md:p-6">
