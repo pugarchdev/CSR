@@ -457,8 +457,8 @@ export const getPitchById = async (
       return res.status(404).json({ error: "Pitch not found" });
     }
 
-    // RM can see assigned pitches
-    if (isRM && pitch.assignedRelationshipManagerId !== userId && !isPublicPitch && !isAdmin) {
+    // RM can see assigned or unassigned pitches
+    if (isRM && pitch.assignedRelationshipManagerId !== userId && pitch.assignedRelationshipManagerId !== null && !isPublicPitch && !isAdmin) {
       return res.status(403).json({ error: "You can only view pitches assigned to you" });
     }
 
@@ -501,8 +501,9 @@ export const verifyPitch = async (
       return res.status(404).json({ error: "Pitch not found" });
     }
 
-    // Check if pitch is assigned to this RM
+    // Check if pitch is assigned to this RM or is unassigned
     if (pitch.assignedRelationshipManagerId !== userId &&
+        pitch.assignedRelationshipManagerId !== null &&
         req.user!.role !== Role.SUPER_ADMIN &&
         req.user!.role !== Role.PORTAL_ADMIN) {
       return res.status(403).json({ error: "This pitch is not assigned to you" });
@@ -520,13 +521,18 @@ export const verifyPitch = async (
 
     const jsApprovalDueAt = calculateDueDate("JS_DECISION");
 
+    const updateData: any = {
+      status: GovernmentPitchStatus.JS_APPROVAL_PENDING,
+      jsApprovalDueAt,
+      updatedAt: new Date()
+    };
+    if (!pitch.assignedRelationshipManagerId) {
+      updateData.assignedRelationshipManagerId = userId;
+    }
+
     const updatedPitch = await prisma.governmentPitch.update({
       where: { id },
-      data: {
-        status: GovernmentPitchStatus.JS_APPROVAL_PENDING,
-        jsApprovalDueAt,
-        updatedAt: new Date()
-      }
+      data: updateData
     });
 
     await prisma.sLAEscalation.updateMany({

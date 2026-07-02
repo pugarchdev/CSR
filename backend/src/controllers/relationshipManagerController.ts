@@ -449,7 +449,12 @@ export const getRMEnquiryById = async (
 
     const where: any = { id };
     if (tenantId && userRole !== Role.MASTER_ADMIN) where.tenantId = tenantId;
-    if (userRole === Role.CSR_RELATIONSHIP_MANAGER) where.assignedRelationshipManagerId = userId;
+    if (userRole === Role.CSR_RELATIONSHIP_MANAGER) {
+      where.OR = [
+        { assignedRelationshipManagerId: userId },
+        { assignedRelationshipManagerId: null }
+      ];
+    }
 
     const enquiry = await prisma.corporateEnquiry.findFirst({
       where,
@@ -579,7 +584,10 @@ export const getPendingPitches = async (
 
     // RM sees only their assigned pitches
     if (userRole === Role.CSR_RELATIONSHIP_MANAGER) {
-      where.assignedRelationshipManagerId = userId;
+      where.OR = [
+        { assignedRelationshipManagerId: userId },
+        { assignedRelationshipManagerId: null }
+      ];
     }
 
     const [pitches, total] = await Promise.all([
