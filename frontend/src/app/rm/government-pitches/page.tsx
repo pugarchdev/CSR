@@ -128,7 +128,7 @@ export default function RMPitchesPage() {
   ];
 
   return (
-    <GovPortalLayout userRole="CSR_RELATIONSHIP_MANAGER">
+    <GovPortalLayout>
       <GovPageHeader
         title="Government Pitch Verification Queue"
         description="Verify genuine development needs proposed by government officials, check geo-tagged images, and submit verification report"

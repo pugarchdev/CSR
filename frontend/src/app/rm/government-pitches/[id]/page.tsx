@@ -96,7 +96,7 @@ export default function RMPitchDetailPage() {
 
   if (isLoading) {
     return (
-      <GovPortalLayout userRole="CSR_RELATIONSHIP_MANAGER">
+      <GovPortalLayout>
         <div style={{ padding: 100, textAlign: "center", color: "var(--gov-text-muted)" }}>Loading pitch details...</div>
       </GovPortalLayout>
     );
@@ -104,7 +104,7 @@ export default function RMPitchDetailPage() {
 
   if (!pitch) {
     return (
-      <GovPortalLayout userRole="CSR_RELATIONSHIP_MANAGER">
+      <GovPortalLayout>
         <div style={{ padding: 24 }}>
           <GovAlert variant="danger">Government pitch not found.</GovAlert>
           <Link href="/rm/government-pitches">
@@ -126,7 +126,7 @@ export default function RMPitchDetailPage() {
   const allChecksPassed = photoCheckPassed && fundDeclarationPassed && certCheckPassed;
 
   return (
-    <GovPortalLayout userRole="CSR_RELATIONSHIP_MANAGER">
+    <GovPortalLayout>
       <GovPageHeader
         title={`Pitch ${pitch.pitchReferenceId}`}
         description="Verify government official development need proposal card"

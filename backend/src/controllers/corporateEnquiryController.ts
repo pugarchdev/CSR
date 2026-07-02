@@ -180,6 +180,13 @@ export const submitEnquiry = async (
     // Generate tracking ID
     const trackingId = await generateCorporateEnquiryTrackingId();
 
+    // Resolve tenant context or get default tenant
+    let tenantId = (req as any).tenantContext?.tenantId;
+    if (!tenantId) {
+      const tenant = await prisma.tenant.findUnique({ where: { code: "MH-CSR" } });
+      tenantId = tenant?.id || null;
+    }
+
     // Create enquiry
     const enquiry = await prisma.corporateEnquiry.create({
       data: {
@@ -197,6 +204,7 @@ export const submitEnquiry = async (
         mca21Cin: body.mca21Cin.toUpperCase(),
         proposedCsrWork: body.proposedCsrWork.trim(),
         status: CorporateEnquiryStatus.TRACKING_ID_GENERATED,
+        tenantId,
         submittedAt: new Date(),
         firstResponseDueAt: calculateDueDate("RM_RESPONSE"),
       },
