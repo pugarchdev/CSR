@@ -39,6 +39,9 @@ export default function RMPitchesPage() {
 
   const filteredPitches = pitches.filter((p) => {
     if (filterStatus === "ALL") return true;
+    if (filterStatus === "RM_VERIFICATION_PENDING") {
+      return p.status === "RM_VERIFICATION_PENDING" || p.status === "SUBMITTED";
+    }
     return p.status === filterStatus;
   });
 

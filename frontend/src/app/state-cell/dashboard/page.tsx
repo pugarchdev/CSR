@@ -6,7 +6,7 @@ import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import GovPageHeader from "@/components/layout/GovPageHeader";
 import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
 import GovButton from "@/components/gov/GovButton";
-import GovStatusBadge from "@/components/gov/GovStatusBadge";
+import GovStatusBadge, { statusToVariant } from "@/components/gov/GovStatusBadge";
 import { apiFetch } from "@/lib/api";
 import {
   Building2,
@@ -65,7 +65,7 @@ export default function StateCellDashboardPage() {
 
   const totalPitches = pitches.length;
   const pendingPitches = pitches.filter(
-    (p) => p.status === "RM_VERIFICATION_PENDING"
+    (p) => p.status === "RM_VERIFICATION_PENDING" || p.status === "SUBMITTED"
   ).length;
 
   const totalGrievances = grievances.length;
@@ -251,7 +251,7 @@ export default function StateCellDashboardPage() {
             <GovCardBody style={{ padding: 0 }}>
               {loading ? (
                 <div style={{ padding: 24, textAlign: "center", color: "var(--gov-text-muted)" }}>Loading pitches...</div>
-              ) : pitches.filter(p => p.status === "RM_VERIFICATION_PENDING").length === 0 ? (
+              ) : pitches.filter(p => p.status === "RM_VERIFICATION_PENDING" || p.status === "SUBMITTED").length === 0 ? (
                 <div style={{ padding: 24, textAlign: "center", color: "var(--gov-text-muted)" }}>No pending pitches found.</div>
               ) : (
                 <div className="gov-table-container">
@@ -265,12 +265,14 @@ export default function StateCellDashboardPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {pitches.filter(p => p.status === "RM_VERIFICATION_PENDING").slice(0, 5).map((pitch) => (
+                      {pitches.filter(p => p.status === "RM_VERIFICATION_PENDING" || p.status === "SUBMITTED").slice(0, 5).map((pitch) => (
                         <tr key={pitch.id}>
                           <td style={{ fontWeight: 600, color: "var(--gov-link)" }}>{pitch.pitchReferenceId}</td>
                           <td>{pitch.department}</td>
                           <td>
-                            <GovStatusBadge variant="warning">Verification Pending</GovStatusBadge>
+                            <GovStatusBadge variant={statusToVariant(pitch.status)}>
+                              {pitch.status === "SUBMITTED" ? "Submitted" : "Verification Pending"}
+                            </GovStatusBadge>
                           </td>
                           <td>
                             <Link href={`/rm/government-pitches/${pitch.id}`}>

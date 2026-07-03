@@ -299,7 +299,7 @@ export const getJSDashboard = async (
         estimatedCost: pitch.estimatedCost,
         govtFundDeclaration: pitch.govtFundDeclaration,
         photosCount: pitch._count.photos,
-        rmVerificationStatus: pitch.status === GovernmentPitchStatus.RM_VERIFIED ? "VERIFIED" : "PENDING",
+        rmVerificationStatus: (pitch.status === GovernmentPitchStatus.RM_VERIFIED || pitch.status === GovernmentPitchStatus.JS_APPROVAL_PENDING) ? "VERIFIED" : "PENDING",
         jsApprovalDueDate: pitch.jsApprovalDueAt,
         submittedAt: pitch.submittedAt,
       })),

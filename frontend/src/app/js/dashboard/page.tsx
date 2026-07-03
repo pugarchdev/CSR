@@ -165,7 +165,11 @@ export default function JSDashboardPage() {
     {
       key: "rmVerificationStatus",
       label: "RM Status",
-      render: (v: unknown) => <GovStatusBadge variant="success">{v as string}</GovStatusBadge>
+      render: (v: unknown) => {
+        const status = v as string;
+        const variant = status === "VERIFIED" ? "success" : "warning";
+        return <GovStatusBadge variant={variant}>{status}</GovStatusBadge>;
+      }
     },
     { key: "jsApprovalDueDate", label: "Due Date", render: (v: unknown) => fmtDate(v as string) },
     {
