@@ -764,11 +764,15 @@ export const submitInterest = async (
       return res.status(400).json({ error: "Indicative budget is required" });
     }
 
-    try {
-      await assertOtpVerified("CORPORATE_INTEREST", "MOBILE", body.mobile, body.mobileVerificationToken);
-      await assertOtpVerified("CORPORATE_INTEREST", "EMAIL", body.email, body.emailVerificationToken);
-    } catch (error: any) {
-      return res.status(400).json({ error: error.message });
+    const isCorporateUser = req.user?.role === Role.CORPORATE_USER;
+
+    if (!isCorporateUser) {
+      try {
+        await assertOtpVerified("CORPORATE_INTEREST", "MOBILE", body.mobile, body.mobileVerificationToken);
+        await assertOtpVerified("CORPORATE_INTEREST", "EMAIL", body.email, body.emailVerificationToken);
+      } catch (error: any) {
+        return res.status(400).json({ error: error.message });
+      }
     }
 
     const pitch = await prisma.governmentPitch.findUnique({

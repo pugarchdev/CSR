@@ -100,6 +100,8 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
     pathname.startsWith("/convergence-projects") ||
     pathname.startsWith("/projects") ||
     pathname.startsWith("/pitch-development-need") ||
+    pathname.startsWith("/public-development-needs") ||
+    pathname.startsWith("/partner-with-maharashtra") ||
     pathname.startsWith("/track");
 
   const isDashboard = pathname.startsWith("/ngo-dashboard") || 

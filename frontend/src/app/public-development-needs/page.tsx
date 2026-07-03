@@ -118,6 +118,7 @@ export default function PublicDevelopmentNeedsPage() {
   });
   const [interestTokens, setInterestTokens] = useState({ mobile: "", email: "" });
   const [interestResult, setInterestResult] = useState("");
+  const [isAuthenticatedCorporate, setIsAuthenticatedCorporate] = useState(false);
 
   const fetchNeeds = async (page: number = 1, district: string = "All Districts") => {
     setLoading(true);
@@ -172,6 +173,33 @@ export default function PublicDevelopmentNeedsPage() {
 
   useEffect(() => {
     fetchNeeds(1, selectedDistrict);
+
+    if (typeof window !== "undefined") {
+      const user = localStorage.getItem("user");
+      if (user) {
+        try {
+          const userData = JSON.parse(user);
+          if (userData.role === "CORPORATE_USER" || userData.role === "CORPORATE_PARTNER") {
+            setIsAuthenticatedCorporate(true);
+            const name = userData.organization?.name || userData.companyName || userData.name || "";
+            const cin = userData.organization?.cin || userData.company?.cin || userData.cin || "";
+            const email = userData.email || "";
+            
+            setInterestForm((prev) => ({
+              ...prev,
+              companyName: name,
+              mca21Cin: cin,
+              email: email,
+              contactPersonName: userData.contactPersonName || userData.name || prev.contactPersonName,
+              mobile: userData.mobile || prev.mobile,
+            }));
+            setInterestTokens({ mobile: "authenticated", email: "authenticated" });
+          }
+        } catch (e) {
+          console.error("Error parsing user data", e);
+        }
+      }
+    }
   }, []);
 
   const handleDistrictChange = (district: string) => {
@@ -239,7 +267,7 @@ export default function PublicDevelopmentNeedsPage() {
     !interestForm.declarationAccepted;
 
   return (
-    <GovPortalLayout showSidebar={false}>
+    <GovPortalLayout>
       <div className="gov-public-main">
         <div className="gov-page-header">
           <div className="gov-breadcrumb">
@@ -529,16 +557,20 @@ export default function PublicDevelopmentNeedsPage() {
                       <div>
                         <GovInput label="Mobile Number" required value={interestForm.mobile} onChange={(e) => {
                           setInterestForm({ ...interestForm, mobile: e.target.value.replace(/\D/g, "").slice(0, 10) });
-                          setInterestTokens({ ...interestTokens, mobile: "" });
+                          if (!isAuthenticatedCorporate) setInterestTokens({ ...interestTokens, mobile: "" });
                         }} />
-                        <OtpVerification purpose="CORPORATE_INTEREST" channel="MOBILE" target={interestForm.mobile} onVerified={(token) => setInterestTokens({ ...interestTokens, mobile: token })} />
+                        {!isAuthenticatedCorporate && (
+                          <OtpVerification purpose="CORPORATE_INTEREST" channel="MOBILE" target={interestForm.mobile} onVerified={(token) => setInterestTokens({ ...interestTokens, mobile: token })} />
+                        )}
                       </div>
                       <div>
                         <GovInput label="Email" type="email" required value={interestForm.email} onChange={(e) => {
                           setInterestForm({ ...interestForm, email: e.target.value });
-                          setInterestTokens({ ...interestTokens, email: "" });
+                          if (!isAuthenticatedCorporate) setInterestTokens({ ...interestTokens, email: "" });
                         }} />
-                        <OtpVerification purpose="CORPORATE_INTEREST" channel="EMAIL" target={interestForm.email} onVerified={(token) => setInterestTokens({ ...interestTokens, email: token })} />
+                        {!isAuthenticatedCorporate && (
+                          <OtpVerification purpose="CORPORATE_INTEREST" channel="EMAIL" target={interestForm.email} onVerified={(token) => setInterestTokens({ ...interestTokens, email: token })} />
+                        )}
                       </div>
                       <GovInput label="Indicative Budget" type="number" required value={interestForm.indicativeBudget} onChange={(e) => setInterestForm({ ...interestForm, indicativeBudget: e.target.value })} />
                       <GovSelect label="Preferred Start Timeline" value={interestForm.preferredStartTimeline} onChange={(e) => setInterestForm({ ...interestForm, preferredStartTimeline: e.target.value })}>

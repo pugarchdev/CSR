@@ -188,7 +188,7 @@ function TrackContent() {
   };
 
   return (
-    <GovPortalLayout showSidebar={false}>
+    <GovPortalLayout>
       <div className="gov-public-main">
         <div className="gov-page-header">
           <div className="gov-breadcrumb">
@@ -430,7 +430,7 @@ function TrackContent() {
 export default function TrackPage() {
   return (
     <Suspense fallback={
-      <GovPortalLayout showSidebar={false}>
+      <GovPortalLayout>
         <div className="gov-public-main flex items-center justify-center p-12">
           <Loader2 className="animate-spin text-slate-500" size={32} />
           <span className="ml-2 text-slate-600 font-medium">Loading tracker...</span>

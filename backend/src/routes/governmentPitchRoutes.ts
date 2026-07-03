@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { Role } from "@prisma/client";
-import { authenticateToken, authorizeRoles } from "../middlewares/authMiddleware";
+import { authenticateToken, authorizeRoles, optionalAuthenticateToken } from "../middlewares/authMiddleware";
 import { asyncHandler } from "../middlewares/asyncHandler";
 import {
   submitPitch,
@@ -27,6 +27,7 @@ router.get("/public/:id", asyncHandler(getPitchById));
 // Corporate - Submit interest on a public pitch
 router.post(
   "/public/:id/interests",
+  optionalAuthenticateToken,
   asyncHandler(submitInterest)
 );
 
