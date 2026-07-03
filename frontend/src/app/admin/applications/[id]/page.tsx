@@ -1,6 +1,5 @@
 "use client";
 
-import { use } from "react";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import GovPageHeader from "@/components/layout/GovPageHeader";
 import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
@@ -20,8 +19,8 @@ const mockDocuments = [
   { name: "Audited Financials", status: "Under Review", statusVariant: "info" as const, risk: "Medium" },
 ];
 
-export default function AdminApplicationReviewPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function AdminApplicationReviewPage({ params }: { params: { id: string } }) {
+  const { id } = params;
 
   return (
     <GovPortalLayout userRole="ADMIN">

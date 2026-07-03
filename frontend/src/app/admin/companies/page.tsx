@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import GovPageHeader from "@/components/layout/GovPageHeader";
 import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
@@ -8,6 +9,7 @@ import GovButton from "@/components/gov/GovButton";
 import GovInput from "@/components/gov/GovInput";
 import GovSelect from "@/components/gov/GovSelect";
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
+import { apiFetch } from "@/lib/api";
 import "../../../styles/gov-theme.css";
 
 const companies = [
@@ -74,11 +76,46 @@ const companies = [
 ];
 
 export default function CompaniesPage() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sectorFilter, setSectorFilter] = useState("all");
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredCompanies = companies.filter((company) => {
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const orgs = await apiFetch<any[]>("/admin/organizations");
+        const companyOrgs = orgs.filter(org => org.csrCompanyProfile !== null || org.organizationType === "COMPANY");
+        
+        const mapped = companyOrgs.map((org, index) => ({
+          id: org.id,
+          displayId: `COMP-${new Date(org.createdAt || Date.now()).getFullYear()}-${String(index + 1).padStart(3, '0')}`,
+          name: org.name,
+          cin: org.registrationNumber || org.cin || "—",
+          sector: org.csrCompanyProfile?.sector || org.organizationType?.replace(/_/g, " ") || "Other",
+          status: org.status === "ACTIVE" ? "Active" : org.status === "PENDING" ? "Under Review" : org.status.replace(/_/g, " "),
+          statusVariant: org.status === "ACTIVE" ? "success" as const : "warning" as const,
+          csrObligation: org.csrCompanyProfile?.csrBudget ? `₹${Number(org.csrCompanyProfile.csrBudget).toLocaleString("en-IN")}` : "—",
+          spent: org.csrCompanyProfile?.spentAmount ? `₹${Number(org.csrCompanyProfile.spentAmount).toLocaleString("en-IN")}` : "—",
+          projects: org._count?.projects || 0,
+          lastReport: org.updatedAt ? new Date(org.updatedAt).toLocaleDateString("en-IN") : "—",
+          isDb: true
+        }));
+        
+        setItems([...mapped, ...companies]);
+      } catch (err) {
+        console.error("Failed to load companies", err);
+        setItems(companies);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const filteredCompanies = items.filter((company) => {
     const matchesSearch =
       company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       company.cin.toLowerCase().includes(searchTerm.toLowerCase());
@@ -193,8 +230,8 @@ export default function CompaniesPage() {
                 </thead>
                 <tbody>
                   {filteredCompanies.map((company) => (
-                    <tr key={company.id}>
-                      <td className="gov-font-mono">{company.id}</td>
+                     <tr key={company.id}>
+                      <td className="gov-font-mono">{company.displayId || company.id}</td>
                       <td className="gov-font-semibold">{company.name}</td>
                       <td className="gov-font-mono gov-text-sm">{company.cin}</td>
                       <td>
@@ -211,8 +248,14 @@ export default function CompaniesPage() {
                       </td>
                       <td>
                         <div className="gov-flex gov-gap-2">
-                          <GovButton variant="secondary">View</GovButton>
-                          <GovButton variant="muted">Reports</GovButton>
+                          <GovButton variant="secondary" onClick={() => {
+                            if (company.isDb) {
+                              router.push(`/admin/organizations/${company.id}`);
+                            } else {
+                              router.push("/admin/organizations");
+                            }
+                          }}>View</GovButton>
+                          <GovButton variant="muted" onClick={() => router.push("/admin/reports")}>Reports</GovButton>
                         </div>
                       </td>
                     </tr>

@@ -141,6 +141,7 @@ const navGroups: NavGroup[] = [
       { label: "Corporate Enquiries", to: "/rm/enquiries" },
       { label: "NGO Registry", to: "/admin/ngo-registry" },
       { label: "Companies", to: "/admin/companies" },
+      { label: "Organizations", to: "/admin/organizations" },
       { label: "Projects", to: "/admin/projects" },
       { label: "Convergence Projects", to: "/convergence-projects" },
       { label: "Grievances", to: "/state-cell/grievances" },

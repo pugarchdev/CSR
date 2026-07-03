@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import GovPageHeader from "@/components/layout/GovPageHeader";
 import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
@@ -8,6 +9,7 @@ import GovButton from "@/components/gov/GovButton";
 import GovInput from "@/components/gov/GovInput";
 import GovSelect from "@/components/gov/GovSelect";
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
+import { apiFetch } from "@/lib/api";
 import "../../../styles/gov-theme.css";
 
 const ngos = [
@@ -74,11 +76,46 @@ const ngos = [
 ];
 
 export default function NGORegistryPage() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [districtFilter, setDistrictFilter] = useState("all");
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredNGOs = ngos.filter((ngo) => {
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const orgs = await apiFetch<any[]>("/admin/organizations");
+        const ngoOrgs = orgs.filter(org => ["TRUST", "SOCIETY", "SECTION_8_COMPANY"].includes(org.organizationType));
+        
+        const mapped = ngoOrgs.map((org, index) => ({
+          id: org.id,
+          displayId: `NGO-${new Date(org.createdAt || Date.now()).getFullYear()}-${String(index + 1).padStart(3, '0')}`,
+          name: org.name,
+          registrationNo: org.registrationNumber || "—",
+          district: org.district || "—",
+          focusArea: org.organizationType?.replace(/_/g, " ") || "Other",
+          status: org.status === "ACTIVE" ? "Active" : org.status === "PENDING" ? "Under Review" : org.status.replace(/_/g, " "),
+          statusVariant: org.status === "ACTIVE" ? "success" as const : "warning" as const,
+          projectsCompleted: org._count?.projects || 0,
+          totalFunding: org.csrCompanyProfile?.spentAmount ? `₹${Number(org.csrCompanyProfile.spentAmount).toLocaleString("en-IN")}` : "—",
+          lastAudit: org.updatedAt ? new Date(org.updatedAt).toLocaleDateString("en-IN") : "—",
+          isDb: true
+        }));
+        
+        setItems([...mapped, ...ngos]);
+      } catch (err) {
+        console.error("Failed to load NGOs", err);
+        setItems(ngos);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const filteredNGOs = items.filter((ngo) => {
     const matchesSearch =
       ngo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ngo.registrationNo.toLowerCase().includes(searchTerm.toLowerCase());

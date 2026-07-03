@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import GovPageShell from "@/components/gov/GovPageShell";
 import { GovCard, GovCardBody } from "@/components/gov/GovCard";
@@ -110,8 +111,12 @@ export default function ConvergenceProjectsPage() {
     { key: "status", label: "Status", render: (v: unknown) => { const s = (v as string) || ""; return <GovStatusBadge variant={statusToVariant(s)}>{s.replace(/_/g, " ")}</GovStatusBadge>; } },
     { key: "id", label: "Action", align: "right" as const, render: (_: unknown, row: Record<string, unknown>) => (
       <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
-        <GovButton variant="muted" onClick={(e) => { e.stopPropagation(); router.push(`/convergence-projects/${row.id}`); }} style={{ fontSize: 11, padding: "3px 10px", minHeight: 28 }}>View</GovButton>
-        <GovButton variant="secondary" onClick={(e) => { e.stopPropagation(); router.push(`/projects/${row.id}/tracking`); }} style={{ fontSize: 11, padding: "3px 10px", minHeight: 28 }}>Track</GovButton>
+        <Link href={`/convergence-projects/${row.id}`} onClick={(e) => e.stopPropagation()}>
+          <GovButton variant="muted" style={{ fontSize: 11, padding: "3px 10px", minHeight: 28 }}>View</GovButton>
+        </Link>
+        <Link href={`/projects/${row.id}/tracking`} onClick={(e) => e.stopPropagation()}>
+          <GovButton variant="secondary" style={{ fontSize: 11, padding: "3px 10px", minHeight: 28 }}>Track</GovButton>
+        </Link>
       </div>
     )},
   ];
