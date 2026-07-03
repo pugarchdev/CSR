@@ -53,13 +53,35 @@ export default function CSRMarketplace() {
   const fetchMarketplaceRequirements = async () => {
     setLoading(true);
     try {
-      // Fetch verified marketplace requirements
-      const res = await apiFetch<any>("/csr-requirements/marketplace");
-      setRequirements(res.data || []);
+      const res = await apiFetch<any>("/government-pitches/public?limit=50");
+      const pitches = res.data || [];
+      setRequirements(pitches.map((pitch: any) => ({
+        id: pitch.id,
+        title: pitch.csrRequirement,
+        category: pitch.department || "PUBLIC_DEVELOPMENT_NEED",
+        description: pitch.csrRequirement,
+        district: pitch.district,
+        taluka: pitch.taluka,
+        village: pitch.exactLocation,
+        estimatedCost: Number(pitch.estimatedCost || 0),
+        beneficiaryCount: 0,
+        priorityLevel: "OPEN",
+        expectedImpact: "",
+        createdAt: pitch.createdAt,
+        status: pitch.status,
+        beneficiaryProfile: {
+          agencyName: pitch.officeName || pitch.department || "Government Department",
+          agencyType: pitch.department || "Government"
+        },
+        _count: {
+          ngoApplications: 0,
+          companyInterests: pitch._count?.interests || 0
+        }
+      })));
       setError(null);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Failed to load marketplace requirements");
+      setError(err.message || "Failed to load public development needs");
     } finally {
       setLoading(false);
     }
@@ -67,13 +89,12 @@ export default function CSRMarketplace() {
 
   const getPriorityColor = (prio: string) => {
     switch (prio) {
-      case "CRITICAL":
-        return "bg-red-100 text-red-700 border-red-200 font-bold";
-      case "HIGH":
+      case "OPEN":
+      case "PUBLIC_LISTED":
+      case "CORPORATE_INTEREST_RECEIVED":
+        return "bg-emerald-100 text-emerald-700 border-emerald-200 font-bold";
+      case "JS_APPROVED":
         return "bg-orange-100 text-orange-700 border-orange-200 font-bold";
-      case "MEDIUM":
-        return "bg-blue-100 text-blue-700 border-blue-200 font-bold";
-      case "LOW":
       default:
         return "bg-slate-100 text-slate-700 border-slate-200";
     }
@@ -87,7 +108,7 @@ export default function CSRMarketplace() {
 
     const matchesDistrict = district === "All" || req.district === district;
     const matchesCategory = category === "All" || req.category === category;
-    const matchesPriority = priority === "All" || req.priorityLevel === priority;
+    const matchesPriority = priority === "All" || req.priorityLevel === priority || req.status === priority;
 
     let matchesBudget = true;
     const cost = Number(req.estimatedCost);
@@ -112,10 +133,10 @@ export default function CSRMarketplace() {
       {/* Banner */}
       <div className="bg-gradient-to-r from-blue-900 to-indigo-950 text-white rounded-xl p-8 shadow-md">
         <h1 className="text-2xl md:text-3xl font-bold font-heading">
-          Maharashtra Government CSR Requirements Marketplace
+          Maharashtra Public Development Needs Marketplace
         </h1>
         <p className="text-blue-100 text-sm mt-2 max-w-3xl leading-relaxed">
-          Connecting Government Departments and beneficiary departments with CSR companies and empanelled NGOs to fast-track public infrastructure and social development in Maharashtra.
+          View approved government development needs and express CSR interest through the state-led convergence workflow.
         </p>
       </div>
 
@@ -179,24 +200,16 @@ export default function CSRMarketplace() {
 
           {/* Category select */}
           <div className="space-y-1">
-            <label className="text-slate-700 text-xs font-bold block">CSR Category</label>
+            <label className="text-slate-700 text-xs font-bold block">Department</label>
             <select
               value={category}
               onChange={e => setCategory(e.target.value)}
               className="w-full border rounded px-2.5 py-1.5 bg-slate-50 text-xs text-slate-700 focus:outline-none"
             >
-              <option value="All">All Categories</option>
-              <option value="EDUCATION">EDUCATION</option>
-              <option value="HEALTH">HEALTH</option>
-              <option value="WATER">WATER</option>
-              <option value="SANITATION">SANITATION</option>
-              <option value="SKILL_DEVELOPMENT">SKILL DEVELOPMENT</option>
-              <option value="ENVIRONMENT">ENVIRONMENT</option>
-              <option value="WOMEN_EMPOWERMENT">WOMEN EMPOWERMENT</option>
-              <option value="AGRICULTURE">AGRICULTURE</option>
-              <option value="RURAL_DEVELOPMENT">RURAL DEVELOPMENT</option>
-              <option value="SPORTS">SPORTS</option>
-              <option value="OTHER">OTHER</option>
+              <option value="All">All Departments</option>
+              {Array.from(new Set(requirements.map((req) => req.category).filter(Boolean))).map((dept) => (
+                <option key={dept} value={dept}>{dept.replace(/_/g, " ")}</option>
+              ))}
             </select>
           </div>
 
@@ -216,19 +229,19 @@ export default function CSRMarketplace() {
             </select>
           </div>
 
-          {/* Priority */}
+          {/* Status */}
           <div className="space-y-1">
-            <label className="text-slate-700 text-xs font-bold block">Priority Level</label>
+            <label className="text-slate-700 text-xs font-bold block">Status</label>
             <select
               value={priority}
               onChange={e => setPriority(e.target.value)}
               className="w-full border rounded px-2.5 py-1.5 bg-slate-50 text-xs text-slate-700 focus:outline-none"
             >
-              <option value="All">All Priorities</option>
-              <option value="CRITICAL">CRITICAL</option>
-              <option value="HIGH">HIGH</option>
-              <option value="MEDIUM">MEDIUM</option>
-              <option value="LOW">LOW</option>
+              <option value="All">All Statuses</option>
+              <option value="OPEN">OPEN</option>
+              <option value="JS_APPROVED">JS APPROVED</option>
+              <option value="PUBLIC_LISTED">PUBLIC LISTED</option>
+              <option value="CORPORATE_INTEREST_RECEIVED">CORPORATE INTEREST RECEIVED</option>
             </select>
           </div>
         </aside>
@@ -236,12 +249,12 @@ export default function CSRMarketplace() {
         {/* Requirements Grid */}
         <div className="lg:col-span-3 space-y-4">
           <div className="flex justify-between items-center text-xs font-bold text-slate-500 bg-white p-3 rounded-lg border shadow-sm">
-            <span>{filteredRequirements.length} Requirements Available</span>
+            <span>{filteredRequirements.length} Development Needs Available</span>
           </div>
 
           {filteredRequirements.length === 0 ? (
             <div className="bg-white border rounded-xl p-12 text-center text-slate-500">
-              <h3 className="font-bold text-lg text-slate-800">No CSR Requirements Found</h3>
+              <h3 className="font-bold text-lg text-slate-800">No Development Needs Found</h3>
               <p className="text-xs mt-1">Try adjusting the filter criteria or search keyword.</p>
             </div>
           ) : (
@@ -279,16 +292,12 @@ export default function CSRMarketplace() {
                     </div>
 
                     <div className="flex justify-between items-center text-[10px] text-slate-500 font-semibold bg-slate-50 p-2 rounded border border-slate-100">
-                      <span>NGO Applications: <strong className="text-blue-900">{req._count.ngoApplications}</strong></span>
                       <span>Corporate Interest: <strong className="text-indigo-900">{req._count.companyInterests}</strong></span>
                     </div>
 
                     <Button
                       onClick={() => {
-                        const dest = pathname.startsWith("/company/marketplace")
-                          ? `/company/marketplace/${req.id}`
-                          : `/csr-marketplace/${req.id}`;
-                        router.push(dest);
+                        router.push("/public-development-needs");
                       }}
                       className="w-full bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs py-2 flex items-center justify-center gap-1 shadow-sm"
                     >

@@ -36,6 +36,7 @@ import companyPortalRoutes from "./routes/companyPortalRoutes";
 import csrLifecycleRoutes from "./routes/csrLifecycleRoutes";
 import otpRoutes from "./routes/otpRoutes";
 import trackingRoutes from "./routes/trackingRoutes";
+import onboardingRoutes from "./routes/onboardingRoutes";
 
 // LEGACY NGO MARKETPLACE ROUTES - Commented out for MahaCSR Convergence Framework
 // These routes are disabled as per the Maharashtra CSR Portal framework
@@ -128,6 +129,7 @@ app.use("/api/company", companyPortalRoutes);
 app.use("/api", csrLifecycleRoutes);
 app.use("/api/otp", otpRoutes);
 app.use("/api/tracking", trackingRoutes);
+app.use("/api/onboarding", onboardingRoutes);
 
 // MAHA CSR CONVERGENCE FRAMEWORK - New Routes
 app.use("/api/corporate-enquiries", corporateEnquiryRoutes);

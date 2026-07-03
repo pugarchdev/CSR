@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/Button";
 import { StatsCard } from "@/components/ui/StatsCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import dynamic from "next/dynamic";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getStoredUser } from "@/lib/api";
 
 const BudgetPieChart = dynamic(() => import("@/components/BudgetPieChart"), {
   ssr: false,
@@ -53,10 +53,24 @@ const SectionLoader = ({ message }: { message: string }) => (
   </div>
 );
 
+const toNumber = (value: unknown) => Number(value || 0);
+
+const normaliseSectorKey = (sector: string) => {
+  const value = sector.toLowerCase();
+  if (value.includes("health")) return "healthcare";
+  if (value.includes("water")) return "water";
+  if (value.includes("environment") || value.includes("climate")) return "environment";
+  return "education";
+};
+
 export default function CompanyDashboard({ params }: { params?: { tab?: string } }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<CompanyTab>("overview");
   const [loading, setLoading] = useState(true);
+  const [companyName, setCompanyName] = useState("Company");
+  const [focusSdgCount, setFocusSdgCount] = useState(0);
+  const [fundedAmount, setFundedAmount] = useState(0);
+  const [utilizedAmount, setUtilizedAmount] = useState(0);
 
   useEffect(() => {
     if (params?.tab) {
@@ -69,7 +83,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
     router.push(`/company-dashboard/${tab}`);
   };
 
-  const [totalBudget, setTotalBudget] = useState(10000000);
+  const [totalBudget, setTotalBudget] = useState(0);
   
   const [allocations, setAllocations] = useState({
     education: 40,
@@ -84,59 +98,80 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
 
   const getSourcedAmount = (pct: number) => (totalBudget * pct) / 100;
 
-  // DB and Fallback Mock Data State
+  // Live data state
   const [projectsList, setProjectsList] = useState<any[]>([]);
   const [ngosList, setNgosList] = useState<any[]>([]);
-  const [matches, setMatches] = useState([
-    { id: "p-2", title: "Pune Zilla Parishad Smart Digital-Classrooms", ngo: "Sahyadri Eco Foundation", score: 95, budget: 3500000, focus: "Education & Literacy", district: "Pune" },
-    { id: "p-1", title: "Gadchiroli Watershed & Reforestation Initiative", ngo: "Sahyadri Eco Foundation", score: 85, budget: 2500000, focus: "Water Conservation", district: "Gadchiroli" }
-  ]);
+  const [matches, setMatches] = useState<any[]>([]);
 
   useEffect(() => {
+    const storedUser = getStoredUser();
+    if (storedUser?.organization?.name || storedUser?.companyName || storedUser?.email) {
+      setCompanyName(storedUser.organization?.name || storedUser.companyName || storedUser.email);
+    }
+
     setLoading(true);
-    Promise.all([
-      apiFetch<any[]>("/company/projects").catch(() => []),
-      apiFetch<any[]>("/ngos").catch(() => []),
-      apiFetch<any[]>("/matching").catch(() => [])
+    Promise.allSettled([
+      apiFetch<any>("/onboarding/company/profile"),
+      apiFetch<any>("/convergence-projects?limit=100"),
+      apiFetch<any>("/government-pitches/public?limit=6")
     ])
-      .then(([projectsData, ngosData, matchingData]) => {
-        if (projectsData && projectsData.length > 0) {
-          setProjectsList(projectsData);
+      .then(([profileResult, projectsResult, pitchesResult]) => {
+        if (profileResult.status === "fulfilled") {
+          const organization = profileResult.value?.organization;
+          const profile = profileResult.value?.profile;
+          setCompanyName(organization?.displayName || organization?.name || organization?.legalName || storedUser?.companyName || storedUser?.email || "Company");
+
+          const budget = toNumber(profile?.currentYearCsrBudget ?? profile?.csrObligationAmount ?? organization?.csrBudget);
+          setTotalBudget(budget);
+
+          const preferredSectors = Array.isArray(profile?.preferredSectors) ? profile.preferredSectors : [];
+          const sdgs = Array.isArray(profile?.sdgFocusAreas) ? profile.sdgFocusAreas : [];
+          setFocusSdgCount(sdgs.length || preferredSectors.length);
+
+          if (preferredSectors.length > 0) {
+            const nextAllocations = { education: 0, healthcare: 0, water: 0, environment: 0 };
+            const share = Math.floor(100 / preferredSectors.length);
+            preferredSectors.forEach((sector: string) => {
+              const key = normaliseSectorKey(sector) as keyof typeof nextAllocations;
+              nextAllocations[key] += share;
+            });
+            const allocated = nextAllocations.education + nextAllocations.healthcare + nextAllocations.water + nextAllocations.environment;
+            if (allocated > 0 && allocated < 100) nextAllocations.education += 100 - allocated;
+            setAllocations(nextAllocations);
+          }
         }
-        if (ngosData && ngosData.length > 0) {
-          setNgosList(ngosData);
+
+        if (projectsResult.status === "fulfilled") {
+          const projectsData = projectsResult.value?.data?.projects ?? projectsResult.value?.projects ?? [];
+          setProjectsList(projectsData.map((project: any) => ({
+            ...project,
+            focusArea: project.sector || project.focusArea || "",
+            budgetRequested: project.approvedBudget || project.budgetRequested || 0,
+            ngo: { name: project.implementingAgencyUser?.email || "Implementing agency not assigned" },
+            description: project.location || project.title
+          })));
+          setFundedAmount(projectsData.reduce((sum: number, project: any) => sum + toNumber(project.approvedBudget), 0));
+          setUtilizedAmount(projectsData.reduce((sum: number, project: any) => sum + toNumber(project.utilizedAmount), 0));
         }
-        if (matchingData && matchingData.length > 0) {
-          setMatches(matchingData.map((match) => ({
-            id: match.projectId,
-            title: match.projectTitle,
-            ngo: match.ngoName,
-            score: match.score,
-            budget: Number(match.budgetRequested),
-            focus: match.focusArea,
-            district: match.district
+
+        if (pitchesResult.status === "fulfilled") {
+          const pitches = pitchesResult.value?.data ?? [];
+          setMatches(pitches.map((pitch: any) => ({
+            id: pitch.id,
+            title: pitch.csrRequirement,
+            ngo: pitch.department || pitch.officeName || "Government department",
+            score: pitch._count?.interests ? Math.min(100, 70 + pitch._count.interests * 5) : 70,
+            budget: Number(pitch.estimatedCost || 0),
+            focus: pitch.department,
+            district: pitch.district
           })));
         }
       })
-      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
-  const mockProjects = [
-    { id: "p-2", title: "Pune Zilla Parishad Smart Digital-Classrooms", ngo: { name: "Sahyadri Eco Foundation" }, focusArea: "Education & Literacy", district: "Pune", taluka: "Mulshi", budgetRequested: 3500000, beneficiaryCount: 2400, description: "Setting up smart labs and digital interactive classrooms across 15 government schools in Pune rural talukas." },
-    { id: "p-1", title: "Gadchiroli Watershed & Reforestation Initiative", ngo: { name: "Sahyadri Eco Foundation" }, focusArea: "Water Conservation", district: "Gadchiroli", taluka: "Mulchera", budgetRequested: 2500000, beneficiaryCount: 1800, description: "Reforestation of 50 hectares of degraded forest lands and build check dams to recharge local watershed aquifers." },
-    { id: "p-3", title: "Nandurbar Mobile Primary Health Clinics", ngo: { name: "Vidarbha Seva Samiti" }, focusArea: "Healthcare & Nutrition", district: "Nandurbar", taluka: "Akrani", budgetRequested: 4200000, beneficiaryCount: 3500, description: "Procuring and running 2 mobile health vans equipped with testing kits and essential medicines for tribal hamlets." },
-    { id: "p-4", title: "Thane Lakes Rejuvenation Campaign", ngo: { name: "Konkan Sagarmata Mandal" }, focusArea: "Urban Afforestation", district: "Thane", taluka: "Kalyan", budgetRequested: 1800000, beneficiaryCount: 8000, description: "Restoring biodiversity in urban lakes and afforesting lake buffer zones in Thane district." }
-  ];
-
-  const mockNgos = [
-    { id: "ngo-1", name: "Sahyadri Eco Foundation", registrationNumber: "MH/2021/012345", darpanNumber: "MH/2021/012345-DARPAN", csr1Number: "CSR00012345", district: "Pune", status: "VERIFIED", website: "https://sahyadrieco.org" },
-    { id: "ngo-2", name: "Vidarbha Seva Samiti", registrationNumber: "MH/2023/048591", darpanNumber: "MH/2023/048591-DARPAN", csr1Number: "CSR00048591", district: "Gadchiroli", status: "VERIFIED", website: "https://vidarbhaseva.org" },
-    { id: "ngo-3", name: "Konkan Sagarmata Mandal", registrationNumber: "MH/2024/095812", darpanNumber: "MH/2024/095812-DARPAN", csr1Number: "CSR00095812", district: "Thane", status: "VERIFIED", website: "https://konkansagar.org" }
-  ];
-
-  const displayProjects = projectsList.length > 0 ? projectsList : mockProjects;
-  const displayNgos = ngosList.length > 0 ? ngosList : mockNgos;
+  const displayProjects = projectsList;
+  const displayNgos = ngosList;
 
   // Project Directory Filters
   const [projectSearch, setProjectSearch] = useState("");
@@ -157,19 +192,12 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
     return matchesSearch && matchesFocus && matchesDistrict && matchesBudget;
   });
 
-  const [milestones, setMilestones] = useState([
-    { id: "m-1", project: "Gadchiroli Watershed Initiative", name: "Milestone 2: Completion of Check Dam #2", amount: 400000, status: "Pending Approval", evidence: "evidence_dam2.zip", ngo: "Sahyadri Eco Foundation" }
-  ]);
+  const [milestones, setMilestones] = useState<any[]>([]);
 
-  const [auditLogs, setAuditLogs] = useState([
-    { date: "June 18, 2026", project: "Gadchiroli Watershed Initiative", amount: 500000, type: "Tranche 1 Payout", status: "Cleared", receipt: "receipt_tr1_gad.pdf" },
-    { date: "June 05, 2026", project: "Smart Classroom Mulshi", amount: 1200000, type: "Advance Release", status: "Cleared", receipt: "receipt_adv_mulshi.pdf" }
-  ]);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
 
-  const [meetings, setMeetings] = useState([
-    { id: "1", ngo: "Sahyadri Eco Foundation", date: "June 25, 2026", time: "11:00 AM", topic: "Milestone 3 Inspection Review" }
-  ]);
-  const [mNgo, setMNgo] = useState("Sahyadri Eco Foundation");
+  const [meetings, setMeetings] = useState<any[]>([]);
+  const [mNgo, setMNgo] = useState("");
   const [mDate, setMDate] = useState("");
   const [mTime, setMTime] = useState("10:00 AM");
   const [mTopic, setMTopic] = useState("");
@@ -217,34 +245,23 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
   const calculatedCSR = isEligible ? (netProfit * 0.02) : 0;
 
   // Documents
-  const [documents, setDocuments] = useState([
-    { name: "CSR_Board_Resolution_FY26.pdf", type: "Agreement", size: "2.4 MB", date: "June 01, 2026" },
-    { name: "NGO_Registration_Darpan_Verify.pdf", type: "Compliance", size: "1.1 MB", date: "May 15, 2026" },
-    { name: "Milestone_1_Payout_Receipt.pdf", type: "Invoice", size: "850 KB", date: "June 05, 2026" }
-  ]);
+  const [documents, setDocuments] = useState<any[]>([]);
   const [docFilter, setDocFilter] = useState("All");
 
   // Inspections Reviews
-  const [inspections, setInspections] = useState([
-    { id: "i-1", project: "Gadchiroli Watershed Initiative", inspector: "Officer S. Patil", date: "June 12, 2026", status: "COMPLIANT", coordinates: "20.1842° N, 80.0125° E", comments: "Water conservation check-dam completed. Geo-tagged media verification approved." },
-    { id: "i-2", project: "Smart Classroom Mulshi", inspector: "Officer M. Kulkarni", date: "May 28, 2026", status: "COMPLIANT", coordinates: "18.5284° N, 73.5132° E", comments: "15 digital classroom projectors and internet modules operational." }
-  ]);
+  const [inspections, setInspections] = useState<any[]>([]);
 
   // District Coverage
-  const districtCoverage = [
-    { name: "Pune", projectsCount: 15, fundingSpent: 45000000, penetration: 92 },
-    { name: "Gadchiroli", projectsCount: 8, fundingSpent: 25000000, penetration: 85 },
-    { name: "Thane", projectsCount: 11, fundingSpent: 32000000, penetration: 78 },
-    { name: "Nandurbar", projectsCount: 6, fundingSpent: 18000000, penetration: 70 }
-  ];
-
-  // SDG Investments
-  const sdgGoals = [
-    { id: 4, name: "Quality Education", description: "SDG 4: Smart Labs and Classrooms", color: "bg-rose-500", text: "text-white", funds: 4000000 },
-    { id: 6, name: "Clean Water", description: "SDG 6: Watershed and Aquifers", color: "bg-cyan-500", text: "text-white", funds: 3000000 },
-    { id: 3, name: "Good Health", description: "SDG 3: Mobile Health Vans", color: "bg-emerald-500", text: "text-white", funds: 2000000 },
-    { id: 13, name: "Climate Action", description: "SDG 13: Afforestation & Reforestation", color: "bg-green-700", text: "text-white", funds: 1000000 }
-  ];
+  const districtCoverage = Object.values(displayProjects.reduce((acc: Record<string, any>, project) => {
+    const districtName = project.district || "Unassigned";
+    if (!acc[districtName]) {
+      acc[districtName] = { name: districtName, projectsCount: 0, fundingSpent: 0, penetration: 0 };
+    }
+    acc[districtName].projectsCount += 1;
+    acc[districtName].fundingSpent += toNumber(project.approvedBudget || project.budgetRequested);
+    acc[districtName].penetration = Math.min(100, Math.round((acc[districtName].projectsCount / Math.max(displayProjects.length, 1)) * 100));
+    return acc;
+  }, {}));
 
   const pieData = [
     { name: "Education", value: getSourcedAmount(allocations.education) },
@@ -252,6 +269,18 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
     { name: "Water Conservation", value: getSourcedAmount(allocations.water) },
     { name: "Environment", value: getSourcedAmount(allocations.environment) }
   ];
+
+  // SDG Investments
+  const sdgGoals = pieData
+    .filter((item) => item.value > 0)
+    .map((item, index) => ({
+      id: index + 1,
+      name: item.name,
+      description: item.name,
+      color: ["bg-rose-500", "bg-cyan-500", "bg-emerald-500", "bg-green-700"][index] || "bg-slate-500",
+      text: "text-white",
+      funds: item.value
+    }));
 
   const COLORS = ["#1e3a8a", "#f97316", "#16a34a", "#64748b"];
   const totalAllocatedPercentage = allocations.education + allocations.healthcare + allocations.water + allocations.environment;
@@ -261,7 +290,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
       
       {/* Header */}
       <div className="flex flex-col gap-1 border-b border-gray-200 pb-4">
-        <span className="text-[#f97316] font-extrabold text-[11px] uppercase tracking-widest">Sahyadri Technology Ventures Ltd</span>
+        <span className="text-[#f97316] font-extrabold text-[11px] uppercase tracking-widest">{companyName}</span>
         <h1 className="font-heading font-extrabold text-2xl text-gray-900 tracking-tight">Company Console</h1>
       </div>
 
@@ -270,9 +299,9 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
         <div className="flex flex-col gap-7 animate-fadeIn">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             <StatsCard label="CSR Budget Limit" value={`₹${totalBudget.toLocaleString("en-IN")}`} icon={Coins} />
-            <StatsCard label="Funds Allocated" value={`₹${(totalBudget * totalAllocatedPercentage / 100).toLocaleString("en-IN")}`} icon={Award} />
-            <StatsCard label="Audited Payments" value="₹17.0 Lakhs" icon={FileCheck2} />
-            <StatsCard label="Focus SDGs Supported" value="4 Focus SDGs" icon={Compass} />
+            <StatsCard label="Funds Allocated" value={`₹${fundedAmount.toLocaleString("en-IN")}`} icon={Award} />
+            <StatsCard label="Audited Payments" value={`₹${utilizedAmount.toLocaleString("en-IN")}`} icon={FileCheck2} />
+            <StatsCard label="Focus SDGs Supported" value={`${focusSdgCount} Focus SDGs`} icon={Compass} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
@@ -320,14 +349,14 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
                         <span className="text-gray-500">{m.district}</span>
                       </div>
                       <h4 className="font-heading font-bold text-sm text-gray-900 leading-tight">{m.title}</h4>
-                      <span className="text-xs text-gray-500 font-medium font-sans">NGO: {m.ngo}</span>
-                      <Button variant="primary" size="sm" onClick={() => handleTabChange("recommendations")} className="w-full mt-1">
-                        Evaluate Match
+                      <span className="text-xs text-gray-500 font-medium font-sans">Department: {m.ngo}</span>
+                      <Button variant="primary" size="sm" onClick={() => router.push("/company/marketplace")} className="w-full mt-1">
+                        View Need
                       </Button>
                     </div>
                   ))
                 ) : (
-                  <div className="text-xs text-gray-500 text-center py-6">No matching proposals found</div>
+                  <div className="text-xs text-gray-500 text-center py-6">No public development needs available</div>
                 )}
               </CardContent>
             </Card>
@@ -807,9 +836,10 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
                     onChange={(e) => setMNgo(e.target.value)}
                     className="govt-input"
                   >
-                    <option>Sahyadri Eco Foundation</option>
-                    <option>Vidarbha Seva Samiti</option>
-                    <option>Konkan Sagarmata Mandal</option>
+                    <option value="">Select partner</option>
+                    {displayNgos.map((ngo) => (
+                      <option key={ngo.id || ngo.name} value={ngo.name}>{ngo.name}</option>
+                    ))}
                   </select>
                 </div>
                 <div className="grid grid-cols-2 gap-4">

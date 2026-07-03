@@ -47,48 +47,6 @@ const DISTRICTS = [
 
 const ITEMS_PER_PAGE = 12;
 
-const fallbackNeeds: DevelopmentNeed[] = [
-  {
-    id: "need-demo-1",
-    trackingId: "GOV-PITCH-DEMO-001",
-    district: "Nandurbar",
-    taluka: "Akkalkuwa",
-    village: "Primary Health Centre cluster",
-    csrRequirement: "Diagnostic equipment package for rural PHC facilities where existing equipment is insufficient and no departmental budget is currently available.",
-    estimatedCost: 12000000,
-    department: "Public Health Department",
-    officeName: "District Health Office",
-    publishedAt: "2026-06-15",
-    interestedCompaniesCount: 3,
-  },
-  {
-    id: "need-demo-2",
-    trackingId: "GOV-PITCH-DEMO-002",
-    district: "Gadchiroli",
-    taluka: "Aheri",
-    village: "Tribal block water conservation sites",
-    csrRequirement: "Repair and completion of community water conservation structures with ownership and maintenance to remain with the local government institution.",
-    estimatedCost: 9800000,
-    department: "Water Conservation Department",
-    officeName: "Sub-Divisional Office",
-    publishedAt: "2026-06-12",
-    interestedCompaniesCount: 2,
-  },
-  {
-    id: "need-demo-3",
-    trackingId: "GOV-PITCH-DEMO-003",
-    district: "Pune",
-    taluka: "Mulshi",
-    village: "Zilla Parishad school cluster",
-    csrRequirement: "Digital learning lab package for government schools, including installation, teacher orientation and handover certificate.",
-    estimatedCost: 7500000,
-    department: "School Education Department",
-    officeName: "Block Education Office",
-    publishedAt: "2026-06-10",
-    interestedCompaniesCount: 5,
-  },
-];
-
 export default function PublicDevelopmentNeedsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -158,13 +116,13 @@ export default function PublicDevelopmentNeedsPage() {
         totalPages: rawNeeds.length > 0 ? 1 : 0,
       });
     } catch (err: any) {
-      setError("");
-      setNeeds(fallbackNeeds);
+      setError(err.message || "Failed to load public development needs");
+      setNeeds([]);
       setPagination({
         page: 1,
         limit: ITEMS_PER_PAGE,
-        total: fallbackNeeds.length,
-        totalPages: 1,
+        total: 0,
+        totalPages: 0,
       });
     } finally {
       setLoading(false);
@@ -179,7 +137,7 @@ export default function PublicDevelopmentNeedsPage() {
       if (user) {
         try {
           const userData = JSON.parse(user);
-          if (userData.role === "CORPORATE_USER" || userData.role === "CORPORATE_PARTNER") {
+          if (["COMPANY_ADMIN", "COMPANY_MEMBER", "CORPORATE_USER", "CORPORATE_PARTNER"].includes(userData.role)) {
             setIsAuthenticatedCorporate(true);
             const name = userData.organization?.name || userData.companyName || userData.name || "";
             const cin = userData.organization?.cin || userData.company?.cin || userData.cin || "";
