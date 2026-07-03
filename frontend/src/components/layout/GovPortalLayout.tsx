@@ -43,6 +43,7 @@ const navGroups: NavGroup[] = [
       { label: "Government Pitch Approvals", to: "/js/government-pitches" },
       { label: "Nodal Appointments", to: "/js/nodal-appointments" },
       { label: "RM Escalations", to: "/js/escalations" },
+      { label: "Convergence Projects", to: "/convergence-projects" },
     ],
   },
   {

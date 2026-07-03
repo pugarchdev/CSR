@@ -7,6 +7,7 @@ import {
   getAssessmentById,
   submitJSDecision,
   appointNodalOfficer,
+  onboardAssessmentProject,
   updateChecklistItems,
 } from "../controllers/feasibilityAssessmentController";
 
@@ -42,6 +43,14 @@ router.post(
   authenticateToken,
   authorizeRoles([Role.JOINT_SECRETARY, Role.SUPER_ADMIN, Role.PORTAL_ADMIN]),
   asyncHandler(appointNodalOfficer)
+);
+
+// Retry or manually trigger project onboarding after approval/appointment
+router.post(
+  "/:id/onboard-project",
+  authenticateToken,
+  authorizeRoles([Role.JOINT_SECRETARY, Role.SUPER_ADMIN, Role.PORTAL_ADMIN]),
+  asyncHandler(onboardAssessmentProject)
 );
 
 // Update checklist items

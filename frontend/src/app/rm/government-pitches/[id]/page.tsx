@@ -53,13 +53,11 @@ export default function RMPitchDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const { data: response, isLoading, refetch } = useApiQuery<{ success: boolean; data: PitchDetail }>(
+  const { data: pitch, isLoading, refetch } = useApiQuery<PitchDetail>(
     ["rm", "pitch", pitchId],
-    `/government-pitches/${pitchId}`, // wait, let's verify where government pitches are fetched from. Yes, /api/government-pitches/:id is registered!
+    `/government-pitches/${pitchId}`,
     { staleTime: 30 * 1000, enabled: !!pitchId }
   );
-
-  const pitch = response?.data;
 
   const verifyMutation = useApiMutation<void, { status: string; remarks: string }>(
     "POST",
@@ -118,10 +116,10 @@ export default function RMPitchDetailPage() {
   }
 
   // Verification checks
-  const photoCheckPassed = pitch.photos.length >= 2;
-  const fundDeclarationPassed = pitch.govtFundDeclaration === true;
-  const hodCertNeeded = pitch.serviceClass === "BELOW_CLASS_2";
-  const hodCertUploaded = !!pitch.hodCertificationDocument;
+  const photoCheckPassed = pitch ? pitch.photos.length >= 2 : false;
+  const fundDeclarationPassed = pitch ? pitch.govtFundDeclaration === true : false;
+  const hodCertNeeded = pitch ? pitch.serviceClass === "BELOW_CLASS_2" : false;
+  const hodCertUploaded = pitch ? !!pitch.hodCertificationDocument : false;
   const certCheckPassed = !hodCertNeeded || hodCertUploaded;
   const allChecksPassed = photoCheckPassed && fundDeclarationPassed && certCheckPassed;
 

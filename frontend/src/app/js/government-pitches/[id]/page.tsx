@@ -10,6 +10,7 @@ import GovButton from "@/components/gov/GovButton";
 import GovStatusBadge, { statusToVariant } from "@/components/gov/GovStatusBadge";
 import GovAlert from "@/components/gov/GovAlert";
 import GovTextarea from "@/components/gov/GovTextarea";
+import GovInput from "@/components/gov/GovInput";
 import AccessDenied from "@/components/gov/AccessDenied";
 import { apiFetch, clearApiCache } from "@/lib/api";
 import { hasRoleAccess, JS_ROLES } from "@/lib/roleAccess";
@@ -19,6 +20,13 @@ interface Photo {
   fileUrl: string;
   latitude: number;
   longitude: number;
+}
+
+interface NodalOfficer {
+  id: string;
+  name: string;
+  email: string;
+  assignedDistrict: string;
 }
 
 interface PitchDetail {
@@ -49,6 +57,7 @@ interface PitchDetail {
     summaryOfInteraction: string;
     feasibilityResult: string;
     recommendation: string;
+    suggestedNodalOfficerDomain?: string;
     checklistItems?: {
       itemNumber: number;
       dimension: string;
@@ -56,6 +65,15 @@ interface PitchDetail {
       answer: string;
       remarks: string | null;
     }[];
+    nodalOfficerAppointment?: {
+      id: string;
+      nodalOfficerName: string;
+      designation: string;
+      department: string;
+      district: string;
+      appointedAt: string;
+      appointmentLetterUrl: string | null;
+    } | null;
   };
 }
 
@@ -75,6 +93,18 @@ export default function JSGovernmentPitchDetailPage() {
   const [submitSuccess, setSubmitSuccess] = useState("");
   const [submitError, setSubmitError] = useState("");
 
+  // Nodal appointment form
+  const [nodalOfficers, setNodalOfficers] = useState<NodalOfficer[]>([]);
+  const [selectedNodalId, setSelectedNodalId] = useState("");
+  const [nodalDesignation, setNodalDesignation] = useState("District Nodal Officer");
+  const [nodalDepartment, setNodalDepartment] = useState("");
+  const [collectorCc, setCollectorCc] = useState(true);
+  const [zpCeoCc, setZpCeoCc] = useState(true);
+  const [signedLetterUrl, setSignedLetterUrl] = useState("");
+  const [appointLoading, setAppointLoading] = useState(false);
+  const [appointSuccess, setAppointSuccess] = useState("");
+  const [appointError, setAppointError] = useState("");
+
   useEffect(() => { setMounted(true); }, []);
 
   const fetchDetails = useCallback(async () => {
@@ -91,11 +121,69 @@ export default function JSGovernmentPitchDetailPage() {
     }
   }, [id]);
 
+  const fetchNodalOfficers = useCallback(async () => {
+    try {
+      const res = await apiFetch<{ success: boolean; data: NodalOfficer[] }>("/js/nodal-officers");
+      setNodalOfficers(res?.data || []);
+    } catch (err) {
+      console.error("Failed to load nodal officers", err);
+    }
+  }, []);
+
   useEffect(() => {
     if (mounted && hasRoleAccess(JS_ROLES)) {
       fetchDetails();
+      fetchNodalOfficers();
     }
-  }, [mounted, fetchDetails]);
+  }, [mounted, fetchDetails, fetchNodalOfficers]);
+
+  useEffect(() => {
+    if (pitch?.feasibilityAssessment?.suggestedNodalOfficerDomain) {
+      setNodalDepartment(pitch.feasibilityAssessment.suggestedNodalOfficerDomain);
+    }
+  }, [pitch]);
+
+  const handleNodalAppointment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAppointError("");
+    setAppointSuccess("");
+
+    if (!pitch?.feasibilityAssessment?.id) {
+      setAppointError("No feasibility assessment found for this pitch");
+      return;
+    }
+    if (!selectedNodalId) { setAppointError("Please select a nodal officer"); return; }
+    if (!nodalDesignation.trim()) { setAppointError("Designation is required"); return; }
+    if (!nodalDepartment.trim()) { setAppointError("Department/Domain is required"); return; }
+
+    const officer = nodalOfficers.find((o) => o.id === selectedNodalId);
+    if (!officer) { setAppointError("Invalid nodal officer selection"); return; }
+
+    setAppointLoading(true);
+    try {
+      await apiFetch(`/js/assessments/${pitch.feasibilityAssessment.id}/nodal-officer`, {
+        method: "POST",
+        body: JSON.stringify({
+          district: officer.assignedDistrict,
+          domain: nodalDepartment.trim(),
+          nodalOfficerUserId: selectedNodalId,
+          nodalOfficerName: officer.name,
+          designation: nodalDesignation.trim(),
+          department: nodalDepartment.trim(),
+          appointmentLetterUrl: signedLetterUrl.trim() || null,
+          collectorCc,
+          zpCeoCc,
+        }),
+      });
+      setAppointSuccess("Nodal officer appointed successfully.");
+      clearApiCache();
+      fetchDetails();
+    } catch (err: unknown) {
+      setAppointError(err instanceof Error ? err.message : "Failed to appoint nodal officer");
+    } finally {
+      setAppointLoading(false);
+    }
+  };
 
   if (!mounted) return null;
   if (!hasRoleAccess(JS_ROLES)) return <AccessDenied requiredRoles={["Joint Secretary", "Admin"]} />;
@@ -295,15 +383,98 @@ export default function JSGovernmentPitchDetailPage() {
                 </GovCardBody>
               </GovCard>
             ) : (
-              <GovCard>
-                <GovCardHeader><GovCardTitle>⚖️ JS Decision Recorded</GovCardTitle></GovCardHeader>
-                <GovCardBody>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    <div><strong>Approval Status:</strong> {pitch.status.replace(/_/g, " ")}</div>
-                    <div><strong>Decided Date:</strong> {fmtDate(pitch.submittedAt)}</div>
-                  </div>
-                </GovCardBody>
-              </GovCard>
+              <>
+                <GovCard>
+                  <GovCardHeader><GovCardTitle>⚖️ JS Decision Recorded</GovCardTitle></GovCardHeader>
+                  <GovCardBody>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      <div><strong>Approval Status:</strong> {pitch.status.replace(/_/g, " ")}</div>
+                      <div><strong>Decided Date:</strong> {fmtDate(pitch.submittedAt)}</div>
+                    </div>
+                  </GovCardBody>
+                </GovCard>
+
+                {pitch.feasibilityAssessment && (
+                  <GovCard style={{ marginTop: 20 }}>
+                    <GovCardHeader>
+                      <GovCardTitle>🎖️ District Nodal Officer Appointment</GovCardTitle>
+                    </GovCardHeader>
+                    <GovCardBody>
+                      {pitch.feasibilityAssessment.nodalOfficerAppointment ? (
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                          <div><strong>Appointed Officer:</strong> {pitch.feasibilityAssessment.nodalOfficerAppointment.nodalOfficerName}</div>
+                          <div><strong>Designation:</strong> {pitch.feasibilityAssessment.nodalOfficerAppointment.designation}</div>
+                          <div><strong>Department:</strong> {pitch.feasibilityAssessment.nodalOfficerAppointment.department}</div>
+                          <div><strong>District:</strong> {pitch.feasibilityAssessment.nodalOfficerAppointment.district}</div>
+                          <div><strong>Appointed At:</strong> {fmtDate(pitch.feasibilityAssessment.nodalOfficerAppointment.appointedAt)}</div>
+                          {pitch.feasibilityAssessment.nodalOfficerAppointment.appointmentLetterUrl && (
+                            <div>
+                              <strong>Letter:</strong> <a href={pitch.feasibilityAssessment.nodalOfficerAppointment.appointmentLetterUrl} target="_blank" rel="noopener noreferrer">View Letter</a>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div>
+                          {appointSuccess && <GovAlert variant="success">{appointSuccess}</GovAlert>}
+                          {appointError && <GovAlert variant="danger">{appointError}</GovAlert>}
+                          
+                          <form onSubmit={handleNodalAppointment}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                              <div>
+                                <label className="gov-label">Assign Nodal Officer *</label>
+                                <select className="gov-select" value={selectedNodalId} onChange={(e) => setSelectedNodalId(e.target.value)} required>
+                                  <option value="">Select Officer</option>
+                                  {nodalOfficers.map((o) => (
+                                    <option key={o.id} value={o.id}>{`${o.name} (${o.assignedDistrict}) — ${o.email}`}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <GovInput
+                                label="Officer Designation *"
+                                value={nodalDesignation}
+                                onChange={(e) => setNodalDesignation(e.target.value)}
+                                required
+                              />
+
+                              <GovInput
+                                label="Department / Domain *"
+                                value={nodalDepartment}
+                                onChange={(e) => setNodalDepartment(e.target.value)}
+                                required
+                              />
+
+                              <GovInput
+                                label="Appointment Letter Document URL (Optional)"
+                                placeholder="Link to signed appointment letter document"
+                                value={signedLetterUrl}
+                                onChange={(e) => setSignedLetterUrl(e.target.value)}
+                              />
+
+                              <div style={{ display: "flex", gap: 16, marginTop: 4 }}>
+                                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}>
+                                  <input type="checkbox" checked={collectorCc} onChange={(e) => setCollectorCc(e.target.checked)} />
+                                  Send CC to District Collector
+                                </label>
+                                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}>
+                                  <input type="checkbox" checked={zpCeoCc} onChange={(e) => setZpCeoCc(e.target.checked)} />
+                                  Send CC to ZP CEO
+                                </label>
+                              </div>
+
+                              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                                <GovButton type="submit" disabled={appointLoading}>
+                                  {appointLoading ? "Appointing…" : "Issue Appointment Letter"}
+                                </GovButton>
+                              </div>
+                            </div>
+                          </form>
+                        </div>
+                      )}
+                    </GovCardBody>
+                  </GovCard>
+                )}
+              </>
             )}
           </div>
 

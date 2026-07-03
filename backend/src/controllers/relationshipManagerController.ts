@@ -155,7 +155,10 @@ export const getDashboardStats = async (
 
     if (tenantId && userRole !== Role.MASTER_ADMIN) {
       enquiryFilter.tenantId = tenantId;
-      pitchFilter.tenantId = tenantId;
+      pitchFilter.OR = [
+        { tenantId: tenantId },
+        { tenantId: null }
+      ];
       assessmentFilter.tenantId = tenantId;
     }
 
@@ -577,17 +580,29 @@ export const getPendingPitches = async (
     const tenantId = (req as any).tenantContext?.tenantId || req.user!.tenantId || null;
 
     const where: any = {};
+    const conditions: any[] = [];
 
     if (tenantId && userRole !== Role.MASTER_ADMIN) {
-      where.tenantId = tenantId;
+      conditions.push({
+        OR: [
+          { tenantId: tenantId },
+          { tenantId: null }
+        ]
+      });
     }
 
     // RM sees only their assigned pitches
     if (userRole === Role.CSR_RELATIONSHIP_MANAGER) {
-      where.OR = [
-        { assignedRelationshipManagerId: userId },
-        { assignedRelationshipManagerId: null }
-      ];
+      conditions.push({
+        OR: [
+          { assignedRelationshipManagerId: userId },
+          { assignedRelationshipManagerId: null }
+        ]
+      });
+    }
+
+    if (conditions.length > 0) {
+      where.AND = conditions;
     }
 
     const [pitches, total] = await Promise.all([

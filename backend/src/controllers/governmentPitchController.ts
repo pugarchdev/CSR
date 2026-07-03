@@ -6,6 +6,7 @@ import { GovernmentPitchStatus, Role, ChecklistAnswer, FeasibilityResult } from 
 import { notify, notifyByRole, auditLog, sendTrackingIdNotification } from "../services/notificationService";
 import { assertOtpVerified } from "../services/otpService";
 import { SLAEscalationService, calculateDueDate } from "../services/slaEscalationService";
+import { onboardApprovedAssessmentToProject } from "../services/convergenceOnboardingService";
 
 // ─── Types ─────────────────────────────────────────────────────────
 interface PhotoInput {
@@ -352,7 +353,10 @@ export const getPublicPitches = async (
 
     const tenantId = (req as any).tenantContext?.tenantId || req.user?.tenantId || null;
     if (tenantId && req.user?.role !== Role.MASTER_ADMIN) {
-      where.tenantId = tenantId;
+      where.OR = [
+        { tenantId: tenantId },
+        { tenantId: null }
+      ];
     }
 
     if (district) where.district = district as string;
@@ -428,6 +432,17 @@ export const getPitchById = async (
             checklistItems: true,
             relationshipManager: {
               select: { id: true, email: true }
+            },
+            nodalOfficerAppointment: {
+              select: {
+                id: true,
+                nodalOfficerName: true,
+                designation: true,
+                department: true,
+                district: true,
+                appointedAt: true,
+                appointmentLetterUrl: true
+              }
             }
           }
         },
@@ -830,9 +845,18 @@ export const submitInterest = async (
       message: `Your interest on government pitch ${pitch.pitchReferenceId} has been received. Tracking ID: ${interestTrackingId}.`,
     });
 
+    const assessment = await prisma.feasibilityAssessment.findUnique({
+      where: { governmentPitchId: id },
+      select: { id: true },
+    });
+    const onboarding = assessment
+      ? await onboardApprovedAssessmentToProject({ assessmentId: assessment.id, actorUserId: userId })
+      : null;
+
     return res.status(201).json({
       message: "Interest submitted successfully",
-      interest
+      interest,
+      onboarding
     });
   } catch (error) {
     next(error);
@@ -871,7 +895,10 @@ export const getMyPitches = async (
 
     const tenantId = (req as any).tenantContext?.tenantId || req.user!.tenantId || null;
     if (tenantId) {
-      where.tenantId = tenantId;
+      where.OR = [
+        { tenantId: tenantId },
+        { tenantId: null }
+      ];
     }
 
     if (status) {

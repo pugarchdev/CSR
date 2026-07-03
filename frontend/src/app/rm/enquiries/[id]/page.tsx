@@ -77,7 +77,22 @@ interface FeasibilityChecklistItem {
 interface EnquiryDetail {
   id: string;
   trackingId: string;
-  status: "PENDING" | "IN_PROGRESS" | "UNDER_VERIFICATION" | "APPROVED" | "REJECTED" | "ESCALATED";
+  status: 
+    | "SUBMITTED" 
+    | "TRACKING_ID_GENERATED" 
+    | "RM_ASSIGNED" 
+    | "RM_CONTACTED" 
+    | "ASSESSMENT_PENDING" 
+    | "ASSESSMENT_SUBMITTED_TO_JS" 
+    | "JS_APPROVED" 
+    | "JS_REJECTED" 
+    | "NODAL_OFFICER_APPOINTED" 
+    | "MOU_PENDING" 
+    | "MOU_SIGNED" 
+    | "PROJECT_ONBOARDED" 
+    | "EXECUTION_STARTED" 
+    | "COMPLETED" 
+    | "CLOSED";
   submittedAt: string;
   slaDue: string;
   company: CompanyDetails;
@@ -95,6 +110,28 @@ interface EnquiryDetail {
   jsDecisionDate: string | null;
   assignedRelationshipManager?: { id: string; email: string } | null;
   assignedRelationshipManagerId?: string | null;
+  feasibilityAssessment?: {
+    id: string;
+    reportReference: string;
+    corporateEnquiryId: string;
+    relationshipManagerId: string;
+    companyName: string;
+    cin: string;
+    sector: string;
+    contactSummary: string;
+    proposedLocationDistrict: string;
+    indicativeBudget: number;
+    developmentNeedAddressed: string;
+    dateOfFirstContact: string;
+    summaryOfInteraction: string;
+    feasibilityResult: "FEASIBLE" | "PROCEED_WITH_CONDITIONS" | "NOT_FEASIBLE";
+    recommendation: string;
+    suggestedNodalOfficerDomain: string;
+    conditionText?: string | null;
+    submittedToJsAt?: string | null;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
 }
 
 interface AddInteractionRequest {
@@ -176,12 +213,21 @@ const formatCurrency = (amount: number): string => {
 // Status badge variant mapper
 const getStatusVariant = (status: string): "success" | "warning" | "danger" | "info" | "muted" => {
   const statusMap: Record<string, "success" | "warning" | "danger" | "info" | "muted"> = {
-    PENDING: "warning",
-    IN_PROGRESS: "info",
-    UNDER_VERIFICATION: "info",
-    APPROVED: "success",
-    REJECTED: "danger",
-    ESCALATED: "danger",
+    SUBMITTED: "warning",
+    TRACKING_ID_GENERATED: "info",
+    RM_ASSIGNED: "info",
+    RM_CONTACTED: "info",
+    ASSESSMENT_PENDING: "info",
+    ASSESSMENT_SUBMITTED_TO_JS: "warning",
+    JS_APPROVED: "success",
+    JS_REJECTED: "danger",
+    NODAL_OFFICER_APPOINTED: "success",
+    MOU_PENDING: "warning",
+    MOU_SIGNED: "success",
+    PROJECT_ONBOARDED: "success",
+    EXECUTION_STARTED: "info",
+    COMPLETED: "success",
+    CLOSED: "muted",
   };
   return statusMap[status] || "muted";
 };
@@ -191,6 +237,16 @@ export default function EnquiryDetailPage() {
   const enquiryId = params.id as string;
 
   const [activeTab, setActiveTab] = useState<"overview" | "timeline" | "interactions" | "feasibility">("overview");
+  
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab");
+      if (tab === "overview" || tab === "timeline" || tab === "interactions" || tab === "feasibility") {
+        setActiveTab(tab);
+      }
+    }
+  }, []);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [feasibilityForm, setFeasibilityForm] = useState<Record<string, { response: string; notes: string }>>({});
   const [assessmentForm, setAssessmentForm] = useState({
@@ -220,6 +276,8 @@ export default function EnquiryDetailPage() {
     `/rm/enquiries/${enquiryId}`,
     { staleTime: 30 * 1000, enabled: !!enquiryId }
   );
+
+  const isReadOnly = !!enquiry?.feasibilityAssessment;
 
   const currentUser = useAuthStore((state) => state.user);
   const isAssigner = currentUser && ["SUPER_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN", "MASTER_ADMIN", "JOINT_SECRETARY", "STATE_CSR_CELL"].includes(currentUser.role);
@@ -303,16 +361,32 @@ export default function EnquiryDetailPage() {
       setFeasibilityForm(initialForm);
       setRecommendation(enquiry.rmRecommendation || "");
       setRmNotes(enquiry.rmNotes || "");
-      setAssessmentForm((prev) => ({
-        ...prev,
-        contactSummary: enquiry.company.contactPerson
-          ? `${enquiry.company.contactPerson} (${enquiry.company.contactEmail}, ${enquiry.company.contactPhone})`
-          : prev.contactSummary,
-        proposedLocationDistrict: enquiry.preferredDistricts?.[0] || enquiry.company.district || prev.proposedLocationDistrict,
-        indicativeBudget: String(enquiry.budgetRange?.max || enquiry.budgetRange?.min || ""),
-        developmentNeedAddressed: (enquiry as EnquiryDetail & { proposedCsrWork?: string }).proposedCsrWork || prev.developmentNeedAddressed,
-        summaryOfInteraction: enquiry.interactions?.[0]?.summary || prev.summaryOfInteraction,
-      }));
+
+      if (enquiry.feasibilityAssessment) {
+        const fa = enquiry.feasibilityAssessment;
+        setAssessmentForm({
+          dateOfFirstContact: fa.dateOfFirstContact ? fa.dateOfFirstContact.slice(0, 10) : "",
+          contactSummary: fa.contactSummary || "",
+          proposedLocationDistrict: fa.proposedLocationDistrict || "",
+          indicativeBudget: fa.indicativeBudget ? String(fa.indicativeBudget) : "",
+          developmentNeedAddressed: fa.developmentNeedAddressed || "",
+          summaryOfInteraction: fa.summaryOfInteraction || "",
+          feasibilityResult: fa.feasibilityResult || "FEASIBLE",
+          suggestedNodalOfficerDomain: fa.suggestedNodalOfficerDomain || "",
+          conditionText: fa.conditionText || "",
+        });
+      } else {
+        setAssessmentForm((prev) => ({
+          ...prev,
+          contactSummary: enquiry.company.contactPerson
+            ? `${enquiry.company.contactPerson} (${enquiry.company.contactEmail}, ${enquiry.company.contactPhone})`
+            : prev.contactSummary,
+          proposedLocationDistrict: enquiry.preferredDistricts?.[0] || enquiry.company.district || prev.proposedLocationDistrict,
+          indicativeBudget: String(enquiry.budgetRange?.max || enquiry.budgetRange?.min || ""),
+          developmentNeedAddressed: (enquiry as EnquiryDetail & { proposedCsrWork?: string }).proposedCsrWork || prev.developmentNeedAddressed,
+          summaryOfInteraction: enquiry.interactions?.[0]?.summary || prev.summaryOfInteraction,
+        }));
+      }
     }
   }, [enquiry]);
 
@@ -334,6 +408,7 @@ export default function EnquiryDetailPage() {
     "POST",
     `/rm/enquiries/${enquiryId}/assessment`,
     {
+      invalidateKeys: [["rm", "enquiry", enquiryId]],
       onSuccess: () => {
         refetch();
         setShowSubmitModal(false);
@@ -432,8 +507,8 @@ export default function EnquiryDetailPage() {
         conditionText: assessmentForm.conditionText.trim() || undefined,
         checklistItems,
       });
-    } catch (err) {
-      setError("Failed to submit feasibility assessment. Please try again.");
+    } catch (err: any) {
+      setError(err?.message || "Failed to submit feasibility assessment. Please try again.");
     }
   };
 
@@ -481,8 +556,8 @@ export default function EnquiryDetailPage() {
                 Back to List
               </GovButton>
             </Link>
-            {enquiry.status === "IN_PROGRESS" && (
-              <GovButton variant="primary" onClick={() => setShowSubmitModal(true)} disabled={!allChecklistComplete}>
+            {!isReadOnly && (
+              <GovButton variant="primary" onClick={() => { setError(null); setShowSubmitModal(true); }} disabled={!allChecklistComplete}>
                 <Send size={16} />
                 Submit to JS
               </GovButton>
@@ -814,6 +889,7 @@ export default function EnquiryDetailPage() {
                       value={assessmentForm.dateOfFirstContact}
                       onChange={(e) => setAssessmentForm((prev) => ({ ...prev, dateOfFirstContact: e.target.value }))}
                       required
+                      disabled={isReadOnly}
                     />
                   </div>
                   <div className="gov-field">
@@ -822,6 +898,7 @@ export default function EnquiryDetailPage() {
                       value={assessmentForm.proposedLocationDistrict}
                       onChange={(e) => setAssessmentForm((prev) => ({ ...prev, proposedLocationDistrict: e.target.value }))}
                       required
+                      disabled={isReadOnly}
                     />
                   </div>
                   <div className="gov-field">
@@ -831,6 +908,7 @@ export default function EnquiryDetailPage() {
                       value={assessmentForm.indicativeBudget}
                       onChange={(e) => setAssessmentForm((prev) => ({ ...prev, indicativeBudget: e.target.value }))}
                       required
+                      disabled={isReadOnly}
                     />
                   </div>
                   <div className="gov-field">
@@ -840,6 +918,7 @@ export default function EnquiryDetailPage() {
                       value={assessmentForm.suggestedNodalOfficerDomain}
                       onChange={(e) => setAssessmentForm((prev) => ({ ...prev, suggestedNodalOfficerDomain: e.target.value }))}
                       required
+                      disabled={isReadOnly}
                     />
                   </div>
                   <div className="gov-field full">
@@ -849,6 +928,7 @@ export default function EnquiryDetailPage() {
                       onChange={(e) => setAssessmentForm((prev) => ({ ...prev, contactSummary: e.target.value }))}
                       rows={2}
                       required
+                      disabled={isReadOnly}
                     />
                   </div>
                   <div className="gov-field full">
@@ -858,6 +938,7 @@ export default function EnquiryDetailPage() {
                       onChange={(e) => setAssessmentForm((prev) => ({ ...prev, developmentNeedAddressed: e.target.value }))}
                       rows={3}
                       required
+                      disabled={isReadOnly}
                     />
                   </div>
                   <div className="gov-field full">
@@ -867,6 +948,7 @@ export default function EnquiryDetailPage() {
                       onChange={(e) => setAssessmentForm((prev) => ({ ...prev, summaryOfInteraction: e.target.value }))}
                       rows={3}
                       required
+                      disabled={isReadOnly}
                     />
                   </div>
                 </div>
@@ -911,6 +993,7 @@ export default function EnquiryDetailPage() {
                             value={feasibilityForm[String(item.itemNumber)]?.response || ""}
                             onChange={(e) => handleFeasibilityChange(String(item.itemNumber), "response", e.target.value)}
                             required
+                            disabled={isReadOnly}
                           >
                             {RESPONSE_OPTIONS.map((opt) => (
                               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -925,6 +1008,7 @@ export default function EnquiryDetailPage() {
                           onChange={(e) => handleFeasibilityChange(String(item.itemNumber), "notes", e.target.value)}
                           rows={2}
                           style={{ fontSize: 13 }}
+                          disabled={isReadOnly}
                         />
                       </div>
                     </div>
@@ -939,6 +1023,7 @@ export default function EnquiryDetailPage() {
                         value={assessmentForm.feasibilityResult}
                         onChange={(e) => setAssessmentForm((prev) => ({ ...prev, feasibilityResult: e.target.value as typeof assessmentForm.feasibilityResult }))}
                         required
+                        disabled={isReadOnly}
                       >
                         <option value="FEASIBLE">Feasible - recommend Proceed</option>
                         <option value="PROCEED_WITH_CONDITIONS">Proceed with Conditions</option>
@@ -954,6 +1039,7 @@ export default function EnquiryDetailPage() {
                           onChange={(e) => setAssessmentForm((prev) => ({ ...prev, conditionText: e.target.value }))}
                           rows={3}
                           required
+                          disabled={isReadOnly}
                         />
                       </div>
                     )}
@@ -965,6 +1051,7 @@ export default function EnquiryDetailPage() {
                         onChange={(e) => setRecommendation(e.target.value)}
                         rows={4}
                         required
+                        disabled={isReadOnly}
                       />
                     </div>
                     <div className="gov-field full">
@@ -974,6 +1061,7 @@ export default function EnquiryDetailPage() {
                         value={rmNotes}
                         onChange={(e) => setRmNotes(e.target.value)}
                         rows={3}
+                        disabled={isReadOnly}
                       />
                     </div>
                   </div>
@@ -990,10 +1078,17 @@ export default function EnquiryDetailPage() {
                       )}
                     </div>
                     <div style={{ display: "flex", gap: 8 }}>
-                      <GovButton variant="secondary" onClick={() => setShowSubmitModal(true)} disabled={!allChecklistComplete}>
-                        <Save size={16} />
-                        Save & Submit to JS
-                      </GovButton>
+                      {!isReadOnly ? (
+                        <GovButton variant="secondary" onClick={() => { setError(null); setShowSubmitModal(true); }} disabled={!allChecklistComplete}>
+                          <Save size={16} />
+                          Save & Submit to JS
+                        </GovButton>
+                      ) : (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--gov-success)" }}>
+                          <CheckCircle size={18} />
+                          <span style={{ fontWeight: 600 }}>Feasibility assessment has been submitted to Joint Secretary</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1186,6 +1281,16 @@ export default function EnquiryDetailPage() {
             <h3 style={{ margin: "0 0 16px", fontSize: 18, fontWeight: 700 }}>
               Submit Feasibility Assessment to Joint Secretary
             </h3>
+            {error && (
+              <div style={{ marginBottom: 16 }}>
+                <GovAlert variant="danger">
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <AlertTriangle size={18} />
+                    <span style={{ fontSize: 13 }}>{error}</span>
+                  </div>
+                </GovAlert>
+              </div>
+            )}
             <p style={{ margin: "0 0 24px", fontSize: 14, color: "var(--gov-text-secondary)" }}>
               You are about to submit the feasibility assessment for <strong>{enquiry.company.name}</strong> to the Joint Secretary for review.
             </p>
@@ -1197,7 +1302,7 @@ export default function EnquiryDetailPage() {
               </ul>
             </div>
             <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
-              <GovButton variant="muted" onClick={() => setShowSubmitModal(false)}>Cancel</GovButton>
+              <GovButton variant="muted" onClick={() => { setShowSubmitModal(false); setError(null); }}>Cancel</GovButton>
               <GovButton 
                 variant="primary" 
                 onClick={handleSubmitFeasibility}

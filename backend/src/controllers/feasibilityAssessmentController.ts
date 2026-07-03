@@ -3,6 +3,7 @@ import prisma from "../config/db";
 import { successResponse, errorResponse, notFoundResponse, unauthorizedResponse, validationErrorResponse } from "../utils/apiResponse";
 import { Role, FeasibilityResult, ChecklistAnswer, CorporateEnquiryStatus, GovernmentPitchStatus, Prisma } from "@prisma/client";
 import { FEASIBILITY_CHECKLIST_TEMPLATE } from "../constants/feasibilityChecklist";
+import { onboardApprovedAssessmentToProject } from "../services/convergenceOnboardingService";
 
 // Extended Request type with user info
 interface AuthenticatedRequest extends Request {
@@ -438,21 +439,55 @@ export const appointNodalOfficer = async (
       district,
       domain,
       nodalOfficerUserId,
-      nodalOfficerName,
       designation,
       department,
       appointmentLetterUrl,
       collectorCc = true,
       zpCeoCc = true,
     } = req.body;
+    let { nodalOfficerName } = req.body;
 
     if (!userId) {
       return unauthorizedResponse(res, "User not authenticated");
     }
 
+    if (!nodalOfficerUserId) {
+      return validationErrorResponse(res, "Missing required field: nodalOfficerUserId");
+    }
+
+    // Verify nodal officer user exists and has correct role
+    const nodalOfficer = await prisma.user.findFirst({
+      where: {
+        id: nodalOfficerUserId,
+        role: Role.DISTRICT_NODAL_OFFICER,
+      },
+    });
+
+    if (!nodalOfficer) {
+      return validationErrorResponse(res, "Invalid nodal officer user ID or user is not a District Nodal Officer");
+    }
+
+    // If name is missing or is the string "undefined", derive it from email
+    if (!nodalOfficerName || nodalOfficerName === "undefined") {
+      const emailPrefix = nodalOfficer.email.split("@")[0];
+      nodalOfficerName = emailPrefix
+        .split(/[._-]/)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
+    }
+
     // Validate required fields
-    const requiredFields = ["district", "domain", "nodalOfficerUserId", "nodalOfficerName", "designation", "department"];
-    const missingFields = requiredFields.filter((field) => !req.body[field]);
+    const requiredFields = {
+      district,
+      domain,
+      nodalOfficerUserId,
+      nodalOfficerName,
+      designation,
+      department,
+    };
+    const missingFields = Object.entries(requiredFields)
+      .filter(([_, val]) => !val)
+      .map(([key]) => key);
 
     if (missingFields.length > 0) {
       return validationErrorResponse(res, `Missing required fields: ${missingFields.join(", ")}`);
@@ -480,18 +515,6 @@ export const appointNodalOfficer = async (
 
     if (assessment.nodalOfficerAppointment) {
       return validationErrorResponse(res, "Nodal officer already appointed for this assessment");
-    }
-
-    // Verify nodal officer user exists and has correct role
-    const nodalOfficer = await prisma.user.findFirst({
-      where: {
-        id: nodalOfficerUserId,
-        role: Role.DISTRICT_NODAL_OFFICER,
-      },
-    });
-
-    if (!nodalOfficer) {
-      return validationErrorResponse(res, "Invalid nodal officer user ID or user is not a District Nodal Officer");
     }
 
     const now = new Date();
@@ -570,14 +593,57 @@ export const appointNodalOfficer = async (
       },
     });
 
+    const onboarding = await onboardApprovedAssessmentToProject({
+      assessmentId: id,
+      actorUserId: userId,
+    });
+
     return successResponse(
       res,
-      { appointment },
-      "Nodal officer appointed successfully"
+      { appointment, onboarding },
+      onboarding.status === "WAITING_FOR_CORPORATE_INTEREST"
+        ? "Nodal officer appointed. Project onboarding will complete after corporate interest is received."
+        : "Nodal officer appointed and project onboarding completed."
     );
   } catch (error) {
     console.error("Error in appointNodalOfficer:", error);
     return errorResponse(res, "Failed to appoint nodal officer", 500);
+  }
+};
+
+/**
+ * @desc Retry or manually trigger MoU/project onboarding for an approved assessment.
+ * @route POST /api/feasibility/:id/onboard-project
+ * @access Private (JOINT_SECRETARY, SUPER_ADMIN, PORTAL_ADMIN)
+ */
+export const onboardAssessmentProject = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const userId = req.user?.id;
+    const { id } = req.params;
+
+    if (!userId) {
+      return unauthorizedResponse(res, "User not authenticated");
+    }
+
+    const onboarding = await onboardApprovedAssessmentToProject({
+      assessmentId: id,
+      actorUserId: userId,
+    });
+
+    return successResponse(
+      res,
+      { onboarding },
+      onboarding.status === "WAITING_FOR_CORPORATE_INTEREST"
+        ? "Project onboarding is waiting for the remaining prerequisite."
+        : "Project onboarding checked successfully."
+    );
+  } catch (error) {
+    console.error("Error in onboardAssessmentProject:", error);
+    return errorResponse(res, "Failed to onboard project", 500);
   }
 };
 
@@ -820,11 +886,22 @@ export const getNodalOfficers = async (
         assignedDistrict: true,
       },
     });
-    return successResponse(res, nodalOfficers, "Nodal officers retrieved successfully");
+
+    const mappedOfficers = nodalOfficers.map(officer => {
+      const emailPrefix = officer.email.split("@")[0];
+      const name = emailPrefix
+        .split(/[._-]/)
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
+      return {
+        ...officer,
+        name: name || "District Nodal Officer",
+      };
+    });
+
+    return successResponse(res, mappedOfficers, "Nodal officers retrieved successfully");
   } catch (error) {
     console.error("Error in getNodalOfficers:", error);
     return errorResponse(res, "Failed to retrieve nodal officers", 500);
   }
 };
-
-

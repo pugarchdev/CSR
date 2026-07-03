@@ -371,10 +371,12 @@ export default function EnquiriesListPage() {
                                 View
                               </GovButton>
                             </Link>
-                            <GovButton variant="muted" style={{ padding: "6px 10px", fontSize: 12 }}>
-                              <MessageSquare size={14} />
-                              Log
-                            </GovButton>
+                            <Link href={`/rm/enquiries/${enquiry.id}?tab=interactions`}>
+                              <GovButton variant="muted" style={{ padding: "6px 10px", fontSize: 12 }}>
+                                <MessageSquare size={14} />
+                                Log
+                              </GovButton>
+                            </Link>
                           </div>
                         </td>
                       </tr>

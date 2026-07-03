@@ -77,13 +77,15 @@ export const apiFetch = async <T>(path: string, init: RequestInit = {}): Promise
 
   if (!response.ok) {
     const error = new Error(data?.error || "Request failed") as Error & { validationErrors?: string[]; status?: number };
-    error.validationErrors = data?.validationErrors;
+    error.validationErrors = data?.validationErrors || data?.details;
     error.status = response.status;
     throw error;
   }
 
   if (isCacheable && data) {
     setCachedData(path, data);
+  } else if (!isCacheable) {
+    clearApiCache();
   }
 
   return data as T;

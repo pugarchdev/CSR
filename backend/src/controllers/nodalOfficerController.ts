@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/db";
 import { successResponse, errorResponse, notFoundResponse, unauthorizedResponse, validationErrorResponse } from "../utils/apiResponse";
-import { Role, SimpleMilestoneStatus, GrievanceStatus, Prisma } from "@prisma/client";
+import { Role, SimpleMilestoneStatus, GrievanceStatus, Prisma, CorporateEnquiryStatus, GovernmentPitchStatus } from "@prisma/client";
 
 // Extended Request type with user info
 interface AuthenticatedRequest extends Request {
@@ -1098,6 +1098,20 @@ export const confirmHandover = async (
       }
     }
 
+    if (project.corporateEnquiryId) {
+      await prisma.corporateEnquiry.update({
+        where: { id: project.corporateEnquiryId },
+        data: { status: CorporateEnquiryStatus.COMPLETED },
+      });
+    }
+
+    if (project.governmentPitchId) {
+      await prisma.governmentPitch.update({
+        where: { id: project.governmentPitchId },
+        data: { status: GovernmentPitchStatus.COMPLETED },
+      });
+    }
+
     return successResponse(res, updatedProject, "Project handover confirmed successfully");
   } catch (error) {
     console.error("Error in confirmHandover:", error);
@@ -1139,6 +1153,7 @@ export const updateMouStatus = async (
       signedDocumentUrl,
       status,
     } = req.body;
+    const resolvedStatus = status || (signedDocumentUrl ? "SIGNED" : undefined);
 
     const project = await prisma.convergenceProject.findFirst({
       where: {
@@ -1182,7 +1197,7 @@ export const updateMouStatus = async (
           ownershipAfterCompletion: ownershipAfterCompletion || undefined,
           maintenanceResponsibility: maintenanceResponsibility || undefined,
           signedDocumentUrl: signedDocumentUrl || undefined,
-          status: status || undefined,
+          status: resolvedStatus,
           updatedAt: new Date(),
         },
       });
@@ -1214,9 +1229,44 @@ export const updateMouStatus = async (
           ownershipAfterCompletion: ownershipAfterCompletion || "Government",
           maintenanceResponsibility: maintenanceResponsibility || "Local Body",
           signedDocumentUrl,
-          status: status || "DRAFT",
+          status: resolvedStatus || "DRAFT",
         },
       });
+    }
+
+    if (resolvedStatus === "SIGNED") {
+      await prisma.convergenceProject.update({
+        where: { id: project.id },
+        data: { status: "EXECUTION_STARTED" },
+      });
+
+      if (project.corporateEnquiryId) {
+        await prisma.corporateEnquiry.update({
+          where: { id: project.corporateEnquiryId },
+          data: { status: CorporateEnquiryStatus.MOU_SIGNED },
+        });
+      }
+
+      if (project.governmentPitchId) {
+        await prisma.governmentPitch.update({
+          where: { id: project.governmentPitchId },
+          data: { status: GovernmentPitchStatus.MOU_SIGNED },
+        });
+      }
+    } else if (resolvedStatus && resolvedStatus !== "SIGNED") {
+      if (project.corporateEnquiryId) {
+        await prisma.corporateEnquiry.update({
+          where: { id: project.corporateEnquiryId },
+          data: { status: CorporateEnquiryStatus.MOU_PENDING },
+        });
+      }
+
+      if (project.governmentPitchId) {
+        await prisma.governmentPitch.update({
+          where: { id: project.governmentPitchId },
+          data: { status: GovernmentPitchStatus.MOU_PENDING },
+        });
+      }
     }
 
     return successResponse(res, mou, "tripartite MoU updated successfully");
@@ -1225,4 +1275,3 @@ export const updateMouStatus = async (
     return errorResponse(res, "Failed to update tripartite MoU", 500);
   }
 };
-
