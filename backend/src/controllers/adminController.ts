@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 import prisma from "../config/db";
 import { AuthenticatedRequest } from "../middlewares/authMiddleware";
 import { Role } from "@prisma/client";
+import { runEscalationSweep } from "../services/slaSchedulerService";
+import SLAEscalationService from "../services/slaEscalationService";
 
 const getRequestTenantId = (req: AuthenticatedRequest) =>
   (req as any).tenantContext?.tenantId || req.user?.tenantId || null;
@@ -183,6 +185,41 @@ export const updateUserRole = async (req: AuthenticatedRequest, res: Response, n
     });
 
     return res.json({ id: user.id, email: user.email, role: user.role, assignedDistrict: user.assignedDistrict, accountStatus: user.accountStatus });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Manually trigger the SLA escalation sweep.
+ *
+ * The scheduler runs this automatically on an interval, but this endpoint lets
+ * an admin force a sweep on demand and is also the entry point for an external
+ * cron on serverless deployments (where interval timers don't run).
+ */
+export const runSlaEscalations = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const result = await runEscalationSweep();
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user?.id,
+        action: "SLA_ESCALATION_SWEEP_TRIGGERED",
+        details: result
+      }
+    });
+    return res.json({ success: true, ...result });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Return SLA compliance statistics for the admin dashboard.
+ */
+export const getSlaStatistics = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const stats = await SLAEscalationService.getStatistics();
+    return res.json(stats);
   } catch (error) {
     next(error);
   }

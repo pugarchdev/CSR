@@ -1,3 +1,9 @@
+/**
+ * @deprecated LEGACY - NOT MOUNTED. Part of the disabled NGO-marketplace flow
+ * (see app.ts: ENABLE_LEGACY_NGO_MARKETPLACE). This controller's route is not
+ * registered; editing it has NO runtime effect in the MahaCSR Convergence Framework.
+ * Active replacement: convergenceProjectController.ts (ProjectDeliverableMilestone)
+ */
 import { Response, NextFunction } from "express";
 import prisma from "../config/db";
 import { AuthenticatedRequest } from "../middlewares/authMiddleware";

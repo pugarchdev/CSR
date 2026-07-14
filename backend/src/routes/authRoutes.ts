@@ -29,7 +29,9 @@ const registerSchema = z.object({
       // Commmon fields
       pan: z.string().min(10).max(10),
       address: z.string().min(5),
+      state: z.string().min(2).optional(),
       district: z.string().min(2),
+      city: z.string().min(2).optional(),
       taluka: z.string().min(2),
       village: z.string().optional(),
       website: z.string().url().optional().or(z.literal(""))

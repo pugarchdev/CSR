@@ -70,6 +70,8 @@ import jsRoutes from "./routes/jsRoutes";
 // Middlewares
 import { errorHandler } from "./middlewares/errorMiddleware";
 import { registerChatSocket } from "./websocket/chatSocket";
+import { registerNotificationSocket } from "./websocket/notificationSocket";
+import { startSlaScheduler } from "./services/slaSchedulerService";
 
 const app = express();
 const server = http.createServer(app);
@@ -186,11 +188,13 @@ const io = new Server(server, {
   cors: corsOptions
 });
 
-// registerChatSocket(io); // LEGACY NGO MARKETPLACE FLOW DISABLED
-// TODO: Implement notification socket for status updates instead
-// if (ENABLE_LEGACY_NGO_MARKETPLACE) {
-//   registerChatSocket(io);
-// }
+// Real-time notification socket for status updates (replaces legacy chat socket).
+registerNotificationSocket(io);
+
+// LEGACY: Chat socket only enabled if legacy NGO marketplace is explicitly on.
+if (ENABLE_LEGACY_NGO_MARKETPLACE) {
+  registerChatSocket(io);
+}
 
 // Server startup
 const PORT = process.env.PORT || 5000;
@@ -198,6 +202,8 @@ if (!process.env.VERCEL) {
   server.listen(PORT, () => {
     console.log(`MahaCSR Server is running on port ${PORT}`);
   });
+  // Start the recurring SLA escalation sweep (5-3-2 rule enforcement).
+  startSlaScheduler();
 }
 
 export default app;

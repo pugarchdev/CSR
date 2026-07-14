@@ -1,3 +1,9 @@
+/**
+ * @deprecated LEGACY - NOT MOUNTED. Part of the disabled NGO-marketplace flow
+ * (see app.ts: ENABLE_LEGACY_NGO_MARKETPLACE). This controller's route is not
+ * registered; editing it has NO runtime effect in the MahaCSR Convergence Framework.
+ * Active replacement: csrMatchingService.ts / convergenceProjectController.ts
+ */
 import { Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../middlewares/authMiddleware";
 import { MatchingService } from "../services/matchingService";

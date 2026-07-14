@@ -1606,14 +1606,28 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
 
   useEffect(() => { load(); }, [organizationId]);
 
+  const [actionLoading, setActionLoading] = useState(false);
+  const [activeAction, setActiveAction] = useState<string | null>(null);
+
   const action = async (type: "approve" | "reject" | "request-clarification" | "suspend") => {
     const remarks = type === "approve" ? undefined : window.prompt("Remarks or reason") || undefined;
     if (type !== "approve" && !remarks) return;
-    await apiFetch(`/admin/organizations/${organizationId}/${type}`, {
-      method: "POST",
-      body: JSON.stringify(type === "reject" ? { rejectionReason: remarks } : { remarks })
-    });
-    await load();
+    setError("");
+    setActionLoading(true);
+    setActiveAction(type);
+    try {
+      await apiFetch(`/admin/organizations/${organizationId}/${type}`, {
+        method: "POST",
+        body: JSON.stringify(type === "reject" ? { rejectionReason: remarks } : { remarks })
+      });
+      await load();
+      alert(`Organization successfully ${type === "approve" ? "approved" : type === "reject" ? "rejected" : type === "request-clarification" ? "clarification requested" : "suspended"}!`);
+    } catch (err: any) {
+      setError(err.message || `Unable to ${type} organization`);
+    } finally {
+      setActionLoading(false);
+      setActiveAction(null);
+    }
   };
 
   return (
@@ -1655,10 +1669,37 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
               ))}
             </dl>
             <div className="mt-5 flex flex-wrap gap-2">
-              <Button onClick={() => action("approve")}>Approve</Button>
-              <Button variant="secondary" onClick={() => action("request-clarification")}>Request Clarification</Button>
-              <Button variant="danger" onClick={() => action("reject")}>Reject</Button>
-              <Button variant="secondary" onClick={() => action("suspend")}>Suspend</Button>
+              <Button 
+                onClick={() => action("approve")} 
+                loading={actionLoading && activeAction === "approve"} 
+                disabled={actionLoading || organization.onboardingStatus === "APPROVED"}
+              >
+                Approve
+              </Button>
+              <Button 
+                variant="secondary" 
+                onClick={() => action("request-clarification")} 
+                loading={actionLoading && activeAction === "request-clarification"} 
+                disabled={actionLoading}
+              >
+                Request Clarification
+              </Button>
+              <Button 
+                variant="danger" 
+                onClick={() => action("reject")} 
+                loading={actionLoading && activeAction === "reject"} 
+                disabled={actionLoading || organization.onboardingStatus === "REJECTED"}
+              >
+                Reject
+              </Button>
+              <Button 
+                variant="secondary" 
+                onClick={() => action("suspend")} 
+                loading={actionLoading && activeAction === "suspend"} 
+                disabled={actionLoading || organization.onboardingStatus === "SUSPENDED"}
+              >
+                Suspend
+              </Button>
             </div>
           </section>
           <section className="border border-gov-line bg-white p-5 shadow-sm">

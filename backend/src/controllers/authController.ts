@@ -133,8 +133,10 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
         certificate12AUrl: profile.certificate12AUrl || "",
         certificate80GUrl: profile.certificate80GUrl || "",
         address: profile.address,
+        state: profile.state || "Maharashtra",
         district: profile.district,
         taluka: profile.taluka,
+        city: profile.city || null,
         village: profile.village || null,
         website: profile.website || null,
         status: VerificationStatus.PENDING
@@ -238,6 +240,7 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
         agencyType: profile.contactInfo?.entityType || "Government Department",
         district: profile.district,
         taluka: profile.taluka,
+        city: profile.city || null,
         village: profile.village || null,
         address: profile.address,
         contactPerson: profile.contactInfo?.contactPerson || profile.name,

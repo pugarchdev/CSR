@@ -1,20 +1,24 @@
 import prisma from "../config/db";
+import { emitNotificationToUser } from "../websocket/notificationSocket";
 
 /**
- * Create an in-app notification for a single user.
+ * Create an in-app notification for a single user and push it live over the
+ * notification socket (if connected).
  */
 export async function notify(
   userId: string,
   title: string,
   message: string
 ): Promise<void> {
-  await prisma.notification.create({
+  const notification = await prisma.notification.create({
     data: { userId, title, message }
   });
+  emitNotificationToUser(userId, notification);
 }
 
 /**
- * Notify multiple users with the same title/message.
+ * Notify multiple users with the same title/message. Persists in one batch,
+ * then pushes each user's own record live over the notification socket.
  */
 export async function notifyMultiple(
   userIds: string[],
@@ -25,6 +29,15 @@ export async function notifyMultiple(
   await prisma.notification.createMany({
     data: userIds.map((userId) => ({ userId, title, message }))
   });
+  // createMany does not return rows; fetch the just-created ones to emit.
+  const created = await prisma.notification.findMany({
+    where: { userId: { in: userIds }, title, message },
+    orderBy: { createdAt: "desc" },
+    take: userIds.length
+  });
+  for (const n of created) {
+    emitNotificationToUser(n.userId, n);
+  }
 }
 
 /**

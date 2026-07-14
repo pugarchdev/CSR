@@ -3,7 +3,10 @@
 import { ReactNode, useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { clearApiCache } from "@/lib/api";
+import { Bell, Menu, X } from "lucide-react";
+import { clearApiCache, apiFetch } from "@/lib/api";
+import { useNotifications, disconnectNotificationSocket } from "@/lib/useNotifications";
+import { useNotificationStore } from "@/store/notificationStore";
 import "../../styles/gov-theme.css";
 
 interface NavLink {
@@ -196,6 +199,25 @@ export default function GovPortalLayout({ children, userRole, showSidebar }: Gov
   );
   const [userEmail, setUserEmail] = useState<string>("user@mahacsr.gov.in");
   const [userInitials, setUserInitials] = useState<string>("U");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+
+  // Live notifications (loads history + subscribes to the socket).
+  useNotifications();
+  const notifications = useNotificationStore((s) => s.notifications);
+  const unreadCount = useNotificationStore((s) => s.unreadCount);
+  const markAllRead = useNotificationStore((s) => s.markAllRead);
+
+  // Close overlays on navigation.
+  useEffect(() => {
+    setMobileNavOpen(false);
+    setNotifOpen(false);
+  }, [pathname]);
+
+  const handleMarkAllRead = () => {
+    markAllRead();
+    apiFetch("/notifications/read-all", { method: "PATCH" }).catch(() => {});
+  };
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -266,6 +288,7 @@ export default function GovPortalLayout({ children, userRole, showSidebar }: Gov
       localStorage.removeItem("accessToken");
       localStorage.removeItem("user");
     }
+    disconnectNotificationSocket();
     router.push("/login");
   };
 
@@ -279,6 +302,16 @@ export default function GovPortalLayout({ children, userRole, showSidebar }: Gov
     <div className="gov-page">
       {shouldShowSidebar && (
         <header className="gov-auth-header">
+          <button
+            type="button"
+            className="gov-nav-toggle"
+            aria-label="Open navigation menu"
+            aria-expanded={mobileNavOpen}
+            onClick={() => setMobileNavOpen(true)}
+          >
+            <Menu size={22} />
+          </button>
+
           <Link href="/" className="gov-auth-brand" aria-label="MahaCSR home">
             <span className="gov-auth-emblem" aria-hidden="true">IND</span>
             <span>
@@ -288,6 +321,47 @@ export default function GovPortalLayout({ children, userRole, showSidebar }: Gov
           </Link>
 
           <div className="gov-auth-actions">
+            {/* Notification bell */}
+            <div className="gov-notif">
+              <button
+                type="button"
+                className="gov-notif-btn"
+                aria-label={`Notifications${unreadCount ? ` (${unreadCount} unread)` : ""}`}
+                onClick={() => setNotifOpen((v) => !v)}
+              >
+                <Bell size={20} />
+                {unreadCount > 0 && (
+                  <span className="gov-notif-badge">{unreadCount > 9 ? "9+" : unreadCount}</span>
+                )}
+              </button>
+
+              {notifOpen && (
+                <>
+                  <div className="gov-notif-backdrop" onClick={() => setNotifOpen(false)} />
+                  <div className="gov-notif-panel" role="dialog" aria-label="Notifications">
+                    <div className="gov-notif-head">
+                      <span>Notifications</span>
+                      {unreadCount > 0 && (
+                        <button type="button" onClick={handleMarkAllRead}>Mark all read</button>
+                      )}
+                    </div>
+                    <div className="gov-notif-list">
+                      {notifications.length === 0 ? (
+                        <div className="gov-notif-empty">No notifications yet.</div>
+                      ) : (
+                        notifications.slice(0, 12).map((n) => (
+                          <div key={n.id} className={n.isRead ? "gov-notif-item" : "gov-notif-item unread"}>
+                            <span className="gov-notif-title">{n.title}</span>
+                            <span className="gov-notif-msg">{n.message}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
             <div className="gov-auth-role">
               <span>{roleLabel}</span>
               <small>{userEmail}</small>
@@ -301,9 +375,23 @@ export default function GovPortalLayout({ children, userRole, showSidebar }: Gov
       )}
 
       <div className={shouldShowSidebar ? "gov-layout" : "gov-layout gov-layout-no-sidebar"}>
+        {/* Mobile drawer backdrop */}
+        {shouldShowSidebar && mobileNavOpen && (
+          <div className="gov-sidebar-backdrop" onClick={() => setMobileNavOpen(false)} />
+        )}
+
         {/* Sidebar Navigation */}
         {shouldShowSidebar && (
-          <aside className="gov-sidebar" aria-label="Main navigation">
+          <aside
+            className={mobileNavOpen ? "gov-sidebar open" : "gov-sidebar"}
+            aria-label="Main navigation"
+          >
+            <div className="gov-sidebar-mobilehead">
+              <span>Menu</span>
+              <button type="button" aria-label="Close navigation menu" onClick={() => setMobileNavOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
             {filteredNavGroups.map((group) => (
               <div key={group.title}>
                 <div className="gov-sidebar-section-title">{group.title}</div>

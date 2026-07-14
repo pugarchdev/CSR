@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { AlertCircle, CheckCircle2, FileText, Loader2, Save, Upload } from "lucide-react";
+import { FormEvent, useEffect, useMemo, useState, useRef } from "react";
+import { AlertCircle, CheckCircle2, FileText, Loader2, Save, Upload, ChevronDown, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { apiFetch, API_BASE_URL } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
+import { locationData } from "@/lib/locationData";
 import "@/styles/gov-theme.css";
 
 type OrganizationDocument = {
@@ -311,6 +313,129 @@ function CheckboxList({ label, values, options, onChange }: { label: string; val
   );
 }
 
+function MultiSelectField({
+  label,
+  values,
+  options,
+  onChange,
+  placeholder = "Select options"
+}: {
+  label: string;
+  values: string[];
+  options: string[];
+  onChange: (values: string[]) => void;
+  placeholder?: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  const selectedSet = new Set(values || []);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredOptions = options.filter(opt =>
+    opt.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const toggleOption = (option: string) => {
+    const next = new Set(selectedSet);
+    if (next.has(option)) {
+      next.delete(option);
+    } else {
+      next.add(option);
+    }
+    onChange(Array.from(next));
+  };
+
+  const removeOption = (option: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const next = new Set(selectedSet);
+    next.delete(option);
+    onChange(Array.from(next));
+  };
+
+  return (
+    <div className="flex flex-col gap-1.5 text-sm font-bold text-gov-ink md:col-span-2 relative" ref={dropdownRef}>
+      <span>{label}</span>
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        className="min-h-[42px] border border-gov-line bg-white px-3 py-1.5 flex items-center justify-between gap-2 cursor-pointer focus-within:border-gov-blue outline-none"
+      >
+        <div className="flex flex-wrap gap-1">
+          {values && values.length > 0 ? (
+            values.map(val => (
+              <span key={val} className="inline-flex items-center gap-1 bg-[#e8f0f8] text-gov-blue text-xs font-semibold px-2 py-0.5 rounded">
+                {val}
+                <button 
+                  type="button" 
+                  onClick={(e) => removeOption(val, e)}
+                  className="hover:text-red-655 focus:outline-none"
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            ))
+          ) : (
+            <span className="text-gov-muted font-medium">{placeholder}</span>
+          )}
+        </div>
+        <ChevronDown size={16} className="text-gov-muted shrink-0" />
+      </div>
+
+      {isOpen && (
+        <div className="absolute top-[100%] left-0 right-0 z-50 mt-1 border border-gov-line bg-white shadow-lg max-h-60 flex flex-col">
+          <div className="p-2 border-b border-gov-line bg-slate-50">
+            <input
+              type="text"
+              placeholder="Search options..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full border border-gov-line px-2.5 py-1.5 text-xs font-medium outline-none focus:border-gov-blue bg-white"
+            />
+          </div>
+          <div className="overflow-y-auto flex-grow divide-y divide-slate-105">
+            {filteredOptions.length === 0 ? (
+              <div className="p-3 text-xs text-gov-muted font-medium text-center">No options found</div>
+            ) : (
+              filteredOptions.map(option => {
+                const isChecked = selectedSet.has(option);
+                return (
+                  <div
+                    key={option}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleOption(option);
+                    }}
+                    className={`flex items-center gap-2.5 px-3 py-2 text-xs font-semibold cursor-pointer hover:bg-slate-50 transition-colors ${isChecked ? "bg-[#e8f0f8]/40" : ""}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => {}} // handled by container click
+                      className="shrink-0"
+                    />
+                    <span className="text-slate-800 font-medium">{option}</span>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ErrorBox({ error, validationErrors }: { error: string; validationErrors?: string[] }) {
   if (!error && (!validationErrors || validationErrors.length === 0)) return null;
   return (
@@ -361,12 +486,42 @@ function parseApiError(err: any) {
 }
 
 export function CompanyOnboardingStep() {
+  const router = useRouter();
   const [step, setStep] = useState<"profile" | "compliance" | "documents" | "preferences" | "declaration">("profile");
   const { organization, profile, setOrganization, setProfile, error, setError, load } = useEntityProfile("company");
   const [saving, setSaving] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (organization && organization.onboardingStatus !== "REGISTERED" && organization.onboardingStatus !== "PROFILE_INCOMPLETE") {
+      router.push("/organization/onboarding/status");
+    }
+  }, [organization, router]);
   const org = organization || ({} as Organization);
   const data: Record<string, any> = { ...profile, ...org };
+
+  const parseToArray = (val: any): string[] => {
+    if (Array.isArray(val)) return val;
+    if (typeof val === "string") return val.split(",").map(s => s.trim()).filter(Boolean);
+    return [];
+  };
+
+  const selectedDistricts = parseToArray(data.preferredDistricts);
+  const selectedTalukas = parseToArray(data.preferredTalukas);
+
+  const maharashtraDistrictsList = locationData.find(s => s.name === "Maharashtra")?.districts.map(d => d.name) || [];
+  const maharashtraState = locationData.find(s => s.name === "Maharashtra");
+  const availableTalukas = maharashtraState
+    ? maharashtraState.districts
+        .filter(d => selectedDistricts.includes(d.name))
+        .flatMap(d => d.talukas)
+    : [];
+  const allTalukas = maharashtraState
+    ? maharashtraState.districts.flatMap(d => d.talukas)
+    : [];
+  const talukaOptions = availableTalukas.length > 0 ? availableTalukas : allTalukas;
+  const dedupedTalukaOptions = Array.from(new Set(talukaOptions)).sort();
+
 
   const setData = (key: string, value: any) => {
     if (["legalName", "displayName", "cin", "llpin", "pan", "gstin", "officialEmail", "officialPhone", "website", "district"].includes(key)) {
@@ -409,6 +564,7 @@ export function CompanyOnboardingStep() {
       try {
         await apiFetch("/onboarding/company/submit", { method: "POST", body: JSON.stringify({ declarationAccepted: true }) });
         await load();
+        router.push("/organization/onboarding/status");
       } catch (err: any) {
         setError(err.message || "Unable to submit onboarding");
         setValidationErrors(parseApiError(err));
@@ -483,8 +639,20 @@ export function CompanyOnboardingStep() {
         )}
         {step === "preferences" && (
           <>
-            <TextAreaField label="Preferred districts" value={data.preferredDistricts} onChange={(value) => setData("preferredDistricts", value)} placeholder="Comma separated districts" />
-            <TextAreaField label="Preferred talukas" value={data.preferredTalukas} onChange={(value) => setData("preferredTalukas", value)} placeholder="Comma separated talukas" />
+            <MultiSelectField
+              label="Preferred districts"
+              values={selectedDistricts}
+              options={maharashtraDistrictsList}
+              onChange={(values) => setData("preferredDistricts", values)}
+              placeholder="Select preferred districts"
+            />
+            <MultiSelectField
+              label="Preferred talukas"
+              values={selectedTalukas}
+              options={dedupedTalukaOptions}
+              onChange={(values) => setData("preferredTalukas", values)}
+              placeholder={selectedDistricts.length > 0 ? "Select preferred talukas" : "Select districts first"}
+            />
             <CheckboxList label="Preferred sectors" values={data.preferredSectors || []} options={scheduleAreas} onChange={(values) => setData("preferredSectors", values)} />
             <SelectField label="Preferred project size" value={data.preferredProjectSize} onChange={(value) => setData("preferredProjectSize", value)} options={["Small", "Medium", "Large"]} />
             <Field label="Minimum funding amount" type="number" value={data.minFundingAmount} onChange={(value) => setData("minFundingAmount", value)} />
@@ -519,7 +687,6 @@ function DocumentsStep({
 }) {
   const [documents, setDocuments] = useState<OrganizationDocument[]>([]);
   const [error, setError] = useState("");
-  const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({ documentType: documentTypes[0], fileUrl: "", fileName: "", mimeType: "application/pdf", fileSize: "" });
 
@@ -548,6 +715,7 @@ function DocumentsStep({
         headers["Authorization"] = `Bearer ${token}`;
       }
 
+      // 1. Upload file
       const res = await fetch(`${API_BASE_URL}/upload`, {
         method: "POST",
         headers,
@@ -557,33 +725,26 @@ function DocumentsStep({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "File upload failed");
 
-      setForm((current) => ({
-        ...current,
-        fileUrl: data.url,
-        fileName: file.name,
-        mimeType: file.type || "application/pdf",
-        fileSize: String(data.bytes || file.size)
-      }));
+      // 2. Automatically link/save document in database
+      await apiFetch("/onboarding/documents", {
+        method: "POST",
+        body: JSON.stringify({
+          documentType: form.documentType,
+          fileUrl: data.url,
+          fileName: file.name,
+          mimeType: file.type || "application/pdf",
+          fileSize: Number(data.bytes || file.size)
+        })
+      });
+
+      // 3. Clear file input and reload
+      event.target.value = "";
+      await load();
     } catch (err: any) {
-      setError(err.message || "Failed to upload file");
+      setError(err.message || "Failed to upload and save document");
       event.target.value = ""; // Clear file input
     } finally {
       setUploading(false);
-    }
-  };
-
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    setSaving(true);
-    setError("");
-    try {
-      await apiFetch("/onboarding/documents", { method: "POST", body: JSON.stringify({ ...form, fileSize: form.fileSize ? Number(form.fileSize) : undefined }) });
-      setForm({ documentType: documentTypes[0], fileUrl: "", fileName: "", mimeType: "application/pdf", fileSize: "" });
-      await load();
-    } catch (err: any) {
-      setError(err.message || "Unable to upload document");
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -597,88 +758,114 @@ function DocumentsStep({
   return (
     <Shell title={title} description="Upload private onboarding documents. These files are tenant-scoped and not exposed publicly." steps={steps} currentStep={currentStep} onStepChange={onStepChange} status={status}>
       <ErrorBox error={error} />
-      <form onSubmit={submit} className="grid gap-4 border border-gov-line bg-white p-5 shadow-sm md:grid-cols-2">
-        <SelectField label="Document type" value={form.documentType} onChange={(value) => setForm((current) => ({ ...current, documentType: value }))} options={documentTypes} required />
-        
-        <label className="flex flex-col gap-1.5 text-sm font-bold text-gov-ink">
-          Choose Document File *
-          <input
-            type="file"
-            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-            onChange={handleFileChange}
-            disabled={uploading}
-            className="border border-gov-line px-3 py-2 text-sm font-medium outline-none focus:border-gov-blue"
-            required={!form.fileUrl}
+      
+      <div className="grid gap-6 md:grid-cols-3">
+        {/* Left Side: Upload Panel (1/3) */}
+        <div className="md:col-span-1 flex flex-col gap-4 border border-gov-line bg-white p-5 shadow-sm">
+          <div className="text-xs font-bold text-gov-navy uppercase tracking-wider border-b border-gov-line pb-2 mb-1">
+            Upload Document
+          </div>
+          
+          <SelectField 
+            label="Document type to upload" 
+            value={form.documentType} 
+            onChange={(value) => setForm(current => ({ ...current, documentType: value }))} 
+            options={documentTypes} 
+            required 
           />
-          {uploading && <span className="text-xs text-gov-blue animate-pulse mt-1">Uploading document to server...</span>}
-        </label>
 
-        <label className="flex flex-col gap-1.5 text-sm font-bold text-gov-ink">
-          File URL (Auto-populated)
-          <input
-            value={form.fileUrl || ""}
-            disabled
-            placeholder="Upload a file above..."
-            className="border border-gov-line bg-slate-50 px-3 py-2.5 text-sm font-medium outline-none text-gov-muted cursor-not-allowed"
-          />
-        </label>
-
-        <label className="flex flex-col gap-1.5 text-sm font-bold text-gov-ink">
-          File Name (Auto-populated)
-          <input
-            value={form.fileName || ""}
-            disabled
-            placeholder="File name..."
-            className="border border-gov-line bg-slate-50 px-3 py-2.5 text-sm font-medium outline-none text-gov-muted cursor-not-allowed"
-          />
-        </label>
-
-        <label className="flex flex-col gap-1.5 text-sm font-bold text-gov-ink">
-          MIME Type (Auto-populated)
-          <input
-            value={form.mimeType || ""}
-            disabled
-            placeholder="MIME type..."
-            className="border border-gov-line bg-slate-50 px-3 py-2.5 text-sm font-medium outline-none text-gov-muted cursor-not-allowed"
-          />
-        </label>
-
-        <label className="flex flex-col gap-1.5 text-sm font-bold text-gov-ink">
-          File Size Bytes (Auto-populated)
-          <input
-            value={form.fileSize || ""}
-            disabled
-            placeholder="File size..."
-            className="border border-gov-line bg-slate-50 px-3 py-2.5 text-sm font-medium outline-none text-gov-muted cursor-not-allowed"
-          />
-        </label>
-
-        <div className="flex items-end gap-3 md:col-span-2">
-          <Button type="submit" loading={saving || uploading} disabled={!form.fileUrl}><Upload size={16} className="mr-2" /> Add Document</Button>
-          <Button type="button" onClick={handleContinue} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"><CheckCircle2 size={16} className="mr-2" /> Save & Continue</Button>
-        </div>
-      </form>
-      <section className="border border-gov-line bg-white shadow-sm">
-        <div className="border-b border-gov-line p-4 text-base font-extrabold text-gov-navy">Uploaded Documents</div>
-        <div className="divide-y divide-gov-line">
-          {documents.length === 0 ? <div className="p-5 text-sm text-gov-muted">No documents uploaded yet.</div> : documents.map((doc) => (
-            <div key={doc.id} className="grid gap-3 p-4 text-sm md:grid-cols-[1fr_auto_auto] md:items-center">
-              <a href={doc.fileUrl} target="_blank" className="font-bold text-gov-blue"><FileText className="mr-2 inline" size={16} /> {doc.documentType}</a>
-              <span className="text-gov-muted">{doc.fileName || "-"}</span>
-              <Badge>{doc.verificationStatus}</Badge>
+          <div className="flex flex-col gap-2">
+            <span className="text-sm font-bold text-gov-ink">Select File *</span>
+            <div className="relative border-2 border-dashed border-gov-line hover:border-gov-blue hover:bg-slate-50/50 p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2 group min-h-[140px]">
+              <input
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                onChange={handleFileChange}
+                disabled={uploading}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
+              <Upload className="w-8 h-8 text-gov-muted group-hover:text-gov-blue transition-colors" />
+              <div className="text-sm font-bold text-gov-ink">Click or drag file here</div>
+              <div className="text-[10px] text-gov-muted font-medium">Supports PDF, JPG, PNG, DOC (max 10MB)</div>
             </div>
-          ))}
+            
+            {uploading && (
+              <div className="flex items-center gap-2.5 mt-2 bg-[#f0f4f8] border border-gov-line p-3 text-xs text-gov-blue font-semibold animate-pulse">
+                <Loader2 className="w-4 h-4 animate-spin text-gov-blue shrink-0" />
+                <span>Uploading & saving document...</span>
+              </div>
+            )}
+          </div>
         </div>
-      </section>
+
+        {/* Right Side: Uploaded List (2/3) */}
+        <div className="md:col-span-2 border border-gov-line bg-white shadow-sm flex flex-col">
+          <div className="border-b border-gov-line p-4 flex justify-between items-center bg-slate-50/30">
+            <div>
+              <div className="text-xs font-bold text-gov-navy uppercase tracking-wider">Uploaded Documents</div>
+              <p className="text-[11px] text-gov-muted mt-0.5">Documents submitted for organization verification</p>
+            </div>
+            <span className="text-xs font-bold bg-[#e8f0f8] text-gov-blue px-2.5 py-1 rounded-full">{documents.length} Uploaded</span>
+          </div>
+
+          <div className="flex-grow divide-y divide-gov-line min-h-[250px] bg-white">
+            {documents.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center p-8 text-center gap-2">
+                <FileText className="w-12 h-12 text-slate-200" />
+                <div className="text-sm font-bold text-gov-muted">No documents uploaded yet</div>
+                <p className="text-xs text-gov-muted max-w-xs font-medium">Select a document type and upload your file on the left to begin.</p>
+              </div>
+            ) : (
+              documents.map((doc) => (
+                <div key={doc.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 gap-3 hover:bg-slate-50/20 transition-colors">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-[#e8f0f8] flex items-center justify-center text-gov-blue shrink-0">
+                      <FileText className="w-4 h-4" />
+                    </div>
+                    <div className="flex flex-col">
+                      <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-gov-blue hover:underline flex items-center gap-1.5">
+                        {doc.documentType.replace(/_/g, " ")}
+                      </a>
+                      <span className="text-xs text-gov-muted font-medium truncate max-w-[280px]">{doc.fileName || "uploaded_file"}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 self-end sm:self-center">
+                    <span className="text-[10px] text-gov-muted font-bold uppercase">{doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : ""}</span>
+                    <Badge>{doc.verificationStatus}</Badge>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Save & Continue Button */}
+      <div className="flex justify-end gap-3 mt-6 border-t border-gov-line pt-4">
+        <Button 
+          type="button" 
+          onClick={handleContinue} 
+          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded shadow-sm flex items-center gap-2"
+        >
+          Save & Continue <CheckCircle2 size={16} />
+        </Button>
+      </div>
     </Shell>
   );
 }
 
 export function DepartmentOnboardingStep() {
+  const router = useRouter();
   const [step, setStep] = useState<"profile" | "nodal-officer" | "authorization" | "jurisdiction" | "documents" | "declaration">("profile");
   const { organization, profile, setOrganization, setProfile, error, setError, load } = useEntityProfile("department");
   const [saving, setSaving] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (organization && organization.onboardingStatus !== "REGISTERED" && organization.onboardingStatus !== "PROFILE_INCOMPLETE") {
+      router.push("/organization/onboarding/status");
+    }
+  }, [organization, router]);
   const org = organization || ({} as Organization);
   const data: Record<string, any> = { ...profile, ...org };
 
@@ -729,6 +916,7 @@ export function DepartmentOnboardingStep() {
       try {
         await apiFetch("/onboarding/department/submit", { method: "POST", body: JSON.stringify({ declarationAccepted: true }) });
         await load();
+        router.push("/organization/onboarding/status");
       } catch (err: any) {
         setError(err.message || "Unable to submit onboarding");
         setValidationErrors(parseApiError(err));

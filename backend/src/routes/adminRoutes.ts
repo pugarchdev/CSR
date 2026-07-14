@@ -3,7 +3,7 @@ import { z } from "zod";
 import { Role } from "@prisma/client";
 import { authenticateToken, authorizeRoles } from "../middlewares/authMiddleware";
 import { checkPermission, checkTenantActive, resolveTenantContext } from "../middlewares/tenantMiddleware";
-import { createAdminUser, getAdminOverview, listUsers, updateUserRole } from "../controllers/adminController";
+import { createAdminUser, getAdminOverview, listUsers, updateUserRole, runSlaEscalations, getSlaStatistics } from "../controllers/adminController";
 import { validateRequest } from "../middlewares/validationMiddleware";
 import {
   approveRequirement,
@@ -98,5 +98,9 @@ router.post("/requirements/:id/request-clarification", ...requireStateCell, chec
 router.post("/requirements/:id/publish", ...requireStateCell, checkPermission("requirement:publish"), publishRequirement);
 router.get("/company-interests", ...requireStateCell, listCompanyInterestsForAdmin);
 router.post("/company-interests/:id/approve", ...requireStateCell, checkPermission("interest:approve"), approveCompanyInterest);
+
+// SLA escalation monitoring & manual sweep trigger
+router.get("/sla/statistics", ...requireSuperAdmin, getSlaStatistics);
+router.post("/sla/run-escalations", ...requireSuperAdmin, runSlaEscalations);
 
 export default router;

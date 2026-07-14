@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ShieldAlert, FileCheck, Landmark, Building2, ArrowRight, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
+import { locationData, allStatesList } from "@/lib/locationData";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -23,8 +24,10 @@ export default function RegisterPage() {
     password: "",
     pan: "",
     address: "",
+    state: "Maharashtra",
     district: "Pune",
-    taluka: "",
+    city: "Pune City",
+    taluka: "Haveli",
     registrationNumber: "",
     darpanNumber: "",
     csr1Number: "",
@@ -32,6 +35,18 @@ export default function RegisterPage() {
     gst: "",
     csrBudget: ""
   });
+
+  const [customState, setCustomState] = useState("");
+  const [customDistrict, setCustomDistrict] = useState("");
+  const [customCity, setCustomCity] = useState("");
+  const [customTaluka, setCustomTaluka] = useState("");
+
+  const selectedStateInfo = locationData.find(s => s.name === formData.state);
+  const availableDistricts = selectedStateInfo ? selectedStateInfo.districts : [];
+  const selectedDistrictInfo = selectedStateInfo ? selectedStateInfo.districts.find(d => d.name === formData.district) : null;
+  const availableCities = selectedDistrictInfo ? selectedDistrictInfo.cities : [];
+  const availableTalukas = selectedDistrictInfo ? selectedDistrictInfo.talukas : [];
+
 
   // Handle redirect query parameters if directed from login for pending verification
   useEffect(() => {
@@ -47,6 +62,59 @@ export default function RegisterPage() {
       }
     }
   }, []);
+
+  const handleStateChange = (stateName: string) => {
+    setFormData(prev => {
+      const stateInfo = locationData.find(s => s.name === stateName);
+      const defaultDistrict = stateInfo && stateInfo.districts.length > 0 ? stateInfo.districts[0].name : "Other";
+      const districtInfo = stateInfo && stateInfo.districts.length > 0 ? stateInfo.districts[0] : null;
+      const defaultCity = districtInfo && districtInfo.cities.length > 0 ? districtInfo.cities[0] : "Other";
+      const defaultTaluka = districtInfo && districtInfo.talukas.length > 0 ? districtInfo.talukas[0] : "Other";
+
+      return {
+        ...prev,
+        state: stateName,
+        district: defaultDistrict,
+        city: defaultCity,
+        taluka: defaultTaluka
+      };
+    });
+
+    // Clear field errors
+    setFieldErrors(prev => {
+      const copy = { ...prev };
+      delete copy.state;
+      delete copy.district;
+      delete copy.city;
+      delete copy.taluka;
+      return copy;
+    });
+  };
+
+  const handleDistrictChange = (districtName: string) => {
+    setFormData(prev => {
+      const stateInfo = locationData.find(s => s.name === prev.state);
+      const districtInfo = stateInfo ? stateInfo.districts.find(d => d.name === districtName) : null;
+      const defaultCity = districtInfo && districtInfo.cities.length > 0 ? districtInfo.cities[0] : "Other";
+      const defaultTaluka = districtInfo && districtInfo.talukas.length > 0 ? districtInfo.talukas[0] : "Other";
+
+      return {
+        ...prev,
+        district: districtName,
+        city: defaultCity,
+        taluka: defaultTaluka
+      };
+    });
+
+    // Clear field errors
+    setFieldErrors(prev => {
+      const copy = { ...prev };
+      delete copy.district;
+      delete copy.city;
+      delete copy.taluka;
+      return copy;
+    });
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -70,6 +138,11 @@ export default function RegisterPage() {
     try {
       const isNgo = role === "NGO";
       const isGovEntity = role === "GOV_ENTITY";
+      const stateVal = formData.state === "Other" ? customState : formData.state;
+      const districtVal = formData.district === "Other" ? customDistrict : formData.district;
+      const cityVal = formData.city === "Other" ? customCity : formData.city;
+      const talukaVal = formData.taluka === "Other" ? customTaluka : formData.taluka;
+
       const payload = {
         email: formData.email,
         password: formData.password,
@@ -78,8 +151,10 @@ export default function RegisterPage() {
           name: formData.name,
           pan: formData.pan.toUpperCase(),
           address: formData.address,
-          district: formData.district,
-          taluka: formData.taluka,
+          state: stateVal,
+          district: districtVal,
+          city: cityVal,
+          taluka: talukaVal,
           ...(isNgo ? {
             registrationNumber: formData.registrationNumber,
             darpanNumber: formData.darpanNumber,
@@ -462,36 +537,166 @@ export default function RegisterPage() {
               )}
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-gray-800 text-xs font-bold">District (Maharashtra)</label>
+                <label className="text-gray-800 text-xs font-bold font-sans">State</label>
                 <select 
-                  name="district" 
-                  value={formData.district} 
-                  onChange={handleChange} 
-                  className={`govt-input ${fieldErrors.district ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500/20" : ""}`}
+                  name="state" 
+                  value={formData.state} 
+                  onChange={(e) => handleStateChange(e.target.value)} 
+                  className={`govt-input ${fieldErrors.state ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500/20" : ""}`}
                 >
-                  <option>Pune</option>
-                  <option>Nagpur</option>
-                  <option>Thane</option>
-                  <option>Gadchiroli</option>
-                  <option>Nashik</option>
-                  <option>Mumbai City</option>
-                  <option>Mumbai Suburban</option>
+                  {allStatesList.map(st => (
+                    <option key={st} value={st}>{st}</option>
+                  ))}
+                  <option value="Other">Other (Type manually)</option>
                 </select>
+                {fieldErrors.state && <span className="text-rose-600 text-[10px] font-semibold mt-0.5">{fieldErrors.state}</span>}
+              </div>
+
+              {formData.state === "Other" && (
+                <div className="flex flex-col gap-1.5 md:col-span-2">
+                  <label className="text-gray-800 text-xs font-bold font-sans">State Name (Custom)</label>
+                  <input 
+                    required 
+                    type="text"
+                    value={customState} 
+                    onChange={(e) => setCustomState(e.target.value)} 
+                    placeholder="Enter state name" 
+                    className="govt-input" 
+                  />
+                </div>
+              )}
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-gray-800 text-xs font-bold font-sans">District</label>
+                {availableDistricts.length > 0 ? (
+                  <select 
+                    name="district" 
+                    value={formData.district} 
+                    onChange={(e) => handleDistrictChange(e.target.value)} 
+                    className={`govt-input ${fieldErrors.district ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500/20" : ""}`}
+                  >
+                    {availableDistricts.map(d => (
+                      <option key={d.name} value={d.name}>{d.name}</option>
+                    ))}
+                    <option value="Other">Other (Type manually)</option>
+                  </select>
+                ) : (
+                  <input 
+                    required 
+                    name="district"
+                    value={formData.district === "Other" ? customDistrict : formData.district} 
+                    onChange={(e) => {
+                      setFormData(prev => ({ ...prev, district: "Other" }));
+                      setCustomDistrict(e.target.value);
+                    }} 
+                    placeholder="Enter district name" 
+                    className={`govt-input ${fieldErrors.district ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500/20" : ""}`} 
+                  />
+                )}
                 {fieldErrors.district && <span className="text-rose-600 text-[10px] font-semibold mt-0.5">{fieldErrors.district}</span>}
               </div>
 
+              {formData.district === "Other" && availableDistricts.length > 0 && (
+                <div className="flex flex-col gap-1.5 md:col-span-2">
+                  <label className="text-gray-800 text-xs font-bold font-sans">District Name (Custom)</label>
+                  <input 
+                    required 
+                    type="text"
+                    value={customDistrict} 
+                    onChange={(e) => setCustomDistrict(e.target.value)} 
+                    placeholder="Enter district name" 
+                    className="govt-input" 
+                  />
+                </div>
+              )}
+
               <div className="flex flex-col gap-1.5">
-                <label className="text-gray-800 text-xs font-bold">Taluka</label>
-                <input 
-                  required 
-                  name="taluka" 
-                  value={formData.taluka} 
-                  onChange={handleChange} 
-                  placeholder="e.g. Haveli" 
-                  className={`govt-input ${fieldErrors.taluka ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500/20" : ""}`} 
-                />
+                <label className="text-gray-800 text-xs font-bold font-sans">City</label>
+                {availableCities.length > 0 ? (
+                  <select 
+                    name="city" 
+                    value={formData.city} 
+                    onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))} 
+                    className={`govt-input ${fieldErrors.city ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500/20" : ""}`}
+                  >
+                    {availableCities.map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                    <option value="Other">Other (Type manually)</option>
+                  </select>
+                ) : (
+                  <input 
+                    required 
+                    name="city"
+                    value={formData.city === "Other" ? customCity : formData.city} 
+                    onChange={(e) => {
+                      setFormData(prev => ({ ...prev, city: "Other" }));
+                      setCustomCity(e.target.value);
+                    }} 
+                    placeholder="Enter city name" 
+                    className={`govt-input ${fieldErrors.city ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500/20" : ""}`} 
+                  />
+                )}
+                {fieldErrors.city && <span className="text-rose-600 text-[10px] font-semibold mt-0.5">{fieldErrors.city}</span>}
+              </div>
+
+              {formData.city === "Other" && availableCities.length > 0 && (
+                <div className="flex flex-col gap-1.5 md:col-span-2">
+                  <label className="text-gray-800 text-xs font-bold font-sans">City Name (Custom)</label>
+                  <input 
+                    required 
+                    type="text"
+                    value={customCity} 
+                    onChange={(e) => setCustomCity(e.target.value)} 
+                    placeholder="Enter city name" 
+                    className="govt-input" 
+                  />
+                </div>
+              )}
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-gray-800 text-xs font-bold font-sans">Taluka</label>
+                {availableTalukas.length > 0 ? (
+                  <select 
+                    name="taluka" 
+                    value={formData.taluka} 
+                    onChange={(e) => setFormData(prev => ({ ...prev, taluka: e.target.value }))} 
+                    className={`govt-input ${fieldErrors.taluka ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500/20" : ""}`}
+                  >
+                    {availableTalukas.map(t => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                    <option value="Other">Other (Type manually)</option>
+                  </select>
+                ) : (
+                  <input 
+                    required 
+                    name="taluka"
+                    value={formData.taluka === "Other" ? customTaluka : formData.taluka} 
+                    onChange={(e) => {
+                      setFormData(prev => ({ ...prev, taluka: "Other" }));
+                      setCustomTaluka(e.target.value);
+                    }} 
+                    placeholder="Enter taluka name" 
+                    className={`govt-input ${fieldErrors.taluka ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500/20" : ""}`} 
+                  />
+                )}
                 {fieldErrors.taluka && <span className="text-rose-600 text-[10px] font-semibold mt-0.5">{fieldErrors.taluka}</span>}
               </div>
+
+              {formData.taluka === "Other" && availableTalukas.length > 0 && (
+                <div className="flex flex-col gap-1.5 md:col-span-2">
+                  <label className="text-gray-800 text-xs font-bold font-sans">Taluka Name (Custom)</label>
+                  <input 
+                    required 
+                    type="text"
+                    value={customTaluka} 
+                    onChange={(e) => setCustomTaluka(e.target.value)} 
+                    placeholder="Enter taluka name" 
+                    className="govt-input" 
+                  />
+                </div>
+              )}
             </div>
 
             <div className="flex gap-4 mt-2 font-bold text-sm">
