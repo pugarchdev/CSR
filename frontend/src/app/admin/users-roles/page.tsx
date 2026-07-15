@@ -232,7 +232,7 @@ export default function AdminUsersRolesPage() {
           <GovCardBody>
             {loading ? (
               <div className="flex flex-col items-center justify-center py-16 gap-4 w-full bg-white">
-                <div className="w-10 h-10 rounded-full border-4 border-[#12325a] border-t-transparent animate-spin" />
+                <div className="w-10 h-10 rounded-full border-4 border-[#14274e] border-t-transparent animate-spin" />
                 <span className="text-xs text-slate-500 font-semibold">Loading users and roles data...</span>
               </div>
             ) : users.length > 0 ? (

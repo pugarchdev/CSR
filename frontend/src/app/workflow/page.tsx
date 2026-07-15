@@ -137,7 +137,7 @@ export default function WorkflowPage() {
                       padding: 14,
                       border: "1px solid var(--gov-border)",
                       borderLeft: "4px solid var(--gov-primary)",
-                      background: number === "2" || number === "5" || number === "6-8" ? "#ecfdf5" : "#e8f0f8",
+                      background: number === "2" || number === "5" || number === "6-8" ? "#e8f5e9" : "#e3f0fa",
                     }}
                   >
                     <div style={{ fontWeight: 800, color: "var(--gov-primary)" }}>Step {number}</div>
@@ -226,7 +226,7 @@ export default function WorkflowPage() {
                       padding: 14,
                       border: "1px solid var(--gov-border)",
                       borderLeft: "4px solid var(--gov-saffron)",
-                      background: number === "3" || number === "5" ? "#ecfdf5" : "#fff7ed",
+                      background: number === "3" || number === "5" ? "#e8f5e9" : "#fef3e0",
                     }}
                   >
                     <div style={{ fontWeight: 800, color: "var(--gov-warning)" }}>Step {number}</div>

@@ -19,7 +19,7 @@ const GisMap = dynamic(() => import("@/components/GisMap"), {
   loading: () => (
     <div className="h-[580px] w-full flex items-center justify-center bg-slate-50 rounded-xl border border-slate-200">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 rounded-full border-2 border-[#1e3a8a] border-t-transparent animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-[#14274e] border-t-transparent animate-spin" />
         <span className="text-xs text-slate-500 font-semibold">Initializing digital GIS network...</span>
       </div>
     </div>
@@ -38,7 +38,7 @@ type GovTab =
 
 const TableLoader = ({ message }: { message: string }) => (
   <div className="flex flex-col items-center justify-center py-16 gap-4 w-full bg-white rounded-xl border border-slate-100">
-    <div className="w-10 h-10 rounded-full border-4 border-[#1e3a8a] border-t-transparent animate-spin" />
+    <div className="w-10 h-10 rounded-full border-4 border-[#14274e] border-t-transparent animate-spin" />
     <span className="text-xs text-slate-500 font-semibold">{message}</span>
   </div>
 );
@@ -288,11 +288,11 @@ export default function GovernmentPortal({ params }: { params?: { tab?: string }
       
       {/* Header Banner */}
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-        <div className="h-1.5 bg-gradient-to-r from-[#FF9933] via-white to-[#138808]" />
+        <div className="h-1.5 bg-gradient-to-r from-[#f7941d] via-white to-[#43a047]" />
         <div className="p-6 md:p-7 flex flex-col gap-5">
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
             <div className="flex flex-col gap-2 max-w-3xl">
-              <span className="text-[#f97316] font-bold text-xs uppercase tracking-widest flex items-center gap-1.5">
+              <span className="text-[#f7941d] font-bold text-xs uppercase tracking-widest flex items-center gap-1.5">
                 <ShieldAlert size={14} /> Maharashtra CSR Authority
               </span>
               <div>
@@ -373,17 +373,17 @@ export default function GovernmentPortal({ params }: { params?: { tab?: string }
               <CardContent className="flex flex-col gap-3">
                 {loading ? (
                   <div className="flex items-center justify-center py-6">
-                    <div className="w-6 h-6 rounded-full border-2 border-[#1e3a8a] border-t-transparent animate-spin" />
+                    <div className="w-6 h-6 rounded-full border-2 border-[#14274e] border-t-transparent animate-spin" />
                   </div>
                 ) : (
                   <>
                     <div className="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-200">
                       <span className="text-xs font-semibold text-slate-600">NGO Registrations Pending</span>
-                      <span className="text-[#f97316] font-bold text-sm">{ngos.length} Requests</span>
+                      <span className="text-[#f7941d] font-bold text-sm">{ngos.length} Requests</span>
                     </div>
                     <div className="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-200">
                       <span className="text-xs font-semibold text-slate-600">Project Listings Pending</span>
-                      <span className="text-[#f97316] font-bold text-sm">{projects.length} Proposals</span>
+                      <span className="text-[#f7941d] font-bold text-sm">{projects.length} Proposals</span>
                     </div>
                   </>
                 )}
@@ -478,7 +478,7 @@ export default function GovernmentPortal({ params }: { params?: { tab?: string }
                       <td className="font-bold text-slate-800">
                         <button 
                           onClick={() => handleOpenNgoReviewModal(ngo)}
-                          className="font-bold text-[#12325a] hover:underline text-left bg-transparent border-none p-0 cursor-pointer"
+                          className="font-bold text-[#14274e] hover:underline text-left bg-transparent border-none p-0 cursor-pointer"
                         >
                           {ngo.name}
                         </button>
@@ -531,7 +531,7 @@ export default function GovernmentPortal({ params }: { params?: { tab?: string }
                       <td className="font-bold text-slate-800">
                         <button 
                           onClick={() => handleOpenCompanyReviewModal(comp)}
-                          className="font-bold text-[#12325a] hover:underline text-left bg-transparent border-none p-0 cursor-pointer"
+                          className="font-bold text-[#14274e] hover:underline text-left bg-transparent border-none p-0 cursor-pointer"
                         >
                           {comp.name}
                         </button>
@@ -869,7 +869,7 @@ export default function GovernmentPortal({ params }: { params?: { tab?: string }
                     <td>{time}</td>
                     <td className="font-bold text-slate-800">{officer}</td>
                     <td>{action}</td>
-                    <td className="text-right font-bold text-[#1e3a8a]">{ref}</td>
+                    <td className="text-right font-bold text-[#14274e]">{ref}</td>
                   </tr>
                 ))}
               </tbody>
@@ -928,7 +928,7 @@ export default function GovernmentPortal({ params }: { params?: { tab?: string }
             {/* Modal Header */}
             <div className="bg-slate-50 border-b border-slate-200 p-5 flex justify-between items-center">
               <div className="flex items-center gap-2">
-                {reviewEntityType === "NGO" ? <Landmark className="text-[#12325a]" size={20} /> : <Building2 className="text-[#12325a]" size={20} /> }
+                {reviewEntityType === "NGO" ? <Landmark className="text-[#14274e]" size={20} /> : <Building2 className="text-[#14274e]" size={20} /> }
                 <h3 className="font-heading font-extrabold text-lg text-slate-900">
                   {reviewEntityType === "NGO" ? "NGO" : "Corporate"} Onboarding Credentials Review
                 </h3>
@@ -945,7 +945,7 @@ export default function GovernmentPortal({ params }: { params?: { tab?: string }
             {/* Modal Body */}
             <div className="p-6 overflow-y-auto flex flex-col gap-6">
               <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-[#f97316] mb-3">Submitted Registration Details</h4>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[#f7941d] mb-3">Submitted Registration Details</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
                   {reviewEntityType === "NGO" ? (
                     <>
@@ -998,7 +998,7 @@ export default function GovernmentPortal({ params }: { params?: { tab?: string }
                       </div>
                       <div>
                         <span className="block text-slate-500 font-medium">CSR Sourcing Budget</span>
-                        <strong className="block text-[#12325a] text-sm mt-0.5">{reviewEntity.budget}</strong>
+                        <strong className="block text-[#14274e] text-sm mt-0.5">{reviewEntity.budget}</strong>
                       </div>
                       <div>
                         <span className="block text-slate-500 font-medium">Industry Classification</span>
@@ -1022,7 +1022,7 @@ export default function GovernmentPortal({ params }: { params?: { tab?: string }
               </div>
 
               <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-[#f97316] mb-3">Uploaded Verification Documents</h4>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[#f7941d] mb-3">Uploaded Verification Documents</h4>
                 <div className="overflow-x-auto border border-slate-200 rounded-xl bg-white shadow-sm">
                   <table className="w-full text-xs text-left border-collapse">
                     <thead>
@@ -1052,7 +1052,7 @@ export default function GovernmentPortal({ params }: { params?: { tab?: string }
                               <a 
                                 href="#" 
                                 onClick={(e) => { e.preventDefault(); alert(`Downloading ${fileName}...`); }}
-                                className="text-[#12325a] font-bold hover:underline inline-flex items-center gap-1"
+                                className="text-[#14274e] font-bold hover:underline inline-flex items-center gap-1"
                               >
                                 <Download size={12} /> View Document
                               </a>
@@ -1075,7 +1075,7 @@ export default function GovernmentPortal({ params }: { params?: { tab?: string }
                               <a 
                                 href="#" 
                                 onClick={(e) => { e.preventDefault(); alert(`Downloading ${fileName}...`); }}
-                                className="text-[#12325a] font-bold hover:underline inline-flex items-center gap-1"
+                                className="text-[#14274e] font-bold hover:underline inline-flex items-center gap-1"
                               >
                                 <Download size={12} /> View Document
                               </a>

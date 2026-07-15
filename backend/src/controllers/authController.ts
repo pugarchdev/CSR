@@ -106,7 +106,9 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
   let createdBeneficiaryProfileId: string | null = null;
   let createdOrganizationId: string | null = null;
   const tenant = await getDefaultTenant();
-  await assertRegistrationFeatureEnabled(tenant.id, role);
+  if (role === Role.NGO_ADMIN) {
+    return validationErrorResponse(res, "Direct NGO registration is disabled. You must be invited by a corporate company.");
+  }
 
   if (role === Role.NGO_ADMIN) {
     const existingNgo = await prisma.nGO.findFirst({
@@ -521,4 +523,166 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
 
   res.clearCookie("refreshToken");
   return successResponse(res, null, "Logged out successfully");
+};
+
+export const getInvitationDetails = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { token } = req.query;
+    if (!token || typeof token !== "string") {
+      return validationErrorResponse(res, "Invitation token is required");
+    }
+
+    const invitation = await prisma.ngoInvitation.findUnique({
+      where: { token },
+      include: { company: true }
+    });
+
+    if (!invitation || invitation.status !== "PENDING") {
+      return errorResponse(res, "Invitation is invalid or has already been used", 400);
+    }
+
+    return successResponse(res, {
+      email: invitation.email,
+      ngoName: invitation.ngoName,
+      companyName: invitation.company.name,
+      companyId: invitation.companyId
+    }, "Invitation verified");
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const registerInvitedNgo = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const {
+      token,
+      password,
+      pan,
+      address,
+      state,
+      district,
+      city,
+      taluka,
+      village,
+      website,
+      registrationNumber,
+      darpanNumber,
+      csr1Number
+    } = req.body;
+
+    if (!token) {
+      return validationErrorResponse(res, "Invitation token is required");
+    }
+
+    const invitation = await prisma.ngoInvitation.findUnique({
+      where: { token }
+    });
+
+    if (!invitation || invitation.status !== "PENDING") {
+      return errorResponse(res, "Invitation is invalid or has already been used", 400);
+    }
+
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({ where: { email: invitation.email } });
+    if (existingUser) {
+      return validationErrorResponse(res, "Email already registered");
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const tenant = await getDefaultTenant();
+
+    // Check if NGO already registered with registration number or PAN
+    const existingNgo = await prisma.nGO.findFirst({
+      where: {
+        OR: [
+          { registrationNumber },
+          { pan }
+        ]
+      }
+    });
+
+    if (existingNgo) {
+      return validationErrorResponse(res, "NGO already registered with this Registration Number or PAN");
+    }
+
+    // Create NGO
+    const ngo = await prisma.nGO.create({
+      data: {
+        tenantId: tenant.id,
+        name: invitation.ngoName,
+        registrationNumber,
+        darpanNumber,
+        csr1Number,
+        pan,
+        address,
+        state: state || "Maharashtra",
+        district,
+        taluka,
+        city: city || null,
+        village: village || null,
+        website: website || null,
+        status: VerificationStatus.PENDING,
+        officialEmail: invitation.email,
+        invitedByCompanyId: invitation.companyId
+      }
+    });
+
+    // Create Organization
+    const organization = await prisma.organization.create({
+      data: {
+        tenantId: tenant.id,
+        organizationType: OrganizationKind.NGO,
+        name: invitation.ngoName,
+        registrationNumber,
+        pan,
+        email: invitation.email,
+        address,
+        district,
+        taluka,
+        onboardingStatus: OrganizationOnboardingStatus.REGISTERED,
+        status: OrganizationStatus.ACTIVE,
+        sourceNgoId: ngo.id
+      }
+    });
+
+    await prisma.nGO.update({
+      where: { id: ngo.id },
+      data: { organizationId: organization.id }
+    });
+
+    // Create User
+    const user = await prisma.user.create({
+      data: {
+        email: invitation.email,
+        passwordHash,
+        role: Role.NGO_ADMIN,
+        tenantId: tenant.id,
+        organizationId: organization.id,
+        isVerified: true, // Email is verified since they completed register through email token
+        ngoId: ngo.id,
+        accountStatus: "ACTIVE"
+      }
+    });
+
+    await ensureOrganizationAdminRole(organization.id, tenant.id);
+
+    // Update invitation status to ACCEPTED
+    await prisma.ngoInvitation.update({
+      where: { token },
+      data: { status: "ACCEPTED" }
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        tenantId: tenant.id,
+        action: "NGO_INVITATION_ACCEPTED",
+        details: { email: invitation.email, ngoId: ngo.id }
+      }
+    });
+
+    return successResponse(res, { userId: user.id, email: user.email }, "NGO registration successful. Please log in to complete onboarding.", 201);
+  } catch (error) {
+    next(error);
+  }
 };

@@ -683,7 +683,7 @@ export const completeProject = async (
     const userRole = req.user?.role;
     const tenantId = req.user?.tenantId;
     const { id } = req.params;
-    const { completionNotes } = req.body;
+    const { completionNotes, beneficiariesSummary, impactSummary } = req.body;
 
     if (!userId) {
       return unauthorizedResponse(res, "User not authenticated");
@@ -754,6 +754,9 @@ export const completeProject = async (
       data: {
         status: "COMPLETED",
         physicalProgressPercent: 100,
+        completedAt: new Date(),
+        beneficiariesSummary: beneficiariesSummary || undefined,
+        impactSummary: impactSummary || completionNotes || undefined,
         updatedAt: new Date(),
       },
     });
@@ -961,7 +964,7 @@ export const generateCompletionReport = async (
       },
       completionStatus: {
         isComplete: project.status === "COMPLETED",
-        completedAt: project.status === "COMPLETED" ? project.updatedAt : null,
+        completedAt: project.status === "COMPLETED" ? (project.completedAt ?? project.updatedAt) : null,
       },
       generatedAt: new Date(),
     };

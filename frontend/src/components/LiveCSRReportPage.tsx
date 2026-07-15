@@ -181,12 +181,12 @@ export default function LiveCSRReportPage({ title, description, endpoint }: Live
             <div className="flex items-center justify-between border-b-2 border-slate-900 pb-4 mb-6">
               <div className="flex items-center gap-3">
                 <svg viewBox="0 0 100 100" className="w-12 h-12" fill="none" stroke="currentColor">
-                  <polygon points="50,5 82,18 95,50 82,82 50,95 18,82 5,50 18,18" stroke="#1e3a8a" strokeWidth="4.5" fill="#eff6ff" />
-                  <path d="M28,32 L72,32 M32,44 L68,44 M28,56 L72,56 M36,68 L64,68" stroke="#f97316" strokeWidth="3" strokeLinecap="round" />
-                  <path d="M42,80 L58,80" stroke="#1e3a8a" strokeWidth="2.5" strokeLinecap="round" />
+                  <polygon points="50,5 82,18 95,50 82,82 50,95 18,82 5,50 18,18" stroke="#14274e" strokeWidth="4.5" fill="#e3f0fa" />
+                  <path d="M28,32 L72,32 M32,44 L68,44 M28,56 L72,56 M36,68 L64,68" stroke="#f7941d" strokeWidth="3" strokeLinecap="round" />
+                  <path d="M42,80 L58,80" stroke="#14274e" strokeWidth="2.5" strokeLinecap="round" />
                 </svg>
                 <div>
-                  <h2 className="text-lg font-extrabold text-[#1e3a8a]">MahaCSR Platform</h2>
+                  <h2 className="text-lg font-extrabold text-[#14274e]">MahaCSR Platform</h2>
                   <p className="text-[9px] text-slate-500 uppercase tracking-wider font-extrabold">Government of Maharashtra</p>
                 </div>
               </div>

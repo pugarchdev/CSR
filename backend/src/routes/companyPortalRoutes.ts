@@ -4,6 +4,13 @@ import { authenticateToken, authorizeRoles } from "../middlewares/authMiddleware
 import { checkFeatureEnabled, checkTenantActive, resolveTenantContext } from "../middlewares/tenantMiddleware";
 import prisma from "../config/db";
 import { listCsrProjects } from "../controllers/csrLifecycleController";
+import {
+  inviteNgo,
+  bulkInviteNgos,
+  listInvitations,
+  revokeNgoAccess,
+  submitPreliminaryReview
+} from "../controllers/ngoInvitationController";
 
 const router = Router();
 
@@ -58,5 +65,11 @@ router.get("/interests", async (req, res, next) => {
   }
 });
 router.get("/projects", checkFeatureEnabled("enableCSRMarketplace"), listCsrProjects);
+
+router.post("/ngos/invite", inviteNgo);
+router.post("/ngos/invite/bulk", bulkInviteNgos);
+router.get("/ngos/invitations", listInvitations);
+router.post("/ngos/invitations/:id/revoke", revokeNgoAccess);
+router.post("/ngos/:ngoId/preliminary-review", submitPreliminaryReview);
 
 export default router;

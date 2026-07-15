@@ -33,8 +33,8 @@ export default function ImpactSphere() {
 
     // Government palette - high visibility on light background
     const colorPalette = [
-      new THREE.Color("#1e3a8a"), // Navy Blue
-      new THREE.Color("#f97316"), // Saffron Accent
+      new THREE.Color("#14274e"), // Navy Blue
+      new THREE.Color("#f7941d"), // Saffron Accent
       new THREE.Color("#10b981"), // Emerald Green
       new THREE.Color("#2563eb"), // Royal Blue
     ];

@@ -13,7 +13,9 @@ import {
   getInspections,
   createInspection,
   confirmHandover,
-  updateMouStatus
+  updateMouStatus,
+  listNgoVerificationQueue,
+  submitFinalNgoVerification
 } from "../controllers/nodalOfficerController";
 
 const router = Router();
@@ -104,6 +106,21 @@ router.get(
   authenticateToken,
   authorizeRoles([Role.DISTRICT_NODAL_OFFICER, Role.SUPER_ADMIN, Role.PORTAL_ADMIN]),
   asyncHandler(generateProgressReport)
+);
+
+// NGO Verification Queue
+router.get(
+  "/ngos/verification-queue",
+  authenticateToken,
+  authorizeRoles([Role.DISTRICT_NODAL_OFFICER, Role.SUPER_ADMIN, Role.PORTAL_ADMIN]),
+  asyncHandler(listNgoVerificationQueue)
+);
+
+router.post(
+  "/ngos/:ngoId/final-verification",
+  authenticateToken,
+  authorizeRoles([Role.DISTRICT_NODAL_OFFICER, Role.SUPER_ADMIN, Role.PORTAL_ADMIN]),
+  asyncHandler(submitFinalNgoVerification)
 );
 
 export default router;

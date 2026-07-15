@@ -131,7 +131,7 @@ export default function CompanyInterestsPage() {
                       <td className="px-6 py-4 font-semibold text-slate-700">
                         ₹{Number(item.governmentPitch?.estimatedCost || 0).toLocaleString("en-IN")}
                       </td>
-                      <td className="px-6 py-4 font-bold text-[#1e3a8a]">
+                      <td className="px-6 py-4 font-bold text-[#14274e]">
                         ₹{Number(item.indicativeBudget || 0).toLocaleString("en-IN")}
                       </td>
                       <td className="px-6 py-4 text-slate-600">

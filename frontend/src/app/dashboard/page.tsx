@@ -129,14 +129,14 @@ export default function DashboardPage() {
   ];
 
   const quickStats = [
-    { label: "Your Applications", value: "1", color: "#12325a" },
+    { label: "Your Applications", value: "1", color: "#14274e" },
     { label: "Pending Documents", value: "3", color: "#d97706" },
     { label: "Active Queries", value: "0", color: "#166534" },
     { label: "Projects", value: "0", color: "#005ea8" },
   ];
 
   const adminStats = [
-    { label: "Total Applications", value: "1,248", color: "#12325a" },
+    { label: "Total Applications", value: "1,248", color: "#14274e" },
     { label: "Pending Review", value: "86", color: "#d97706" },
     { label: "Approved NGOs", value: "742", color: "#166534" },
     { label: "High Risk", value: "12", color: "#b91c1c" },

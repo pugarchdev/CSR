@@ -306,7 +306,7 @@ export default function PitchDevelopmentNeedPage() {
               Home / Pitch Development Need
             </div>
             <h1 className="gov-page-title flex items-center gap-3">
-              <Building2 size={28} className="text-[#d97706]" />
+              <Building2 size={28} className="text-[#f7941d]" />
               Government Pitch Submitted Successfully
             </h1>
           </div>
@@ -316,7 +316,7 @@ export default function PitchDevelopmentNeedPage() {
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle size={32} className="text-green-600" />
               </div>
-              <h2 className="text-xl font-bold text-[#12325a] mb-2">
+              <h2 className="text-xl font-bold text-[#14274e] mb-2">
                 Your development pitch has been submitted
               </h2>
               <p className="text-slate-600 mb-6">
@@ -325,7 +325,7 @@ export default function PitchDevelopmentNeedPage() {
 
               <div className="bg-slate-50 border border-slate-200 rounded p-4 mb-6">
                 <p className="text-sm text-slate-500 mb-2">Your Tracking ID</p>
-                <code className="text-2xl font-mono font-bold text-[#12325a]">
+                <code className="text-2xl font-mono font-bold text-[#14274e]">
                   {trackingId}
                 </code>
               </div>
@@ -353,7 +353,7 @@ export default function PitchDevelopmentNeedPage() {
             Home / Pitch a Development Need
           </div>
           <h1 className="gov-page-title flex items-center gap-3">
-            <Building2 size={28} className="text-[#d97706]" />
+            <Building2 size={28} className="text-[#f7941d]" />
             Pitch a Development Need
           </h1>
           <p className="gov-page-description">
@@ -653,7 +653,7 @@ export default function PitchDevelopmentNeedPage() {
 
                     {form.certificationType === "HOD" && (
                       <div className="gov-document-box">
-                        <label className="block text-sm font-bold text-[#12325a] mb-2">
+                        <label className="block text-sm font-bold text-[#14274e] mb-2">
                           HOD certification document
                           <span className="gov-required">*</span>
                         </label>
@@ -678,7 +678,7 @@ export default function PitchDevelopmentNeedPage() {
                     )}
 
                     <div className="gov-document-box">
-                      <label className="block text-sm font-bold text-[#12325a] mb-2">
+                      <label className="block text-sm font-bold text-[#14274e] mb-2">
                         <Camera size={16} className="inline mr-2" />
                         Geo-tagged Site Photos
                         <span className="gov-required">*</span>

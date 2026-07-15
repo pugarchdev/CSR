@@ -232,7 +232,7 @@ export default function PublicDevelopmentNeedsPage() {
             Home / Public Development Needs (Live)
           </div>
           <h1 className="gov-page-title flex items-center gap-3">
-            <HeartHandshake size={28} className="text-[#d97706]" />
+            <HeartHandshake size={28} className="text-[#f7941d]" />
             Public Development Needs (Live)
           </h1>
           <p className="gov-page-description">
@@ -244,7 +244,7 @@ export default function PublicDevelopmentNeedsPage() {
         <GovCard className="mb-6">
           <GovCardBody>
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-              <div className="flex items-center gap-2 text-[#12325a] font-bold">
+              <div className="flex items-center gap-2 text-[#14274e] font-bold">
                 <ListFilter size={18} />
                 <span>Filter by District:</span>
               </div>
@@ -276,7 +276,7 @@ export default function PublicDevelopmentNeedsPage() {
         {/* Loading */}
         {loading && (
           <div className="flex items-center justify-center py-16">
-            <Loader2 size={40} className="animate-spin text-[#12325a]" />
+            <Loader2 size={40} className="animate-spin text-[#14274e]" />
           </div>
         )}
 
@@ -290,7 +290,7 @@ export default function PublicDevelopmentNeedsPage() {
                     <div className="flex items-start justify-between">
                       <div>
                         <GovCardTitle className="text-base flex items-center gap-2">
-                          <MapPin size={16} className="text-[#d97706]" />
+                          <MapPin size={16} className="text-[#f7941d]" />
                           {need.district}
                         </GovCardTitle>
                         <p className="text-xs text-slate-500 mt-1">
@@ -323,7 +323,7 @@ export default function PublicDevelopmentNeedsPage() {
                       <div className="flex items-center justify-between mb-3">
                         <div>
                           <p className="text-xs text-slate-500">Estimated Cost</p>
-                          <p className="text-lg font-bold text-[#12325a]">
+                          <p className="text-lg font-bold text-[#14274e]">
                             {formatCurrency(need.estimatedCost)}
                           </p>
                         </div>
@@ -397,7 +397,7 @@ export default function PublicDevelopmentNeedsPage() {
                           onClick={() => handlePageChange(page)}
                           className={`min-w-[40px] h-10 px-3 rounded font-medium transition-colors ${
                             page === pagination.page
-                              ? "bg-[#12325a] text-white"
+                              ? "bg-[#14274e] text-white"
                               : "border border-slate-200 hover:bg-slate-50"
                           }`}
                         >
@@ -426,7 +426,7 @@ export default function PublicDevelopmentNeedsPage() {
               <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <HeartHandshake size={32} className="text-slate-400" />
               </div>
-              <h3 className="text-lg font-bold text-[#12325a] mb-2">
+              <h3 className="text-lg font-bold text-[#14274e] mb-2">
                 No development needs found
               </h3>
               <p className="text-slate-500 max-w-md mx-auto">

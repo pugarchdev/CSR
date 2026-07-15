@@ -14,14 +14,14 @@ interface EmptyStateProps {
 
 export function EmptyState({ title, description, icon: Icon, actionText, onAction, className }: EmptyStateProps) {
   return (
-    <div className={cn("flex flex-col items-center justify-center p-12 text-center rounded-xl border border-dashed border-gray-300 bg-gray-50 gap-6", className)}>
-      <div className="bg-white border border-gray-200 p-4 rounded-xl text-[#1e3a8a] shadow-sm flex items-center justify-center">
+    <div className={cn("flex flex-col items-center justify-center p-12 text-center rounded-lg border border-dashed border-[#c7cdd6] bg-[#f4f5f7] gap-6", className)}>
+      <div className="bg-white border border-[#e0e4ea] p-4 rounded-lg text-[#14274e] flex items-center justify-center">
         <Icon size={32} />
       </div>
 
       <div className="flex flex-col gap-1.5 max-w-sm">
-        <h3 className="font-heading font-bold text-lg text-gray-900 tracking-tight">{title}</h3>
-        <p className="text-gray-500 text-sm leading-relaxed">{description}</p>
+        <h3 className="font-heading font-bold text-lg text-[#14274e] tracking-tight">{title}</h3>
+        <p className="text-[#6b7280] text-sm leading-relaxed">{description}</p>
       </div>
 
       {actionText && onAction && (

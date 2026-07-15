@@ -41,37 +41,37 @@ const JOURNEY_STEPS = [
     step: "Step 1",
     title: "Corporate Enquiry Form",
     detail: "Company name, sector, geography, optional budget, CSR contact, OTP-verified mobile and email, MCA21 CIN, and proposed CSR work up to 200 words.",
-    tone: "#e8f0f8",
+    tone: "#e3f0fa",
   },
   {
     step: "Step 2",
     title: "Unique Tracking ID",
     detail: "The portal generates a tracking ID instantly. SMS and email notifications are sent, and every interaction is recorded against this ID.",
-    tone: "#ecfdf5",
+    tone: "#e8f5e9",
   },
   {
     step: "Step 3",
     title: "CSR Relationship Manager Response",
     detail: "A dedicated Relationship Manager responds within 5 days, understands the requirement, and guides the corporate through the next step.",
-    tone: "#e8f0f8",
+    tone: "#e3f0fa",
   },
   {
     step: "Step 4",
     title: "Assessment Report to Joint Secretary",
     detail: "The RM submits an assessment report with the 13-point feasibility checklist and a recommendation to proceed, proceed with conditions, or not proceed.",
-    tone: "#e8f0f8",
+    tone: "#e3f0fa",
   },
   {
     step: "Step 5",
     title: "JS Decision and Nodal Officer",
     detail: "The Joint Secretary records the decision. If approved, a District Nodal Officer is appointed and mapped to the project.",
-    tone: "#ecfdf5",
+    tone: "#e8f5e9",
   },
   {
     step: "Steps 6-8",
     title: "Dialogue, MoU, and Project Onboarding",
     detail: "The nodal officer and corporate finalize the project, sign the standard MoU, define deliverables, and onboard the project with a Project ID.",
-    tone: "#ecfdf5",
+    tone: "#e8f5e9",
   },
 ];
 
@@ -240,7 +240,7 @@ export default function PartnerWithMaharashtraPage() {
               Home / Partner with Maharashtra
             </div>
             <h1 className="gov-page-title flex items-center gap-3">
-              <Handshake size={28} className="text-[#d97706]" />
+              <Handshake size={28} className="text-[#f7941d]" />
               Enquiry Submitted Successfully
             </h1>
             <p className="gov-page-description">
@@ -253,7 +253,7 @@ export default function PartnerWithMaharashtraPage() {
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle size={32} className="text-green-600" />
               </div>
-              <h2 className="text-xl font-bold text-[#12325a] mb-2">
+              <h2 className="text-xl font-bold text-[#14274e] mb-2">
                 Your enquiry has been received
               </h2>
               <p className="text-slate-600 mb-6">
@@ -263,7 +263,7 @@ export default function PartnerWithMaharashtraPage() {
               <div className="bg-slate-50 border border-slate-200 rounded p-4 mb-6">
                 <p className="text-sm text-slate-500 mb-2">Your Tracking ID</p>
                 <div className="flex items-center justify-center gap-2">
-                  <code className="text-2xl font-mono font-bold text-[#12325a]">
+                  <code className="text-2xl font-mono font-bold text-[#14274e]">
                     {trackingId}
                   </code>
                   <button
@@ -302,7 +302,7 @@ export default function PartnerWithMaharashtraPage() {
             Home / Partner with Maharashtra
           </div>
           <h1 className="gov-page-title flex items-center gap-3">
-            <Handshake size={28} className="text-[#d97706]" />
+            <Handshake size={28} className="text-[#f7941d]" />
             Partner with Maharashtra
           </h1>
           <p className="gov-page-description">
@@ -354,7 +354,7 @@ export default function PartnerWithMaharashtraPage() {
               <GovCardBody>
                 <div style={{ display: "grid", gap: 10 }}>
                   {SLA_ITEMS.map((item) => (
-                    <div key={item.trigger} style={{ padding: 12, border: "1px solid var(--gov-border)", background: "#fff7ed" }}>
+                    <div key={item.trigger} style={{ padding: 12, border: "1px solid var(--gov-border)", background: "#fef3e0" }}>
                       <div style={{ fontSize: 12, fontWeight: 800, color: "var(--gov-warning)" }}>{item.trigger}</div>
                       <div style={{ marginTop: 4, fontSize: 13, color: "var(--gov-text)" }}>
                         Escalates to <strong>{item.escalatesTo}</strong> within <strong>{item.within}</strong>.
@@ -470,7 +470,7 @@ export default function PartnerWithMaharashtraPage() {
                         key={district}
                         className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
                           form.preferredDistricts.includes(district)
-                            ? "bg-[#12325a] text-white"
+                            ? "bg-[#14274e] text-white"
                             : "bg-slate-50 hover:bg-slate-100"
                         }`}
                       >

@@ -19,7 +19,7 @@ export default function GalleryPage() {
   return (
     <div className="px-6 md:px-12 py-12 max-w-5xl mx-auto flex flex-col gap-8 bg-slate-950 text-slate-100 min-h-screen">
       <div className="flex flex-col gap-2 border-b border-slate-800 pb-6">
-        <span className="text-[#f97316] font-bold text-xs uppercase tracking-widest flex items-center gap-1.5">
+        <span className="text-[#f7941d] font-bold text-xs uppercase tracking-widest flex items-center gap-1.5">
           <ImageIcon size={14} /> SITE INSPECTION DATA LEDGER
         </span>
         <h1 className="font-heading font-extrabold text-4xl text-slate-100 tracking-tight">Impact Photo Gallery</h1>
@@ -33,7 +33,7 @@ export default function GalleryPage() {
             onClick={() => setSelectedTag(tag)}
             className={`px-4 py-2 text-xs font-bold border-b-2 transition-all ${
               selectedTag === tag 
-                ? "border-[#f97316] text-[#f97316]" 
+                ? "border-[#f7941d] text-[#f7941d]"
                 : "border-transparent text-slate-400 hover:text-slate-200"
             }`}
           >
@@ -46,7 +46,7 @@ export default function GalleryPage() {
         {filtered.map((item) => (
           <div key={item.id} className="glass-card rounded-3xl border border-slate-800 overflow-hidden flex flex-col justify-between group">
             {/* Visual Box Placeholder utilizing local CSS gradient styled as a premium dashboard card */}
-            <div className="h-52 w-full bg-gradient-to-tr from-[#1e3a8a]/40 to-[#f97316]/20 flex items-center justify-center relative border-b border-slate-800">
+            <div className="h-52 w-full bg-[#e3f0fa] flex items-center justify-center relative border-b border-slate-800">
               <div className="w-12 h-12 rounded-full bg-slate-950/80 border border-slate-800 flex items-center justify-center text-slate-300 group-hover:scale-110 transition-transform">
                 <ImageIcon size={20} />
               </div>

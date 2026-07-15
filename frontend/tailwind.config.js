@@ -14,24 +14,24 @@ module.exports = {
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         gov: {
-          navy: "#0b2e4a",
-          blue: "#12325a",
-          saffron: "#d97706",
-          green: "#166534",
-          mist: "#f5f7fb",
-          line: "#d7dee8",
-          ink: "#102033",
-          muted: "#5b6b80",
+          navy: "#0d1c3a",
+          blue: "#14274e",
+          saffron: "#f7941d",
+          green: "#43a047",
+          mist: "#f4f5f7",
+          line: "#e0e4ea",
+          ink: "#333333",
+          muted: "#6b7280",
         },
         primary: {
-          DEFAULT: "#1e3a8a", // Navy Blue
-          dark: "#172554",
-          light: "#3b82f6"
+          DEFAULT: "#14274e", // National portal navy
+          dark: "#0d1c3a",
+          light: "#1789d6"
         },
         accent: {
-          DEFAULT: "#f97316", // Saffron
-          glow: "#ea580c",
-          blue: "#1d4ed8"
+          DEFAULT: "#f7941d", // Portal saffron/orange
+          glow: "#e07f00",
+          blue: "#1789d6"
         },
         slate: {
           50: "#f8fafc",
@@ -62,26 +62,26 @@ module.exports = {
           955: "#f4f4f5",
         },
         violet: {
-          50: '#fff7ed', // Mapped to orange/saffron tints
-          100: '#ffedd5',
-          400: '#fdba74',
-          450: '#f97316',
-          500: '#f97316', // Saffron
-          550: '#f97316',
-          600: '#ea580c', // Darker Saffron
-          650: '#d97706',
-          700: '#c2410c',
-          750: '#9a3412',
+          50: '#fef6ea', // Mapped to portal saffron tints
+          100: '#fdeacd',
+          400: '#fab55e',
+          450: '#f7941d',
+          500: '#f7941d', // Portal saffron
+          550: '#f7941d',
+          600: '#e07f00', // Darker saffron
+          650: '#c96f00',
+          700: '#a95d00',
+          750: '#7f4600',
         },
         indigo: {
-          50: '#eff6ff', // Mapped to navy blue tints
-          100: '#dbeafe',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          650: '#1e40af', // Navy Blue
-          700: '#1e3a8a',
-          750: '#172554',
+          50: '#e3f0fa', // Mapped to portal navy/blue tints
+          100: '#c4ddf2',
+          400: '#4aa3e0',
+          500: '#1789d6',
+          600: '#146fb0',
+          650: '#1a3563',
+          700: '#14274e',
+          750: '#0d1c3a',
         }
       },
       fontFamily: {
@@ -89,9 +89,10 @@ module.exports = {
         heading: ["var(--font-outfit)", "sans-serif"]
       },
       boxShadow: {
-        glass: "0 8px 32px 0 rgba(15, 23, 42, 0.05)",
-        neon: "0 4px 15px rgba(249, 115, 22, 0.12)",
-        "neon-pink": "0 4px 15px rgba(30, 58, 138, 0.12)"
+        // Flat design system — shadows disabled, borders convey elevation
+        glass: "none",
+        neon: "none",
+        "neon-pink": "none"
       }
     },
   },

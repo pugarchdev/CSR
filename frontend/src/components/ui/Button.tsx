@@ -16,15 +16,15 @@ export function Button({
   disabled,
   ...props
 }: ButtonProps) {
-  const baseStyles = "inline-flex items-center justify-center font-semibold rounded-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 disabled:opacity-50 disabled:pointer-events-none active:scale-[0.98]";
-  
+  const baseStyles = "inline-flex items-center justify-center font-semibold rounded-lg transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-[#f7941d]/40 disabled:opacity-50 disabled:pointer-events-none";
+
   const variantStyles = {
-    primary: "bg-[#1e3a8a] hover:bg-[#1e40af] text-white shadow-sm",
-    secondary: "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 shadow-sm",
-    accent: "bg-[#f97316] hover:bg-[#ea580c] text-white shadow-sm",
-    outline: "bg-transparent border border-[#1e3a8a] hover:bg-[#1e3a8a]/5 text-[#1e3a8a]",
-    ghost: "bg-transparent hover:bg-slate-100 text-slate-600 hover:text-slate-900",
-    danger: "bg-rose-600 hover:bg-rose-700 text-white shadow-sm"
+    primary: "bg-[#1789d6] hover:bg-[#146fb0] text-white",
+    secondary: "bg-[#f4f5f7] hover:bg-[#e0e4ea] text-[#333333] border border-[#c7cdd6]",
+    accent: "bg-[#f7941d] hover:bg-[#e07f00] text-white",
+    outline: "bg-transparent border border-[#14274e] hover:bg-[#e3f0fa] text-[#14274e]",
+    ghost: "bg-transparent hover:bg-[#f4f5f7] text-[#4b5563] hover:text-[#14274e]",
+    danger: "bg-[#c62828] hover:bg-[#a71f1f] text-white"
   };
 
   const sizeStyles = {

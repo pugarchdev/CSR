@@ -14,13 +14,13 @@ import { Button } from "@/components/ui/Button";
 import { StatsCard } from "@/components/ui/StatsCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import dynamic from "next/dynamic";
-import { apiFetch, getStoredUser } from "@/lib/api";
+import { apiFetch, getStoredUser, API_BASE_URL } from "@/lib/api";
 
 const BudgetPieChart = dynamic(() => import("@/components/BudgetPieChart"), {
   ssr: false,
   loading: () => (
     <div className="w-full h-full flex items-center justify-center">
-      <div className="w-6 h-6 rounded-full border-2 border-[#1e3a8a] border-t-transparent animate-spin" />
+      <div className="w-6 h-6 rounded-full border-2 border-[#14274e] border-t-transparent animate-spin" />
     </div>
   )
 });
@@ -48,7 +48,7 @@ type CompanyTab =
 
 const SectionLoader = ({ message }: { message: string }) => (
   <div className="flex flex-col items-center justify-center py-16 gap-4 w-full bg-white rounded-xl border border-gray-150">
-    <div className="w-10 h-10 rounded-full border-4 border-[#1e3a8a] border-t-transparent animate-spin" />
+    <div className="w-10 h-10 rounded-full border-4 border-[#14274e] border-t-transparent animate-spin" />
     <span className="text-xs text-gray-500 font-semibold">{message}</span>
   </div>
 );
@@ -108,6 +108,8 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
     if (storedUser?.organization?.name || storedUser?.companyName || storedUser?.email) {
       setCompanyName(storedUser.organization?.name || storedUser.companyName || storedUser.email);
     }
+
+    fetchInvitationsAndNgos();
 
     setLoading(true);
     Promise.allSettled([
@@ -248,6 +250,135 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
   const [documents, setDocuments] = useState<any[]>([]);
   const [docFilter, setDocFilter] = useState("All");
 
+  // Partner NGOs & Invitations Management States
+  const [invitations, setInvitations] = useState<any[]>([]);
+  const [inviteNgoName, setInviteNgoName] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [csvText, setCsvText] = useState("");
+  const [reviewNgo, setReviewNgo] = useState<any | null>(null);
+  const [reviewRemarks, setReviewRemarks] = useState("");
+  const [isSendingInvite, setIsSendingInvite] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+
+  const fetchInvitationsAndNgos = async () => {
+    try {
+      const response = await apiFetch<any>("/company/ngos/invitations");
+      if (response && response.success) {
+        setInvitations(response.data || []);
+      } else if (Array.isArray(response)) {
+        setInvitations(response);
+      } else if (response?.data) {
+        setInvitations(response.data);
+      }
+    } catch (err) {
+      console.error("Failed to load partner NGO invitations:", err);
+    }
+  };
+
+  const handleInviteNgo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteNgoName || !inviteEmail) return;
+    setIsSendingInvite(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/company/ngos/invite`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("accessToken") || ""}`
+        },
+        body: JSON.stringify({ ngoName: inviteNgoName, email: inviteEmail })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to invite");
+      alert(data.message || "Invitation sent successfully!");
+      setInviteNgoName("");
+      setInviteEmail("");
+      setShowInviteModal(false);
+      fetchInvitationsAndNgos();
+    } catch (err: any) {
+      alert(err.message || "Failed to send invitation.");
+    } finally {
+      setIsSendingInvite(false);
+    }
+  };
+
+  const handleBulkInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!csvText) return;
+    const lines = csvText.split("\n").filter(l => l.trim() !== "");
+    const invites = [];
+    for (const line of lines) {
+      const parts = line.split(",");
+      if (parts.length >= 2) {
+        invites.push({ ngoName: parts[0].trim(), email: parts[1].trim() });
+      }
+    }
+    if (invites.length === 0) {
+      alert("Invalid CSV format. Please use: NGO Name, Email");
+      return;
+    }
+    setIsSendingInvite(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/company/ngos/invite/bulk`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("accessToken") || ""}`
+        },
+        body: JSON.stringify({ invitations: invites })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed bulk invite");
+      alert(`Bulk invite completed! Success: ${data.data?.successCount || 0}, Failed: ${data.data?.failedCount || 0}`);
+      setCsvText("");
+      setShowInviteModal(false);
+      fetchInvitationsAndNgos();
+    } catch (err: any) {
+      alert(err.message || "Failed to send bulk invitations.");
+    } finally {
+      setIsSendingInvite(false);
+    }
+  };
+
+  const handleRevokeAccess = async (id: string) => {
+    if (!confirm("Are you sure you want to revoke access for this partner NGO? They will no longer be able to log in.")) return;
+    try {
+      const response = await fetch(`${API_BASE_URL}/company/ngos/invitations/${id}/revoke`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("accessToken") || ""}`
+        }
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to revoke");
+      alert(data.message || "Partner access revoked.");
+      fetchInvitationsAndNgos();
+    } catch (err: any) {
+      alert(err.message || "Failed to revoke access.");
+    }
+  };
+
+  const handlePreliminaryReviewSubmit = async (ngoId: string, approved: boolean) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/company/ngos/${ngoId}/preliminary-review`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("accessToken") || ""}`
+        },
+        body: JSON.stringify({ approved, remarks: reviewRemarks })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to submit review");
+      alert(data.message || "Preliminary review submitted successfully.");
+      setReviewNgo(null);
+      setReviewRemarks("");
+      fetchInvitationsAndNgos();
+    } catch (err: any) {
+      alert(err.message || "Failed to submit review.");
+    }
+  };
+
   // Inspections Reviews
   const [inspections, setInspections] = useState<any[]>([]);
 
@@ -282,7 +413,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
       funds: item.value
     }));
 
-  const COLORS = ["#1e3a8a", "#f97316", "#16a34a", "#64748b"];
+  const COLORS = ["#14274e", "#f7941d", "#2e7d32", "#64748b"];
   const totalAllocatedPercentage = allocations.education + allocations.healthcare + allocations.water + allocations.environment;
 
   return (
@@ -290,7 +421,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
       
       {/* Header */}
       <div className="flex flex-col gap-1 border-b border-gray-200 pb-4">
-        <span className="text-[#f97316] font-extrabold text-[11px] uppercase tracking-widest">{companyName}</span>
+        <span className="text-[#f7941d] font-extrabold text-[11px] uppercase tracking-widest">{companyName}</span>
         <h1 className="font-heading font-extrabold text-2xl text-gray-900 tracking-tight">Company Console</h1>
       </div>
 
@@ -332,19 +463,19 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
             <Card>
               <CardHeader>
                 <h3 className="govt-section-header text-base">
-                  <Sparkles size={18} className="text-[#f97316]" />
+                  <Sparkles size={18} className="text-[#f7941d]" />
                   Best Matching Proposal
                 </h3>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
                 {loading ? (
                   <div className="flex items-center justify-center py-10">
-                    <div className="w-6 h-6 rounded-full border-2 border-[#1e3a8a] border-t-transparent animate-spin" />
+                    <div className="w-6 h-6 rounded-full border-2 border-[#14274e] border-t-transparent animate-spin" />
                   </div>
                 ) : matches.length > 0 ? (
                   matches.slice(0, 1).map((m) => (
                     <div key={m.id} className="bg-blue-50/50 border border-blue-200 p-5 rounded-lg flex flex-col gap-3">
-                      <div className="flex justify-between items-center text-xs font-semibold text-[#f97316]">
+                      <div className="flex justify-between items-center text-xs font-semibold text-[#f7941d]">
                         <span className="govt-badge govt-badge-pending">{m.score}% Match</span>
                         <span className="text-gray-500">{m.district}</span>
                       </div>
@@ -384,9 +515,9 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
 
             <div className="flex flex-col gap-6">
               {[
-                { key: "education", label: "Education & Smart Labs", color: "#1e3a8a" },
-                { key: "healthcare", label: "Healthcare & Primary Care Mobile Clinics", color: "#f97316" },
-                { key: "water", label: "Water Harvesting Dams", color: "#16a34a" },
+                { key: "education", label: "Education & Smart Labs", color: "#14274e" },
+                { key: "healthcare", label: "Healthcare & Primary Care Mobile Clinics", color: "#f7941d" },
+                { key: "water", label: "Water Harvesting Dams", color: "#2e7d32" },
                 { key: "environment", label: "Urban Afforestation", color: "#64748b" }
               ].map((sec) => (
                 <div key={sec.key} className="flex flex-col gap-2">
@@ -403,7 +534,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
                     max="100" 
                     value={allocations[sec.key as keyof typeof allocations]} 
                     onChange={(e) => handleSliderChange(sec.key as any, Number(e.target.value))}
-                    className="w-full accent-[#1e3a8a] rounded-lg cursor-pointer"
+                    className="w-full accent-[#14274e] rounded-lg cursor-pointer"
                   />
                 </div>
               ))}
@@ -424,7 +555,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
         <div className="flex flex-col gap-6 animate-fadeIn">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <h3 className="govt-section-header flex items-center gap-2">
-              <Compass size={22} className="text-[#1e3a8a]" />
+              <Compass size={22} className="text-[#14274e]" />
               Project Directory
             </h3>
             <span className="text-xs text-gray-500 font-bold bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-lg">
@@ -475,7 +606,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
             <div className="flex flex-col gap-1.5">
               <div className="flex justify-between">
                 <span>Max Budget:</span>
-                <span className="text-[#1e3a8a]">₹{Number(filterBudget).toLocaleString("en-IN")}</span>
+                <span className="text-[#14274e]">₹{Number(filterBudget).toLocaleString("en-IN")}</span>
               </div>
               <input 
                 type="range"
@@ -484,7 +615,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
                 step="500000"
                 value={filterBudget}
                 onChange={(e) => setFilterBudget(Number(e.target.value))}
-                className="w-full cursor-pointer accent-[#1e3a8a]"
+                className="w-full cursor-pointer accent-[#14274e]"
               />
             </div>
           </div>
@@ -495,13 +626,13 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
           ) : filteredProjectsList.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {filteredProjectsList.map((p) => (
-                <Card key={p.id} className="flex flex-col justify-between hover:shadow-md hover:border-[#1e3a8a]/30 transition-all border border-gray-200">
+                <Card key={p.id} className="flex flex-col justify-between hover:shadow-md hover:border-[#14274e]/30 transition-all border border-gray-200">
                   <CardContent className="p-6 flex flex-col gap-4">
                     <div className="flex justify-between items-start gap-2">
                       <span className="text-[10px] font-bold text-gray-500 bg-gray-100 border border-gray-200 px-2.5 py-1 rounded-md uppercase">
                         {p.focusArea}
                       </span>
-                      <span className="text-[10px] font-extrabold text-[#f97316] bg-orange-50 border border-orange-200 px-2.5 py-1 rounded-md">
+                      <span className="text-[10px] font-extrabold text-[#f7941d] bg-orange-50 border border-orange-200 px-2.5 py-1 rounded-md">
                         {p.district} • {p.taluka || "Rural"}
                       </span>
                     </div>
@@ -509,7 +640,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
                     <div className="flex flex-col gap-1">
                       <h4 className="font-heading font-extrabold text-base text-gray-900 leading-snug">{p.title}</h4>
                       <span className="text-xs text-gray-500 font-bold font-sans flex items-center gap-1">
-                        <Landmark size={12} className="text-[#1e3a8a]" /> NGO: {p.ngo?.name}
+                        <Landmark size={12} className="text-[#14274e]" /> NGO: {p.ngo?.name}
                       </span>
                     </div>
 
@@ -561,7 +692,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
       {activeTab === "recommendations" && (
         <div className="flex flex-col gap-6 animate-fadeIn">
           <h3 className="govt-section-header flex items-center gap-2">
-            <Sparkles size={20} className="text-[#f97316]" />
+            <Sparkles size={20} className="text-[#f7941d]" />
             AI Proposal Recommendations
           </h3>
 
@@ -634,7 +765,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
                         </div>
 
                         <div className="flex flex-col gap-1.5 text-xs text-gray-600 font-semibold justify-center">
-                          <div>• Active Milestones: <span className="text-[#1e3a8a] font-bold">3 pending</span></div>
+                          <div>• Active Milestones: <span className="text-[#14274e] font-bold">3 pending</span></div>
                           <div>• Target District: <span className="text-gray-900 font-bold">{p.district}</span></div>
                         </div>
 
@@ -661,7 +792,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
         <Card className="animate-fadeIn">
           <CardHeader>
             <h3 className="govt-section-header flex items-center gap-2">
-              <BookOpen size={20} className="text-[#1e3a8a]" />
+              <BookOpen size={20} className="text-[#14274e]" />
               Field Inspection Logs
             </h3>
           </CardHeader>
@@ -682,7 +813,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
                     <td className="font-bold text-gray-950">{i.project}</td>
                     <td className="text-gray-700 font-medium">{i.inspector}</td>
                     <td className="text-gray-500 font-medium">{i.date}</td>
-                    <td className="text-[#1e3a8a] font-bold text-xs">{i.coordinates}</td>
+                    <td className="text-[#14274e] font-bold text-xs">{i.coordinates}</td>
                     <td>
                       <span className="govt-badge govt-badge-verified">{i.status}</span>
                     </td>
@@ -747,50 +878,243 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
         </Card>
       )}
 
-      {/* 8. Verified NGO Registry */}
+      {/* 8. Partner NGOs & Sub-Logins */}
       {activeTab === "ngos" && (
-        <Card className="animate-fadeIn border border-gray-200">
-          <CardHeader>
-            <h3 className="govt-section-header flex items-center gap-2">
-              <Landmark size={20} className="text-[#1e3a8a]" />
-              Verified NGO Registry
-            </h3>
-          </CardHeader>
-          <CardContent className="p-0 overflow-x-auto">
-            {loading ? (
-              <SectionLoader message="Retrieving verified NGO register..." />
-            ) : (
+        <div className="flex flex-col gap-6 animate-fadeIn">
+          
+          <div className="flex justify-between items-center bg-white p-4 border border-gray-200 rounded-xl">
+            <div>
+              <h3 className="font-heading font-extrabold text-lg text-gray-900">Partner NGOs & Sub-Logins</h3>
+              <p className="text-xs text-gray-500 font-medium">Invite and manage implementing agencies, perform preliminary reviews, and coordinate access control.</p>
+            </div>
+            <Button variant="primary" size="sm" onClick={() => setShowInviteModal(true)}>
+              Invite Partner NGO
+            </Button>
+          </div>
+
+          {/* Invitation Dialog / Form */}
+          {showInviteModal && (
+            <Card className="border border-indigo-200 bg-indigo-50/50">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="font-heading font-bold text-sm text-[#14274e]">Invite Implementing Agency</h4>
+                  <button onClick={() => setShowInviteModal(false)} className="text-gray-500 hover:text-gray-700 text-xs font-bold">Close</button>
+                </div>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Single Invite */}
+                  <form onSubmit={handleInviteNgo} className="flex flex-col gap-3">
+                    <h5 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Single Invite</h5>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-gray-500">NGO Name</label>
+                      <input 
+                        type="text" 
+                        required 
+                        value={inviteNgoName} 
+                        onChange={(e) => setInviteNgoName(e.target.value)} 
+                        placeholder="e.g. Sahyadri Foundation" 
+                        className="govt-input text-xs" 
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-gray-500">Official NGO Email</label>
+                      <input 
+                        type="email" 
+                        required 
+                        value={inviteEmail} 
+                        onChange={(e) => setInviteEmail(e.target.value)} 
+                        placeholder="e.g. contact@sahyadri.org" 
+                        className="govt-input text-xs" 
+                      />
+                    </div>
+                    <Button type="submit" disabled={isSendingInvite} size="sm" className="w-full mt-2">
+                      {isSendingInvite ? "Sending..." : "Send Invitation"}
+                    </Button>
+                  </form>
+
+                  {/* Bulk Invite */}
+                  <form onSubmit={handleBulkInvite} className="flex flex-col gap-3">
+                    <h5 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Bulk Invite (CSV)</h5>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-gray-500">CSV List (Name, Email - one per line)</label>
+                      <textarea 
+                        rows={4}
+                        value={csvText} 
+                        onChange={(e) => setCsvText(e.target.value)} 
+                        placeholder="Sahyadri Foundation, contact@sahyadri.org&#10;Maha Relief, admin@maharelief.org" 
+                        className="govt-input text-xs font-mono p-2 h-28" 
+                      />
+                    </div>
+                    <Button type="submit" disabled={isSendingInvite} variant="outline" size="sm" className="w-full mt-2">
+                      {isSendingInvite ? "Sending Bulk..." : "Send Bulk Invitations"}
+                    </Button>
+                  </form>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Active Preliminary Review Panel */}
+          {reviewNgo && (
+            <Card className="border border-emerald-300 bg-emerald-50/30">
+              <CardContent className="p-6">
+                <h4 className="font-heading font-extrabold text-base text-emerald-950 mb-3">Preliminary Document Review: {reviewNgo.ngo?.name}</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-gray-700 font-medium mb-4 bg-white p-4 border border-emerald-100">
+                  <div>• PAN: <span className="font-bold text-slate-900">{reviewNgo.ngo?.pan}</span></div>
+                  <div>• Registration Number: <span className="font-bold text-slate-900">{reviewNgo.ngo?.registrationNumber}</span></div>
+                  <div>• CSR-1 Registry: <span className="font-bold text-slate-900">{reviewNgo.ngo?.csr1Number}</span></div>
+                  <div>• Darpan ID: <span className="font-bold text-slate-900">{reviewNgo.ngo?.darpanNumber}</span></div>
+                  <div>• Registered Address: <span className="font-bold text-slate-900">{reviewNgo.ngo?.address}, {reviewNgo.ngo?.district}</span></div>
+                  <div>• Official Email: <span className="font-bold text-slate-900">{reviewNgo.ngo?.officialEmail}</span></div>
+                  <div className="md:col-span-2 border-t border-gray-100 pt-3">
+                    <span className="font-bold block mb-1 text-slate-800">Uploaded Compliance Documents:</span>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 border border-slate-200 text-[11px] font-bold text-slate-700 rounded cursor-pointer" onClick={() => alert("Downloading registration_certificate.pdf")}>
+                        <FileText size={12} /> Registration Cert.pdf
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 border border-slate-200 text-[11px] font-bold text-slate-700 rounded cursor-pointer" onClick={() => alert("Downloading 12a_certificate.pdf")}>
+                        <FileText size={12} /> 12A Certificate.pdf
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 border border-slate-200 text-[11px] font-bold text-slate-700 rounded cursor-pointer" onClick={() => alert("Downloading 80g_certificate.pdf")}>
+                        <FileText size={12} /> 80G Certificate.pdf
+                      </span>
+                      {reviewNgo.ngo?.onboardingApplication?.bankAccountNumber && (
+                        <div className="w-full mt-2 p-2 bg-slate-50 border border-slate-200 rounded text-[11px] text-gray-600">
+                          <strong>Bank Details:</strong> {reviewNgo.ngo?.onboardingApplication?.bankName} - A/C: {reviewNgo.ngo?.onboardingApplication?.bankAccountNumber} (IFSC: {reviewNgo.ngo?.onboardingApplication?.ifscCode})
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-gray-700">Review Remarks / Clarification Notes</label>
+                  <textarea 
+                    rows={2} 
+                    value={reviewRemarks} 
+                    onChange={(e) => setReviewRemarks(e.target.value)} 
+                    placeholder="Enter review notes or rejection reasons" 
+                    className="govt-input text-xs" 
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 mt-4">
+                  <Button variant="outline" size="sm" onClick={() => setReviewNgo(null)}>Cancel</Button>
+                  <Button variant="accent" size="sm" className="bg-rose-600 hover:bg-rose-700 text-white border-0" onClick={() => handlePreliminaryReviewSubmit(reviewNgo.ngoId, false)}>Reject Application</Button>
+                  <Button variant="primary" size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white border-0" onClick={() => handlePreliminaryReviewSubmit(reviewNgo.ngoId, true)}>Approve & Forward to Government</Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Invitations & Partner NGO List */}
+          <Card className="border border-gray-200">
+            <CardContent className="p-0 overflow-x-auto">
               <table className="govt-table">
                 <thead>
                   <tr>
                     <th>NGO Name</th>
-                    <th>Darpan Verification</th>
-                    <th>MCA CSR-1 ID</th>
-                    <th>Base District</th>
-                    <th>Legality Check</th>
+                    <th>Official Email</th>
+                    <th>Onboarding Stage</th>
+                    <th>Preliminary Status</th>
+                    <th>Government Verification</th>
+                    <th className="text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {displayNgos.map((n) => (
-                    <tr key={n.id}>
-                      <td className="font-bold text-gray-955">
-                        <a href={n.website || "#"} target="_blank" rel="noreferrer" className="text-[#1e3a8a] hover:underline flex items-center gap-1.5">
-                          {n.name} <ArrowUpRight size={12} />
-                        </a>
-                      </td>
-                      <td className="text-gray-600 font-medium text-xs">{n.darpanNumber || "MH/2021/012345-DARPAN"}</td>
-                      <td className="text-[#f97316] font-bold text-xs">{n.csr1Number || "CSR00012345"}</td>
-                      <td className="text-gray-700 font-medium">{n.district}</td>
-                      <td>
-                        <span className="govt-badge govt-badge-verified">MCA Approved</span>
-                      </td>
+                  {invitations.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-8 text-gray-500 font-medium">No partner NGO invitations sent yet. Click &quot;Invite Partner NGO&quot; to begin.</td>
                     </tr>
-                  ))}
+                  ) : (
+                    invitations.map((invite) => {
+                      const isRegistered = invite.ngoId !== null;
+                      const hasSubmitted = invite.ngo?.onboardingApplication?.status === "SUBMITTED" || invite.ngo?.onboardingApplication?.status === "RESUBMITTED";
+                      const isEmpanelled = invite.ngoEmpanelmentStatus === "EMPANELLED";
+
+                      return (
+                        <tr key={invite.id}>
+                          <td className="font-bold text-gray-955">{invite.ngoName}</td>
+                          <td className="text-gray-600 font-medium">{invite.email}</td>
+                          <td>
+                            {invite.status === "REVOKED" ? (
+                              <span className="govt-badge bg-rose-100 text-rose-800 border-rose-200">Revoked</span>
+                            ) : !isRegistered ? (
+                              <div className="flex flex-col gap-1">
+                                <span className="govt-badge bg-amber-50 text-amber-800 border-amber-250">Invited (Pending Sign-up)</span>
+                                <button 
+                                  onClick={() => {
+                                    const frontendUrl = window.location.origin;
+                                    const url = `${frontendUrl}/register/invited?token=${invite.token}`;
+                                    navigator.clipboard.writeText(url);
+                                    alert("Invitation link copied to clipboard!");
+                                  }}
+                                  className="text-[10px] text-indigo-700 hover:underline font-bold text-left"
+                                >
+                                  Copy Invitation Link
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="govt-badge bg-blue-50 text-blue-800 border-blue-200">
+                                Onboarding: {invite.ngo?.onboardingApplication?.status || "Draft"}
+                              </span>
+                            )}
+                          </td>
+                          <td>
+                            {invite.preliminaryApproved ? (
+                              <span className="govt-badge bg-emerald-50 text-emerald-800 border-emerald-250">Approved</span>
+                            ) : hasSubmitted ? (
+                              <span className="govt-badge bg-amber-100 text-amber-800 border-amber-200 animate-pulse">Needs Review</span>
+                            ) : (
+                              <span className="text-xs text-gray-400 font-bold">—</span>
+                            )}
+                          </td>
+                          <td>
+                            {isEmpanelled ? (
+                              <span className="govt-badge bg-emerald-50 text-emerald-800 border-emerald-250">Empanelled (Active)</span>
+                            ) : invite.ngoStatus === "REJECTED" ? (
+                              <span className="govt-badge bg-rose-50 text-rose-800 border-rose-200">Rejected</span>
+                            ) : isRegistered ? (
+                              <span className="govt-badge bg-gray-100 text-gray-600 border-gray-200">Pending Govt Approval</span>
+                            ) : (
+                              <span className="text-xs text-gray-400 font-bold">—</span>
+                            )}
+                          </td>
+                          <td className="text-right">
+                            <div className="flex justify-end gap-2">
+                              {hasSubmitted && !invite.preliminaryApproved && (
+                                <Button 
+                                  variant="primary" 
+                                  size="sm" 
+                                  onClick={() => {
+                                    setReviewNgo(invite);
+                                    setReviewRemarks("");
+                                  }}
+                                >
+                                  Review Profile
+                                </Button>
+                              )}
+                              {invite.status !== "REVOKED" && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="text-rose-600 border-rose-200 hover:bg-rose-50"
+                                  onClick={() => handleRevokeAccess(invite.id)}
+                                >
+                                  Revoke Access
+                                </Button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* 9. Meetings */}
@@ -889,7 +1213,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
         <Card className="animate-fadeIn border border-gray-200">
           <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <h3 className="govt-section-header flex items-center gap-2">
-              <Folder size={20} className="text-[#1e3a8a]" />
+              <Folder size={20} className="text-[#14274e]" />
               Project Documents Vault
             </h3>
             <div className="flex gap-2">
@@ -899,8 +1223,8 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
                   onClick={() => setDocFilter(tab)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
                     docFilter === tab 
-                      ? "bg-[#1e3a8a] border-[#1e3a8a] text-white" 
-                      : "bg-white border-gray-200 text-gray-600 hover:border-[#1e3a8a]/45"
+                      ? "bg-[#14274e] border-[#14274e] text-white" 
+                      : "bg-white border-gray-200 text-gray-600 hover:border-[#14274e]/45"
                   }`}
                 >
                   {tab}
@@ -962,7 +1286,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
           <Card className="lg:col-span-2 border border-gray-200">
             <CardHeader>
               <h3 className="govt-section-header flex items-center gap-2">
-                <ShieldAlert size={20} className="text-[#f97316]" />
+                <ShieldAlert size={20} className="text-[#f7941d]" />
                 Section 135 Eligibility Calculator
               </h3>
             </CardHeader>
@@ -975,7 +1299,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
                 <div className="flex flex-col gap-1.5">
                   <div className="flex justify-between">
                     <span>Company Annual Turnover (INR):</span>
-                    <span className="text-[#1e3a8a] font-extrabold">₹{(turnover / 10).toLocaleString()} Crore</span>
+                    <span className="text-[#14274e] font-extrabold">₹{(turnover / 10).toLocaleString()} Crore</span>
                   </div>
                   <input 
                     type="range"
@@ -984,7 +1308,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
                     step="500"
                     value={turnover}
                     onChange={(e) => setTurnover(Number(e.target.value))}
-                    className="w-full cursor-pointer accent-[#1e3a8a]"
+                    className="w-full cursor-pointer accent-[#14274e]"
                   />
                   <span className="text-[10px] text-gray-400">Statutory Limit: ≥ ₹1,000 Crore</span>
                 </div>
@@ -992,7 +1316,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
                 <div className="flex flex-col gap-1.5">
                   <div className="flex justify-between">
                     <span>Company Net Worth (INR):</span>
-                    <span className="text-[#1e3a8a] font-extrabold">₹{(netWorth / 10).toLocaleString()} Crore</span>
+                    <span className="text-[#14274e] font-extrabold">₹{(netWorth / 10).toLocaleString()} Crore</span>
                   </div>
                   <input 
                     type="range"
@@ -1001,7 +1325,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
                     step="250"
                     value={netWorth}
                     onChange={(e) => setNetWorth(Number(e.target.value))}
-                    className="w-full cursor-pointer accent-[#1e3a8a]"
+                    className="w-full cursor-pointer accent-[#14274e]"
                   />
                   <span className="text-[10px] text-gray-400">Statutory Limit: ≥ ₹500 Crore</span>
                 </div>
@@ -1009,7 +1333,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
                 <div className="flex flex-col gap-1.5">
                   <div className="flex justify-between">
                     <span>Company Net Profit (INR):</span>
-                    <span className="text-[#1e3a8a] font-extrabold">₹{(netProfit / 10).toLocaleString()} Crore</span>
+                    <span className="text-[#14274e] font-extrabold">₹{(netProfit / 10).toLocaleString()} Crore</span>
                   </div>
                   <input 
                     type="range"
@@ -1018,7 +1342,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
                     step="5"
                     value={netProfit}
                     onChange={(e) => setNetProfit(Number(e.target.value))}
-                    className="w-full cursor-pointer accent-[#1e3a8a]"
+                    className="w-full cursor-pointer accent-[#14274e]"
                   />
                   <span className="text-[10px] text-gray-400">Statutory Limit: ≥ ₹5 Crore</span>
                 </div>
@@ -1065,7 +1389,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
         <Card className="animate-fadeIn max-w-4xl border border-gray-200">
           <CardHeader>
             <h3 className="govt-section-header flex items-center gap-2">
-              <FileDown size={22} className="text-[#1e3a8a]" />
+              <FileDown size={22} className="text-[#14274e]" />
               Executive Reports Desk
             </h3>
           </CardHeader>
@@ -1076,7 +1400,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
               { title: "Escrow Ledger & Receipt Register (CSV)", format: "CSV", desc: "Raw transacted log values showing NGO milestone completions and release timestamps." },
               { title: "Statewide SDG Impact Summary (PDF)", format: "PDF", desc: "Official government-certified alignment statement showing SDG goals supported." }
             ].map((r, index) => (
-              <div key={index} className="p-5 border border-gray-200 rounded-xl bg-white flex flex-col justify-between gap-4 shadow-sm hover:border-[#1e3a8a]/20 transition-all">
+              <div key={index} className="p-5 border border-gray-200 rounded-xl bg-white flex flex-col justify-between gap-4 shadow-sm hover:border-[#14274e]/20 transition-all">
                 <div className="flex flex-col gap-1.5">
                   <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{r.format}</span>
                   <h4 className="font-heading font-extrabold text-sm text-gray-905">{r.title}</h4>
@@ -1110,7 +1434,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <Card className="border border-gray-200 shadow-sm bg-white">
               <CardHeader className="pb-2">
-                <h3 className="govt-section-header text-sm font-extrabold text-[#1e3a8a]">
+                <h3 className="govt-section-header text-sm font-extrabold text-[#14274e]">
                   <Coins size={16} /> District Budget Sourcing
                 </h3>
               </CardHeader>
@@ -1121,7 +1445,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
 
             <Card className="border border-gray-200 shadow-sm bg-white">
               <CardHeader className="pb-2">
-                <h3 className="govt-section-header text-sm font-extrabold text-[#1e3a8a]">
+                <h3 className="govt-section-header text-sm font-extrabold text-[#14274e]">
                   <Sparkles size={16} /> SDG Focus Outlay
                 </h3>
               </CardHeader>
@@ -1132,7 +1456,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
 
             <Card className="border border-gray-200 shadow-sm bg-white">
               <CardHeader className="pb-2">
-                <h3 className="govt-section-header text-sm font-extrabold text-[#1e3a8a]">
+                <h3 className="govt-section-header text-sm font-extrabold text-[#14274e]">
                   <TrendingUp size={16} /> Historical Funding Growth
                 </h3>
               </CardHeader>
@@ -1149,7 +1473,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
         <Card className="animate-fadeIn border border-gray-200">
           <CardHeader>
             <h3 className="govt-section-header flex items-center gap-2">
-              <Compass size={22} className="text-[#1e3a8a]" />
+              <Compass size={22} className="text-[#14274e]" />
               Geographical Coverage Penetration
             </h3>
           </CardHeader>
@@ -1159,7 +1483,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
                 <div key={d.name} className="p-5 border border-gray-200 rounded-xl bg-gray-50/50 flex flex-col gap-3 font-semibold text-xs text-gray-700">
                   <div className="flex justify-between items-center pb-2 border-b border-gray-150">
                     <span className="text-sm font-heading font-extrabold text-gray-950">{d.name} District</span>
-                    <span className="text-[#1e3a8a]">{d.projectsCount} Active Projects</span>
+                    <span className="text-[#14274e]">{d.projectsCount} Active Projects</span>
                   </div>
                   <div className="flex flex-col gap-1.5 mt-2">
                     <div className="flex justify-between text-[11px] font-bold">
@@ -1168,7 +1492,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
                     </div>
                     <div className="flex items-center gap-3 mt-1">
                       <div className="w-full bg-gray-100 rounded-full h-3 border border-gray-200 overflow-hidden">
-                        <div className="bg-[#1e3a8a] h-full rounded-full transition-all" style={{ width: `${d.penetration}%` }} />
+                        <div className="bg-[#14274e] h-full rounded-full transition-all" style={{ width: `${d.penetration}%` }} />
                       </div>
                       <span className="font-extrabold text-gray-900">{d.penetration}%</span>
                     </div>
@@ -1184,7 +1508,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
       {activeTab === "sdg" && (
         <div className="flex flex-col gap-6 animate-fadeIn">
           <h3 className="govt-section-header flex items-center gap-2">
-            <Sparkles size={22} className="text-[#f97316]" />
+            <Sparkles size={22} className="text-[#f7941d]" />
             UN Sustainable Development Goals (SDG) Aligned
           </h3>
 
@@ -1194,7 +1518,7 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
                 <div className={`h-2.5 ${g.color}`} />
                 <CardContent className="p-5 flex flex-col justify-between flex-grow gap-4">
                   <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-extrabold text-[#1e3a8a] uppercase tracking-widest">Goal {g.id}</span>
+                    <span className="text-[10px] font-extrabold text-[#14274e] uppercase tracking-widest">Goal {g.id}</span>
                     <h4 className="font-heading font-extrabold text-base text-gray-900 leading-snug">{g.name}</h4>
                     <p className="text-xs text-gray-500 font-medium font-sans mt-1 leading-normal">{g.description}</p>
                   </div>
@@ -1278,11 +1602,11 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
                 <span className="text-gray-850 font-bold text-sm">System Notification Alerts:</span>
                 <div className="flex flex-col gap-2 mt-2">
                   <label className="flex items-center gap-2 font-medium cursor-pointer">
-                    <input type="checkbox" defaultChecked className="accent-[#1e3a8a]" />
+                    <input type="checkbox" defaultChecked className="accent-[#14274e]" />
                     <span>Email alert on new milestone evidence uploads.</span>
                   </label>
                   <label className="flex items-center gap-2 font-medium cursor-pointer">
-                    <input type="checkbox" defaultChecked className="accent-[#1e3a8a]" />
+                    <input type="checkbox" defaultChecked className="accent-[#14274e]" />
                     <span>In-app alert on government officer inspections.</span>
                   </label>
                 </div>

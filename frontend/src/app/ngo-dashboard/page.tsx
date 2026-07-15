@@ -24,7 +24,7 @@ export default function NgoDashboardRedirect() {
           width: 48, 
           height: 48, 
           border: "4px solid #e5e7eb", 
-          borderTopColor: "#12325a",
+          borderTopColor: "#14274e",
           borderRadius: "50%",
           animation: "spin 1s linear infinite",
           margin: "0 auto 16px"

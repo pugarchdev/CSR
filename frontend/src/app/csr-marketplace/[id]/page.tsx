@@ -1164,7 +1164,7 @@ export default function CSRRequirementDetail() {
                     {requirement.impactReport && (
                       <div className="border p-5 rounded-xl bg-[#eff6ff] border-[#bfdbfe] space-y-4">
                         <div className="flex justify-between items-center border-b border-[#bfdbfe] pb-2">
-                          <h4 className="font-bold text-[#1e3b8b] text-sm flex items-center gap-1">
+                          <h4 className="font-bold text-[#14274e] text-sm flex items-center gap-1">
                             <Target size={16} /> MahaCSR Project Impact scorecard
                           </h4>
                           <span className="text-2xl font-extrabold text-blue-900 bg-white px-3 py-1 rounded-lg border shadow-sm">

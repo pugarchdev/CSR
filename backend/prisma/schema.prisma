@@ -42,6 +42,7 @@ model User {
   company              Company?                  @relation(fields: [companyId], references: [id])
   ngo                  NGO?                      @relation(fields: [ngoId], references: [id])
   verificationsDone    VerificationCheck[]       @relation("VerificationsDone")
+  finalNgoApprovals    NGO[]                     @relation("NgoFinalApprovedBy")
   beneficiaryProfile   BeneficiaryProfile?
   organizationRoles    UserOrganizationRole[]
 
@@ -98,6 +99,15 @@ model NGO {
   rejectionReason         String?
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
+  invitedByCompanyId      String?
+  invitedByCompany        Company?                 @relation("CompanyInvitedNgos", fields: [invitedByCompanyId], references: [id])
+  preliminaryApproved     Boolean                  @default(false)
+  preliminaryApprovedAt   DateTime?
+  preliminaryRemarks      String?
+  finalApproved           Boolean                  @default(false)
+  finalApprovedAt         DateTime?
+  finalApprovedById       String?
+  finalApprovedBy         User?                    @relation("NgoFinalApprovedBy", fields: [finalApprovedById], references: [id])
   areasOfOperation        String[]
   city                    String?
   csrSectors              String[]
@@ -164,6 +174,8 @@ model Company {
   companyInterests   CompanyInterest[]
   csrProjects        CSRProject[]
   csrFundReleases    CSRFundRelease[]
+  invitedNgos        NGO[]              @relation("CompanyInvitedNgos")
+  ngoInvitations     NgoInvitation[]
 
   @@index([tenantId])
   @@index([organizationId])
@@ -2287,6 +2299,11 @@ model ConvergenceProject {
   // Status
   status String @default("ONBOARDED") // ONBOARDED / EXECUTION_STARTED / IN_PROGRESS / COMPLETED / CLOSED
 
+  // Completion & Public Gallery (Static Part: Completed Projects Gallery / Success Stories)
+  completedAt          DateTime?
+  beneficiariesSummary String?
+  impactSummary        String?   @db.Text
+
   // Audit
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2517,5 +2534,20 @@ model ConvergenceProjectInspection {
   @@index([convergenceProjectId])
   @@index([districtOfficerId])
   @@index([tenantId])
+}
+
+model NgoInvitation {
+  id             String   @id @default(uuid())
+  tenantId       String?
+  companyId      String
+  email          String
+  ngoName        String
+  status         String   @default("PENDING") // PENDING, ACCEPTED, ONBOARDED, REVOKED
+  token          String   @unique
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  company        Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
 }
 

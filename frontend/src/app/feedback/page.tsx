@@ -24,7 +24,7 @@ export default function FeedbackPortalPage() {
   return (
     <div className="px-6 md:px-12 py-12 max-w-4xl mx-auto flex flex-col gap-10 bg-slate-950 text-slate-100 min-h-screen">
       <div className="flex flex-col gap-2 border-b border-slate-800 pb-6">
-        <span className="text-[#f97316] font-bold text-xs uppercase tracking-widest flex items-center gap-1.5">
+        <span className="text-[#f7941d] font-bold text-xs uppercase tracking-widest flex items-center gap-1.5">
           <MessageSquare size={14} /> PUBLIC GRIEVANCE & OPINION UNIT
         </span>
         <h1 className="font-heading font-extrabold text-4xl text-slate-100 tracking-tight">Citizen Feedback Portal</h1>
@@ -33,7 +33,7 @@ export default function FeedbackPortalPage() {
 
       <div className="glass-panel p-8 rounded-3xl border border-slate-800 max-w-2xl w-full flex flex-col gap-6 mx-auto">
         <h3 className="font-heading font-bold text-xl text-slate-100 flex items-center gap-2">
-          <Landmark size={18} className="text-[#f97316]" />
+          <Landmark size={18} className="text-[#f7941d]" />
           Submit Feedback Form
         </h3>
 
@@ -49,7 +49,7 @@ export default function FeedbackPortalPage() {
                     value={t} 
                     checked={type === t}
                     onChange={() => setType(t)}
-                    className="accent-[#f97316]" 
+                    className="accent-[#f7941d]"
                   />
                   {t}
                 </label>
@@ -65,7 +65,7 @@ export default function FeedbackPortalPage() {
                   key={star}
                   type="button" 
                   onClick={() => setRating(star)}
-                  className={`p-1 hover:scale-110 transition-transform ${star <= rating ? "text-[#f97316]" : "text-slate-650"}`}
+                  className={`p-1 hover:scale-110 transition-transform ${star <= rating ? "text-[#f7941d]" : "text-slate-650"}`}
                 >
                   <Star size={20} fill={star <= rating ? "currentColor" : "none"} />
                 </button>

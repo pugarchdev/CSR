@@ -160,7 +160,7 @@ export default function RMDashboardPage() {
 
   // Stats cards data
   const statCards = [
-    { label: "Total Enquiries", value: stats?.totalEnquiries || 0, icon: Inbox, color: "#12325a" },
+    { label: "Total Enquiries", value: stats?.totalEnquiries || 0, icon: Inbox, color: "#14274e" },
     { label: "Pending Response", value: stats?.pendingResponse || 0, icon: Clock, color: "#d97706" },
     { label: "SLA Due Soon", value: stats?.slaDueSoon || 0, icon: AlertTriangle, color: "#b91c1c" },
     { label: "Pending Verifications", value: stats?.pendingVerifications || 0, icon: CheckCircle, color: "#166534" },

@@ -8,7 +8,7 @@ import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/
 import GovButton from "@/components/gov/GovButton";
 import "../../styles/gov-theme.css";
 
-type TabType = "mandate" | "rules" | "schedule" | "circulars";
+type TabType = "mandate" | "history" | "rules" | "schedule" | "circulars";
 
 export default function AboutPage({ params }: { params?: { tab?: string } }) {
   const router = useRouter();
@@ -29,6 +29,7 @@ export default function AboutPage({ params }: { params?: { tab?: string } }) {
 
   const tabs = [
     { id: "mandate", label: "MahaCSR Mandate" },
+    { id: "history", label: "CSR History" },
     { id: "rules", label: "CSR Rules & Act" },
     { id: "schedule", label: "Schedule VII Sectors" },
     { id: "circulars", label: "Official Circulars" }
@@ -192,7 +193,7 @@ export default function AboutPage({ params }: { params?: { tab?: string } }) {
                     fontSize: 10, 
                     fontWeight: 800, 
                     color: "var(--gov-saffron)", 
-                    background: "#fff7ed", 
+                    background: "#fef3e0", 
                     padding: "4px 10px", 
                     borderRadius: 12 
                   }}>
@@ -246,6 +247,103 @@ export default function AboutPage({ params }: { params?: { tab?: string } }) {
               </GovCard>
             ))}
           </div>
+        </div>
+      )}
+
+      {activeTab === "history" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          <GovCard>
+            <GovCardHeader>
+              <GovCardTitle>History & Evolution of CSR in India</GovCardTitle>
+            </GovCardHeader>
+            <GovCardBody>
+              <p style={{ marginBottom: 16, lineHeight: 1.7 }}>
+                The concept of Corporate Social Responsibility (CSR) has a long history in India, deeply rooted in cultural values and philanthropic traditions. Over the past century and a half, CSR in India has transitioned through four distinct chronological phases, transforming from voluntary charity to a mandatory statutory framework.
+              </p>
+              <p style={{ lineHeight: 1.7 }}>
+                Following the enactment of Section 135 of the Companies Act, 2013, India became one of the first countries in the world to mandate CSR by law, defining clear spending thresholds, governance guidelines, and reporting standards overseen by the Ministry of Corporate Affairs.
+              </p>
+            </GovCardBody>
+          </GovCard>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {[
+              {
+                phase: "Phase I (1850–1914)",
+                title: "Charity and Philanthropy",
+                desc: "Driven by the influence of family, religion, culture, and tradition. Early industrial pioneers (such as the Tatas, Birlas, Godrejs, Shrirams, and Bajajs) voluntarily engaged in philanthropy. These efforts were largely based on personal values and community welfare, building schools, temples, and healthcare facilities."
+              },
+              {
+                phase: "Phase II (1914–1960)",
+                title: "Social Development & Nation Building",
+                desc: "During the Indian independence movement, the focus of corporate philanthropy shifted toward nation-building and social development. This phase was heavily influenced by Mahatma Gandhi's concept of 'Trusteeship', where business leaders were urged to act as trustees of national wealth for the benefit of society."
+              },
+              {
+                phase: "Phase III (1960–1990)",
+                title: "Mixed Economy & Regulation",
+                desc: "Following independence, the government took an active role in socio-economic development under a mixed economy model. As state regulation increased, corporate philanthropy became more aligned with national policy frameworks, public sector undertakings (PSUs) took a leading role, and CSR became more structured."
+              },
+              {
+                phase: "Phase IV (1991–Present)",
+                title: "Globalization & Mandatory CSR",
+                desc: "With the liberalization of the Indian economy in the 1990s, CSR evolved into a strategic business component. This culminated in the Companies Act, 2013, which mandated that companies meeting specific financial thresholds allocate at least 2% of their average net profits of the preceding three years to CSR projects listed under Schedule VII."
+              }
+            ].map((p, idx) => (
+              <div
+                key={idx}
+                style={{
+                  border: "1px solid var(--gov-border)",
+                  borderRadius: "var(--gov-radius)",
+                  background: "#ffffff",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    padding: "12px 18px",
+                    background: "var(--gov-primary-light)",
+                    borderBottom: "1px solid var(--gov-border)",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                    gap: 10,
+                  }}
+                >
+                  <span style={{ fontSize: 11, fontWeight: 800, color: "var(--gov-primary-dark)", textTransform: "uppercase" }}>
+                    {p.phase}
+                  </span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "var(--gov-saffron)" }}>
+                    {p.title}
+                  </span>
+                </div>
+                <div style={{ padding: 18, fontSize: 13, lineHeight: 1.65, color: "var(--gov-text-secondary)" }}>
+                  {p.desc}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <GovCard>
+            <GovCardHeader>
+              <GovCardTitle>Voluntary Guidelines to Legal Mandate</GovCardTitle>
+            </GovCardHeader>
+            <GovCardBody>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14, fontSize: 13, lineHeight: 1.65 }}>
+                <p>
+                  Before Section 135 was legally enforced in April 2014, the Ministry of Corporate Affairs (MCA) undertook key preparatory steps to encourage corporate accountability:
+                </p>
+                <ul style={{ paddingLeft: 20, display: "flex", flexDirection: "column", gap: 8 }}>
+                  <li>
+                    <strong>Voluntary Guidelines on CSR (2009):</strong> Offered the first formal framework for corporate philanthropy, recommending that companies formulate a CSR policy with board-level oversight.
+                  </li>
+                  <li>
+                    <strong>National Voluntary Guidelines (NVGs, 2011):</strong> Formulated a comprehensive set of nine principles covering social, environmental, and economic responsibilities of business, which were later updated to the National Guidelines on Responsible Business Conduct (NGRBC).
+                  </li>
+                </ul>
+              </div>
+            </GovCardBody>
+          </GovCard>
         </div>
       )}
     </div>

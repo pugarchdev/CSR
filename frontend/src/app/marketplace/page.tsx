@@ -216,11 +216,11 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
   const comparedProjects = projects.filter(p => compareIds.includes(p.id));
 
   return (
-    <div className="csr-directory-page px-6 md:px-12 py-10 max-w-7xl mx-auto flex flex-col gap-8 bg-[#f6f8fb] text-gov-ink min-h-screen">
+    <div className="csr-directory-page px-6 md:px-12 py-10 max-w-7xl mx-auto flex flex-col gap-8 bg-[#f4f5f7] text-gov-ink min-h-screen">
       
       {/* Header */}
       <div className="flex flex-col gap-1.5">
-        <h1 className="font-heading font-extrabold text-4xl text-[#12325a] tracking-tight">Directory</h1>
+        <h1 className="font-heading font-extrabold text-4xl text-[#14274e] tracking-tight">Directory</h1>
         <p className="text-slate-600">Search verified projects, registered NGOs, and active corporate donors in Maharashtra.</p>
       </div>
 
@@ -245,7 +245,7 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
               }}
               className={`flex items-center gap-2 px-6 py-3 border-b-2 text-xs font-bold transition-all whitespace-nowrap ${
                 isActive 
-                  ? "border-[#f97316] text-[#f97316] bg-slate-900/50" 
+                  ? "border-[#f7941d] text-[#f7941d] bg-slate-900/50" 
                   : "border-transparent text-slate-400 hover:text-slate-100 hover:bg-slate-900/25"
               }`}
             >
@@ -269,7 +269,7 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
                 setMinBudget(0);
                 setSearchTerm("");
               }}
-              className="text-[10px] text-slate-500 hover:text-[#f97316] font-bold"
+              className="text-[10px] text-slate-500 hover:text-[#f7941d] font-bold"
             >
               Reset
             </button>
@@ -353,7 +353,7 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
           {/* Directory Listings */}
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4 w-full bg-white border border-slate-200 rounded-2xl shadow-sm">
-              <div className="w-12 h-12 rounded-full border-4 border-[#f97316] border-t-transparent animate-spin" />
+              <div className="w-12 h-12 rounded-full border-4 border-[#f7941d] border-t-transparent animate-spin" />
               <span className="text-sm text-slate-500 font-semibold">Loading public directories...</span>
             </div>
           ) : (
@@ -372,15 +372,15 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
                       </span>
                       <div className="flex gap-2 items-center">
                         <button onClick={() => handleToggleBookmark(project.id)} className="text-slate-500 hover:text-slate-200 transition-colors">
-                          {isBookmarked ? <BookmarkCheck size={16} className="text-[#f97316]" /> : <Bookmark size={16} />}
+                          {isBookmarked ? <BookmarkCheck size={16} className="text-[#f7941d]" /> : <Bookmark size={16} />}
                         </button>
-                        <span className="text-xs text-violet-450 bg-[#fff7ed] border border-[#ffedd5] px-2 py-0.5 rounded font-extrabold">{project.matchScore}% Match</span>
+                        <span className="text-xs text-violet-450 bg-[#fef3e0] border border-[#fdeacd] px-2 py-0.5 rounded font-extrabold">{project.matchScore}% Match</span>
                       </div>
                     </div>
 
                     <h3 className="font-heading font-bold text-lg text-slate-100 leading-tight">{project.title}</h3>
                     <p className="text-xs text-slate-500 font-semibold flex items-center gap-1">
-                      <Landmark size={12} className="text-[#f97316]" /> NGO: {project.ngoName} • {project.ngoRating} ★
+                      <Landmark size={12} className="text-[#f7941d]" /> NGO: {project.ngoName} • {project.ngoRating} ★
                     </p>
                     <p className="text-slate-400 text-xs leading-relaxed line-clamp-3">{project.description}</p>
                   </div>
@@ -389,7 +389,7 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
                     <div className="w-full h-px bg-slate-800" />
                     <div className="flex justify-between items-center text-xs font-semibold">
                       <span className="text-slate-500 flex items-center gap-1 font-medium"><MapPin size={12} /> {project.district}, {project.taluka}</span>
-                      <span className="text-slate-200 flex items-center gap-1"><Coins size={12} className="text-[#f97316]" /> ₹{project.budgetRequested.toLocaleString("en-IN")}</span>
+                      <span className="text-slate-200 flex items-center gap-1"><Coins size={12} className="text-[#f7941d]" /> ₹{project.budgetRequested.toLocaleString("en-IN")}</span>
                     </div>
 
                     <div className="flex gap-3">
@@ -431,7 +431,7 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
                 <div className="flex flex-col gap-4 mt-2">
                   <div className="w-full h-px bg-slate-800" />
                   <div className="flex justify-between items-center text-xs font-semibold">
-                    <span className="text-slate-500 flex items-center gap-1 font-medium"><Star size={12} className="text-[#f97316]" /> Rated {ngo.rating} ★</span>
+                    <span className="text-slate-500 flex items-center gap-1 font-medium"><Star size={12} className="text-[#f7941d]" /> Rated {ngo.rating} ★</span>
                     <span className="text-slate-200">₹{(ngo.totalFundingReceived / 100000).toFixed(1)} Lakhs Sourced</span>
                   </div>
 
@@ -527,7 +527,7 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
             <div key={p.id} className="flex flex-col justify-around py-4 px-2 bg-slate-900/40 rounded-2xl border border-slate-800">
               <div className="h-16 font-heading font-extrabold text-sm text-slate-100 leading-tight line-clamp-3">{p.title}</div>
               <div className="h-12 flex items-center text-slate-350 border-t border-slate-800">{p.district}</div>
-              <div className="h-12 flex items-center text-[#f97316] font-bold border-t border-slate-800">₹{p.budgetRequested.toLocaleString("en-IN")}</div>
+              <div className="h-12 flex items-center text-[#f7941d] font-bold border-t border-slate-800">₹{p.budgetRequested.toLocaleString("en-IN")}</div>
               <div className="h-12 flex items-center text-slate-350 border-t border-slate-800">{p.ngoRating} ★</div>
               <div className="h-12 flex items-center text-indigo-700 font-extrabold border-t border-slate-800">{p.matchScore}%</div>
             </div>
@@ -541,7 +541,7 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
           <div className="flex flex-col gap-6 text-xs font-medium text-slate-400">
             <div className="flex flex-col gap-1">
               <h3 className="font-heading font-bold text-xl text-slate-100">{selectedNgoDetail.name}</h3>
-              <span className="text-[10px] text-[#f97316] font-bold uppercase tracking-wider">{selectedNgoDetail.category}</span>
+              <span className="text-[10px] text-[#f7941d] font-bold uppercase tracking-wider">{selectedNgoDetail.category}</span>
             </div>
             
             <div className="grid grid-cols-2 gap-4 border-t border-b border-slate-800 py-4">
@@ -621,7 +621,7 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
                 className="bg-slate-900 border border-slate-800 hover:bg-slate-800 p-3 rounded-xl flex items-center justify-between text-slate-200 transition-colors"
               >
                 <span>Read Board approved CSR Policy statement</span>
-                <ExternalLink size={14} className="text-[#f97316]" />
+                <ExternalLink size={14} className="text-[#f7941d]" />
               </a>
             </div>
           </div>

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { register, login, verifyOtp, refresh, logout } from "../controllers/authController";
+import { register, login, verifyOtp, refresh, logout, getInvitationDetails, registerInvitedNgo } from "../controllers/authController";
 import { validateRequest } from "../middlewares/validationMiddleware";
 import { asyncHandler } from "../middlewares/asyncHandler";
 import { z } from "zod";
@@ -61,5 +61,7 @@ router.post("/verify-otp", otpRateLimit, validateRequest(verifyOtpSchema), async
 router.post("/login", authRateLimit, validateRequest(loginSchema), asyncHandler(login));
 router.post("/refresh", asyncHandler(refresh));
 router.post("/logout", asyncHandler(logout));
+router.get("/ngo/invitation-details", asyncHandler(getInvitationDetails));
+router.post("/ngo/register-invited", asyncHandler(registerInvitedNgo));
 
 export default router;

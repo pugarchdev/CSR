@@ -113,69 +113,66 @@ function LoginForm() {
   };
 
   return (
-    <div className="flex-grow flex items-center justify-center px-6 py-16 bg-slate-955 text-slate-200 min-h-screen relative">
-      <div className="absolute top-1/3 left-1/3 w-80 h-80 bg-blue-600/5 rounded-full filter blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-1/3 right-1/3 w-80 h-80 bg-orange-600/5 rounded-full filter blur-[100px] pointer-events-none" />
+    <div className="flex-grow flex items-center justify-center px-6 py-16 bg-[#f4f5f7] text-[#333333] min-h-screen">
+      <div className="w-full max-w-md bg-white border border-[#e0e4ea] p-8 rounded-lg flex flex-col gap-6 relative">
 
-      <div className="w-full max-w-md bg-slate-900 border border-slate-800 p-8 rounded-2xl flex flex-col gap-6 relative shadow-xl">
-        
         {/* Logo & Title */}
         <div className="flex flex-col gap-2 text-center items-center">
           <svg viewBox="0 0 100 100" className="w-14 h-14" fill="none" stroke="currentColor">
-            <polygon points="50,5 82,18 95,50 82,82 50,95 18,82 5,50 18,18" stroke="#1e3a8a" strokeWidth="4.5" fill="#eff6ff" />
-            <path d="M28,32 L72,32 M32,44 L68,44 M28,56 L72,56 M36,68 L64,68" stroke="#f97316" strokeWidth="3" strokeLinecap="round" />
-            <path d="M42,80 L58,80" stroke="#1e3a8a" strokeWidth="2.5" strokeLinecap="round" />
+            <polygon points="50,5 82,18 95,50 82,82 50,95 18,82 5,50 18,18" stroke="#14274e" strokeWidth="4.5" fill="#e3f0fa" />
+            <path d="M28,32 L72,32 M32,44 L68,44 M28,56 L72,56 M36,68 L64,68" stroke="#f7941d" strokeWidth="3" strokeLinecap="round" />
+            <path d="M42,80 L58,80" stroke="#14274e" strokeWidth="2.5" strokeLinecap="round" />
           </svg>
           <div className="flex flex-col mt-2">
-            <h1 className="font-heading font-extrabold text-xl text-slate-50 tracking-tight">MahaCSR Portal Sign In</h1>
-            <p className="text-slate-400 text-[9px] mt-0.5 font-bold uppercase tracking-wider">Enterprise Collaboration Workspace</p>
+            <h1 className="font-heading font-bold text-xl text-[#14274e] tracking-tight">MahaCSR Portal Sign In</h1>
+            <p className="text-[#6b7280] text-[9px] mt-0.5 font-bold uppercase tracking-wider">Enterprise Collaboration Workspace</p>
           </div>
         </div>
 
         {/* Error Alert */}
         {error && (
-          <div className="bg-rose-50 border border-rose-200 p-4 rounded-xl text-rose-800 text-xs flex items-center gap-2">
-            <AlertCircle size={16} className="text-rose-500 shrink-0" />
+          <div className="bg-[#fdecea] border border-[#f5c6cb] p-4 rounded-lg text-[#c62828] text-xs flex items-center gap-2">
+            <AlertCircle size={16} className="text-[#c62828] shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         {/* Form */}
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
-          
+
           {/* Email input */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-[#1e3a8a] text-xs font-bold">Corporate / NGO Email</label>
+            <label className="text-[#14274e] text-xs font-bold">Corporate / NGO Email</label>
             <div className="relative">
-              <input 
-                type="email" 
+              <input
+                type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="e.g. contact@ngo.org"
                 disabled={loading}
                 className="govt-input !pl-10"
               />
-              <Mail size={16} className="absolute left-3.5 top-[11px] text-slate-400" />
+              <Mail size={16} className="absolute left-3.5 top-[11px] text-[#97a0ac]" />
             </div>
           </div>
 
           {/* Password input */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-[#1e3a8a] text-xs font-bold">Password</label>
+            <label className="text-[#14274e] text-xs font-bold">Password</label>
             <div className="relative">
-              <input 
-                type={showPassword ? "text" : "password"} 
+              <input
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Password"
                 disabled={loading}
                 className="govt-input !pl-10 !pr-10"
               />
-              <Lock size={16} className="absolute left-3.5 top-[11px] text-slate-400" />
+              <Lock size={16} className="absolute left-3.5 top-[11px] text-[#97a0ac]" />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-[11px] text-slate-400 hover:text-slate-600 focus:outline-none"
+                className="absolute right-3.5 top-[11px] text-[#97a0ac] hover:text-[#4b5563] focus:outline-none"
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -183,19 +180,19 @@ function LoginForm() {
           </div>
 
           {/* Submit */}
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={loading}
-            className="w-full bg-[#1e3a8a] hover:bg-[#1e40af] text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 mt-2 transition-all disabled:opacity-50 shadow-sm"
+            className="w-full bg-[#1789d6] hover:bg-[#146fb0] text-white font-bold py-3.5 rounded-lg flex items-center justify-center gap-2 mt-2 transition-colors disabled:opacity-50"
           >
             {loading ? "Authenticating..." : <><LogIn size={18} /> Sign In</>}
           </button>
         </form>
 
         {/* Footer Link */}
-        <div className="text-center text-xs text-slate-400 mt-2 font-medium">
+        <div className="text-center text-xs text-[#6b7280] mt-2 font-medium">
           Don't have an account?{" "}
-          <Link href="/register" className="text-[#1e3a8a] hover:underline font-bold">
+          <Link href="/register" className="text-[#1789d6] hover:underline font-bold">
             Register your organization
           </Link>
         </div>

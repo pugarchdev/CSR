@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import { GovCard, GovCardBody, GovCardHeader, GovCardTitle } from "@/components/gov/GovCard";
 import GovInput from "@/components/gov/GovInput";
 import GovSelect from "@/components/gov/GovSelect";
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
+import { apiFetch } from "@/lib/api";
 
 const districts = [
   ["Ahmednagar", "Nashik"], ["Akola", "Amravati"], ["Amravati", "Amravati"], ["Chhatrapati Sambhajinagar", "Aurangabad"],
@@ -77,17 +78,66 @@ export default function DirectoryPage() {
   const [role, setRole] = useState("All");
   const [division, setDivision] = useState("All");
   const [district, setDistrict] = useState("All");
+  const [liveEntries, setLiveEntries] = useState<typeof directoryEntries>([]);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const response = await apiFetch<any>("/public/directory");
+        const data = response.data ?? response;
+        const mapped: typeof directoryEntries = [];
+
+        (data.relationshipManagers ?? []).forEach((rm: any, i: number) => {
+          mapped.push({
+            id: `LIVE-RM-${i}`,
+            role: "CSR Relationship Manager",
+            officer: rm.email?.split("@")[0]?.replace(/\./g, " ") || "Relationship Manager",
+            designation: "CSR Relationship Manager",
+            division: "State",
+            district: rm.district || "Maharashtra",
+            office: "MahaCSR Relationship Manager Desk",
+            email: rm.email || "-",
+            phone: "Published on request",
+            responsibility: "Corporate enquiry response, government pitch verification, corporate-government coordination.",
+          });
+        });
+
+        (data.nodalOfficers ?? []).forEach((no: any, i: number) => {
+          mapped.push({
+            id: `LIVE-DNO-${i}`,
+            role: "District Nodal Officer",
+            officer: no.name || `District Nodal Officer, ${no.district}`,
+            designation: no.designation || "District Nodal Officer",
+            division: "Appointed",
+            district: no.district,
+            office: no.department || `District Office, ${no.district}`,
+            email: no.email || "-",
+            phone: "Published on request",
+            responsibility: `${no.domain || "Development"} domain — MoU coordination, milestone verification, UC certification and Level 1 grievance response.`,
+          });
+        });
+
+        if (active) setLiveEntries(mapped);
+      } catch {
+        if (active) setLiveEntries([]);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
+
+  const allEntries = useMemo(() => [...liveEntries, ...directoryEntries], [liveEntries]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return directoryEntries.filter((entry) => {
+    return allEntries.filter((entry) => {
       const matchesSearch = !q || Object.values(entry).join(" ").toLowerCase().includes(q);
       const matchesRole = role === "All" || entry.role === role;
       const matchesDivision = division === "All" || entry.division === division;
       const matchesDistrict = district === "All" || entry.district === district;
       return matchesSearch && matchesRole && matchesDivision && matchesDistrict;
     });
-  }, [search, role, division, district]);
+  }, [allEntries, search, role, division, district]);
 
   return (
     <GovPortalLayout showSidebar={false}>
@@ -103,11 +153,11 @@ export default function DirectoryPage() {
           </p>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 16 }}>
+        <div className="gov-grid-auto-sm" style={{ marginBottom: 16 }}>
           {[
-            ["Directory Entries", directoryEntries.length.toString(), "State, RM, helpdesk and district officers"],
+            ["Directory Entries", allEntries.length.toString(), "State, RM, helpdesk and district officers"],
             ["District Nodal Officers", "36", "All Maharashtra districts"],
-            ["Helpdesk SLA", "2 days", "Static public query"],
+            ["Helpdesk SLA", "2 days", "Public query response"],
             ["RM SLA", "5 days", "Corporate enquiry response"],
           ].map(([label, value, note]) => (
             <GovCard key={label}>
@@ -125,7 +175,7 @@ export default function DirectoryPage() {
             <GovCardTitle>Search Officer Directory</GovCardTitle>
           </GovCardHeader>
           <GovCardBody>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 14 }}>
+            <div className="gov-grid-auto">
               <GovInput label="Keyword Search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search officer, district, email or responsibility" />
               <GovSelect label="Role" value={role} onChange={(event) => setRole(event.target.value)}>
                 {unique("role").map((value) => <option key={value}>{value}</option>)}
@@ -137,14 +187,14 @@ export default function DirectoryPage() {
                 {unique("district").map((value) => <option key={value}>{value}</option>)}
               </GovSelect>
             </div>
-            <div className="gov-help">Showing {filtered.length} of {directoryEntries.length} directory entries.</div>
+            <div className="gov-help">Showing {filtered.length} of {allEntries.length} directory entries. Officials appointed on the portal appear at the top with live details.</div>
           </GovCardBody>
         </GovCard>
 
         <GovCard className="gov-mt-2">
           <GovCardBody style={{ padding: 0 }}>
             <div className="gov-table-container">
-              <table className="gov-table">
+              <table className="gov-table gov-table-stack">
                 <thead>
                   <tr>
                     <th>Role / Officer</th>
@@ -157,20 +207,20 @@ export default function DirectoryPage() {
                 <tbody>
                   {filtered.map((entry) => (
                     <tr key={entry.id}>
-                      <td>
+                      <td data-label="Role / Officer">
                         <div style={{ fontWeight: 800, color: "var(--gov-primary-dark)" }}>{entry.officer}</div>
                         <div style={{ marginTop: 4 }}><GovStatusBadge variant="info">{entry.role}</GovStatusBadge></div>
                       </td>
-                      <td>
+                      <td data-label="District / Division">
                         <div style={{ fontWeight: 700 }}>{entry.district}</div>
                         <div style={{ fontSize: 12, color: "var(--gov-text-muted)" }}>{entry.division} Division</div>
                       </td>
-                      <td>{entry.office}</td>
-                      <td>
+                      <td data-label="Office">{entry.office}</td>
+                      <td data-label="Contact">
                         <div>{entry.email}</div>
                         <div style={{ marginTop: 4, color: "var(--gov-text-muted)" }}>{entry.phone}</div>
                       </td>
-                      <td>{entry.responsibility}</td>
+                      <td data-label="Responsibility">{entry.responsibility}</td>
                     </tr>
                   ))}
                   {filtered.length === 0 && (

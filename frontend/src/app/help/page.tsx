@@ -20,7 +20,7 @@ export default function HelpCenterPage() {
   return (
     <div className="px-6 md:px-12 py-12 max-w-5xl mx-auto flex flex-col gap-10 bg-slate-950 text-slate-100 min-h-screen">
       <div className="flex flex-col gap-2 border-b border-slate-800 pb-6">
-        <span className="text-[#f97316] font-bold text-xs uppercase tracking-widest flex items-center gap-1.5">
+        <span className="text-[#f7941d] font-bold text-xs uppercase tracking-widest flex items-center gap-1.5">
           <HelpCircle size={14} /> USER COMPLIANCE HELP DESK
         </span>
         <h1 className="font-heading font-extrabold text-4xl text-slate-100 tracking-tight">Help Center</h1>
@@ -34,7 +34,7 @@ export default function HelpCenterPage() {
           <h3 className="font-heading font-bold text-xl text-slate-200">Self Help Guides</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className="glass-card p-6 rounded-2xl border border-slate-800 flex flex-col gap-3">
-              <span className="text-[#f97316] font-bold text-xs uppercase tracking-wider">Guide 1</span>
+              <span className="text-[#f7941d] font-bold text-xs uppercase tracking-wider">Guide 1</span>
               <h4 className="font-heading font-bold text-base text-slate-100">NGO Registration Steps</h4>
               <p className="text-slate-450 text-xs leading-relaxed">Detailed checklist for matching your PAN card, NGO Darpan filings, and getting verified on MahaCSR.</p>
             </div>
@@ -50,7 +50,7 @@ export default function HelpCenterPage() {
         {/* Submit Ticket */}
         <div className="glass-panel p-6 rounded-3xl border border-slate-800 flex flex-col gap-5">
           <h3 className="font-heading font-bold text-lg text-slate-100 flex items-center gap-2">
-            <Ticket size={18} className="text-[#f97316]" />
+            <Ticket size={18} className="text-[#f7941d]" />
             Generate Support Ticket
           </h3>
           

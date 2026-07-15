@@ -4,46 +4,46 @@
 
 :root {
   /* Typography */
-  --gov-font: "Noto Sans", "Noto Sans Devanagari", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --gov-font: "Poppins", "Noto Sans", "Noto Sans Devanagari", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
-  /* Primary Colors - Government Navy */
-  --gov-primary: #12325a;
-  --gov-primary-dark: #0b2e4a;
-  --gov-primary-light: #e8f0f8;
+  /* Primary Colors - National CSR Portal Navy */
+  --gov-primary: #14274e;
+  --gov-primary-dark: #0d1c3a;
+  --gov-primary-light: #e3f0fa;
 
   /* Accent Colors */
-  --gov-link: #005ea8;
-  --gov-saffron: #d97706;
-  --gov-success: #166534;
-  --gov-warning: #92400e;
-  --gov-danger: #b91c1c;
+  --gov-link: #1789d6;
+  --gov-saffron: #f7941d;
+  --gov-success: #2e7d32;
+  --gov-warning: #b06000;
+  --gov-danger: #c62828;
 
   /* Background Colors */
-  --gov-bg: #f5f6f8;
+  --gov-bg: #f4f5f7;
   --gov-surface: #ffffff;
-  --gov-surface-muted: #f8fafc;
+  --gov-surface-muted: #f4f5f7;
 
   /* Border Colors */
-  --gov-border: #d7dee8;
-  --gov-border-dark: #b8c2d1;
+  --gov-border: #e0e4ea;
+  --gov-border-dark: #c7cdd6;
 
   /* Text Colors */
-  --gov-text: #111827;
-  --gov-text-muted: #64748b;
-  --gov-text-secondary: #475569;
+  --gov-text: #333333;
+  --gov-text-muted: #6b7280;
+  --gov-text-secondary: #4b5563;
 
   /* Border Radius */
-  --gov-radius-sm: 2px;
-  --gov-radius: 4px;
-  --gov-radius-lg: 6px;
+  --gov-radius-sm: 8px;
+  --gov-radius: 8px;
+  --gov-radius-lg: 8px;
 
-  /* Shadows */
-  --gov-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.08);
-  --gov-shadow: 0 2px 6px rgba(15, 23, 42, 0.10);
+  /* Shadows - flat design, borders instead of shadows */
+  --gov-shadow-sm: none;
+  --gov-shadow: none;
 
   /* Layout Dimensions */
-  --gov-auth-header-height: 72px;
-  --gov-sidebar-width: 280px;
+  --gov-auth-header-height: 56px;
+  --gov-sidebar-width: 240px;
 }
 
 /* ============================================
@@ -200,7 +200,7 @@ textarea {
   border-radius: var(--gov-radius-lg);
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, var(--gov-primary), var(--gov-saffron));
+  background: var(--gov-primary);
   color: #ffffff;
   font-size: 12px;
   font-weight: 800;
@@ -301,9 +301,8 @@ textarea {
   width: 340px;
   max-width: calc(100vw - 24px);
   background: #ffffff;
-  border: 1px solid var(--gov-border);
+  border: 1px solid var(--gov-border-dark);
   border-radius: var(--gov-radius-lg);
-  box-shadow: 0 18px 42px rgba(15, 35, 70, 0.22);
   overflow: hidden;
 }
 
@@ -404,7 +403,7 @@ textarea {
   width: var(--gov-sidebar-width);
   background: #ffffff;
   border-right: 1px solid var(--gov-border);
-  padding: 18px 14px;
+  padding: 12px 10px;
   position: sticky;
   top: 0;
   height: calc(100vh - var(--gov-auth-header-height));
@@ -417,14 +416,14 @@ textarea {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-weight: 700;
-  margin: 18px 10px 8px;
+  margin: 12px 10px 6px;
 }
 
 .gov-nav-link {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-radius: var(--gov-radius);
   color: var(--gov-text-secondary);
   font-weight: 500;
@@ -448,21 +447,33 @@ textarea {
 .gov-main {
   flex: 1;
   min-width: 0;
-  padding: 24px;
+  padding: 16px 20px 24px;
 }
 
 .gov-layout-no-sidebar .gov-main {
   width: 100%;
-  max-width: 1240px;
+  max-width: 1380px;
   margin: 0 auto;
-  padding: 28px 24px 48px;
+  padding: 16px 20px 32px;
 }
 
 .gov-public-main {
   width: 100%;
-  max-width: 1240px;
+  max-width: 1380px;
   margin: 0 auto;
-  padding: 28px 24px 48px;
+  padding: 16px 20px 32px;
+}
+
+/* Wide viewports (zoomed-out / large monitors): let content breathe */
+@media (min-width: 1600px) {
+  .gov-layout-no-sidebar .gov-main,
+  .gov-public-main {
+    max-width: 1520px;
+  }
+
+  .gov-container {
+    max-width: 1520px;
+  }
 }
 
 .gov-official-band {
@@ -516,31 +527,31 @@ textarea {
   background: #ffffff;
   border: 1px solid var(--gov-border);
   border-left: 4px solid var(--gov-primary);
-  padding: 18px 20px;
-  margin-bottom: 18px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
   box-shadow: var(--gov-shadow-sm);
 }
 
 .gov-breadcrumb {
   font-size: 12px;
   color: var(--gov-text-muted);
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .gov-page-title {
   margin: 0;
-  font-size: 22px;
+  font-size: 20px;
   color: var(--gov-primary-dark);
   font-weight: 800;
   letter-spacing: 0;
 }
 
 .gov-page-description {
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   color: var(--gov-text-secondary);
   max-width: 900px;
-  font-size: 14px;
-  line-height: 1.65;
+  font-size: 13px;
+  line-height: 1.55;
 }
 
 /* ============================================
@@ -555,21 +566,21 @@ textarea {
 }
 
 .gov-card-header {
-  padding: 14px 18px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--gov-border);
   background: var(--gov-surface-muted);
 }
 
 .gov-card-title {
   margin: 0;
-  font-size: 16px;
+  font-size: 15px;
   color: var(--gov-primary-dark);
   font-weight: 800;
   letter-spacing: 0;
 }
 
 .gov-card-body {
-  padding: 18px;
+  padding: 14px;
 }
 
 .gov-section-title {
@@ -640,7 +651,6 @@ textarea {
 .gov-select:focus,
 .gov-textarea:focus {
   border-color: var(--gov-link);
-  box-shadow: 0 0 0 3px rgba(0, 94, 168, 0.15);
   outline: none;
 }
 
@@ -765,41 +775,41 @@ textarea {
 .gov-status {
   display: inline-flex;
   align-items: center;
-  border-radius: 999px;
-  padding: 3px 9px;
+  border-radius: var(--gov-radius);
+  padding: 4px 8px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   border: 1px solid transparent;
 }
 
 .gov-status-success {
   color: var(--gov-success);
-  background: #dcfce7;
-  border-color: #86efac;
+  background: #e8f5e9;
+  border-color: #c8e6c9;
 }
 
 .gov-status-warning {
   color: var(--gov-warning);
-  background: #fef3c7;
-  border-color: #fcd34d;
+  background: #fef3e0;
+  border-color: #fbe0b8;
 }
 
 .gov-status-danger {
   color: var(--gov-danger);
-  background: #fee2e2;
-  border-color: #fca5a5;
+  background: #fdecea;
+  border-color: #f9cfc9;
 }
 
 .gov-status-info {
   color: var(--gov-primary);
   background: var(--gov-primary-light);
-  border-color: #bcd3ea;
+  border-color: #c4ddf2;
 }
 
 .gov-status-muted {
   color: var(--gov-text-muted);
-  background: #f1f5f9;
-  border-color: #e2e8f0;
+  background: #eef0f3;
+  border-color: #e0e4ea;
 }
 
 /* ============================================
@@ -966,9 +976,8 @@ textarea {
     width: 82%;
     max-width: 320px;
     height: 100vh;
-    border-right: 1px solid var(--gov-border);
+    border-right: 1px solid var(--gov-border-dark);
     border-bottom: none;
-    box-shadow: 0 18px 42px rgba(15, 35, 70, 0.28);
     transform: translateX(-100%);
     transition: transform 0.25s ease;
   }
@@ -986,8 +995,7 @@ textarea {
     position: fixed;
     inset: 0;
     z-index: 70;
-    background: rgba(4, 20, 45, 0.45);
-    backdrop-filter: blur(2px);
+    background: rgba(0, 0, 0, 0.6);
   }
 
   .gov-main {
@@ -1105,6 +1113,179 @@ textarea {
 }
 
 /* ============================================
+   RESPONSIVE GRID UTILITIES
+   Auto-fit responsive grids that collapse cleanly
+   on tablet/mobile without fixed pixel columns.
+   ============================================ */
+
+/* Auto-responsive metric/stat grids (min column widths) */
+.gov-grid-auto {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 16px;
+}
+
+.gov-grid-auto-sm {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+  gap: 12px;
+}
+
+.gov-grid-auto-lg {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 16px;
+}
+
+/* Fixed-count grids that collapse responsively */
+.gov-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.gov-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.gov-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+/* Content + sidebar layout (main column + aside) */
+.gov-grid-sidebar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 20px;
+  align-items: start;
+}
+
+.gov-grid-sidebar-narrow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 20px;
+  align-items: start;
+}
+
+/* Tablet: collapse 4->2, keep 2/3 flexible, drop sidebars below content */
+@media (max-width: 1024px) {
+  .gov-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gov-grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gov-grid-sidebar,
+  .gov-grid-sidebar-narrow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Mobile: everything single column */
+@media (max-width: 640px) {
+  .gov-grid-2,
+  .gov-grid-3,
+  .gov-grid-4 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gov-grid-auto,
+  .gov-grid-auto-sm,
+  .gov-grid-auto-lg {
+    gap: 12px;
+  }
+}
+
+/* ------------------------------------------------------------------
+   MOBILE SAFETY NET FOR INLINE GRIDS
+   Many operational pages use inline `gridTemplateColumns` (e.g.
+   "1fr 320px", "2fr 1fr", "repeat(4, 1fr)"). On small screens these
+   overflow or squash. This override collapses any inline multi-column
+   grid inside the portal content area to a single column. Author
+   `!important` beats non-important inline styles, so no per-page edit
+   is required. Homepage/hero use Tailwind classNames (not inline
+   grid-template-columns), so they are unaffected.
+   ------------------------------------------------------------------ */
+@media (max-width: 768px) {
+  .gov-main [style*="grid-template-columns"],
+  .gov-public-main [style*="grid-template-columns"],
+  .gov-layout-no-sidebar [style*="grid-template-columns"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+}
+
+/* Tablet (769-1024px): collapse fixed-pixel sidebar layouts ("1fr 320px",
+   "1fr 300px", "1fr 340px", "1fr 280px") so the aside drops below the main
+   column instead of squeezing it. Proportional grids ("2fr 1fr", "1fr 1fr")
+   still fit at this width and are left intact. */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .gov-main [style*="1fr 320px"],
+  .gov-main [style*="1fr 300px"],
+  .gov-main [style*="1fr 340px"],
+  .gov-main [style*="1fr 280px"],
+  .gov-public-main [style*="1fr 320px"],
+  .gov-public-main [style*="1fr 300px"],
+  .gov-public-main [style*="1fr 340px"],
+  .gov-public-main [style*="1fr 280px"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+/* Responsive table -> stacked cards on mobile.
+   Add data-label attributes on <td> and class .gov-table-stack on the table. */
+@media (max-width: 640px) {
+  .gov-table-stack thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .gov-table-stack tbody tr {
+    display: block;
+    border: 1px solid var(--gov-border);
+    border-radius: var(--gov-radius);
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    background: var(--gov-surface);
+  }
+
+  .gov-table-stack tbody td {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 0;
+    border: none;
+    border-bottom: 1px dashed var(--gov-border);
+    text-align: right;
+  }
+
+  .gov-table-stack tbody td:last-child {
+    border-bottom: none;
+  }
+
+  .gov-table-stack tbody td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: var(--gov-text-muted);
+    text-align: left;
+    flex: 0 0 45%;
+  }
+}
+
+/* ============================================
    PREMIUM PORTAL ANIMATIONS & TRANSITIONS
    ============================================ */
 
@@ -1125,17 +1306,12 @@ textarea {
   animation: govFadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Card hover and entrance effects */
+/* Card hover and entrance effects — flat elevation, border shift only */
 .gov-card {
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), 
-              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: transform, box-shadow;
+  transition: border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .gov-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
   border-color: var(--gov-border-dark);
 }
 
@@ -1148,18 +1324,17 @@ textarea {
   background-color: var(--gov-primary-light);
 }
 
-/* Button smooth transitions and scaling on click */
+/* Button smooth transitions */
 .gov-btn {
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: transform;
+  transition: background 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
 }
 
 .gov-btn:hover {
-  transform: translateY(-1px);
+  opacity: 0.92;
 }
 
 .gov-btn:active {
-  transform: translateY(1px) scale(0.98);
+  opacity: 0.85;
 }
 
 /* Stats metrics scaling & stagger entrance */

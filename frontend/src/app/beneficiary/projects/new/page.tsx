@@ -469,7 +469,7 @@ export default function NewCSRRequirement() {
               type="button"
               disabled={loading}
               onClick={() => handleSubmit(true)}
-              className="w-full bg-[#ff9933] hover:bg-[#e07f24] text-white font-bold text-sm py-3 shadow"
+              className="w-full bg-[#f7941d] hover:bg-[#e07f00] text-white font-bold text-sm py-3 shadow"
             >
               {loading ? "Submitting..." : "Submit for Verification"}
             </Button>

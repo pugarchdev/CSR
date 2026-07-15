@@ -17,10 +17,10 @@ const SdgStatsChart = dynamic(() => import("@/components/AnalyticsCharts").then(
 const GisMap = dynamic(() => import("@/components/GisMap"), {
   ssr: false,
   loading: () => (
-    <div className="h-[580px] w-full flex items-center justify-center bg-slate-900/40 rounded-3xl border border-slate-800/80">
+    <div className="h-[580px] w-full flex items-center justify-center bg-white rounded-lg border border-[#e0e4ea]">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 rounded-full border-2 border-[#1e3a8a] border-t-transparent animate-spin" />
-        <span className="text-xs text-slate-400 font-semibold">Initializing digital GIS network...</span>
+        <div className="w-8 h-8 rounded-full border-2 border-[#0e2144] border-t-transparent animate-spin" />
+        <span className="text-xs text-[#6b7280] font-semibold">Initializing digital GIS network...</span>
       </div>
     </div>
   )
@@ -43,7 +43,7 @@ const mockFundingGrowth = [
   { year: "2026", funding: 184000000 }
 ];
 
-const COLORS = ["#8b5cf6", "#6366f1", "#ec4899", "#0ea5e9", "#f59e0b"];
+const COLORS = ["#0e2144", "#1789d6", "#f7941d", "#166534", "#b91c1c"];
 
 export default function AnalyticsDashboard() {
   const [mounted, setMounted] = useState(false);
@@ -55,12 +55,12 @@ export default function AnalyticsDashboard() {
   if (!mounted) return null;
 
   return (
-    <div className="px-6 md:px-12 py-10 max-w-7xl mx-auto flex flex-col gap-10 bg-slate-950 text-slate-100 min-h-screen">
-      
+    <div className="px-6 md:px-12 py-10 max-w-7xl mx-auto flex flex-col gap-10 bg-[#f5f6f8] text-[#14274e] min-h-screen">
+
       {/* Header */}
       <div className="flex flex-col gap-1.5">
-        <h1 className="font-heading font-extrabold text-4xl text-slate-100 tracking-tight">Maharashtra GIS Analytics</h1>
-        <p className="text-slate-400">Real-time statistics detailing funding allocations, project densities, and direct beneficiaries</p>
+        <h1 className="font-heading font-extrabold text-4xl text-[#14274e] tracking-tight">Maharashtra GIS Analytics</h1>
+        <p className="text-[#6b7280]">Real-time statistics detailing funding allocations, project densities, and direct beneficiaries</p>
       </div>
 
       {/* KPI Counters */}
@@ -73,8 +73,8 @@ export default function AnalyticsDashboard() {
 
       {/* Interactive GIS Section */}
       <section className="flex flex-col gap-4">
-        <h2 className="font-heading font-bold text-xl text-slate-200">Interactive Maharashtra GIS Mapping</h2>
-        <div className="w-full bg-slate-900 border border-slate-800 p-4 rounded-3xl shadow-glass">
+        <h2 className="font-heading font-bold text-xl text-[#14274e]">Interactive Maharashtra GIS Mapping</h2>
+        <div className="w-full bg-white border border-[#e0e4ea] p-4 rounded-lg">
           <GisMap />
         </div>
       </section>

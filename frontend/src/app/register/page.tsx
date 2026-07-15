@@ -10,7 +10,7 @@ import { locationData, allStatesList } from "@/lib/locationData";
 export default function RegisterPage() {
   const router = useRouter();
   const [step, setStep] = useState(1); // 1: Select Role, 2: Fill Details, 3: OTP
-  const [role, setRole] = useState<"NGO" | "COMPANY" | "GOV_ENTITY">("NGO");
+  const [role, setRole] = useState<"NGO" | "COMPANY" | "GOV_ENTITY">("COMPANY");
   const [otp, setOtp] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -232,28 +232,28 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex-grow flex items-center justify-center px-6 py-16 bg-[#f5f6f8] text-slate-900 min-h-screen relative">
-      <div className="w-full max-w-3xl bg-white border border-slate-200 p-8 flex flex-col gap-6 relative shadow-sm">
+    <div className="flex-grow flex items-center justify-center px-6 py-16 bg-[#f4f5f7] text-[#333333] min-h-screen relative">
+      <div className="w-full max-w-3xl bg-white border border-[#e0e4ea] p-8 flex flex-col gap-6 relative rounded-lg">
         
         {/* Step Indicator */}
-        <div className="flex justify-between items-center text-xs font-semibold text-slate-400">
-          <span className={step >= 1 ? "text-indigo-700 font-bold" : ""}>1. Profile Type</span>
-          <span className={`w-12 h-px ${step >= 2 ? "bg-indigo-700" : "bg-slate-800"}`} />
-          <span className={step >= 2 ? "text-indigo-700 font-bold" : ""}>2. Details</span>
-          <span className={`w-12 h-px ${step >= 3 ? "bg-indigo-700" : "bg-slate-800"}`} />
-          <span className={step >= 3 ? "text-indigo-700 font-bold" : ""}>3. Verification</span>
+        <div className="flex justify-between items-center text-xs font-semibold text-[#97a0ac]">
+          <span className={step >= 1 ? "text-[#1789d6] font-bold" : ""}>1. Profile Type</span>
+          <span className={`w-12 h-px ${step >= 2 ? "bg-[#1789d6]" : "bg-[#c7cdd6]"}`} />
+          <span className={step >= 2 ? "text-[#1789d6] font-bold" : ""}>2. Details</span>
+          <span className={`w-12 h-px ${step >= 3 ? "bg-[#1789d6]" : "bg-[#c7cdd6]"}`} />
+          <span className={step >= 3 ? "text-[#1789d6] font-bold" : ""}>3. Verification</span>
         </div>
 
         {errorMsg && (
-          <div className="bg-rose-50 border border-rose-200 p-4 rounded-xl text-rose-800 text-xs flex items-center gap-2">
-            <AlertCircle size={16} className="text-rose-500 shrink-0" />
+          <div className="bg-[#fdecea] border border-[#f5c6cb] p-4 rounded-lg text-[#c62828] text-xs flex items-center gap-2">
+            <AlertCircle size={16} className="text-[#c62828] shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
 
         {successMsg && (
-          <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl text-emerald-800 text-xs flex items-center gap-2">
-            <FileCheck size={16} className="text-emerald-500 shrink-0" />
+          <div className="bg-[#e8f5e9] border border-[#c8e6c9] p-4 rounded-lg text-[#2e7d32] text-xs flex items-center gap-2">
+            <FileCheck size={16} className="text-[#2e7d32] shrink-0" />
             <span>{successMsg}</span>
           </div>
         )}
@@ -262,78 +262,58 @@ export default function RegisterPage() {
           <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-1 text-center items-center">
               <svg viewBox="0 0 100 100" className="w-12 h-12 mb-2" fill="none" stroke="currentColor">
-                <polygon points="50,5 82,18 95,50 82,82 50,95 18,82 5,50 18,18" stroke="#1e3a8a" strokeWidth="4.5" fill="#eff6ff" />
-                <path d="M28,32 L72,32 M32,44 L68,44 M28,56 L72,56 M36,68 L64,68" stroke="#f97316" strokeWidth="3" strokeLinecap="round" />
-                <path d="M42,80 L58,80" stroke="#1e3a8a" strokeWidth="2.5" strokeLinecap="round" />
+                <polygon points="50,5 82,18 95,50 82,82 50,95 18,82 5,50 18,18" stroke="#14274e" strokeWidth="4.5" fill="#e3f0fa" />
+                <path d="M28,32 L72,32 M32,44 L68,44 M28,56 L72,56 M36,68 L64,68" stroke="#f7941d" strokeWidth="3" strokeLinecap="round" />
+                <path d="M42,80 L58,80" stroke="#14274e" strokeWidth="2.5" strokeLinecap="round" />
               </svg>
-              <h1 className="font-heading font-extrabold text-xl text-slate-900 tracking-tight">Select Registration Category</h1>
-              <p className="text-slate-500 text-xs mt-0.5 font-bold uppercase tracking-wider">Account activation happens only after onboarding and admin document verification</p>
+              <h1 className="font-heading font-bold text-xl text-[#14274e] tracking-tight">Select Registration Category</h1>
+              <p className="text-[#6b7280] text-xs mt-0.5 font-bold uppercase tracking-wider">Account activation happens only after onboarding and admin document verification</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Option NGO */}
-              <div 
-                className={`p-6 rounded-2xl border cursor-pointer flex flex-col gap-4 transition-all ${
-                  role === "NGO" 
-                    ? "border-[#12325a] bg-[#e8f0f8] shadow-sm" 
-                    : "border-slate-200 bg-white hover:border-[#12325a]"
-                }`}
-                onClick={() => setRole("NGO")}
-              >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                  role === "NGO" ? "bg-[#12325a] text-white" : "bg-slate-100 text-slate-500"
-                }`}>
-                  <Landmark size={20} />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="font-heading font-bold text-base text-slate-900">NGO / Implementing Agency</span>
-                  <span className="text-xs text-slate-600 leading-relaxed">Complete onboarding, upload CSR-1 and statutory documents, then submit proposals after approval.</span>
-                </div>
-              </div>
-
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Option Company */}
-              <div 
-                className={`p-6 rounded-2xl border cursor-pointer flex flex-col gap-4 transition-all ${
-                  role === "COMPANY" 
-                    ? "border-[#12325a] bg-[#e8f0f8] shadow-sm" 
-                    : "border-slate-200 bg-white hover:border-[#12325a]"
+              <div
+                className={`p-6 rounded-lg border cursor-pointer flex flex-col gap-4 transition-colors ${
+                  role === "COMPANY"
+                    ? "border-[#14274e] bg-[#e3f0fa]"
+                    : "border-[#e0e4ea] bg-white hover:border-[#14274e]"
                 }`}
                 onClick={() => setRole("COMPANY")}
               >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                  role === "COMPANY" ? "bg-[#12325a] text-white" : "bg-slate-100 text-slate-500"
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                  role === "COMPANY" ? "bg-[#14274e] text-white" : "bg-[#f4f5f7] text-[#6b7280]"
                 }`}>
                   <Building2 size={20} />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="font-heading font-bold text-base text-slate-900">Company / CSR Donor</span>
-                  <span className="text-xs text-slate-600 leading-relaxed">Submit company details, CSR budget and policy documents for verification before participation.</span>
+                  <span className="font-heading font-bold text-base text-[#14274e]">Company / CSR Donor</span>
+                  <span className="text-xs text-[#4b5563] leading-relaxed">Submit company details, CSR budget and policy documents for verification before participation.</span>
                 </div>
               </div>
 
-              <div 
-                className={`p-6 border cursor-pointer flex flex-col gap-4 transition-all ${
-                  role === "GOV_ENTITY" 
-                    ? "border-[#12325a] bg-[#e8f0f8] shadow-sm" 
-                    : "border-slate-200 bg-white hover:border-[#12325a]"
+              <div
+                className={`p-6 rounded-lg border cursor-pointer flex flex-col gap-4 transition-colors ${
+                  role === "GOV_ENTITY"
+                    ? "border-[#14274e] bg-[#e3f0fa]"
+                    : "border-[#e0e4ea] bg-white hover:border-[#14274e]"
                 }`}
                 onClick={() => setRole("GOV_ENTITY")}
               >
-                <div className={`w-10 h-10 flex items-center justify-center ${
-                  role === "GOV_ENTITY" ? "bg-[#12325a] text-white" : "bg-slate-100 text-slate-500"
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                  role === "GOV_ENTITY" ? "bg-[#14274e] text-white" : "bg-[#f4f5f7] text-[#6b7280]"
                 }`}>
                   <ShieldAlert size={20} />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="font-heading font-bold text-base text-slate-900">Government Department</span>
-                  <span className="text-xs text-slate-600 leading-relaxed">Register a department or local body to create CSR requirements, track company interest, and confirm delivery.</span>
+                  <span className="font-heading font-bold text-base text-[#14274e]">Government Department</span>
+                  <span className="text-xs text-[#4b5563] leading-relaxed">Register a department or local body to create CSR requirements, track company interest, and confirm delivery.</span>
                 </div>
               </div>
             </div>
 
-            <button 
+            <button
               onClick={() => setStep(2)}
-              className="w-full bg-[#12325a] hover:bg-[#0b2e4a] text-white font-bold py-3.5 flex items-center justify-center gap-2 mt-2 transition-all shadow-sm"
+              className="w-full bg-[#1789d6] hover:bg-[#146fb0] text-white font-bold py-3.5 rounded-lg flex items-center justify-center gap-2 mt-2 transition-colors"
             >
               Continue <ArrowRight size={18} />
             </button>
@@ -343,8 +323,8 @@ export default function RegisterPage() {
         {step === 2 && (
           <form onSubmit={handleRegister} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1 text-center">
-              <h1 className="font-heading font-extrabold text-xl text-slate-900 tracking-tight">Registration Details</h1>
-              <p className="text-slate-500 text-xs">Fill the details required to begin onboarding and document verification</p>
+              <h1 className="font-heading font-bold text-xl text-[#14274e] tracking-tight">Registration Details</h1>
+              <p className="text-[#6b7280] text-xs">Fill the details required to begin onboarding and document verification</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -704,14 +684,14 @@ export default function RegisterPage() {
                 type="button" 
                 disabled={loading}
                 onClick={() => setStep(1)}
-                className="w-1/3 bg-[#f8fafc] border border-gray-300 text-gray-700 hover:bg-gray-100 py-3.5 rounded-xl transition-all shadow-sm disabled:opacity-50"
+                className="w-1/3 bg-[#f4f5f7] border border-[#c7cdd6] text-[#4b5563] hover:bg-[#e0e4ea] py-3.5 rounded-lg transition-colors disabled:opacity-50"
               >
                 Back
               </button>
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={loading}
-                className="w-2/3 bg-[#1e3a8a] hover:bg-[#1e40af] text-white py-3.5 rounded-xl transition-all shadow-sm disabled:opacity-50 flex justify-center items-center gap-2"
+                className="w-2/3 bg-[#1789d6] hover:bg-[#146fb0] text-white py-3.5 rounded-lg transition-colors disabled:opacity-50 flex justify-center items-center gap-2"
               >
                 {loading ? "Registering..." : "Submit & Verify OTP"}
               </button>
@@ -722,8 +702,8 @@ export default function RegisterPage() {
         {step === 3 && (
           <form onSubmit={handleVerifyOtp} className="flex flex-col gap-6">
             <div className="flex flex-col gap-1 text-center">
-              <h1 className="font-heading font-extrabold text-xl text-gray-900 tracking-tight">Enter OTP Code</h1>
-              <p className="text-gray-500 text-xs font-semibold">We sent a 6-digit OTP code to your registered email <strong className="text-[#1e3a8a]">{formData.email}</strong></p>
+              <h1 className="font-heading font-bold text-xl text-[#14274e] tracking-tight">Enter OTP Code</h1>
+              <p className="text-[#6b7280] text-xs font-semibold">We sent a 6-digit OTP code to your registered email <strong className="text-[#14274e]">{formData.email}</strong></p>
             </div>
 
             <div className="flex flex-col gap-2">
@@ -734,14 +714,14 @@ export default function RegisterPage() {
                 onChange={(e) => setOtp(e.target.value)}
                 placeholder="123456" 
                 disabled={loading}
-                className="w-full text-center bg-white border border-gray-250 rounded-xl py-4 text-2xl font-bold tracking-widest text-[#1e3a8a] focus:outline-none focus:border-[#1e3a8a] transition-all disabled:opacity-50" 
+                className="w-full text-center bg-white border border-[#c7cdd6] rounded-lg py-4 text-2xl font-bold tracking-widest text-[#14274e] focus:outline-none focus:border-[#1789d6] transition-colors disabled:opacity-50"
               />
             </div>
 
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={loading}
-              className="w-full bg-[#1e3a8a] hover:bg-[#1e40af] text-white font-bold py-3.5 rounded-xl transition-all shadow-sm disabled:opacity-50"
+              className="w-full bg-[#1789d6] hover:bg-[#146fb0] text-white font-bold py-3.5 rounded-lg transition-colors disabled:opacity-50"
             >
               {loading ? "Verifying..." : "Verify Account"}
             </button>
@@ -750,9 +730,9 @@ export default function RegisterPage() {
 
         {/* Footer Link */}
         {step < 3 && (
-          <div className="text-center text-xs text-slate-400 mt-2 font-medium">
+          <div className="text-center text-xs text-[#6b7280] mt-2 font-medium">
             Already have an account?{" "}
-            <Link href="/login" className="text-[#1e3a8a] hover:underline font-bold">
+            <Link href="/login" className="text-[#1789d6] hover:underline font-bold">
               Sign In
             </Link>
           </div>

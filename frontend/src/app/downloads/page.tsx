@@ -22,7 +22,7 @@ export default function DownloadsPage() {
   return (
     <div className="px-6 md:px-12 py-12 max-w-4xl mx-auto flex flex-col gap-8 bg-slate-950 text-slate-100 min-h-screen">
       <div className="flex flex-col gap-2 border-b border-slate-800 pb-6">
-        <span className="text-[#f97316] font-bold text-xs uppercase tracking-widest flex items-center gap-1.5">
+        <span className="text-[#f7941d] font-bold text-xs uppercase tracking-widest flex items-center gap-1.5">
           <Download size={14} /> DOCUMENTS & TEMPLATES LEDGER
         </span>
         <h1 className="font-heading font-extrabold text-4xl text-slate-100 tracking-tight">Downloads Center</h1>

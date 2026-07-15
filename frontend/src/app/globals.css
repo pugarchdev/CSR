@@ -3,19 +3,20 @@
 @tailwind utilities;
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --primary: #1e3a8a;
-  --saffron: #f97316;
-  --green: #16a34a;
-  --navy: #1e3a8a;
-  --navy-light: #2563eb;
-  --cream: #fffbeb;
-  --govt-bg: #f1f5f9;
+  /* csr.gov.in national portal palette */
+  --background: #ffffff;
+  --foreground: #333333;
+  --primary: #14274e;
+  --saffron: #f7941d;
+  --green: #43a047;
+  --navy: #14274e;
+  --navy-light: #1789d6;
+  --cream: #eef0f3;
+  --govt-bg: #f4f5f7;
   --govt-card: #ffffff;
-  --govt-border: #e2e8f0;
-  --font-inter: "Noto Sans", "Noto Sans Devanagari", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-outfit: "Noto Sans", "Noto Sans Devanagari", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --govt-border: #e0e4ea;
+  --font-inter: "Poppins", "Noto Sans", "Noto Sans Devanagari", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-outfit: "Poppins", "Noto Sans", "Noto Sans Devanagari", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 body {
@@ -28,24 +29,22 @@ body {
   padding: 0;
 }
 
-/* Government Panel Card */
+/* Government Panel Card — flat elevation per csr design system */
 .glass-panel {
   background: #ffffff;
   border: 1px solid var(--govt-border);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
-  border-radius: 10px;
+  border-radius: 8px;
 }
 
 .glass-card {
   background: #ffffff;
   border: 1px solid var(--govt-border);
-  border-radius: 10px;
-  transition: all 0.2s ease;
+  border-radius: 8px;
+  transition: border-color 0.15s ease;
 }
 
 .glass-card:hover {
-  border-color: rgba(30, 58, 138, 0.3);
-  box-shadow: 0 4px 12px rgba(30, 58, 138, 0.08);
+  border-color: #b9c2cf;
 }
 
 /* Government Data Tables */
@@ -71,11 +70,11 @@ body {
 }
 
 .govt-table thead th:first-child {
-  border-radius: 6px 0 0 0;
+  border-radius: 8px 0 0 0;
 }
 
 .govt-table thead th:last-child {
-  border-radius: 0 6px 0 0;
+  border-radius: 0 8px 0 0;
 }
 
 .govt-table tbody tr {
@@ -84,16 +83,12 @@ body {
 }
 
 .govt-table tbody tr:hover {
-  background: #f8fafc;
-}
-
-.govt-table tbody tr:nth-child(even) {
-  background: #fafbfd;
+  background: #f4f5f7;
 }
 
 .govt-table tbody td {
-  padding: 10px 12px;
-  color: #334155;
+  padding: 12px;
+  color: #333333;
   font-weight: 500;
 }
 
@@ -102,64 +97,63 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 10px;
-  border-radius: 6px;
+  padding: 4px 8px;
+  border-radius: 8px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
 .govt-badge-verified {
-  background: #dcfce7;
-  color: #166534;
-  border: 1px solid #bbf7d0;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
 }
 
 .govt-badge-pending {
-  background: #fef3c7;
-  color: #92400e;
-  border: 1px solid #fde68a;
+  background: #fef3e0;
+  color: #b06000;
+  border: 1px solid #fbe0b8;
 }
 
 .govt-badge-rejected {
-  background: #fce7f3;
-  color: #9f1239;
-  border: 1px solid #fbcfe8;
+  background: #fdecea;
+  color: #c62828;
+  border: 1px solid #f9cfc9;
 }
 
 .govt-badge-draft {
-  background: #f1f5f9;
-  color: #475569;
-  border: 1px solid #e2e8f0;
+  background: #eef0f3;
+  color: #55606e;
+  border: 1px solid #e0e4ea;
 }
 
 .govt-badge-funded {
-  background: #dbeafe;
-  color: #1e3a8a;
-  border: 1px solid #bfdbfe;
+  background: #e3f0fa;
+  color: #14274e;
+  border: 1px solid #c4ddf2;
 }
 
 /* Government Form Inputs */
 .govt-input {
   width: 100%;
   background: #ffffff;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  padding: 7px 12px;
+  border: 1px solid #c7cdd6;
+  border-radius: 8px;
+  padding: 8px 12px;
   font-size: 13px;
-  color: #1e293b;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  color: #333333;
+  transition: border-color 0.2s;
 }
 
 .govt-input:focus {
   outline: none;
-  border-color: var(--navy);
-  box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
+  border-color: var(--navy-light);
 }
 
 .govt-input::placeholder {
-  color: #94a3b8;
+  color: #97a0ac;
 }
 
 /* Scrollbars */
@@ -168,14 +162,14 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #eef0f3;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #c7cdd6;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #97a0ac;
 }
 
 /* News Marquee */
@@ -209,14 +203,31 @@ body {
   font-family: var(--font-outfit);
   font-weight: 700;
   font-size: 20px;
-  color: #0f172a;
+  color: #14274e;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .govt-section-header svg {
   color: var(--navy);
+}
+
+/* csr.gov.in style section title with saffron underline dashes */
+.csr-section-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #14274e;
+  margin: 0;
+}
+
+.csr-section-title::after {
+  content: "";
+  display: block;
+  margin-top: 12px;
+  width: 96px;
+  height: 4px;
+  background: var(--saffron);
 }
 
 /* Legacy dark-theme utility normalization. Earlier screens used inverted Slate
@@ -224,7 +235,7 @@ body {
    Normalize them to the government light palette across the portal. */
 [class*="bg-slate-950"],
 [class*="bg-slate-955"] {
-  background-color: #f6f8fb !important;
+  background-color: #f4f5f7 !important;
 }
 
 [class*="bg-slate-900"] {
@@ -234,7 +245,7 @@ body {
 [class*="border-slate-800"],
 [class*="border-slate-850"],
 [class*="border-slate-855"] {
-  border-color: #d7dee8 !important;
+  border-color: #e0e4ea !important;
 }
 
 [class*="text-slate-50"],
@@ -242,31 +253,31 @@ body {
 [class*="text-slate-150"],
 [class*="text-slate-200"],
 [class*="text-slate-350"] {
-  color: #102033 !important;
+  color: #333333 !important;
 }
 
 [class*="text-slate-300"],
 [class*="text-slate-400"],
 [class*="text-slate-500"] {
-  color: #5b6b80 !important;
+  color: #6b7280 !important;
 }
 
 [class*="focus:border-violet"],
 [class*="focus:border-indigo"] {
-  border-color: #12325a !important;
+  border-color: #14274e !important;
 }
 
 [class*="rounded-3xl"],
 [class*="rounded-2xl"],
 [class*="rounded-xl"] {
-  border-radius: 6px !important;
+  border-radius: 8px !important;
 }
 
 /* Public directory pages use the official light portal palette even when older
    page markup still carries dark utility classes. */
 .csr-directory-page {
-  background: #f6f8fb;
-  color: #102033;
+  background: #f4f5f7;
+  color: #333333;
 }
 
 .csr-directory-page [class*="bg-slate-950"],
@@ -279,47 +290,46 @@ body {
 .csr-directory-page [class*="text-slate-200"],
 .csr-directory-page [class*="text-slate-300"],
 .csr-directory-page [class*="text-slate-350"] {
-  color: #102033 !important;
+  color: #333333 !important;
 }
 
 .csr-directory-page [class*="text-slate-400"],
 .csr-directory-page [class*="text-slate-500"],
 .csr-directory-page [class*="text-slate-600"] {
-  color: #5b6b80 !important;
+  color: #6b7280 !important;
 }
 
 .csr-directory-page [class*="border-slate-800"],
 .csr-directory-page [class*="border-slate-850"] {
-  border-color: #d7dee8 !important;
+  border-color: #e0e4ea !important;
 }
 
 .csr-directory-page .glass-card,
 .csr-directory-page .glass-panel {
   background: #ffffff;
-  border-color: #d7dee8 !important;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  border-color: #e0e4ea !important;
 }
 
 .csr-directory-page aside,
 .csr-directory-page input,
 .csr-directory-page select {
-  border-radius: 0 !important;
+  border-radius: 8px !important;
 }
 
 .csr-directory-page input,
 .csr-directory-page select {
   background: #ffffff !important;
-  border-color: #b8c2d1 !important;
-  color: #102033 !important;
+  border-color: #c7cdd6 !important;
+  color: #333333 !important;
 }
 
 .csr-directory-page input::placeholder {
-  color: #8a98aa !important;
+  color: #97a0ac !important;
 }
 
 .csr-directory-page button[aria-selected="true"],
 .csr-directory-page .active {
-  color: #d97706;
+  color: #f7941d;
 }
 
 /* Hero Section Namespace Overrides to bypass global light-mode forces */
@@ -342,18 +352,33 @@ body {
 }
 
 .hero-section-wrap [class*="bg-slate-900"] {
-  background-color: #0f172a !important;
+  background-color: #14274e !important;
 }
 
 .hero-section-wrap [class*="border-slate-800"] {
-  border-color: #1e293b !important;
+  border-color: #1f3a6d !important;
 }
 
 .hero-section-bg {
-  background-image: linear-gradient(to right, rgba(9, 21, 46, 0.70), rgba(15, 30, 65, 0.40)), url('/mahacsr_hero_bg.png');
+  background-color: #eef0f3;
+  background-image: url('/mahacsr_hero_bg.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+}
+
+/* Wide-viewport container spread — applies portal-wide.
+   At >=1600px CSS width (large monitors or zoomed-out views) centered page
+   containers widen so content tracks the screen instead of floating narrow. */
+@media (min-width: 1600px) {
+  .max-w-\[1380px\],
+  .max-w-7xl {
+    max-width: 1520px !important;
+  }
+
+  .max-w-6xl {
+    max-width: 1400px !important;
+  }
 }
 
 /* Animations for premium user experience */

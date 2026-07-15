@@ -44,7 +44,7 @@ export default function StaticPdfSectionPage({ title, description, items, eyebro
         </div>
 
         {metrics.length > 0 && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 16 }}>
+          <div className="gov-grid-auto-sm" style={{ marginBottom: 16 }}>
             {metrics.map((metric) => (
               <GovCard key={metric.label}>
                 <GovCardBody>
@@ -70,7 +70,7 @@ export default function StaticPdfSectionPage({ title, description, items, eyebro
         </GovCard>
 
         {sections.length > 0 && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16, marginTop: 16 }}>
+          <div className="gov-grid-auto-lg" style={{ marginTop: 16 }}>
             {sections.map((section) => (
               <GovCard key={section.title}>
                 <GovCardBody>

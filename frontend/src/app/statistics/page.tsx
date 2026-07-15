@@ -19,7 +19,7 @@ export default function StatisticsPage() {
   return (
     <div className="px-6 md:px-12 py-12 max-w-6xl mx-auto flex flex-col gap-10 bg-slate-950 text-slate-100 min-h-screen">
       <div className="flex flex-col gap-2 border-b border-slate-800 pb-6">
-        <span className="text-[#f97316] font-bold text-xs uppercase tracking-widest flex items-center gap-1.5">
+        <span className="text-[#f7941d] font-bold text-xs uppercase tracking-widest flex items-center gap-1.5">
           <BarChart2 size={14} /> महाराष्ट्र शासन • PUBLIC ANALYTICS CABINET
         </span>
         <h1 className="font-heading font-extrabold text-4xl text-slate-100 tracking-tight">CSR Sourcing Statistics</h1>
@@ -59,7 +59,7 @@ export default function StatisticsPage() {
             ].map((d, index) => (
               <div key={index} className="flex justify-between items-center p-3.5 bg-slate-950 border border-slate-850 rounded-xl">
                 <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center font-bold text-[#f97316] text-[10px]">{index + 1}</span>
+                  <span className="w-5 h-5 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center font-bold text-[#f7941d] text-[10px]">{index + 1}</span>
                   <span className="text-slate-200 font-bold">{d.district}</span>
                 </div>
                 <div className="flex items-center gap-4">

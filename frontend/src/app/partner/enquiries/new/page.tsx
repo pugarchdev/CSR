@@ -218,7 +218,7 @@ export default function NewPartnerEnquiryPage() {
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle size={32} className="text-green-600" />
               </div>
-              <h2 className="text-xl font-bold text-[#12325a] mb-2">
+              <h2 className="text-xl font-bold text-[#14274e] mb-2">
                 Your enquiry has been received
               </h2>
               <p className="text-slate-600 mb-6">
@@ -228,7 +228,7 @@ export default function NewPartnerEnquiryPage() {
               <div className="bg-slate-50 border border-slate-200 rounded p-4 mb-6" style={{ maxWidth: 400, margin: "0 auto 24px" }}>
                 <p className="text-sm text-slate-500 mb-2">Your Tracking ID</p>
                 <div className="flex items-center justify-center gap-2">
-                  <code className="text-2xl font-mono font-bold text-[#12325a]">
+                  <code className="text-2xl font-mono font-bold text-[#14274e]">
                     {trackingId}
                   </code>
                   <button
@@ -287,7 +287,7 @@ export default function NewPartnerEnquiryPage() {
               <GovCardHeader>
                 <GovCardTitle>
                   <div className="flex items-center gap-2">
-                    <Building2 className="text-[#12325a]" size={20} />
+                    <Building2 className="text-[#14274e]" size={20} />
                     <span>Organization Information</span>
                   </div>
                 </GovCardTitle>
@@ -361,7 +361,7 @@ export default function NewPartnerEnquiryPage() {
                       key={district}
                       className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
                         form.preferredDistricts.includes(district)
-                          ? "bg-[#12325a] text-white"
+                          ? "bg-[#14274e] text-white"
                           : "bg-slate-50 hover:bg-slate-100"
                       }`}
                     >

@@ -191,7 +191,7 @@ export default function DepartmentHandoverPage() {
                             {status !== "CONFIRMED" && (
                               <Button
                                 onClick={() => handleOpenHandoverModal(proj)}
-                                className="bg-[#1e3a8a] hover:bg-[#122558] text-white text-xs font-bold py-1.5 px-3 flex items-center gap-1 border-none shadow-sm"
+                                className="bg-[#14274e] hover:bg-[#0e2144] text-white text-xs font-bold py-1.5 px-3 flex items-center gap-1 border-none shadow-sm"
                               >
                                 <CheckCircle2 size={13} /> Confirm Handover
                               </Button>
@@ -222,7 +222,7 @@ export default function DepartmentHandoverPage() {
             <form onSubmit={handleConfirmHandover} className="space-y-4 text-xs font-semibold">
               <div className="bg-slate-50 border p-3 rounded-lg">
                 <span className="text-slate-400 text-[10px] uppercase font-bold block">Confirming Handover For</span>
-                <span className="text-[#1e3a8a] text-sm font-bold block mt-0.5">{selectedProject.title}</span>
+                <span className="text-[#14274e] text-sm font-bold block mt-0.5">{selectedProject.title}</span>
                 <span className="text-slate-600 mt-1 block">NGO: {selectedProject.ngo?.name}</span>
               </div>
 

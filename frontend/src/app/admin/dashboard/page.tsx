@@ -8,7 +8,7 @@ import GovStatusBadge from "@/components/gov/GovStatusBadge";
 import "../../../styles/gov-theme.css";
 
 const kpis = [
-  { label: "Total Applications", value: "1,248", status: "All onboarding applications", color: "#12325a" },
+  { label: "Total Applications", value: "1,248", status: "All onboarding applications", color: "#14274e" },
   { label: "Pending Review", value: "86", status: "Requires analyst action", color: "#d97706" },
   { label: "Query Raised", value: "31", status: "Waiting for NGO response", color: "#92400e" },
   { label: "Approved NGOs", value: "742", status: "Eligible for CSR projects", color: "#166534" },

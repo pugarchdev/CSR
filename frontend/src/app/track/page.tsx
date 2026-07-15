@@ -195,7 +195,7 @@ function TrackContent() {
             Home / Track Application
           </div>
           <h1 className="gov-page-title flex items-center gap-3">
-            <Package size={28} className="text-[#d97706]" />
+            <Package size={28} className="text-[#f7941d]" />
             Track Your Application
           </h1>
           <p className="gov-page-description">
@@ -258,17 +258,17 @@ function TrackContent() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-slate-50 p-4 rounded">
                     <p className="text-xs text-slate-500 mb-1">Tracking ID</p>
-                    <p className="font-mono font-bold text-[#12325a]">{trackingData.trackingId}</p>
+                    <p className="font-mono font-bold text-[#14274e]">{trackingData.trackingId}</p>
                   </div>
                   <div className="bg-slate-50 p-4 rounded">
                     <p className="text-xs text-slate-500 mb-1">Application Type</p>
-                    <p className="font-bold text-[#12325a]">
+                    <p className="font-bold text-[#14274e]">
                       {trackingData.type === "ENQUIRY" ? "CSR Enquiry" : "Development Pitch"}
                     </p>
                   </div>
                   <div className="bg-slate-50 p-4 rounded">
                     <p className="text-xs text-slate-500 mb-1">Submitted On</p>
-                    <p className="font-bold text-[#12325a]">
+                    <p className="font-bold text-[#14274e]">
                       {new Date(trackingData.submittedAt).toLocaleDateString("en-IN", {
                         day: "2-digit",
                         month: "short",

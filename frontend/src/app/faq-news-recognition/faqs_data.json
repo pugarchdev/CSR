@@ -1,0 +1,466 @@
+{
+  "General FAQs": [
+    {
+      "q": "What is National CSR Exchange Portal?",
+      "a": "National CSR Exchange Portal is an initiative by Ministry of Corporate Affairs to connect corporates, beneficiaries and Implementing Agencies. This Exchange Portal will help in building a more robust system for implementation of Corporate Social Responsibility."
+    },
+    {
+      "q": "Who are Registered Implementing Agencies?",
+      "a": "Registered Implementing Agencies are those Implementing Agencies which are registered on MCA21 portal and has a valid CSR Registration Number (CRN)."
+    },
+    {
+      "q": "Who are Registered Corporates?",
+      "a": "Registered Corporates are those corporates which are registered on MCA21 portal and have a valid Corporate Identification Number (CIN)."
+    },
+    {
+      "q": "I am neither a company nor Implementing Agency. Can I register?",
+      "a": "No. Only Corporates and Implementing Agency, can register on the portal."
+    },
+    {
+      "q": "What is Request For Proposal (RFP)?",
+      "a": "Request For Proposal (RFP) is a process where a registered corporate creates a request for providing available funds for the project on this portal."
+    },
+    {
+      "q": "What is Request For Fund (RFF)?",
+      "a": "Request For Funds (RFF) is a process where Implementing Agency creates a request for asking of funds for the project on this portal."
+    },
+    {
+      "q": "What are the charges for Registration on this Portal?",
+      "a": "There are no charges for registration on National CSR Exchange Portal."
+    }
+  ],
+  "Corporate": [
+    {
+      "q": "How can I register on National CSR Exchange Portal as a Corporate?",
+      "a": "· Enter a valid Corporate Identification Number (CIN) and click on search. · Confirm the details displayed on the screen. · You will receive a One Time Password (OTP) on the registered email id. · Enter OTP in the box. · Create Username and password. . Confirm your password.Click submit."
+    },
+    {
+      "q": "Do I need to provide any document in profile building?",
+      "a": "Yes, you need to upload CSR policy document which should includes following details: · Contact Person Detail · CSR Budget for the year · Details of Awards (if any)"
+    },
+    {
+      "q": "Why should I register on National CSR Exchange Portal?",
+      "a": "This Portal provides a platform to identify suitable Implementing Agency for the CSR Projects. You can easily manage your CSR projects through this Portal."
+    },
+    {
+      "q": "Can I add CSR committee details on the Portal?",
+      "a": "CSR committee can be auto filled in the profile section on portal."
+    },
+    {
+      "q": "How can I edit my profile information such as Address, Email ID?",
+      "a": "Corporate Master Information such as Corporate Address, Email Id etc cannot be edited in the portal. Changes to the Master information can only be made through MCA21."
+    },
+    {
+      "q": "Whose details I need to provide as CSR contact Person?",
+      "a": "CSR Contact Person is the in-charge of CSR Activities in the Corporate. All the Notifications/ Suggestions will be mailed to the Email ID to CSR Contact person."
+    },
+    {
+      "q": "I am a corporate looking for Proposals. How do I proceed?",
+      "a": "If you are a new user, you need to register on National CSR Exchange Portal. If you are already a user, you can float a Request For Proposal (RFP) through the portal."
+    },
+    {
+      "q": "How to know if I am eligible to register on National CSR Exchange Portal?",
+      "a": "The corporates registered on MCA21 portal and has a valid CIN are eligible to register on the portal."
+    },
+    {
+      "q": "How to know if there are any Request For Funds (RFF) raised by Implementing Agency?",
+      "a": "The portal will give notification if any new Request For Fund (RFF) is raised by an Implementing Agency. All the Request For Fund proposals can be viewed in List of Request For Fund on the portal."
+    },
+    {
+      "q": "What are Proximate Projects?",
+      "a": "Proximate Projects consist of list of those Implementing Agencies who are interested in the projects which are preferred by Corporates on the portal."
+    },
+    {
+      "q": "How does National Exchange CSR portal verify Implementing Agencies?",
+      "a": "We do not independently verify any Implementing Agency or Corporate. Due diligence of the Implementing Agency is the responsibility of Corporate."
+    },
+    {
+      "q": "How do I get best Implementing Agencies to respond on my Projects?",
+      "a": "You should provide all the necessary details related to projects to get the most responses on the portal."
+    },
+    {
+      "q": "How do I know which Implementing Agency is interested in my Project?",
+      "a": "You will get a notification once you sign in on the Portal."
+    },
+    {
+      "q": "How can I link an Implementing Agency to a project?",
+      "a": "· To Link an Implementing Agency to a Project. Click on Add Project. · On the input box Unique Implementing Agency ID, search the name of your desired Implementing Agency and select the name of required Implementing Agency. · The Implementing Agency gets linked to the project"
+    },
+    {
+      "q": "What do you mean by Project Acceptance on Corporate dashboard?",
+      "a": "Project acceptance is an act of getting a notification when any Implementing Agency links the Corporate to a Project it has created. The corporate has a choice of either accepting or rejecting the Project Acceptance request."
+    },
+    {
+      "q": "What are Nearby Implementing Agencies?",
+      "a": "Nearby Implementing Agencies is the list of all the Implementing Agencies according to the registered location of the corporate. For example, if a Corporate is registered in Delhi, so this nearby tab will show all the Implementing Agencies which are registered in Delhi."
+    },
+    {
+      "q": "What is Nearby Request For Fund (RFFs)?",
+      "a": "Nearby Request For Fund (RFFs) is the list of all the Nearby Request For Funds (RFF) according to the registered location of the corporate."
+    },
+    {
+      "q": "What is Corporate CSR Analytics?",
+      "a": "Corporate CSR Analytics contains year wise amount spent on projects by the corporate in past years. It also shows number of CSR projects implemented by corporate across years State Wise and Development Sector Wise."
+    }
+  ],
+  "Implementing Agency": [
+    {
+      "q": "How can I login on National CSR Exchange Portal?",
+      "a": "· • Enter your Username. · Enter your password created during registration · Enter Captcha Code"
+    },
+    {
+      "q": "Can we add CSR Board Member on the portal?",
+      "a": "CSR Board Members can be auto filled in the profile section on the portal."
+    },
+    {
+      "q": "How can I edit my profile information such as Address, Email ID?",
+      "a": "Implementing Agencies details such as Address, Email Id etc. cannot be edited in the portal. Changes to the Master information can only be made through MCA21."
+    },
+    {
+      "q": "Whose details I need to provide as CSR contact Person?",
+      "a": "CSR Contact Person is the in-charge of CSR Activities in the Implementing Agencies. All the Notifications/ Suggestions will be mailed to the Email ID to CSR Contact person."
+    },
+    {
+      "q": "Why should I register on National CSR Exchange Portal?",
+      "a": "The portal provides a platform to list projects and raise funds from Corporate Organization."
+    },
+    {
+      "q": "How to know if I am eligible to register on National CSR Exchange Portal?",
+      "a": "An Implementing Agency who is registered with MCA21 and has a valid CSR Registration Number (CRN) is eligible to register on the portal."
+    },
+    {
+      "q": "I am an I.A looking for funds. How do I proceed?",
+      "a": "For a new user, you need to register on National CSR Exchange Portal. If you are already a user, you can float a Request For Fund (RFF) proposal through the portal."
+    },
+    {
+      "q": "What do you mean by Project Acceptance on Implementing Agency dashboard?",
+      "a": "Project acceptance is an act of getting a notification when any Corporate links the project to a Request for Fund created by Implementing Agency. The Implementing Agency has a choice of either accepting or rejecting the Project Acceptance request."
+    },
+    {
+      "q": "What are Proximate Companies on Implementing Agency dashboard?",
+      "a": "Proximate Companies consist of list of those corporates who are interested in the projects which are preferred by Implementing Agencies."
+    },
+    {
+      "q": "Can I approach corporates directly?",
+      "a": "Yes, the platform provides you with the option of directly submitting your proposals and request for funds directly to the corporate. Due diligence of the corporate is the responsibility of implementing agency."
+    },
+    {
+      "q": "Will I surely get funds if I register on this portal?",
+      "a": "No, there is no guarantee for a project listed on this portal to get funded. But, if you provide all necessary details that will improve your chances to get funded."
+    },
+    {
+      "q": "I have submitted my response for Request For Proposal (RFPs). What do I do next?",
+      "a": "Once submitted, the final decision depends on the corporate who has listed the Request For Proposal (RFP). In case of final selection, you will get notified."
+    },
+    {
+      "q": "How many Request For Fund (RFF) for programs can I create?",
+      "a": "You can create unlimited number Request For Fund (RFF) for different programs on the portal."
+    },
+    {
+      "q": "How do I know which corporate is interested in my projects?",
+      "a": "You will get the notification on your dashboard if any corporate has shown any interest once you sign in with your credentials."
+    },
+    {
+      "q": "How can I view Request For Proposal (RFP)?",
+      "a": "You can view Request For Proposal (RFP) in the “Proximate Request For Proposal (RFP)” section."
+    },
+    {
+      "q": "What information can I get by CSR Stats?",
+      "a": "CSR Statistics provide information about Ongoing Projects, Current Projects, New Projects, number of corporates linked with Implementing Agency and total budget of Implementing Agencies."
+    },
+    {
+      "q": "What are Nearby Companies?",
+      "a": "National Exchange CSR Portal will show all the nearby Corporates according to the registered location of the Implementing Agency. For example, if an Implementing Agency is registered in Delhi so this nearby tab will show all the Corporates which are registered in Delhi."
+    },
+    {
+      "q": "What is Nearby Request For Proposal (RFP)?",
+      "a": "National Exchange CSR Portal will show all the Nearby Request For Proposal (RFP) according to the registered location of the Implementing Agency."
+    }
+  ],
+  "FAQs on CSR Provisions": [
+    {
+      "q": "Whether CSR provisions of the Companies Act, 2013 is applicable to all corporates?",
+      "a": "A corporate satisfying any of the following criteria during the immediately preceding financial year is required to comply with CSR provisions specified under section 135(1) of the Companies Act, 2013 read with the Companies (CSR Policy) Rules, 2014 made thereunder: (i) Net worth of rupees five hundred crore or more, or (ii) Turnover of rupees one thousand crore or more, or (iii) Net profit of rupees five crore or more."
+    },
+    {
+      "q": "Whether CSR expenditure of a corporate can be claimed as a business expenditure?",
+      "a": "No, the amount spent by a corporate towards CSR cannot be claimed as business expenditure. Explanation 2 to section 37(1) of the Income Tax Act, 1961 which was inserted through the Finance Act, 2014 provides that any expenditure incurred by an assessee on the activities relating to CSR referred to in section 135 of the Companies Act, 2013 shall not be deemed to be an expenditure incurred by the assessee for the purposes of the business or profession."
+    },
+    {
+      "q": "Whether the average net profit criteria for section 135(5) is Net profit before tax or Net profit after tax?",
+      "a": "The average net profit for the purpose of determining the spending on CSR activities is to be computed in accordance with the provisions of section 198 of the Act and will also be exclusive of the items given under rule 2(1)(h) of the Companies (CSR Policy) Rules, 2014. Section 198 of the Act specifies certain additions/deletions (adjustments) to be made while calculating the net profit of a corporate (mainly it excludes capital payments/receipts, income tax, set-off of past losses). Profit Before Tax (PBT) is used for computation of net profit under section 135 of the Act."
+    },
+    {
+      "q": "Can the CSR expenditure be spent on the activities beyond Schedule VII?",
+      "a": "No, CSR expenditure cannot be incurred on activities beyond Schedule VII of the Act. The activities undertaken in pursuance of the CSR policy must be relatable to Schedule VII of the Companies Act, 2013. The items enlisted in Schedule VII of the Act are broad-based and are intended to cover a wide range of activities. The entries in the said Schedule VII must be interpreted liberally to capture the essence of the subjects enumerated in the said Schedule."
+    },
+    {
+      "q": "What tax benefits can be availed under CSR?",
+      "a": "No specific tax exemptions have been extended to CSR expenditure. The Finance Act, 2014 also clarifies that expenditure on CSR does not form part of business expenditure."
+    },
+    {
+      "q": "Which activities would not qualify as CSR?",
+      "a": "Rule 2(1)(d) of the Companies (CSR Policy) Rules, 2014 defines CSR and the following activities are specifically excluded from being considered as eligible CSR activity: (i) Activities undertaken in pursuance of normal course of business of the corporate. However, exemption is provided for three financial years, till FY 2022-23, to corporates engaged in R&D activities for new vaccines, drugs, and medical devices in their normal course of business, related to COVID-19. This exclusion is allowed only in case the corporates are engaged in R&D in collaboration with organizations as mentioned in item (ix) of Schedule VII and disclose the same in their Board reports. (ii) Activities undertaken outside India, except for training of Indian sports personnel representing any State or Union Territory at national level or India at international level; (iii) Contribution of any amount, directly or indirectly, to any political party under section 182 of the Act; (iv) Activities benefitting employees of the corporate as defined in section 2(k) of the Code on Wages, 2019; (v) Sponsorship activities for deriving marketing benefits for products/services; (vi) Activities for fulfilling statutory obligations under any law in force in India."
+    },
+    {
+      "q": "Whether a holding or subsidiary of a corporate which fulfils the criteria under section 135(1) has to comply with section 135, even if the holding and subsidiary itself does not fulfil the criteria.",
+      "a": "No, the compliance with CSR requirements is specific to each corporate. A holding or subsidiary of a corporate is not required to comply with the CSR provisions unless the holding or subsidiary itself fulfils the eligibility criteria prescribed under section 135(1) stated above. Example: Corporate A is covered under the criteria mentioned in section 135(1). Corporate B is holding corporate of Corporate A. If Corporate B by itself does not satisfy any of the criteria mentioned in section 135(1), Corporate B is not required to comply with the provisions of section 135."
+    },
+    {
+      "q": "Whether provisions of CSR are applicable on Section 8 Corporate, if it fulfills the criteria of section 135(1) of the Act.",
+      "a": "Yes, section 135(1) of the Act commences with the words “Every company........” and thus applies to section 8 companies as well."
+    },
+    {
+      "q": "What are the disclosure requirements on the website of the corporate?",
+      "a": "As per Rule 9, the Board of Directors of the corporate shall mandatorily disclose the following on their website, if any, for public access: (i) Composition of the CSR Committee; (ii) CSR Policy; and (iii) Projects approved by the Board."
+    },
+    {
+      "q": "Whether reporting of CSR is mandatory in Board's Report?",
+      "a": "Yes, as per rule 8(1) of the Companies (CSR Policy) Rules, 2014, the Board’s Report pertaining to any financial year, for a CSR-eligible corporate, shall include an annual report on CSR containing particulars specified in Annexure I or Annexure II of the said rules, as applicable."
+    },
+    {
+      "q": "Whether it is mandatory for Foreign Corporate to give report on CSR activity?",
+      "a": "Yes, as per rule 8(2) of the Companies (CSR Policy) Rules, 2014, in case of a CSR-eligible foreign corporate, the balance sheet filed under clause (b) of sub-section (1) of section 381 of the Act, shall include an annual report on CSR containing particulars specified in Annexure I or Annexure II of the said rules, as applicable."
+    },
+    {
+      "q": "Whether contribution in kind can be monetized to be shown as CSR expenditure?",
+      "a": "The requirement comes from section 135(5) that states that “The Board of every corporate shall ensure that it spends…” Therefore, CSR contribution cannot be in kind and monetized."
+    },
+    {
+      "q": "If a corporate spends more than the requirement provided under section 135, can that excess amount be set off against the mandatory 2% CSR expenditure in succeeding financial years?",
+      "a": "Yes, the excess amount can be set off against the required 2% CSR expenditure up to the immediately succeeding three financial years’ subject to compliance with the conditions stipulated under rule 7(3) of the Companies (CSR Policy) Rules, 2014. This is applicable w.e.f 22nd January, 2021 and has a prospective effect. Thus, no carry forward shall be allowed for the excess amount spent, if any, in financial years prior to FY 2020-21."
+    },
+    {
+      "q": "What is the role of the Government in monitoring compliance of CSR provisions by corporates?",
+      "a": "The Government monitors the compliance of CSR provisions through the disclosures made by the corporates in the MCA 21 portal. For any violation of CSR provisions, action can be initiated by the Government against such non-compliant corporates as per provisions of the Companies Act, 2013 after due examination of records, and following due process of law. Noncompliance of CSR provisions has been notified as a civil wrong w.e.f. 22nd January, 2021."
+    },
+    {
+      "q": "Who is the appropriate authority for approving and implementation of the CSR programmes/projects of a corporate? What Is Government's role in this regard?",
+      "a": "Provisions of section 135, read with Schedule VII of the Act and Companies (CSR Policy) Rules, 2014 provide the broad framework within which the eligible corporates are required to formulate their CSR policies including activities to be undertaken and implementation of the same. CSR is a board-driven process, and the Board of the corporate is empowered to plan, approve, execute, and monitor the CSR activities of the corporate based on the recommendation of its CSR Committee. The Government has no direct role in the approval and implementation of the CSR programmes /projects of a corporate."
+    },
+    {
+      "q": "Whether involvement of employees of the corporate in CSR project/programmes of a corporate can be monetized and accounted for under the head of 'CSR expenditure?",
+      "a": "No, involvement of employees in CSR projects of a corporate cannot be monetized. Contribution and involvement of employees in CSR activities of the corporate will no doubt generate interest/pride in CSR work and promote transformation from Corporate Social Responsibility (CSR) as an obligation to Socially Responsible Corporate (SRC) in all aspects of their functioning. Corporates, therefore, should be encouraged to involve their employees in CSR activities."
+    },
+    {
+      "q": "Whether CSR provisions apply to a corporate that has not completed the period of three financial years since its incorporation?",
+      "a": "Yes. If the corporate has not completed three financial years since its incorporation, but it satisfies any of the criteria mentioned in section 135(1), the CSR provisions including spending of at least two per cent of the average net profits made during immediately preceding financial year(s) are applicable. Example: Corporate A is incorporated during FY 2018-19, and as per eligibility criteria the corporate is covered under section 135(1) for FY 2020-21. The CSR spending obligation under section 135(5) for Corporate A would be at least two per cent of the average net profits of the corporate made during FY 2018-19 and FY 2019-20."
+    },
+    {
+      "q": "What is the composition of the CSR Committee?",
+      "a": "The composition of the CSR Committee for various categories of companies is as under: Listed companies: Three or more directors, out of which at least one shall be an independent director. Unlisted public companies Three or more directors, out of which at least one shall be an independent director. However, if there is no requirement of having an independent director in the company, two or more directors. Private companies: Two or more directors. No independent directors are required as mentioned in the proviso under section 135(1). Foreign company: At least two persons out of which: (a) one shall be as specified under clause (d) of subsection (1) of section 380 of the Act, and (b) another shall be nominated by the foreign company. (Refer rule 5(1) of the Companies (CSR Policy) Rules, 2014). Where the amount required to be spent by a company on CSR does not exceed fifty lakh rupees, the requirement for constitution of the CSR Committee is not mandatory and the functions of the CSR Committee, in such cases, shall be discharged by the Board of Directors of the company."
+    },
+    {
+      "q": "What are the functions of the CSR Committee?",
+      "a": "The Corporate Social Responsibility Committee shall — (i) formulate and recommend the CSR policy to the Board; (ii) recommend the amount of expenditure to be incurred on CSR activities; (iii) monitor the CSR policy of the corporate from time to time; and (iv) formulate and recommend to the Board, an annual action plan in pursuance of its CSR policy, which shall include the items as mentioned in rule 5(2) of the Companies (CSR Policy) Rules, 2014. For companies covered under Section 135(9) of the Act and not required to have CSR Committee, these functions shall be carried out by the Board itself."
+    },
+    {
+      "q": "What are the responsibilities of the Board in relation to the CSR provisions?",
+      "a": "CSR is a Board-driven process. The responsibilities of the Board of a CSR-eligible corporate, inter-alia, include the following — (i) approve the CSR policy; (ii) disclose contents of such policy in its report and also place it on the corporate's website, if any; (iii) ensure that the activities included in the CSR policy are undertaken by the corporate; (iv) ensure that the corporate spends, in every financial year, at least two per cent of the average net profits of the corporate made during the three immediately preceding financial years; (v) satisfy itself regarding the utilisation of the disbursed CSR funds; and (vi) if the corporate fails to spend at least two per cent of the average net profits of the corporate, the Board shall, in its report made under clause (o) of sub-section (3) of section 134, specify the reasons for not spending the amount and transfer the unspent CSR amount as per provisions of sections 135(5) and 135(6) of the Act."
+    },
+    {
+      "q": "What are the mechanisms for monitoring the CSR process?",
+      "a": "CSR is a Board-driven process, and the Board of the corporate is empowered to plan, decide, execute, and monitor the CSR activities of the corporate based on the recommendation of its CSR Committee. The CSR architecture is disclosure-based and CSR-mandated corporates are required to file details of CSR activities annually in MCA21 registry. Corporates are required to make necessary disclosures in the financial statements regarding CSR including non-compliance. The existing legal provisions such as mandatory disclosures, accountability of the CSR Committee and the Board, and provisions for audit of accounts of the corporate provide sufficient mechanisms for monitoring."
+    },
+    {
+      "q": "What is the meaning of the term ‘administrative overheads? What is the maximum permissible limit for administrative overheads?",
+      "a": "Administrative overheads are the expenses incurred by the corporate for ‘general management and administration’ of CSR functions. However, the expenses which are directly incurred for the designing, implementation, monitoring, and evaluation of a particular CSR project or programme, shall not be included in the administrative overheads. Administrative overheads generally comprise of items such as employee costs, utilities, office supplies, legal expenses, etc. However, expenses which are attributed to the project implementation shall be included in project cost only. Example: Salary and training for the employees working in the CSR division of a corporate, stationery cost, travelling expenses, etc. may be categorised as administrative overheads. However, salary of school teachers or other staff, etc. for education-related CSR projects shall be covered under education project cost. The maximum permissible limit for administrative overheads is five per cent of the total CSR expenditure of the corporate for the financial year."
+    },
+    {
+      "q": "Are administrative overheads applicable only for expenses incurred by the corporate, or can they be applied to expenses incurred by the implementing agency as well?",
+      "a": "According to rule 2(1)(b) of the Companies (CSR Policy) Rules, 2014, administrative overheads mean the expenses incurred by the corporate in the general management and administration of CSR functions in the corporate. Therefore, expenses incurred by implementing agencies on the management of CSR activities shall not amount to administrative overheads and cannot be claimed by the corporate."
+    },
+    {
+      "q": "What is the meaning of surplus arising from CSR activities? How can this surplus be utilised?",
+      "a": "Surplus refers to income generated from the spend on CSR activities, e.g., interest income earned by the implementing agency on funds provided under CSR, revenue received from the CSR projects, disposal/sale of materials used in CSR projects, and other similar income sources. The surplus arising out of CSR activities shall be utilised only for CSR purposes."
+    },
+    {
+      "q": "Whether contribution to the corpus of an entity is an admissible CSR expenditure?",
+      "a": "No, the provision relating to contribution to corpus as admissible CSR expenditure has been amended and the contribution to corpus of any entity is not an admissible CSR expenditure w.e.f. 22nd January, 2021."
+    },
+    {
+      "q": "Whether expenses related to transfer of capital asset as provided under rule 7(4) of Companies (CSR Policy) Rules, 2014, will qualify as admissible CSR expenditure?",
+      "a": "Yes, the expenses relating to transfer of capital asset such as stamp duty and registration fees, will qualify as admissible CSR expenditure in the year of such transfer."
+    },
+    {
+      "q": "If a corporate cannot take the benefit of set off of excess amount spent in the previous financial year because of non-applicability of CSR provisions, will the excess amount lapse?",
+      "a": "Yes, the law states that the excess CSR amount spent can be carried forward up to immediately succeeding three financial years; thus, in case any excess amount is left for set off, it will lapse at the end of the said period."
+    },
+    {
+      "q": "Whether it is mandatory for companies to carry out CSR in their local areas?",
+      "a": "The first proviso to section 135(5) of the Act provides that the company shall give preference to local areas and the areas around where it operates. Some activities in Schedule VII such as welfare activities for war widows, art and culture, and other similar activities, transcend geographical boundaries and are applicable across the country. With the advent of Information & Communication Technology (ICT) and emergence of new age businesses like e-commerce companies, process-outsourcing companies, and aggregator companies, it is becoming increasingly difficult to determine the local area of various activities. The spirit of the Act is to ensure that CSR initiatives are aligned with the national priorities and enhance engagement of the corporate sector towards achieving Sustainable Development Goals (SDGs). Thus, the preference to local area in the Act is only directory and not mandatory in nature and companies need to balance local area preference with national priorities."
+    },
+    {
+      "q": "What are the different modes of incurring CSR expenditure?",
+      "a": "CSR expenditure can be incurred in multiple modes: (i) ‘Activities route’, which is a direct mode wherein a corporate undertakes the CSR projects or programmes as per Schedule VII of the Act, either by itself or by engaging implementing agencies as prescribed in Companies (CSR Policy) Rules, 2014. (ii) ‘Contribution to funds route', which allows the contributions to various funds as specified in Schedule VII of the Act. (iii) Contribution to incubators and R&D projects, as specified in item (ix)(a) and contribution to institutes/organisations, engaged in research and development activity, as specified under item (ix)(b) of Schedule VII of the Act."
+    },
+    {
+      "q": "Which are the funds specified in Schedule VII of the Act for the purpose of CSR contribution?",
+      "a": "Contributions to the following funds shall be admissible as CSR expenditure: (i) Swachh Bharat Kosh (ii) Clean Ganga Fund (iii) Prime Minister’s National Relief Fund (PMNRF) (iv) Prime Minister’s Citizen Assistance and Relief in Emergency Situations Fund (PM CARES Fund) (v) Any other fund set up by the Central Government and notified by the Ministry of Corporate Affairs, for socio-economic development and relief and welfare of the Scheduled Castes, the Scheduled Tribes, other backward classes, minorities and women."
+    },
+    {
+      "q": "Can CSR funds be utilised to fund Government schemes?",
+      "a": "The objective of CSR provisions is to involve the corporates as partners in the social development process. Use of corporate innovations and management skills in the delivery of ‘public goods’ is at the core of CSR implementation by the companies. Therefore, CSR should not be interpreted as a source of financing the resource gaps in Government Schemes. However, the Board of the eligible company may undertake similar activities independently subject to fulfilment of Companies (CSR Policy) Rules, 2014."
+    },
+    {
+      "q": "Whether the corporates can undertake any CSR activity mentioned under Schedule VII of the Act for the exclusive benefit of their employees, workers and their family members?",
+      "a": "Rule 2(1)(d)(iv) of the Companies (CSR Policy) Rules, 2014 states that any activity benefitting employees of the company shall not be considered as eligible CSR activity. As per the rule, any activity designed exclusively for the benefit of employees shall be considered as an “activity benefitting employees” and will not qualify as permissible CSR expenditure. The spirit behind any CSR activity is to benefit the public at large and the activity should be nondiscriminatory to any class of beneficiaries. However, any activity which is not designed to benefit employees solely, but the public at large, and if the employees and their family members are incidental beneficiaries, then, such activity would not be considered as “activity benefitting employees” and will qualify as eligible CSR activity."
+    },
+    {
+      "q": "What is the meaning of sponsorship activities deriving marketing benefits for company’s products or services?",
+      "a": "Sponsorship activities of an event are done with an aim of deriving marketing benefits for a company’s product or services. The intent of CSR is to encourage companies to undertake the activities in a project or programme mode rather than as a one-off event. Companies shall not use CSR purely as a marketing or brand building tool for their business, but brand building as a collateral benefit does not vitiate the spirit of CSR."
+    },
+    {
+      "q": "Are activities undertaken by corporates outside India for the benefit of resident Indians, permitted as eligible CSR activity?",
+      "a": "Rule 2(1)(d)(ii) of the Companies (CSR Policy) Rules, 2014 clearly states that any activity undertaken by the company outside India shall not be an eligible CSR activity. The only exception is training of Indian sports personnel representing any State or Union Territory at national or international level."
+    },
+    {
+      "q": "How can corporates with small CSR funds take up CSR activities in a project mode?",
+      "a": "A well-designed CSR project can be managed with small CSR funds as well. Further, there is a provision in the Companies (CSR Policy) Rules, 2014 that enables such corporates to collaborate with other corporates for undertaking CSR activities by way of pooling their CSR resources. (Refer rule 4(4) in Companies (CSR Policy) Rules, 2014)."
+    },
+    {
+      "q": "What are the different modes of implementation of CSR activities?",
+      "a": "Pursuant to Rule 4 of the Companies (CSR Policy) Rules, 2014 a company may undertake CSR activities through following three modes of implementation: (i) Implementation by the company itself (ii) Implementation through eligible implementing agencies as prescribed under sub-rule (1) of rule 4. (iii) Implementation in collaboration with one or more companies as prescribed under sub-rule (4) of Rule 4."
+    },
+    {
+      "q": "Which entities are eligible to act as an implementing agency for undertaking CSR activities?",
+      "a": "Rule 4(1) of the Companies (CSR Policy) Rules, 2014 provides the eligible entities which can act as an implementing agency for undertaking CSR activities. These are: (i) Entity established by the company itself or along with any other company – a company established under section 8 of the Act, or a registered public trust or a registered society, registered under section 12A and 80G of the Income Tax Act, 1961. (ii) Entity established by the Central Government or State Government – a company established under section 8 of the Act, or a registered trust or a registered society. (iii) Statutory bodies – any entity established under an Act of Parliament or a State legislature. (iv) Other bodies – a company established under section 8 of the Act, or a registered public trust or a registered society, registered under section 12A and 80G of the Income Tax Act, 1961, and having an established track record of at least three years in undertaking similar activities."
+    },
+    {
+      "q": "Whether all three types of entities – a company established under section 8 of the Act, or a registered public trust, or a registered society, are required to have income-tax registration u/s 12A as well as 80G of the Income Tax Act, 1961?",
+      "a": "Yes, as per rule 4(1) all three types of entities – a company established under section 8 of the Act, or a registered public trust, or a registered society are required to have income-tax registration u/s 12A as well as 80G of the Income Tax Act, 1961 to act as implementing agency, except for any entities established by Central or State Government."
+    },
+    {
+      "q": "What is meant by ’registered public trusts’ in such states where registration is not mandatory?",
+      "a": "Registered public trust (as referred to in rule 4(1) of the Companies (CSR Policy) Rules,2014) would include trusts registered under the Income Tax Act, 1961 in respect of those states where registration of public trusts is not mandatory."
+    },
+    {
+      "q": "Is it mandatory for every implementing agency to register on the MCA21 portal?",
+      "a": "Yes, every implementing agency mentioned in rule 4(1) of the Companies (CSR Policy) Rules, 2014 shall mandatorily register itself in the MCA21 portal w.e.f. 01st April 2021 in order to enable it to undertake CSR activities on behalf of the company."
+    },
+    {
+      "q": "What is the purpose of registration of the implementing agency on MCA21 portal?",
+      "a": "The identification of suitable implementing agencies is a major concern for companies. Registration of implementing agencies on MCA21 portal is aimed at creating a database of such agencies for companies who may want to engage them. Further, this will bring accountability and transparency in the implementation of CSR activities and thereby strengthen the CSR eco-system."
+    },
+    {
+      "q": "Whether an ongoing project approved prior to April 01, 2021, may be implemented by an implementing agency not registered on MCA21 portal?",
+      "a": "Since the requirement of registration has commenced from 01st April, 2021, any ongoing project which has been approved between 22nd January, 2021 and 31st March, 2021, may be carried out by an implementing agency which is not registered in MCA21 portal. However, the unregistered implementing agency is required to register in MCA21 portal before undertaking any new project after 01st April, 2021."
+    },
+    {
+      "q": "Whether registration of implementing agency by filing e-form CSR-1 is mandatory in case the company carries out CSR activities directly?",
+      "a": "No. The question of filing e-form CSR-1 does not arise in case the company carries out CSR activities directly."
+    },
+    {
+      "q": "Can international organizations act as an implementing agency?",
+      "a": "No, an international organization cannot act as an implementing agency."
+    },
+    {
+      "q": "What is the role of international organizations in the context of CSR?",
+      "a": "Pursuant to rule 4(3) of the Companies (CSR Policy) Rules, 2014, a company can engage international organizations for the limited purposes of designing, monitoring, and evaluation of the CSR projects or programmes, or for capacity building of personnel of the company involved in CSR activities."
+    },
+    {
+      "q": "What is the meaning of ‘ongoing project’? Which projects can be considered as ongoing?",
+      "a": "Ongoing project has been defined under rule 2(1)(i) of the Companies (CSR Policy) Rules, 2014 as: (i) a multi-year project, stretching over more than one financial year; (ii) having a timeline not exceeding three years excluding the year of commencement; (iii) includes such project that was initially not approved as a multi-year project but whose duration has been extended beyond one year by the Board based on reasonable justification. The project should have commenced within the financial year to be termed as ‘ongoing’. The intent is to include a project which has an identifiable commencement and completion dates. After the completion of any ongoing project, the Board of the company is free to design any other project related to operation and maintenance of such completed projects in a manner as may be deemed fit on a case-to-case basis. Note: The term ‘year’ refers to financial year as defined in section 2(41) of the Act."
+    },
+    {
+      "q": "When will an ongoing project be regarded as ‘commenced’?",
+      "a": "An ongoing project will have ‘commenced’ when the company has either issued the work order pertaining to the project or awarded the contract for execution of the project."
+    },
+    {
+      "q": "What is the maximum permissible time period for any ongoing project? Can the time period of an ongoing project be extended beyond the permissible period?",
+      "a": "As per the definition of an ongoing project, the maximum permissible time period shall be three financial years excluding the financial year in which it is commenced i.e., (1+3) financial years. Under no circumstances shall the time period of an ongoing project be extended beyond its permissible limit."
+    },
+    {
+      "q": "What are the responsibilities of the Board in case ongoing projects are undertaken by the company?",
+      "a": "In case of ongoing projects, the major responsibilities of the Board, inter-alia, include: (i) identification of the ongoing projects; (ii) year-wise allocation of funds; (iii) transferring the unspent money to a separate bank account as prescribed under sub-section (6) of section 135; (iv) monitoring the implementation of the projects with reference to the approved timelines and year-wise allocation; and (v) making modifications, if any, for smooth implementation of the projects within the overall permissible time period."
+    },
+    {
+      "q": "Can ongoing projects be implemented through implementing agencies?",
+      "a": "Yes, once the Board approves a project as an ongoing project, then it can choose to implement the project either itself, or through any of the implementing agencies as mentioned in rule 4(1) of the Companies (CSR Policy) Rules, 2014."
+    },
+    {
+      "q": "Does the Board have the power to abandon or modify an ongoing project within the permissible period of three years?",
+      "a": "As per provisions of the CSR Rules, the Board may abandon or modify an ongoing project, partially or wholly, under exceptional circumstances, during the prescribed project period as per the recommendation of its CSR Committee, and by providing reasonable justification to that effect. It is important to keep in mind that the maximum permissible period for an ongoing project is three years excluding the year of its commencement."
+    },
+    {
+      "q": "Can funds earmarked for one project be used for another project?",
+      "a": "Yes, the budget outlay dedicated for one project can be used against another project. In such a case, the Board and CSR Committee should appropriately record the alteration in the target spending and modify the same in accordance with the actuals."
+    },
+    {
+      "q": "What actions need to be taken if a company spends less than the amount required to be spent under CSR obligation in a particular year?",
+      "a": "If a company spends less than the amount required to be spent under their CSR obligation, the Board shall specify the reasons for not spending in the Board’s report and shall deal with the unspent amount in the following manner: • If the Unspent amount pertains to ‘ongoing projects’, transfer such unspent amount to a separate bank account of the company to be called as ‘Unspent CSR Account’ within 30 days from the end of the financial year. • If the Unspent amount pertains to ‘other than ongoing projects’, transfer unspent amount to any fund included in Schedule VII of the Act, within 6 months from the end of the financial year."
+    },
+    {
+      "q": "Where the company was unable to meet its CSR obligation, but transferred the said unspent amount to any fund included in Schedule VII of the Act, will the same be considered as compliance under section 135?",
+      "a": "The compliance of CSR is fulfilled when the company spends the prescribed amount as per its obligation. However, in case the company fails to spend the requisite amount within the financial year, it shall fulfil its obligation by transferring the unspent amount to any fund included in Schedule VII of the Act. The same will be considered as compliance with section 135(5) of the Act. Further, the Board of the company is required to give the requisite disclosure in the Board report and annual report on CSR."
+    },
+    {
+      "q": "A company has been given six months’ time to transfer the unspent CSR amount, other than the amount pertaining to ongoing projects, to any fund included in Schedule VII of the Act. Can the company spend this amount in the said period of six months on any CSR activity?",
+      "a": "No, companies are not permitted to spend the unspent CSR amount, other than the amount pertaining to ongoing projects, on any CSR activity during the intervening period of six months after the end of the financial year. Such unspent CSR amount is required to be transferred to any fund included in Schedule VII of the Act."
+    },
+    {
+      "q": "Whether disbursal of funds by a company to the Implementing Agency for the implementation of projects will be considered as spend under section 135(5) and rules made there under?",
+      "a": "Section 135(5) of the Act prescribes minimum spending obligation for the company. The company may fulfil its CSR spending obligation directly by itself or though engaging an implementing agency. The implementing agency acts on behalf of the company and mere disbursal of funds for implementation of a project does not amount to spending unless the implementing agency utilises the whole amount. In the annual action plan, the CSR Committee of the company is required to provide for modalities of utilisation of funds. The CSR Committee shall recommend to the Board on budget allocation for any CSR project including modalities of utilisation of funds in every project. Further, as per rule 4(5) of the Companies (CSR Policy) Rules, 2014, the Board of a company shall satisfy itself that the funds so disbursed have been utilised for the purposes and in the manner as approved by it and the Chief Financial Officer or the person responsible for financial management shall certify to the effect. Accordingly, the CSR Committee and Board should ensure that CSR fund should be disbursed to implementing agencies, partially or wholly, in such a manner so that they can be utilised by them during the financial year. Mere disbursal of funds for implementation of a project does not amount to spending unless the implementing agency utilises the whole amount."
+    },
+    {
+      "q": "Should a company open a separate ’Unspent CSR Account’ for each ongoing project?",
+      "a": "No, a company can open a single special account, called ‘Unspent Corporate Social Responsibility Account’, for a financial year in any scheduled bank, to transfer the unspent amount w.r.t ongoing project(s) of that financial year. A company needs to open a separate ’Unspent CSR Account’ for each financial year but not for each ongoing project."
+    },
+    {
+      "q": "Can the amount transferred to ‘Unspent CSR Account’ of the company be utilised for regular business of the company?",
+      "a": "No, the provisioning of a separate special account, namely the ‘Unspent CSR Account’, in any scheduled bank is to ensure that the unspent amount, if any, is transferred to this designated account and used only for meeting the expenses of ongoing projects, and not for other general purposes of the company. The special account cannot be used by the company as collaterals or creating a charge or any other business activity."
+    },
+    {
+      "q": "Can an ongoing project initiated by a company in any previous financial year (for instance in FY 2019-20) be classified as an ongoing project under section 135(6) of the Act. Is the unspent amount of previous financial years also required to be transferred to the Unspent CSR Account?",
+      "a": "No, the provisions related to ongoing projects have come into effect from 22nd January 2021, i.e., from FY 2020-21 onwards. The said provisions are prospective in effect and not applicable to projects of previous financial years. Further, the Board of the company is free to decide the treatment of the unspent CSR amount of previous financial years prior to FY 2020-21. The Board can either transfer the amount to ‘Unspent CSR Account’ or continue as per the previous accounting practices adopted by the company."
+    },
+    {
+      "q": "What are the penal provisions for non-compliance with the provisions regarding transfer of unspent amount?",
+      "a": "The said non-compliance is a civil wrong and shall attract the following penalties: Company: Twice the unspent amount required to be transferred to any fund included in Schedule VII of the Act or Unspent CSR Account, as the case may be, or one crore rupees, whichever is less. Every Officer in Default: 1/10th of the unspent amount required to be transferred to any fund included in Schedule VII of the Act or Unspent CSR Account, or two lakh rupees, whichever is less."
+    },
+    {
+      "q": "Will the penal proceedings apply even after the unspent amount has been transferred to the Unspent CSR Account or to the funds mentioned in Schedule VII of the Act?",
+      "a": "The penalty does not relieve the company from the obligations under the law, and the penalty is over and above the obligated amount required to be transferred under section 135(5) or 135(6). The penalty is the consequence of not abiding by the law, and not an alternative for the same."
+    },
+    {
+      "q": "Is the penal provision in section 135(7) specific to non-transference of the unspent CSR amount?",
+      "a": "Yes, section 135(7) clearly states the penalty for default in complying with the provisions of sub-section (5) or subsection (6) only."
+    },
+    {
+      "q": "What are the penal provisions relating to non-compliance with provisions other than Section 135(5) and 135(6) of the Act?",
+      "a": "In case of non-compliance with any other provisions of the section or rules, the provisions of Section 134(8) or general penalty under section 450 of the Act will be applicable. Further, in case of non-payment of penalty within the stipulated period, the provisions of section 454(8) will be applicable."
+    },
+    {
+      "q": "What is the objective of providing Impact Assessment of CSR activities?",
+      "a": "The purpose of Impact Assessment is to assess the social impact of a particular CSR project. The intent is to encourage companies to take considered decisions before deploying CSR amounts and assess the impact of their CSR spending. This not only serves as feedback for companies to plan and allocate resources better but shall also deepen the impact of CSR."
+    },
+    {
+      "q": "Which companies are required to undertake Impact Assessment?",
+      "a": "Rule 8(3) of the Companies (CSR Policy) Rules, 2014 mandates following class of companies to conduct impact assessment: (i) Companies with minimum average CSR obligation of Rs. 10 crore or more in the immediately preceding 3 financial years; and (ii) Companies that have CSR projects with outlays of minimum Rs. 1 crore and which have been completed not less than 1 year before undertaking impact assessment. Impact assessment shall be carried out project-wise only in cases where both the above conditions are fulfilled. In other cases, it can be taken up by the company on a voluntary basis."
+    },
+    {
+      "q": "Whether companies are required to undertake impact assessment for FY 2020-21?",
+      "a": "The provisions for impact assessment have come into effect from 22nd January, 2021. Accordingly, the company is required to undertake impact assessment of the CSR projects completed on or after January 22, 2021. However, as a good practice the Board may undertake impact assessment of completed projects of previous financial years."
+    },
+    {
+      "q": "Who can conduct impact assessment?",
+      "a": "Rule 8(3) of the Companies (CSR Policy) Rules, 2014 requires that the impact assessment be conducted by an Independent Agency. The Board has the prerogative to decide on the eligibility criteria for selection of the independent agency for impact assessment."
+    },
+    {
+      "q": "Is expenditure on impact assessment over and above the administrative overheads of 5%, or included in the same?",
+      "a": "Yes, the expenditure incurred on impact assessment is over and above the specified administrative overheads of 5%. Expenditure up to a maximum of 5% of the total CSR expenditure for that financial year or 50 lakh rupees (whichever is lower) can be incurred separately for impact assessment."
+    },
+    {
+      "q": "Whether impact assessment reports of all the CSR projects shall be annexed to the annual report on CSR?",
+      "a": "Rule 8(3)(b) of the Companies (CSR Policy) Rules, 2014 provides that impact assessment reports shall be placed before the Board and shall be annexed to the report on CSR. It is clarified that web-link to access the complete impact assessment reports and providing executive summary of the impact assessment reports in the annual report on CSR, shall be considered as sufficient compliance of the said Rule."
+    },
+    {
+      "q": "When two or more companies collaborate for implementation of a CSR project, should the impact assessment carried out by one company be shared with other companies?",
+      "a": "Yes, in case two or more companies choose to collaborate for the implementation of a CSR project, then the impact assessment carried out by one company for the common project may be shared with the other companies for the purpose of disclosure to the Board and in the annual report on CSR. The sharing of the cost of impact assessment may be decided by the collaborating companies subject to the limit as prescribed in rule 8(3)(c) of the Companies (CSR Policy) Rules, 2014 for each company."
+    },
+    {
+      "q": "Whether every CSR project irrespective of outlay and percentage to the total CSR expenditure of the company needs to be disclosed on the website of the respective company in terms of Rule 9 of the Companies (CSR Policy) Rules, 2014?",
+      "a": "Yes, as per rule 9 of the Companies (CSR Policy) Rules, 2014, all CSR projects approved by the Board are required to be disclosed on the website of the company, if any, for public access."
+    }
+  ]
+}

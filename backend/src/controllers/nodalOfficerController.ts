@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../config/db";
 import { successResponse, errorResponse, notFoundResponse, unauthorizedResponse, validationErrorResponse } from "../utils/apiResponse";
-import { Role, SimpleMilestoneStatus, GrievanceStatus, Prisma, CorporateEnquiryStatus, GovernmentPitchStatus } from "@prisma/client";
+import { Role, SimpleMilestoneStatus, GrievanceStatus, Prisma, CorporateEnquiryStatus, GovernmentPitchStatus, VerificationStatus } from "@prisma/client";
 
 // Extended Request type with user info
 interface AuthenticatedRequest extends Request {
@@ -1273,5 +1273,116 @@ export const updateMouStatus = async (
   } catch (error) {
     console.error("Error in updateMouStatus:", error);
     return errorResponse(res, "Failed to update tripartite MoU", 500);
+  }
+};
+
+/**
+ * @desc Get NGOs pending final empanelment review
+ * @route GET /api/nodal/ngos/verification-queue
+ * @access Private (DISTRICT_NODAL_OFFICER, PORTAL_ADMIN)
+ */
+export const listNgoVerificationQueue = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const district = req.user?.assignedDistrict || "Pune";
+
+    const ngos = await prisma.nGO.findMany({
+      where: {
+        district,
+        preliminaryApproved: true,
+        status: VerificationStatus.PENDING
+      },
+      include: {
+        users: {
+          select: {
+            id: true,
+            email: true
+          }
+        },
+        onboardingApplication: true
+      },
+      orderBy: { createdAt: "desc" }
+    });
+
+    return successResponse(res, ngos, "NGO verification queue retrieved successfully");
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc Submit final government verification for NGO
+ * @route POST /api/nodal/ngos/:ngoId/final-verification
+ * @access Private (DISTRICT_NODAL_OFFICER, PORTAL_ADMIN)
+ */
+export const submitFinalNgoVerification = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const userId = req.user?.id;
+    const { ngoId } = req.params;
+    const { approved, remarks } = req.body;
+
+    if (!userId) {
+      return unauthorizedResponse(res, "User not authenticated");
+    }
+
+    if (typeof approved !== "boolean") {
+      return validationErrorResponse(res, "Field 'approved' (boolean) is required");
+    }
+
+    const ngo = await prisma.nGO.findUnique({
+      where: { id: ngoId }
+    });
+
+    if (!ngo) {
+      return notFoundResponse(res, "NGO partner not found");
+    }
+
+    const status = approved ? VerificationStatus.VERIFIED : VerificationStatus.REJECTED;
+
+    const updatedNgo = await prisma.nGO.update({
+      where: { id: ngoId },
+      data: {
+        status,
+        finalApproved: approved,
+        finalApprovedAt: new Date(),
+        finalApprovedById: userId,
+        empanelmentStatus: approved ? "EMPANELLED" : "EMPANELMENT_REJECTED"
+      }
+    });
+
+    const application = await prisma.onboardingApplication.findFirst({
+      where: { ngoId }
+    });
+    if (application) {
+      await prisma.onboardingApplication.update({
+        where: { id: application.id },
+        data: {
+          status: approved ? "APPROVED" : "REJECTED",
+          reviewedAt: new Date(),
+          approvedAt: approved ? new Date() : null,
+          rejectedAt: approved ? null : new Date()
+        }
+      });
+    }
+
+    await prisma.auditLog.create({
+      data: {
+        userId,
+        tenantId: req.user?.tenantId || null,
+        action: "NGO_FINAL_VERIFICATION_SUBMITTED",
+        details: { ngoId, approved, remarks }
+      }
+    });
+
+    return successResponse(res, updatedNgo, `NGO final verification completed. Status set to: ${status}`);
+  } catch (error) {
+    next(error);
   }
 };

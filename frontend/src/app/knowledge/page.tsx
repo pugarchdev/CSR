@@ -50,9 +50,42 @@ export default function KnowledgeCenter() {
   ];
 
   const downloads = [
-    { title: "Standard Project Proposal Template (PDF)", desc: "Mandatory structural format for submitting capital proposals to the marketplace.", type: "PDF" },
-    { title: "Annual Corporate CSR Compliance Report (Excel)", desc: "Pre-formatted ledger sheets mapped to MCA Section 135 reporting needs.", type: "XLSX" },
-    { title: "Escrow Account Setup Agreement Framework", desc: "Sample state escrow agreement for releasing milestone-based tranches.", type: "DOCX" }
+    { 
+      title: "Aspirational Districts Framework (PDF)", 
+      desc: "Framework guidelines for focusing CSR activities in underdeveloped and aspirational districts.", 
+      type: "PDF",
+      href: "/docs/aspirational_district.pdf"
+    },
+    { 
+      title: "Development Sectors in CSR (PDF)", 
+      desc: "Official schedule and guidelines of developmental sectors covered under CSR convergence.", 
+      type: "PDF",
+      href: "/docs/DEVELOPMENT_SECTORS_IN_CSR.pdf"
+    },
+    { 
+      title: "Section 135 Companies Act Compliance (PDF)", 
+      desc: "Statutory provisions and compliance mandates of Section 135 of the Companies Act, 2013.", 
+      type: "PDF",
+      href: "/docs/Section_135_CSR.pdf"
+    },
+    { 
+      title: "Standard Project Proposal Template (PDF)", 
+      desc: "Mandatory structural format for submitting capital proposals to the marketplace.", 
+      type: "PDF",
+      href: ""
+    },
+    { 
+      title: "Annual Corporate CSR Compliance Report (Excel)", 
+      desc: "Pre-formatted ledger sheets mapped to MCA Section 135 reporting needs.", 
+      type: "XLSX",
+      href: ""
+    },
+    { 
+      title: "Escrow Account Setup Agreement Framework", 
+      desc: "Sample state escrow agreement for releasing milestone-based tranches.", 
+      type: "DOCX",
+      href: ""
+    }
   ];
 
   const recommendations = [
@@ -171,9 +204,21 @@ export default function KnowledgeCenter() {
                         {d.desc}
                       </p>
                     </div>
-                    <GovButton variant="secondary" style={{ fontSize: 12, padding: "6px 12px", whiteSpace: "nowrap" }}>
-                      Download {d.type}
-                    </GovButton>
+                    {d.href ? (
+                      <a href={d.href} download={d.href.split("/").pop()} style={{ textDecoration: "none" }}>
+                        <GovButton variant="secondary" style={{ fontSize: 12, padding: "6px 12px", whiteSpace: "nowrap" }}>
+                          Download {d.type}
+                        </GovButton>
+                      </a>
+                    ) : (
+                      <GovButton 
+                        variant="secondary" 
+                        style={{ fontSize: 12, padding: "6px 12px", whiteSpace: "nowrap" }}
+                        onClick={() => alert("This document template is currently being finalized by the Coordinating Unit.")}
+                      >
+                        Download {d.type}
+                      </GovButton>
+                    )}
                   </div>
                 ))}
               </div>

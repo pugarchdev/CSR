@@ -44,8 +44,8 @@ const transactionAuditsData = [
 ];
 
 const BRAND_COLORS = [
-  "#1e3a8a", // Navy
-  "#f97316", // Saffron
+  "#14274e", // Navy
+  "#f7941d", // Saffron
   "#10b981", // Emerald
   "#6366f1", // Indigo
   "#a855f7", // Purple
@@ -87,7 +87,7 @@ export function ProjectStatusWebChart() {
         <XAxis dataKey="name" stroke="#64748b" fontSize={10} tickLine={false} />
         <YAxis stroke="#64748b" fontSize={11} tickLine={false} />
         <Tooltip contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "12px", color: "#0f172a" }} />
-        <Bar dataKey="count" fill="#1e3a8a" radius={[6, 6, 0, 0]}>
+        <Bar dataKey="count" fill="#14274e" radius={[4, 4, 0, 0]}>
           {projectStatusData.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={BRAND_COLORS[index % BRAND_COLORS.length]} />
           ))}
@@ -105,7 +105,7 @@ export function TransactionAuditsLineChart() {
         <XAxis dataKey="month" stroke="#64748b" fontSize={10} tickLine={false} />
         <YAxis stroke="#64748b" fontSize={11} tickLine={false} />
         <Tooltip contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "12px", color: "#0f172a" }} />
-        <Line type="monotone" dataKey="count" stroke="#f97316" strokeWidth={3} activeDot={{ r: 8 }} />
+        <Line type="monotone" dataKey="count" stroke="#f7941d" strokeWidth={3} activeDot={{ r: 8 }} />
       </LineChart>
     </ResponsiveContainer>
   );

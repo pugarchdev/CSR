@@ -34,7 +34,6 @@ const publicNavGroups = [
       { label: "Public Development Needs (Live)", href: "/public-development-needs" },
       { label: "Completed Projects Gallery", href: "/completed-projects" },
       { label: "Success Stories & Case Studies", href: "/success-stories" },
-      { label: "Project Directory", href: "/marketplace" },
     ],
   },
   {
@@ -73,6 +72,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [openNavGroup, setOpenNavGroup] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Array<{ id: string; title: string; message: string; isRead: boolean }>>([]);
   const [userEmail, setUserEmail] = useState("user@mahacsr.gov.in");
   const [tenantFeatures, setTenantFeatures] = useState<Record<string, boolean>>({});
@@ -135,6 +135,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
     setMobileMenuOpen(false);
     setNotificationsOpen(false);
     setUserDropdownOpen(false);
+    setOpenNavGroup(null);
   }, [pathname]);
 
   useEffect(() => {
@@ -452,6 +453,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
         { label: "Recommendations", href: "/company-dashboard/recommendations", icon: Sparkles },
         { label: "Funded Projects", href: "/company-dashboard/funded", icon: ShieldCheck },
         { label: "Milestones", href: "/company-dashboard/milestones", icon: Award },
+        { label: "Partner NGOs", href: "/company-dashboard/ngos", icon: Landmark },
         { label: "Reports", href: "/company-dashboard/reports", icon: BarChart2 }
       ];
     }
@@ -501,37 +503,37 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#f6f8fb] text-slate-900 font-sans">
-     
+    <div className="flex flex-col min-h-screen bg-[#f4f5f7] text-[#333333] font-sans">
 
-      {isDashboard && <div className="fixed top-0 left-0 right-0 h-1 z-[60] bg-gradient-to-r from-[#FF9933] via-white to-[#138808]" />}
+
+      {isDashboard && <div className="fixed top-0 left-0 right-0 h-1 z-[60] flex"><span className="flex-1 bg-[#f7941d]" /><span className="flex-1 bg-white" /><span className="flex-1 bg-[#43a047]" /></div>}
 
       {isDashboard ? (
         <header
-          className="fixed top-1 left-0 right-0 h-[68px] z-50 bg-white border-b border-gov-line flex justify-between items-center px-6 md:px-10 shadow-sm"
+          className="fixed top-1 left-0 right-0 h-[56px] z-50 bg-white border-b border-[#e0e4ea] flex justify-between items-center px-4 md:px-6"
         >
           <div className="contents">
             {/* Brand Logo */}
             <div className="flex items-center gap-4">
-              <button 
-                className="lg:hidden text-slate-500 hover:text-slate-700 focus:outline-none"
+              <button
+                className="lg:hidden text-[#6b7280] hover:text-[#333333] focus:outline-none"
                 onClick={() => setMobileMenuOpen(true)}
                 aria-label="Toggle Navigation Menu"
               >
                 <Menu size={20} />
               </button>
-              
+
               <Link href="/" className="flex min-w-0 items-center gap-3 hover:no-underline">
                 <svg viewBox="0 0 100 100" className="w-9 h-9" fill="none" stroke="currentColor">
-                  <polygon points="50,5 82,18 95,50 82,82 50,95 18,82 5,50 18,18" stroke="#1e3a8a" strokeWidth="4.5" fill="#eff6ff" />
-                  <path d="M28,32 L72,32 M32,44 L68,44 M28,56 L72,56 M36,68 L64,68" stroke="#f97316" strokeWidth="3" strokeLinecap="round" />
-                  <path d="M42,80 L58,80" stroke="#1e3a8a" strokeWidth="2.5" strokeLinecap="round" />
+                  <polygon points="50,5 82,18 95,50 82,82 50,95 18,82 5,50 18,18" stroke="#14274e" strokeWidth="4.5" fill="#e3f0fa" />
+                  <path d="M28,32 L72,32 M32,44 L68,44 M28,56 L72,56 M36,68 L64,68" stroke="#f7941d" strokeWidth="3" strokeLinecap="round" />
+                  <path d="M42,80 L58,80" stroke="#14274e" strokeWidth="2.5" strokeLinecap="round" />
                 </svg>
                 <div className="flex min-w-0 flex-col leading-none">
-                  <span className="font-heading font-extrabold text-lg tracking-tight text-[#1e3a8a]">
-                    Maha<span className="text-[#f97316]">CSR</span> Setu
+                  <span className="font-heading font-bold text-lg text-[#14274e]">
+                    Maha<span className="text-[#f7941d]">CSR</span> Setu
                   </span>
-                  <span className="text-[8px] text-gray-500 tracking-wider font-extrabold mt-0.5 uppercase">
+                  <span className="text-[8px] text-[#6b7280] tracking-wider font-semibold mt-0.5 uppercase">
                     Government of Maharashtra | महाराष्ट्र शासन
                   </span>
                 </div>
@@ -540,14 +542,14 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
 
             {/* Dashboard Search */}
             <div className="hidden md:flex items-center gap-2 max-w-sm w-full relative">
-              <input 
-                type="text" 
-                placeholder="Search proposals, NGOs, or metrics..." 
-                className="govt-input pr-10 focus:ring-2 focus:ring-[#1e3a8a] focus:border-[#1e3a8a] transition-all font-sans"
+              <input
+                type="text"
+                placeholder="Search proposals, NGOs, or metrics..."
+                className="govt-input pr-10 focus:border-[#1789d6] transition-all font-sans"
                 style={{ paddingLeft: "2.5rem" }}
               />
-              <Search size={14} className="absolute left-3 text-slate-400" />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-0.5 pointer-events-none select-none text-[10px] font-extrabold text-slate-400 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded-md">
+              <Search size={14} className="absolute left-3 text-[#97a0ac]" />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-0.5 pointer-events-none select-none text-[10px] font-semibold text-[#97a0ac] bg-[#f4f5f7] border border-[#e0e4ea] px-1.5 py-0.5 rounded-lg">
                 <span>Ctrl</span>
                 <span>K</span>
               </div>
@@ -556,52 +558,52 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
             {/* Right Actions */}
             <div className="flex items-center gap-4">
               {/* Messages */}
-              <Link href="/chat" className="text-slate-400 hover:text-[#1e3a8a] transition-colors relative">
+              <Link href="/chat" className="text-[#97a0ac] hover:text-[#14274e] transition-colors relative">
                 <Mail size={18} />
-                <span className="absolute -top-1 -right-1.5 w-2 h-2 rounded-full bg-[#f97316]" />
+                <span className="absolute -top-1 -right-1.5 w-2 h-2 rounded-full bg-[#f7941d]" />
               </Link>
 
               {/* Notifications */}
               <div className="relative">
-                <button 
-                  className="text-slate-400 hover:text-[#1e3a8a] transition-colors"
+                <button
+                  className="text-[#97a0ac] hover:text-[#14274e] transition-colors"
                   onClick={() => setNotificationsOpen(!notificationsOpen)}
                 >
                   <Bell size={18} />
                   {notifications.some((notification) => !notification.isRead) && (
-                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-500 border-2 border-white" />
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#c62828] border-2 border-white" />
                   )}
                 </button>
-                
+
                 {notificationsOpen && (
-                  <div className="absolute right-0 mt-3 w-80 bg-white border border-slate-200 rounded-xl p-4 shadow-lg z-50 flex flex-col gap-3">
-                    <div className="flex justify-between items-center pb-2 border-b border-slate-200">
-                      <span className="text-xs font-extrabold text-slate-900">Notifications</span>
+                  <div className="absolute right-0 mt-3 w-80 bg-white border border-[#c7cdd6] rounded-lg p-4 z-50 flex flex-col gap-3">
+                    <div className="flex justify-between items-center pb-2 border-b border-[#e0e4ea]">
+                      <span className="text-xs font-bold text-[#14274e]">Notifications</span>
                       <button
                         onClick={() => {
                           apiFetch("/notifications/read-all", { method: "PATCH" })
                             .then(() => setNotifications((items) => items.map((item) => ({ ...item, isRead: true }))))
                             .catch(() => {});
                         }}
-                        className="text-[10px] text-[#1e3a8a] font-bold cursor-pointer hover:underline"
+                        className="text-[10px] text-[#1789d6] font-bold cursor-pointer hover:underline"
                       >
                         Clear all
                       </button>
                     </div>
                     <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
                       {notifications.length === 0 ? (
-                        <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-[11px] text-slate-500">
+                        <div className="p-3 rounded-lg bg-[#f4f5f7] border border-[#e0e4ea] text-[11px] text-[#6b7280]">
                           No notifications yet.
                         </div>
                       ) : notifications.slice(0, 8).map((notification) => (
                         <div
                           key={notification.id}
                           className={`p-3 rounded-lg border flex flex-col gap-1 text-[11px] ${
-                            notification.isRead ? "bg-slate-50 border-slate-200" : "bg-blue-50 border-blue-200"
+                            notification.isRead ? "bg-[#f4f5f7] border-[#e0e4ea]" : "bg-[#e3f0fa] border-[#c4ddf2]"
                           }`}
                         >
-                          <span className="font-bold text-slate-800">{notification.title}</span>
-                          <span className="text-slate-600">{notification.message}</span>
+                          <span className="font-bold text-[#333333]">{notification.title}</span>
+                          <span className="text-[#4b5563]">{notification.message}</span>
                         </div>
                       ))}
                     </div>
@@ -611,30 +613,30 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
 
               {/* User Dropdown */}
               <div className="relative">
-                <button 
+                <button
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                   className="flex items-center gap-2"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#1e3a8a] to-[#f97316] text-white flex items-center justify-center font-heading font-extrabold text-xs shadow-sm">
+                  <div className="w-8 h-8 rounded-lg bg-[#14274e] text-white flex items-center justify-center font-heading font-bold text-xs">
                     U
                   </div>
                 </button>
 
                 {userDropdownOpen && (
-                  <div className="absolute right-0 mt-3 w-52 bg-white border border-slate-200 rounded-xl py-2 shadow-lg z-50">
-                    <div className="px-4 py-2.5 border-b border-slate-100 flex flex-col">
-                      <span className="text-xs font-bold text-slate-900">User Account</span>
-                      <span className="text-[10px] text-slate-400 truncate">{userEmail}</span>
+                  <div className="absolute right-0 mt-3 w-52 bg-white border border-[#c7cdd6] rounded-lg py-2 z-50">
+                    <div className="px-4 py-2.5 border-b border-[#eef0f3] flex flex-col">
+                      <span className="text-xs font-bold text-[#14274e]">User Account</span>
+                      <span className="text-[10px] text-[#97a0ac] truncate">{userEmail}</span>
                     </div>
                     <button
                       onClick={() => router.push("/profile")}
-                      className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 hover:text-[#1e3a8a] transition-colors flex items-center gap-2 mt-1"
+                      className="w-full text-left px-4 py-2 text-xs text-[#4b5563] hover:bg-[#f4f5f7] hover:text-[#14274e] transition-colors flex items-center gap-2 mt-1"
                     >
                       <Users size={14} /> Account
                     </button>
                     <button
                       onClick={handleLogout}
-                      className="w-full text-left px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 transition-colors flex items-center gap-2 border-t border-slate-100 mt-1"
+                      className="w-full text-left px-4 py-2 text-xs text-[#c62828] hover:bg-[#fdecea] transition-colors flex items-center gap-2 border-t border-[#eef0f3] mt-1"
                     >
                       <LogOut size={14} /> Log Out
                     </button>
@@ -645,66 +647,75 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
           </div>
         </header>
       ) : (
-        <header className="sticky top-0 z-50 border-b border-[#d8e2ef] bg-white shadow-sm flex flex-col w-full">
-          {/* Tier 1: Top Bar (White) */}
-          <div className="bg-white border-b border-[#e2e8f0] h-[76px] sm:h-[84px] flex items-center justify-between px-4 sm:px-6 md:px-8 max-w-[1380px] w-full mx-auto">
+        <header className="sticky top-0 z-50 bg-white flex flex-col w-full">
+          {/* Tier 0: Utility Bar (Dark Navy) */}
+          <div className="bg-[#0e2144] text-white">
+            <div className="max-w-[1380px] w-full mx-auto flex items-center justify-between px-4 sm:px-6 md:px-8 h-[28px] text-[11px]">
+              <div className="flex items-center gap-6">
+                <a href="#main-content" className="text-white/90 hover:text-white hover:no-underline">Skip to main content</a>
+                <Link href="/about" className="hidden sm:inline text-white/90 hover:text-white hover:no-underline">Site Map</Link>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="hidden md:inline text-white/80">Government of Maharashtra | महाराष्ट्र शासन</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Tier 1: Brand Band (White) */}
+          <div className="bg-white h-[56px] sm:h-[64px] flex items-center justify-between px-4 sm:px-6 md:px-8 max-w-[1380px] w-full mx-auto">
             {/* Left Block: Government Seal & MahaCSR Setu Brand */}
             <div className="flex items-center gap-2 sm:gap-4 min-w-0">
               {/* Gov Seal Logo */}
               <Link href="/" className="flex items-center gap-2 hover:no-underline shrink-0">
-                <img 
-                  src="/maharashtra_seal.png" 
-                  alt="Government of Maharashtra Seal" 
-                  className="h-10 w-10 sm:h-12 sm:w-12 object-contain"
+                <img
+                  src="/maharashtra_seal.png"
+                  alt="Government of Maharashtra Seal"
+                  className="h-9 w-9 sm:h-10 sm:w-10 object-contain"
                 />
-                <div className="flex flex-col text-[11px] sm:text-xs font-bold leading-tight text-slate-800 tracking-tight">
+                <div className="flex flex-col text-[11px] sm:text-xs font-semibold leading-tight text-[#333333]">
                   <span>Government of Maharashtra</span>
-                  <span className="text-slate-500">महाराष्ट्र शासन</span>
+                  <span className="text-[#6b7280]">महाराष्ट्र शासन</span>
                 </div>
               </Link>
 
               {/* Vertical Divider */}
-              <div className="hidden min-[480px]:block h-8 w-[1px] bg-slate-300 shrink-0" />
+              <div className="hidden min-[480px]:block h-8 w-[1px] bg-[#e0e4ea] shrink-0" />
 
               {/* Brand Logo */}
               <Link href="/" className="hidden min-h-0 min-[480px]:flex flex-col leading-none hover:no-underline shrink-0">
-                <span className="font-heading font-black text-lg sm:text-[22px] tracking-tight text-[#12325a]">
-                  Maha<span className="text-[#f97316]">CSR</span> Setu
+                <span className="font-heading font-bold text-base sm:text-xl text-[#14274e]">
+                  Maha<span className="text-[#f7941d]">CSR</span> Setu
                 </span>
-                <span className="text-[10px] font-bold text-[#d97706] tracking-wider mt-0.5">
+                <span className="text-[10px] font-semibold text-[#f7941d] mt-0.5">
                   महाराष्ट्र CSR सेतु
                 </span>
               </Link>
 
               {/* Vertical Divider */}
-              <div className="hidden lg:block h-8 w-[1px] bg-slate-300 shrink-0" />
+              <div className="hidden lg:block h-8 w-[1px] bg-[#e0e4ea] shrink-0" />
 
               {/* Subtitle taglines */}
-              <div className="hidden lg:flex flex-col text-[11px] leading-tight font-extrabold text-slate-500 shrink-0">
-                <span className="text-[#12325a]">Converging Initiatives.</span>
-                <span className="text-[#d97706]">Transforming Maharashtra.</span>
+              <div className="hidden lg:flex flex-col text-[11px] leading-tight font-semibold text-[#6b7280] shrink-0">
+                <span className="text-[#14274e]">Converging Initiatives.</span>
+                <span className="text-[#f7941d]">Transforming Maharashtra.</span>
               </div>
             </div>
 
-            {/* Right Block: Accessibility, Language, and Auth Actions */}
+            {/* Right Block: Auth Actions */}
             <div className="flex items-center gap-3 sm:gap-4 shrink-0">
-             
-
-             
-
               {/* Login & Register buttons */}
               <div className="flex items-center gap-2 sm:gap-3">
-                <Link href="/login" className="inline-flex min-h-10 items-center justify-center rounded-md border border-[#12325a]/25 px-4 text-xs font-extrabold text-[#12325a] hover:bg-slate-50 hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-gov-saffron/50">
+                <Link href="/login" className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[#c7cdd6] px-4 text-xs font-semibold text-[#14274e] hover:bg-[#f4f5f7] hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f7941d]/50">
                   Login
                 </Link>
-                <Link href="/register" className="inline-flex min-h-10 items-center justify-center rounded-md bg-[#008080] px-4 sm:px-5 text-xs font-extrabold text-white shadow-sm hover:bg-[#0d9488] hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-gov-saffron/50">
+                <Link href="/register" className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#1789d6] px-4 sm:px-5 text-xs font-semibold text-white hover:bg-[#146fb0] hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f7941d]/50">
                   Register
                 </Link>
               </div>
 
               {/* Mobile Hamburger menu */}
-              <button 
-                className="lg:hidden text-slate-500 hover:text-slate-700 focus:outline-none"
+              <button
+                className="lg:hidden text-[#6b7280] hover:text-[#333333] focus:outline-none"
                 onClick={() => setMobileMenuOpen(true)}
                 aria-label="Toggle Navigation Menu"
               >
@@ -713,127 +724,135 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
             </div>
           </div>
 
-          {/* Tier 2: Navigation Bar (Deep Navy Blue) */}
-          <div className="bg-[#12325a] h-[48px] w-full shadow-sm flex items-center justify-between px-4 sm:px-6 md:px-8">
+          {/* Tier 2: Navigation Bar (Deep Navy) */}
+          <div className="bg-[#0e2144] h-[44px] w-full flex items-center justify-between px-4 sm:px-6 md:px-8">
             <div className="max-w-[1380px] w-full mx-auto flex items-center justify-between h-full">
               {/* Left side: Home button and Menu links */}
               <div className="flex items-center h-full">
-                {/* Home Icon button */}
-                <Link 
-                  href="/" 
-                  className="bg-white/10 hover:bg-white/20 h-[48px] w-[54px] flex items-center justify-center border-r border-white/10 hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-gov-saffron/50"
+                {/* Home tab — solid bright blue when active, per csr.gov.in */}
+                <Link
+                  href="/"
+                  className={`h-[44px] px-6 flex items-center text-[14px] font-semibold hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f7941d]/50 ${
+                    pathname === "/"
+                      ? "bg-[#1789d6] text-white"
+                      : "text-white/90 hover:bg-white/10 hover:text-white"
+                  }`}
                   aria-label="Home"
                 >
-                  <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="currentColor">
-                    <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
-                  </svg>
+                  Home
                 </Link>
 
                 {/* Menu links with government-style dropdowns */}
-                <nav className="hidden lg:flex items-center h-full text-xs font-bold text-white/95">
+                <nav className="hidden lg:flex items-center h-full text-[14px] font-medium text-white/95">
                   <Link
                     href="/partner-with-maharashtra"
-                    className={`px-4 h-[48px] flex items-center border-b-[3px] transition-all hover:bg-white/5 hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-gov-saffron/50 ${
+                    className={`px-4 h-[44px] flex items-center transition-colors hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f7941d]/50 ${
                       pathname === "/partner-with-maharashtra"
-                        ? "border-[#FF9933] text-white font-extrabold bg-white/10"
-                        : "border-transparent text-white/90 hover:text-white"
+                        ? "bg-[#1789d6] text-white font-semibold"
+                        : "text-white/90 hover:bg-white/10 hover:text-white"
                     }`}
                   >
                     Partner with Maharashtra
                   </Link>
                   <Link
                     href="/pitch-development-need"
-                    className={`px-4 h-[48px] flex items-center border-b-[3px] transition-all hover:bg-white/5 hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-gov-saffron/50 ${
+                    className={`px-4 h-[44px] flex items-center transition-colors hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f7941d]/50 ${
                       pathname === "/pitch-development-need"
-                        ? "border-[#FF9933] text-white font-extrabold bg-white/10"
-                        : "border-transparent text-white/90 hover:text-white"
+                        ? "bg-[#1789d6] text-white font-semibold"
+                        : "text-white/90 hover:bg-white/10 hover:text-white"
                     }`}
                   >
                     Pitch a Development Need
                   </Link>
                   {publicNavGroups.map((group) => {
                     const isActive = pathname === group.href || group.links.some((link) => pathname === link.href || pathname.startsWith(link.href + "/"));
+                    const isOpen = openNavGroup === group.label;
                     return (
-                      <div key={group.label} className="group relative h-[48px]">
+                      <div
+                        key={group.label}
+                        className="relative h-[44px]"
+                        onMouseEnter={() => setOpenNavGroup(group.label)}
+                        onMouseLeave={() => setOpenNavGroup(null)}
+                        onFocusCapture={() => setOpenNavGroup(group.label)}
+                        onBlurCapture={(event) => {
+                          if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+                            setOpenNavGroup(null);
+                          }
+                        }}
+                      >
                         <Link
                           href={group.href}
-                          className={`px-4 h-[48px] flex items-center gap-1 border-b-[3px] transition-all hover:bg-white/5 hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-gov-saffron/50 ${
+                          onClick={() => setOpenNavGroup(null)}
+                          className={`px-4 h-[44px] flex items-center gap-1 transition-colors hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f7941d]/50 ${
                             isActive
-                              ? "border-[#FF9933] text-white font-extrabold bg-white/10"
-                              : "border-transparent text-white/90 hover:text-white"
+                              ? "bg-[#1789d6] text-white font-semibold"
+                              : "text-white/90 hover:bg-white/10 hover:text-white"
                           }`}
                         >
                           {group.label}
                           <ChevronDown size={13} aria-hidden="true" />
                         </Link>
-                        <div className="invisible absolute left-0 top-[48px] z-[70] w-[280px] translate-y-1 border border-[#cfdcf0] bg-white py-2 opacity-0 shadow-[0_18px_42px_rgba(15,35,70,0.22)] transition-all duration-150 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
-                          {group.links.map((link) => (
-                            <Link
-                              key={link.href}
-                              href={link.href}
-                              className={`block border-l-4 px-4 py-3 text-[12px] font-extrabold leading-5 hover:bg-[#f5f8fd] hover:no-underline ${
-                                pathname === link.href || pathname.startsWith(link.href + "/")
-                                  ? "border-[#FF9933] bg-[#f8fbff] text-[#12325a]"
-                                  : "border-transparent text-[#344b68]"
-                              }`}
-                            >
-                              {link.label}
-                            </Link>
-                          ))}
-                        </div>
+                        {isOpen && (
+                          <div className="absolute left-0 top-[44px] z-[70] w-[280px] border border-[#e0e4ea] bg-white py-2">
+                            {group.links.map((link) => (
+                              <Link
+                                key={link.href}
+                                href={link.href}
+                                onClick={() => setOpenNavGroup(null)}
+                                className={`block border-l-4 px-4 py-2.5 text-[13px] font-medium leading-5 hover:bg-[#f4f5f7] hover:no-underline ${
+                                  pathname === link.href || pathname.startsWith(link.href + "/")
+                                    ? "border-[#f7941d] bg-[#f4f5f7] text-[#14274e] font-semibold"
+                                    : "border-transparent text-[#4b5563]"
+                                }`}
+                              >
+                                {link.label}
+                              </Link>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
                 </nav>
               </div>
-
-              {/* Right side: Search bar */}
-              {/* <div className="relative max-w-[200px] sm:max-w-[240px] w-full flex items-center">
-                <input 
-                  type="text" 
-                  placeholder="Search..." 
-                  className="w-full h-8 bg-white/12 border border-white/25 rounded-md px-3 pr-8 text-xs text-black placeholder-black/60 focus:outline-none focus:bg-white focus:text-[#12325a] focus:placeholder-[#12325a]/60 transition-all focus-visible:ring-2 focus-visible:ring-gov-saffron/50"
-                />
-                <Search size={14} className="absolute right-2.5 text-white/70 pointer-events-none" />
-              </div> */}
             </div>
           </div>
         </header>
       )}
 
       {/* Main Workspace */}
-      <div className={isDashboard ? "flex flex-1 pt-[72px]" : "flex flex-1"}>
+      <div className={isDashboard ? "flex flex-1 pt-[60px]" : "flex flex-1"}>
         
         {/* Desktop Sidebar */}
         {isDashboard && (
-          <aside 
-            className={`hidden lg:flex flex-col border-r border-gov-line bg-white shrink-0 transition-all duration-300 relative justify-between py-4 shadow-sm ${
+          <aside
+            className={`hidden lg:flex flex-col border-r border-[#e0e4ea] bg-white shrink-0 transition-all duration-300 relative justify-between py-4 ${
               sidebarCollapsed ? "w-[68px]" : "w-60"
             }`}
           >
             {/* Navigation Links */}
             <div className="flex flex-col gap-0.5 px-2 overflow-y-auto max-h-[calc(100vh-160px)] pr-1">
               {dashboardNavigationItems.map((item) => {
-                const isActive = pathname === item.href || 
+                const isActive = pathname === item.href ||
                                  (item.href.endsWith("/overview") && pathname === item.href.replace("/overview", "")) ||
                                  (item.href.endsWith("/statewide") && pathname === item.href.replace("/statewide", "")) ||
                                  (item.href.endsWith("/dashboard") && pathname === item.href.replace("/dashboard", "")) ||
                                  (item.href !== "/" && pathname.startsWith(item.href));
                 return (
-                  <Link 
+                  <Link
                     key={item.label}
                     href={item.href}
                     className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[12px] font-medium transition-all group relative ${
-                      isActive 
-                        ? "bg-[#e8f0f8] text-gov-blue shadow-sm border-l-4 border-l-gov-saffron pl-2" 
-                        : "text-slate-700 hover:text-gov-blue hover:bg-gov-mist"
+                      isActive
+                        ? "bg-[#1789d6] text-white"
+                        : "text-[#4b5563] hover:text-[#14274e] hover:bg-[#f4f5f7]"
                     }`}
                   >
-                    <item.icon size={15} className={isActive ? "text-gov-blue" : "text-slate-500 group-hover:text-gov-blue"} />
+                    <item.icon size={15} className={isActive ? "text-white" : "text-[#97a0ac] group-hover:text-[#14274e]"} />
                     {!sidebarCollapsed && <span>{item.label}</span>}
-                    
+
                     {sidebarCollapsed && (
-                      <div className="absolute left-[76px] bg-gov-blue text-white py-1 px-2.5 rounded-md opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-nowrap shadow-md text-[10px] z-50">
+                      <div className="absolute left-[76px] bg-[#14274e] text-white py-1 px-2.5 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-nowrap text-[10px] z-50">
                         {item.label}
                       </div>
                     )}
@@ -844,9 +863,9 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
 
             {/* Sidebar Toggle */}
             <div className="px-2 pt-2">
-              <button 
+              <button
                 onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                className="w-full flex items-center justify-center p-2 border border-gov-line hover:bg-gov-mist rounded-lg text-slate-500 hover:text-gov-blue transition-colors"
+                className="w-full flex items-center justify-center p-2 border border-[#e0e4ea] hover:bg-[#f4f5f7] rounded-lg text-[#6b7280] hover:text-[#14274e] transition-colors"
               >
                 {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
               </button>
@@ -856,12 +875,12 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
 
         {/* Mobile Sidebar */}
         {mobileMenuOpen && (
-          <div className="fixed inset-0 z-50 flex bg-black/40 backdrop-blur-sm animate-fadeIn lg:hidden">
-            <div className="w-64 bg-white p-5 flex flex-col justify-between h-full border-r border-gov-line shadow-xl">
+          <div className="fixed inset-0 z-50 flex bg-black/60 animate-fadeIn lg:hidden">
+            <div className="w-64 bg-white p-5 flex flex-col justify-between h-full border-r border-[#e0e4ea]">
               <div className="flex flex-col gap-4">
-                <div className="flex justify-between items-center pb-3 border-b border-gov-line">
-                  <span className="font-heading font-extrabold text-gov-ink text-sm">Navigation</span>
-                  <button onClick={() => setMobileMenuOpen(false)} className="text-slate-500 hover:text-gov-blue"><X size={18} /></button>
+                <div className="flex justify-between items-center pb-3 border-b border-[#e0e4ea]">
+                  <span className="font-heading font-bold text-[#14274e] text-sm">Navigation</span>
+                  <button onClick={() => setMobileMenuOpen(false)} className="text-[#6b7280] hover:text-[#14274e]"><X size={18} /></button>
                 </div>
                 <div className="flex flex-col gap-0.5 overflow-y-auto max-h-[calc(100vh-160px)]">
                   {(isDashboard ? dashboardNavigationItems : [
@@ -874,46 +893,46 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                       icon: group.label === "About" ? HelpCircle : group.label === "Projects" ? Compass : group.label === "Documents" ? BookOpen : group.label === "Updates" ? FileText : Phone,
                     }))),
                   ]).map((item) => {
-                    const isActive = pathname === item.href || 
+                    const isActive = pathname === item.href ||
                                      (item.href.endsWith("/overview") && pathname === item.href.replace("/overview", "")) ||
                                      (item.href !== "/" && pathname.startsWith(item.href));
                     return (
-                      <Link 
+                      <Link
                         key={item.label}
                         href={item.href}
                         className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${
-                          isActive 
-                            ? "bg-[#e8f0f8] text-gov-blue border-l-4 border-l-gov-saffron pl-2" 
-                            : "text-slate-700 hover:text-gov-blue hover:bg-gov-mist"
+                          isActive
+                            ? "bg-[#1789d6] text-white"
+                            : "text-[#4b5563] hover:text-[#14274e] hover:bg-[#f4f5f7]"
                         }`}
                       >
-                        <item.icon size={16} className={isActive ? "text-gov-blue" : "text-slate-500"} />
+                        <item.icon size={16} className={isActive ? "text-white" : "text-[#97a0ac]"} />
                         <span>{item.label}</span>
                       </Link>
                     );
                   })}
                 </div>
               </div>
-              <div className="flex flex-col gap-2 pt-3 border-t border-gov-line">
+              <div className="flex flex-col gap-2 pt-3 border-t border-[#e0e4ea]">
                 {isDashboard ? (
-                  <button 
+                  <button
                     onClick={handleLogout}
-                    className="w-full text-left px-3 py-2.5 text-xs text-rose-600 hover:bg-rose-50 rounded-lg flex items-center gap-3 transition-all"
+                    className="w-full text-left px-3 py-2.5 text-xs text-[#c62828] hover:bg-[#fdecea] rounded-lg flex items-center gap-3 transition-all"
                   >
                     <LogOut size={16} />
                     <span>Log Out</span>
                   </button>
                 ) : (
                   <div className="flex flex-col gap-2">
-                    <Link 
-                      href="/login" 
-                      className="w-full text-center py-2 rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-50 border border-slate-200"
+                    <Link
+                      href="/login"
+                      className="w-full text-center py-2 rounded-lg text-xs font-bold text-[#4b5563] hover:bg-[#f4f5f7] border border-[#e0e4ea]"
                     >
                       Login
                     </Link>
-                    <Link 
-                      href="/register" 
-                      className="w-full text-center py-2 rounded-lg text-xs font-bold text-white bg-gov-blue hover:bg-gov-navy shadow-sm"
+                    <Link
+                      href="/register"
+                      className="w-full text-center py-2 rounded-lg text-xs font-bold text-white bg-[#1789d6] hover:bg-[#146fb0]"
                     >
                       Register
                     </Link>
@@ -926,33 +945,33 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
 
         {/* Main Content */}
         <div className="flex-grow flex flex-col min-w-0">
-          <main id="main-content" className={`flex-grow ${isDashboard ? "px-6 py-6 md:px-10 md:py-8" : ""}`}>
+          <main id="main-content" className={`flex-grow ${isDashboard ? "px-4 py-4 md:px-6 md:py-5" : ""}`}>
             {dashboardContent}
           </main>
           {isDashboard ? (
-            <footer className="border-t border-gov-line bg-white py-5 px-6 md:px-10 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gov-muted font-medium shrink-0">
+            <footer className="border-t border-[#e0e4ea] bg-white py-5 px-6 md:px-10 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-[#6b7280] font-medium shrink-0">
               <div className="flex items-center gap-2">
-                <span className="font-heading font-extrabold text-[#1e3a8a] text-sm tracking-tight">MahaCSR</span>
+                <span className="font-heading font-bold text-[#14274e] text-sm">MahaCSR</span>
                 <span>Government of Maharashtra Enterprise CSR Platform. Approved under MCA Section 135.</span>
               </div>
               <div className="flex gap-6">
-                <Link href="#" className="hover:text-[#1e3a8a] transition-colors">Privacy Policy</Link>
-                <Link href="#" className="hover:text-[#1e3a8a] transition-colors">Compliance Audits</Link>
-                <Link href="#" className="hover:text-[#1e3a8a] transition-colors">Support Center</Link>
+                <Link href="#" className="hover:text-[#14274e] transition-colors">Privacy Policy</Link>
+                <Link href="#" className="hover:text-[#14274e] transition-colors">Compliance Audits</Link>
+                <Link href="#" className="hover:text-[#14274e] transition-colors">Support Center</Link>
               </div>
             </footer>
           ) : (
-            <footer className="bg-[#062a5d] text-white">
+            <footer className="bg-[#0e2144] text-white">
               <div className="mx-auto grid max-w-[1380px] gap-10 px-5 py-10 md:grid-cols-[1.3fr_0.8fr_0.8fr_1.1fr] md:px-8">
                 <div>
                   <Link href="/" className="inline-flex items-center gap-3 text-white hover:no-underline">
                     <svg viewBox="0 0 100 100" className="h-12 w-12" fill="none" stroke="currentColor">
                       <polygon points="50,5 82,18 95,50 82,82 50,95 18,82 5,50 18,18" stroke="#ffffff" strokeWidth="4.5" fill="rgba(255,255,255,0.06)" />
-                      <path d="M28,32 L72,32 M32,44 L68,44 M28,56 L72,56 M36,68 L64,68" stroke="#f97316" strokeWidth="3" strokeLinecap="round" />
+                      <path d="M28,32 L72,32 M32,44 L68,44 M28,56 L72,56 M36,68 L64,68" stroke="#f7941d" strokeWidth="3" strokeLinecap="round" />
                     </svg>
                     <div>
-                      <div className="text-2xl font-extrabold">Maha<span className="text-[#ff8a24]">CSR</span></div>
-                      <div className="mt-1 text-xs font-medium leading-5 text-blue-100">Corporate Social Responsibility Portal<br />Government of Maharashtra</div>
+                      <div className="text-2xl font-bold">Maha<span className="text-[#f7941d]">CSR</span></div>
+                      <div className="mt-1 text-xs font-medium leading-5 text-white/80">Corporate Social Responsibility Portal<br />Government of Maharashtra</div>
                     </div>
                   </Link>
                   <div className="mt-8 flex gap-3">
@@ -962,42 +981,42 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-sm font-extrabold">Quick Links</h3>
-                  <div className="mt-4 flex flex-col gap-3 text-sm text-blue-100">
-                    <Link href="/about" className="text-blue-100 hover:text-white">About MahaCSR</Link>
-                    <Link href="/partner-with-maharashtra" className="text-blue-100 hover:text-white">Partner with Maharashtra</Link>
-                    <Link href="/pitch-development-need" className="text-blue-100 hover:text-white">Pitch a Development Need</Link>
-                    <Link href="/public-development-needs" className="text-blue-100 hover:text-white">Public Development Needs (Live)</Link>
-                    <Link href="/workflow" className="text-blue-100 hover:text-white">Workflow</Link>
-                    <Link href="/knowledge" className="text-blue-100 hover:text-white">Knowledge Center</Link>
-                    {/* <Link href="/reports" className="text-blue-100 hover:text-white">Reports & Data</Link> */}
-                    <Link href="/help" className="text-blue-100 hover:text-white">Helpdesk</Link>
+                  <h3 className="text-sm font-bold">Quick Links</h3>
+                  <div className="mt-4 flex flex-col gap-3 text-sm text-white/80">
+                    <Link href="/about" className="text-white/80 hover:text-white">About MahaCSR</Link>
+                    <Link href="/partner-with-maharashtra" className="text-white/80 hover:text-white">Partner with Maharashtra</Link>
+                    <Link href="/pitch-development-need" className="text-white/80 hover:text-white">Pitch a Development Need</Link>
+                    <Link href="/public-development-needs" className="text-white/80 hover:text-white">Public Development Needs (Live)</Link>
+                    <Link href="/workflow" className="text-white/80 hover:text-white">Workflow</Link>
+                    <Link href="/knowledge" className="text-white/80 hover:text-white">Knowledge Center</Link>
+                    {/* <Link href="/reports" className="text-white/80 hover:text-white">Reports & Data</Link> */}
+                    <Link href="/help" className="text-white/80 hover:text-white">Helpdesk</Link>
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-sm font-extrabold">Information</h3>
-                  <div className="mt-4 flex flex-col gap-3 text-sm text-blue-100">
-                    <Link href="#" className="text-blue-100 hover:text-white">Privacy Policy</Link>
-                    <Link href="#" className="text-blue-100 hover:text-white">Terms of Use</Link>
-                    <Link href="#" className="text-blue-100 hover:text-white">Compliance Audits</Link>
-                    <Link href="#" className="text-blue-100 hover:text-white">Sitemap</Link>
-                    <Link href="#" className="text-blue-100 hover:text-white">Accessibility</Link>
+                  <h3 className="text-sm font-bold">Information</h3>
+                  <div className="mt-4 flex flex-col gap-3 text-sm text-white/80">
+                    <Link href="#" className="text-white/80 hover:text-white">Privacy Policy</Link>
+                    <Link href="#" className="text-white/80 hover:text-white">Terms of Use</Link>
+                    <Link href="#" className="text-white/80 hover:text-white">Compliance Audits</Link>
+                    <Link href="#" className="text-white/80 hover:text-white">Sitemap</Link>
+                    <Link href="#" className="text-white/80 hover:text-white">Accessibility</Link>
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-sm font-extrabold">Contact Us</h3>
-                  <div className="mt-4 flex flex-col gap-3 text-sm leading-6 text-blue-100">
+                  <h3 className="text-sm font-bold">Contact Us</h3>
+                  <div className="mt-4 flex flex-col gap-3 text-sm leading-6 text-white/80">
                     <span className="inline-flex gap-2"><MapPin className="mt-1 shrink-0" size={15} /> Maharashtra CSR Authority, 7th Floor, Mantralaya Annexe, Mumbai - 400 032, Maharashtra, India.</span>
                     <span className="inline-flex items-center gap-2"><Mail size={15} /> support@mahacsr.gov.in</span>
                     <span className="inline-flex items-center gap-2"><Phone size={15} /> 022-2202 1234</span>
                   </div>
                 </div>
               </div>
-              <div className="border-t border-white/10 bg-[#052653]">
-                <div className="mx-auto flex max-w-[1380px] flex-col gap-3 px-5 py-4 text-xs font-medium text-blue-100 md:flex-row md:items-center md:justify-between md:px-8">
+              <div className="border-t border-white/10 bg-[#091730]">
+                <div className="mx-auto flex max-w-[1380px] flex-col gap-3 px-5 py-4 text-xs font-medium text-white/80 md:flex-row md:items-center md:justify-between md:px-8">
                   <span>(c) 2026 Government of Maharashtra. All rights reserved.</span>
                   <span>Best viewed in Chrome 90+, Firefox 90+, Edge 90+, Safari 13+</span>
-                  <a href="#" className="inline-flex items-center gap-2 text-blue-100 hover:text-white hover:no-underline"><ArrowUp size={14} /> Back to top</a>
+                  <a href="#" className="inline-flex items-center gap-2 text-white/80 hover:text-white hover:no-underline"><ArrowUp size={14} /> Back to top</a>
                 </div>
               </div>
             </footer>

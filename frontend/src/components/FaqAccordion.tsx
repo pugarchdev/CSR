@@ -29,7 +29,7 @@ export default function FaqAccordion({ faqs }: FaqAccordionProps) {
               className="w-full text-left p-5 font-bold text-slate-100 flex justify-between items-center hover:bg-slate-955 transition-colors"
             >
               <span>{faq.q}</span>
-              <span className="text-[#f97316] text-xl leading-none">{activeFaq === idx ? "−" : "+"}</span>
+              <span className="text-[#f7941d] text-xl leading-none">{activeFaq === idx ? "−" : "+"}</span>
             </button>
             {activeFaq === idx && (
               <div className="p-5 bg-slate-955/40 text-slate-300 text-sm leading-relaxed border-t border-slate-800">
