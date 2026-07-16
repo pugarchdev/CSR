@@ -34,12 +34,12 @@ export const getAllowedOrigins = () => {
 
   const frontendUrl = process.env.FRONTEND_URL;
   if (frontendUrl) {
-    list.push(...frontendUrl.split(",").map((origin) => origin.trim()).filter(Boolean));
+    list.push(...frontendUrl.split(",").map((origin) => origin.trim().replace(/\/$/, "")).filter(Boolean));
   }
 
   const origins = process.env.ALLOWED_ORIGINS;
   if (origins) {
-    list.push(...origins.split(",").map((origin) => origin.trim()).filter(Boolean));
+    list.push(...origins.split(",").map((origin) => origin.trim().replace(/\/$/, "")).filter(Boolean));
   }
 
   if (list.length > 0) {

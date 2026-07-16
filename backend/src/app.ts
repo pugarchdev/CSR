@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 import { Server } from "socket.io";
 import helmet from "helmet";
 import { assertProductionEnv } from "./config/env";
-import { applyCorsHeaders, corsOriginDelegate } from "./config/cors";
+import { corsOriginDelegate } from "./config/cors";
 
 // Configurations
 dotenv.config();
@@ -88,14 +88,6 @@ const corsOptions = {
   allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
   optionsSuccessStatus: 204
 };
-
-app.use((req, res, next) => {
-  applyCorsHeaders(req, res);
-  if (req.method === "OPTIONS") {
-    return res.status(204).end();
-  }
-  next();
-});
 
 app.use(cors(corsOptions));
 app.use(helmet());

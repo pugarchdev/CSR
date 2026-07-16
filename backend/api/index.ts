@@ -5,14 +5,6 @@ import app from "../src/app";
 type ExpressHandler = (req: IncomingMessage, res: ServerResponse) => unknown;
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
-  applyCorsHeaders(req, res);
-
-  if (req.method === "OPTIONS") {
-    res.statusCode = 204;
-    res.end();
-    return;
-  }
-
   try {
     const expressApp = app as unknown as ExpressHandler;
     return expressApp(req, res);

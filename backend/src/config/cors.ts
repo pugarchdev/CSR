@@ -8,9 +8,10 @@ type HeaderResponse = { setHeader(name: string, value: number | string | readonl
 export const getCorsAllowedOrigin = (origin?: string): string | false => {
   if (!origin) return false;
 
+  const cleanedOrigin = origin.replace(/\/$/, "");
   const allowedOrigins = getAllowedOrigins();
-  if (allowedOrigins.includes(origin)) return origin;
-  if (vercelPreviewOriginPattern.test(origin)) return origin;
+  if (allowedOrigins.includes(cleanedOrigin)) return origin;
+  if (vercelPreviewOriginPattern.test(cleanedOrigin)) return origin;
 
   return false;
 };
