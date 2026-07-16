@@ -137,7 +137,7 @@ async function main() {
         district: "Mumbai",
         onboardingStatus: OrganizationOnboardingStatus.APPROVED,
         status: OrganizationStatus.ACTIVE,
-        approvedBy: masterAdmin.id,
+        approvedBy: superAdmin.id,
         approvedAt: new Date()
       }
     });
