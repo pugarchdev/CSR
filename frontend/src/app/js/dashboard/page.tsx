@@ -240,32 +240,6 @@ export default function JSDashboardPage() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 20, marginTop: 20 }}>
           {/* Main Dashboard Queues */}
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-            {/* Feasibility Assessment Reports Table */}
-            <GovCard>
-              <GovCardHeader><GovCardTitle>Pending Feasibility Assessments</GovCardTitle></GovCardHeader>
-              <GovCardBody style={{ padding: 0 }}>
-                <GovDataTable
-                  columns={assessmentColumns}
-                  data={data?.pendingAssessments as unknown as Record<string, unknown>[]}
-                  loading={loading}
-                  emptyMessage="No pending assessments awaiting review."
-                />
-              </GovCardBody>
-            </GovCard>
-
-            {/* Government Pitch Approval Queue */}
-            <GovCard>
-              <GovCardHeader><GovCardTitle>Government Pitch Approval Queue</GovCardTitle></GovCardHeader>
-              <GovCardBody style={{ padding: 0 }}>
-                <GovDataTable
-                  columns={pitchColumns}
-                  data={data?.pendingPitches as unknown as Record<string, unknown>[]}
-                  loading={loading}
-                  emptyMessage="No verified government pitches awaiting JS approval."
-                />
-              </GovCardBody>
-            </GovCard>
-
             {/* Recent Decisions */}
             <GovCard>
               <GovCardHeader><GovCardTitle>Recent Decisions</GovCardTitle></GovCardHeader>

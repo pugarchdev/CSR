@@ -32,20 +32,20 @@ router.post(
   asyncHandler(submitInterest)
 );
 
-// Authenticated pitch detail for RM / JS / admins before public listing
-router.get(
-  "/:id",
-  authenticateToken,
-  authorizeRoles([Role.CSR_RELATIONSHIP_MANAGER, Role.JOINT_SECRETARY, Role.STATE_CSR_CELL, Role.SUPER_ADMIN, Role.PORTAL_ADMIN]),
-  asyncHandler(getPitchById)
-);
-
 // Government Officer - Get my pitches
 router.get(
   "/my",
   authenticateToken,
   authorizeRoles([Role.GOVERNMENT_OFFICER, Role.BENEFICIARY_AGENCY, Role.SUPER_ADMIN, Role.PORTAL_ADMIN]),
   asyncHandler(getMyPitches)
+);
+
+// Authenticated pitch detail for RM / JS / admins before public listing
+router.get(
+  "/:id",
+  authenticateToken,
+  authorizeRoles([Role.CSR_RELATIONSHIP_MANAGER, Role.JOINT_SECRETARY, Role.STATE_CSR_CELL, Role.SUPER_ADMIN, Role.PORTAL_ADMIN]),
+  asyncHandler(getPitchById)
 );
 
 // Relationship Manager (RM) - Verify pitch
