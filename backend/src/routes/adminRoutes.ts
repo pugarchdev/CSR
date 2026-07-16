@@ -31,10 +31,9 @@ import {
 
 const router = Router();
 
-const requireSuperAdmin = [authenticateToken, authorizeRoles([Role.MASTER_ADMIN, Role.SUPER_ADMIN, Role.PORTAL_ADMIN]), resolveTenantContext, checkTenantActive];
+const requireSuperAdmin = [authenticateToken, authorizeRoles([Role.SUPER_ADMIN, Role.PORTAL_ADMIN]), resolveTenantContext, checkTenantActive];
 
 const adminManageableRoles = [
-  "MASTER_ADMIN",
   "SUPER_ADMIN",
   "DISTRICT_ADMIN",
   "BENEFICIARY_AGENCY",
@@ -78,7 +77,7 @@ const roleSchema = z.object({
   })
 });
 
-const requireStateCell = [authenticateToken, authorizeRoles([Role.MASTER_ADMIN, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN, Role.DISTRICT_ADMIN]), resolveTenantContext, checkTenantActive];
+const requireStateCell = [authenticateToken, authorizeRoles([Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN, Role.DISTRICT_ADMIN]), resolveTenantContext, checkTenantActive];
 
 router.get("/overview", ...requireSuperAdmin, getAdminOverview);
 router.get("/users", ...requireSuperAdmin, listUsers);

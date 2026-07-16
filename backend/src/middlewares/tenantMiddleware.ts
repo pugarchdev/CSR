@@ -26,14 +26,7 @@ export const resolveTenantContext = async (req: TenantAwareRequest, res: Respons
       return next();
     }
 
-    if (req.user.role === Role.MASTER_ADMIN) {
-      req.tenantContext = {
-        tenantId: (req.headers["x-tenant-id"] as string) || null,
-        organizationId: null,
-        isMasterAdmin: true
-      };
-      return next();
-    }
+
 
     let tenantId = req.user.tenantId || null;
     if (!tenantId) {
@@ -176,7 +169,7 @@ export const checkPermission = (permissionKey: string) => {
   return async (req: TenantAwareRequest, res: Response, next: NextFunction) => {
     try {
       if (!req.user) return res.status(401).json({ error: "Unauthorized access" });
-      if (req.user.role === Role.MASTER_ADMIN || req.user.role === Role.SUPER_ADMIN) return next();
+      if (req.user.role === Role.SUPER_ADMIN) return next();
       const fallbackPermissions = ROLE_PERMISSION_MAP[req.user.role] || [];
       if (fallbackPermissions.includes(permissionKey)) return next();
 

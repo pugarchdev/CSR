@@ -14,7 +14,7 @@ import {
 
 const router = Router();
 
-router.use(authenticateToken, authorizeRoles([Role.MASTER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_MEMBER, Role.SUPER_ADMIN, Role.CORPORATE_USER]), resolveTenantContext, checkTenantActive);
+router.use(authenticateToken, authorizeRoles([Role.COMPANY_ADMIN, Role.COMPANY_MEMBER, Role.SUPER_ADMIN, Role.CORPORATE_USER]), resolveTenantContext, checkTenantActive);
 
 router.get("/enquiries", async (req, res, next) => {
   try {

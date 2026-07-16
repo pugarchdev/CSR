@@ -24,7 +24,7 @@ const router = Router();
 router.get(
   "/dashboard",
   authenticateToken,
-  authorizeRoles([Role.JOINT_SECRETARY, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN, Role.MASTER_ADMIN]),
+  authorizeRoles([Role.JOINT_SECRETARY, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN]),
   asyncHandler(getJSDashboard)
 );
 
@@ -32,7 +32,7 @@ router.get(
 router.get(
   "/assessments",
   authenticateToken,
-  authorizeRoles([Role.JOINT_SECRETARY, Role.CSR_RELATIONSHIP_MANAGER, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN, Role.MASTER_ADMIN]),
+  authorizeRoles([Role.JOINT_SECRETARY, Role.CSR_RELATIONSHIP_MANAGER, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN]),
   asyncHandler(getPendingAssessments)
 );
 
@@ -40,7 +40,7 @@ router.get(
 router.get(
   "/assessments/:id",
   authenticateToken,
-  authorizeRoles([Role.JOINT_SECRETARY, Role.CSR_RELATIONSHIP_MANAGER, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN, Role.MASTER_ADMIN]),
+  authorizeRoles([Role.JOINT_SECRETARY, Role.CSR_RELATIONSHIP_MANAGER, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN]),
   asyncHandler(getAssessmentById)
 );
 
@@ -48,7 +48,7 @@ router.get(
 router.post(
   "/assessments/:id/decision",
   authenticateToken,
-  authorizeRoles([Role.JOINT_SECRETARY, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN, Role.MASTER_ADMIN]),
+  authorizeRoles([Role.JOINT_SECRETARY, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN]),
   asyncHandler(submitJSDecision)
 );
 
@@ -56,7 +56,7 @@ router.post(
 router.post(
   "/assessments/:id/nodal-officer",
   authenticateToken,
-  authorizeRoles([Role.JOINT_SECRETARY, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN, Role.MASTER_ADMIN]),
+  authorizeRoles([Role.JOINT_SECRETARY, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN]),
   asyncHandler(appointNodalOfficer)
 );
 
@@ -64,7 +64,7 @@ router.post(
 router.get(
   "/nodal-appointments",
   authenticateToken,
-  authorizeRoles([Role.JOINT_SECRETARY, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN, Role.MASTER_ADMIN]),
+  authorizeRoles([Role.JOINT_SECRETARY, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN]),
   asyncHandler(getNodalAppointments)
 );
 
@@ -72,7 +72,7 @@ router.get(
 router.get(
   "/nodal-appointments/:id",
   authenticateToken,
-  authorizeRoles([Role.JOINT_SECRETARY, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN, Role.MASTER_ADMIN]),
+  authorizeRoles([Role.JOINT_SECRETARY, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN]),
   asyncHandler(getNodalAppointmentById)
 );
 
@@ -80,7 +80,7 @@ router.get(
 router.get(
   "/escalations",
   authenticateToken,
-  authorizeRoles([Role.JOINT_SECRETARY, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN, Role.MASTER_ADMIN]),
+  authorizeRoles([Role.JOINT_SECRETARY, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN]),
   asyncHandler(getJSEscalations)
 );
 
@@ -88,7 +88,7 @@ router.get(
 router.post(
   "/escalations/:id/action",
   authenticateToken,
-  authorizeRoles([Role.JOINT_SECRETARY, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN, Role.MASTER_ADMIN]),
+  authorizeRoles([Role.JOINT_SECRETARY, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN]),
   asyncHandler(handleEscalationAction)
 );
 
@@ -96,7 +96,7 @@ router.post(
 router.get(
   "/nodal-officers",
   authenticateToken,
-  authorizeRoles([Role.JOINT_SECRETARY, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN, Role.MASTER_ADMIN]),
+  authorizeRoles([Role.JOINT_SECRETARY, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN]),
   asyncHandler(getNodalOfficers)
 );
 
@@ -104,7 +104,7 @@ router.get(
 router.get(
   "/government-pitches",
   authenticateToken,
-  authorizeRoles([Role.JOINT_SECRETARY, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN, Role.MASTER_ADMIN]),
+  authorizeRoles([Role.JOINT_SECRETARY, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN]),
   asyncHandler(getJSGovernmentPitches)
 );
 

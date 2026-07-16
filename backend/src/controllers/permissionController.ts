@@ -82,7 +82,7 @@ export const getCurrentUserPermissions = async (
       permissions: Array.from(permissionSet),
       roles: roles.map((r) => r.name),
       roleDetails: roles,
-      isAdmin: ([Role.MASTER_ADMIN, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN] as Role[]).includes(userRole),
+      isAdmin: ([Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN] as Role[]).includes(userRole),
     });
   } catch (error) {
     next(error);
@@ -177,7 +177,7 @@ export const checkUserPermission = async (
     const organizationId = req.user.organizationId;
 
     // Admin bypass
-    if (([Role.MASTER_ADMIN, Role.SUPER_ADMIN] as Role[]).includes(userRole)) {
+    if (userRole === Role.SUPER_ADMIN) {
       return successResponse(res, { hasPermission: true, permission });
     }
 

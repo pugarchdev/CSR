@@ -232,16 +232,6 @@ export const getDashboardNavItems = (userRole?: string): NavItem[] => {
     { label: "Audit Trail", href: "/admin/audit-trail", permission: "audit:view" },
   ];
 
-  const masterItems: NavItem[] = [
-    { label: "Dashboard", href: "/master/dashboard" },
-    { label: "Tenants", href: "/master/tenants", permission: "tenant:view" },
-    { label: "Create Tenant", href: "/master/tenants/create", permission: "tenant:create" },
-    { label: "Organizations", href: "/master/organizations", permission: "organization:view" },
-    { label: "Users", href: "/master/users", permission: "user:invite" },
-    { label: "Audit Logs", href: "/master/audit-logs", permission: "audit:view" },
-    { label: "Settings", href: "/master/settings", permission: "tenant:update" },
-  ];
-
   // Add role-specific items
   switch (userRole) {
     case "BENEFICIARY_AGENCY":
@@ -252,8 +242,6 @@ export const getDashboardNavItems = (userRole?: string): NavItem[] => {
     case "NGO_ADMIN":
     case "NGO_MEMBER":
       return [...baseItems, ...ngoItems];
-    case "MASTER_ADMIN":
-      return [...baseItems, ...masterItems];
     case "SUPER_ADMIN":
     case "PORTAL_ADMIN":
     case "CSR_ADMIN":

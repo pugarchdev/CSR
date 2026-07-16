@@ -16,7 +16,7 @@ export const listReports = async (req: AuthenticatedRequest, res: Response, next
   try {
     const where: any = tenantScopedWhere(req);
 
-    if (req.user?.role !== Role.SUPER_ADMIN && req.user?.role !== Role.MASTER_ADMIN) {
+    if (req.user?.role !== Role.SUPER_ADMIN) {
       if (req.user?.ngoId) where.ngoId = req.user.ngoId;
       if (req.user?.companyId) where.companyId = req.user.companyId;
     }

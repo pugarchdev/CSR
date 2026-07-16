@@ -77,7 +77,7 @@ export default function GrievanceDetailPage() {
   const user = getCurrentUser();
 
   useEffect(() => {
-    const isAssigner = user && ["SUPER_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN", "MASTER_ADMIN", "STATE_CSR_CELL", "JOINT_SECRETARY"].includes(user.role);
+    const isAssigner = user && ["SUPER_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN", "STATE_CSR_CELL", "JOINT_SECRETARY"].includes(user.role);
     if (isAssigner) {
       apiFetch<{ success: boolean; data: any }>("/grievances/assignable-users")
         .then((res) => {
@@ -282,7 +282,7 @@ export default function GrievanceDetailPage() {
         </div>
 
         {/* Assignment Widget */}
-        {grievance.status !== "CLOSED" && grievance.status !== "REJECTED" && ["SUPER_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN", "MASTER_ADMIN", "STATE_CSR_CELL", "JOINT_SECRETARY"].includes(user?.role || "") && (
+        {grievance.status !== "CLOSED" && grievance.status !== "REJECTED" && ["SUPER_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN", "STATE_CSR_CELL", "JOINT_SECRETARY"].includes(user?.role || "") && (
           <GovCard style={{ marginTop: 16, marginBottom: 16 }}>
             <GovCardHeader style={{ paddingBottom: 8 }}>
               <GovCardTitle>Assign Grievance Officer</GovCardTitle>

@@ -1072,8 +1072,6 @@ export const listOrgUsers = async (req: TenantAwareRequest, res: Response, next:
       where: {
         tenantId: req.tenantContext?.tenantId || undefined,
         organizationId: req.tenantContext?.organizationId || undefined,
-        // Master Admin accounts are never listed to portal users.
-        role: { not: "MASTER_ADMIN" }
       },
       select: {
         id: true,

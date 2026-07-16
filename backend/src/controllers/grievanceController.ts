@@ -288,7 +288,6 @@ export const getMyGrievances = async (
     if (
       userRole === Role.SUPER_ADMIN ||
       userRole === Role.PORTAL_ADMIN ||
-      userRole === Role.MASTER_ADMIN ||
       userRole === Role.STATE_CSR_CELL
     ) {
       // Admins and State Cell can see all grievances
@@ -477,7 +476,6 @@ export const getGrievanceById = async (
     const isAuthorized =
       userRole === Role.SUPER_ADMIN ||
       userRole === Role.PORTAL_ADMIN ||
-      userRole === Role.MASTER_ADMIN ||
       userRole === Role.STATE_CSR_CELL ||
       userRole === Role.JOINT_SECRETARY ||
       grievance.raisedByUserId === userId ||
@@ -1030,7 +1028,6 @@ export const closeGrievance = async (
         Role.STATE_CSR_CELL,
         Role.SUPER_ADMIN,
         Role.PORTAL_ADMIN,
-        Role.MASTER_ADMIN,
       ] as Role[]).includes(userRole!);
     } else if (
       grievance.status === GrievanceStatus.ESCALATED_TO_STATE_CELL ||
@@ -1041,7 +1038,6 @@ export const closeGrievance = async (
         Role.STATE_CSR_CELL,
         Role.SUPER_ADMIN,
         Role.PORTAL_ADMIN,
-        Role.MASTER_ADMIN,
       ] as Role[]).includes(userRole!);
     } else {
       // Original raiser or nodal officer can close (withdraw)
@@ -1051,7 +1047,6 @@ export const closeGrievance = async (
           Role.DISTRICT_NODAL_OFFICER,
           Role.SUPER_ADMIN,
           Role.PORTAL_ADMIN,
-          Role.MASTER_ADMIN,
         ] as Role[]).includes(userRole!);
     }
 

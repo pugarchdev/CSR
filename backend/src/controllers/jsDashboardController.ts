@@ -17,7 +17,7 @@ interface AuthenticatedRequest extends Request {
 /**
  * @desc Get JS Dashboard statistics
  * @route GET /api/js/dashboard
- * @access Private (JOINT_SECRETARY, SUPER_ADMIN, PORTAL_ADMIN, CSR_ADMIN, MASTER_ADMIN)
+ * @access Private (JOINT_SECRETARY, SUPER_ADMIN, PORTAL_ADMIN, CSR_ADMIN)
  */
 export const getJSDashboard = async (
   req: AuthenticatedRequest,

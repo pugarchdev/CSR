@@ -411,7 +411,7 @@ export const getMarketplaceRequirements = async (req: AuthenticatedRequest, res:
 
     const where: any = { status: { in: visibleStatuses } };
     const tenantId = (req as any).tenantContext?.tenantId || req.user?.tenantId || null;
-    if (tenantId && req.user?.role !== Role.MASTER_ADMIN) where.tenantId = tenantId;
+    if (tenantId) where.tenantId = tenantId;
 
     if (district) where.district = district as string;
     if (category) where.category = category as string;

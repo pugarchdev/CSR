@@ -76,9 +76,7 @@ function LoginForm() {
 
       const userRole = user.role;
       const onboardingStatus = user.organization?.onboardingStatus;
-      if (userRole === "MASTER_ADMIN") {
-        router.push("/master/dashboard");
-      } else if (userRole === "CSR_RELATIONSHIP_MANAGER") {
+      if (userRole === "CSR_RELATIONSHIP_MANAGER") {
         router.push("/rm/dashboard");
       } else if (userRole === "JOINT_SECRETARY") {
         router.push("/js/dashboard");

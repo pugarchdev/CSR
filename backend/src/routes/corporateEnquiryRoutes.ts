@@ -22,7 +22,6 @@ router.get("/track/:trackingId", getEnquiryByTrackingId);
 const requireStateCellStaff = [
   authenticateToken,
   authorizeRoles([
-    Role.MASTER_ADMIN,
     Role.SUPER_ADMIN,
     Role.PORTAL_ADMIN,
     Role.CSR_ADMIN,
@@ -40,7 +39,6 @@ const requireStateCellStaff = [
 const requireAdmin = [
   authenticateToken,
   authorizeRoles([
-    Role.MASTER_ADMIN,
     Role.SUPER_ADMIN,
     Role.PORTAL_ADMIN,
     Role.CSR_ADMIN,
@@ -59,8 +57,7 @@ const requireRM = [
     Role.CSR_RELATIONSHIP_MANAGER,
     Role.DISTRICT_ADMIN,
     Role.SUPER_ADMIN,
-    Role.PORTAL_ADMIN,
-    Role.MASTER_ADMIN
+    Role.PORTAL_ADMIN
   ]),
   resolveTenantContext,
   checkTenantActive

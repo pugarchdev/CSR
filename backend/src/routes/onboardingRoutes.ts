@@ -41,7 +41,7 @@ const router = Router();
 
 const organizationOnboardingAccess = [
   authenticateToken,
-  authorizeRoles([Role.MASTER_ADMIN, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN, Role.BENEFICIARY_AGENCY, Role.COMPANY_ADMIN, Role.COMPANY_MEMBER, Role.CORPORATE_USER, Role.NGO_ADMIN, Role.NGO_MEMBER]),
+  authorizeRoles([Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN, Role.BENEFICIARY_AGENCY, Role.COMPANY_ADMIN, Role.COMPANY_MEMBER, Role.CORPORATE_USER, Role.NGO_ADMIN, Role.NGO_MEMBER]),
   resolveTenantContext,
   checkTenantActive
 ];

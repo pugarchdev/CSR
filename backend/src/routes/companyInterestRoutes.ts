@@ -14,7 +14,7 @@ import { Role } from "@prisma/client";
 const router = Router();
 const companyTransaction = [
   authenticateToken,
-  authorizeRoles([Role.MASTER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_MEMBER, Role.SUPER_ADMIN]),
+  authorizeRoles([Role.COMPANY_ADMIN, Role.COMPANY_MEMBER, Role.SUPER_ADMIN]),
   resolveTenantContext,
   checkTenantActive,
   checkFeatureEnabled("enableCompanyInterest"),
@@ -26,7 +26,7 @@ router.get("/my", ...companyTransaction, checkPermission("interest:view"), getMy
 router.get(
   "/list",
   authenticateToken,
-  authorizeRoles([Role.MASTER_ADMIN, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN, Role.DISTRICT_ADMIN, Role.BENEFICIARY_AGENCY]),
+  authorizeRoles([Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN, Role.DISTRICT_ADMIN, Role.BENEFICIARY_AGENCY]),
   resolveTenantContext,
   checkTenantActive,
   checkFeatureEnabled("enableCompanyInterest"),
@@ -36,7 +36,7 @@ router.get(
 router.get(
   "/requirement/:requirementId",
   authenticateToken,
-  authorizeRoles([Role.MASTER_ADMIN, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN, Role.DISTRICT_ADMIN, Role.BENEFICIARY_AGENCY]),
+  authorizeRoles([Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN, Role.DISTRICT_ADMIN, Role.BENEFICIARY_AGENCY]),
   resolveTenantContext,
   checkTenantActive,
   checkFeatureEnabled("enableCompanyInterest"),
@@ -47,7 +47,7 @@ router.post("/:id/select-ngo", ...companyTransaction, checkFeatureEnabled("enabl
 router.patch(
   "/:id/status",
   authenticateToken,
-  authorizeRoles([Role.MASTER_ADMIN, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN]),
+  authorizeRoles([Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN]),
   resolveTenantContext,
   checkTenantActive,
   checkFeatureEnabled("enableCompanyInterest"),

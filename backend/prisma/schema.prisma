@@ -1033,7 +1033,6 @@ model FundRelease {
 }
 
 enum Role {
-  MASTER_ADMIN
   SUPER_ADMIN
   DISTRICT_ADMIN
   BENEFICIARY_AGENCY

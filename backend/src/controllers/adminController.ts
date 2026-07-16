@@ -10,10 +10,10 @@ const getRequestTenantId = (req: AuthenticatedRequest) =>
   (req as any).tenantContext?.tenantId || req.user?.tenantId || null;
 
 const isGlobalAdmin = (req: AuthenticatedRequest) =>
-  req.user?.role === Role.MASTER_ADMIN || req.user?.role === Role.SUPER_ADMIN;
+  req.user?.role === Role.SUPER_ADMIN;
 
 const isTopLevelAdminRole = (role: Role) =>
-  role === Role.MASTER_ADMIN || role === Role.SUPER_ADMIN;
+  role === Role.SUPER_ADMIN;
 
 const tenantScope = (req: AuthenticatedRequest) => {
   const tenantId = getRequestTenantId(req);
@@ -48,8 +48,7 @@ export const listUsers = async (req: AuthenticatedRequest, res: Response, next: 
   try {
     const where = tenantScope(req);
     const users = await prisma.user.findMany({
-      // Master Admin accounts are never visible to any role, including other admins.
-      where: { ...where, role: { not: Role.MASTER_ADMIN } },
+      where,
       select: {
         id: true,
         tenantId: true,
@@ -80,11 +79,8 @@ export const createAdminUser = async (req: AuthenticatedRequest, res: Response, 
     if (!Object.values(Role).includes(role)) {
       return res.status(400).json({ error: "Invalid role" });
     }
-    if (role === Role.MASTER_ADMIN) {
-      return res.status(403).json({ error: "Master Admin accounts cannot be created through the portal" });
-    }
     if (req.user?.role === Role.PORTAL_ADMIN && isTopLevelAdminRole(role)) {
-      return res.status(403).json({ error: "Portal Admin cannot create Master Admin or Super Admin users" });
+      return res.status(403).json({ error: "Portal Admin cannot create Super Admin users" });
     }
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -153,16 +149,8 @@ export const updateUserRole = async (req: AuthenticatedRequest, res: Response, n
     if (!isGlobalAdmin(req) && existingUser.tenantId !== getRequestTenantId(req)) {
       return res.status(403).json({ error: "Cannot update a user outside your portal instance" });
     }
-    // Master Admin is immutable: no user or role may modify it, and no user may
-    // be promoted to it through the portal.
-    if (existingUser.role === Role.MASTER_ADMIN) {
-      return res.status(403).json({ error: "Master Admin cannot be modified" });
-    }
-    if (role === Role.MASTER_ADMIN) {
-      return res.status(403).json({ error: "Users cannot be promoted to Master Admin" });
-    }
     if (req.user?.role === Role.PORTAL_ADMIN && (isTopLevelAdminRole(existingUser.role) || isTopLevelAdminRole(role))) {
-      return res.status(403).json({ error: "Portal Admin cannot modify Master Admin or Super Admin access" });
+      return res.status(403).json({ error: "Portal Admin cannot modify Super Admin access" });
     }
 
     const user = await prisma.user.update({

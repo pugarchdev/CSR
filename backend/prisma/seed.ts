@@ -6,13 +6,9 @@ import { PERMISSIONS, ROLE_PERMISSION_MAP, TENANT_FEATURES } from "../src/config
 const prisma = new PrismaClient();
 
 const DEFAULT_PASSWORD = "111111";
-const MASTER_ADMIN_EMAIL = process.env.MASTER_ADMIN_EMAIL || "master@example.com";
-const MASTER_ADMIN_PASSWORD = process.env.MASTER_ADMIN_PASSWORD || "agadge797@gmail";
-
 async function main() {
   console.log("Starting database seed to initialize MahaCSR Portal...");
   const defaultPasswordHash = await bcrypt.hash(DEFAULT_PASSWORD, 10);
-  const masterPasswordHash = await bcrypt.hash(MASTER_ADMIN_PASSWORD, 10);
 
   const tx = prisma;
   if (true) {
@@ -97,32 +93,6 @@ async function main() {
     const permissionIdByKey = new Map(permissions.map((permission) => [permission.key, permission.id]));
 
     // Seed Essential Admins
-    const masterAdmin = await tx.user.create({
-      data: {
-        email: MASTER_ADMIN_EMAIL,
-        passwordHash: masterPasswordHash,
-        role: Role.MASTER_ADMIN,
-        accountStatus: "ACTIVE",
-        isVerified: true,
-        isSystemSeeded: true,
-      },
-    });
-    console.log("✓ Master Admin created:", masterAdmin.email);
-
-    const masterRole = await tx.organizationRole.create({
-      data: {
-        name: "MASTER_ADMIN",
-        description: "Global platform owner with all permissions",
-        scope: RoleScope.GLOBAL,
-        isSystemRole: true,
-        rolePermissions: {
-          create: (ROLE_PERMISSION_MAP.MASTER_ADMIN || []).map((key) => ({ permissionId: permissionIdByKey.get(key)! })).filter((item) => item.permissionId)
-        }
-      }
-    });
-    await tx.userOrganizationRole.create({
-      data: { userId: masterAdmin.id, roleId: masterRole.id }
-    });
     
     const superAdmin = await tx.user.create({
       data: {

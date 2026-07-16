@@ -215,21 +215,20 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
       const allowed =
         (pathname.startsWith("/ngo-dashboard") && ["NGO_ADMIN", "NGO_MEMBER"].includes(role)) ||
         (pathname.startsWith("/company-dashboard") && ["COMPANY_ADMIN", "COMPANY_MEMBER"].includes(role)) ||
-        (pathname.startsWith("/government-portal") && ["MASTER_ADMIN", "SUPER_ADMIN", "PORTAL_ADMIN", "DISTRICT_ADMIN"].includes(role)) ||
-        ((pathname === "/company" || pathname.startsWith("/company/")) && ["MASTER_ADMIN", "COMPANY_ADMIN", "COMPANY_MEMBER", "SUPER_ADMIN", "CORPORATE_USER"].includes(role)) ||
-        ((pathname === "/ngo" || pathname.startsWith("/ngo/")) && ["MASTER_ADMIN", "NGO_ADMIN", "NGO_MEMBER", "SUPER_ADMIN"].includes(role)) ||
-        (pathname.startsWith("/district") && ["MASTER_ADMIN", "DISTRICT_ADMIN", "SUPER_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN"].includes(role)) ||
-        (pathname.startsWith("/organization") && ["MASTER_ADMIN", "BENEFICIARY_AGENCY", "COMPANY_ADMIN", "COMPANY_MEMBER", "CORPORATE_USER", "NGO_ADMIN", "NGO_MEMBER", "DISTRICT_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN", "SUPER_ADMIN"].includes(role)) ||
-        (pathname.startsWith("/master") && role === "MASTER_ADMIN") ||
-        (pathname.startsWith("/admin") && ["MASTER_ADMIN", "SUPER_ADMIN", "DISTRICT_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN"].includes(role)) ||
-        ((pathname.startsWith("/beneficiary") || pathname.startsWith("/department")) && ["MASTER_ADMIN", "BENEFICIARY_AGENCY", "SUPER_ADMIN"].includes(role)) ||
-        (pathname.startsWith("/rm") && ["CSR_RELATIONSHIP_MANAGER", "JOINT_SECRETARY", "PLANNING_SECRETARY", "MASTER_ADMIN", "SUPER_ADMIN"].includes(role)) ||
-        (pathname.startsWith("/js") && ["JOINT_SECRETARY", "PLANNING_SECRETARY", "MASTER_ADMIN", "SUPER_ADMIN"].includes(role)) ||
-        (pathname.startsWith("/secretary") && ["PLANNING_SECRETARY", "MASTER_ADMIN", "SUPER_ADMIN"].includes(role)) ||
-        (pathname.startsWith("/nodal") && ["DISTRICT_NODAL_OFFICER", "NODAL_OFFICER", "JOINT_SECRETARY", "PLANNING_SECRETARY", "MASTER_ADMIN", "SUPER_ADMIN"].includes(role)) ||
-        (pathname.startsWith("/state-cell") && ["STATE_CSR_CELL", "PLANNING_SECRETARY", "MASTER_ADMIN", "SUPER_ADMIN"].includes(role)) ||
-        (pathname.startsWith("/agency") && ["IMPLEMENTING_AGENCY_USER", "CORPORATE_USER", "MASTER_ADMIN", "SUPER_ADMIN"].includes(role)) ||
-        ((pathname === "/partner" || pathname.startsWith("/partner/")) && ["CORPORATE_USER", "CORPORATE_PARTNER", "COMPANY_ADMIN", "COMPANY_MEMBER", "MASTER_ADMIN", "SUPER_ADMIN"].includes(role)) ||
+        (pathname.startsWith("/government-portal") && ["SUPER_ADMIN", "PORTAL_ADMIN", "DISTRICT_ADMIN"].includes(role)) ||
+        ((pathname === "/company" || pathname.startsWith("/company/")) && ["COMPANY_ADMIN", "COMPANY_MEMBER", "SUPER_ADMIN", "CORPORATE_USER"].includes(role)) ||
+        ((pathname === "/ngo" || pathname.startsWith("/ngo/")) && ["NGO_ADMIN", "NGO_MEMBER", "SUPER_ADMIN"].includes(role)) ||
+        (pathname.startsWith("/district") && ["DISTRICT_ADMIN", "SUPER_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN"].includes(role)) ||
+        (pathname.startsWith("/organization") && ["BENEFICIARY_AGENCY", "COMPANY_ADMIN", "COMPANY_MEMBER", "CORPORATE_USER", "NGO_ADMIN", "NGO_MEMBER", "DISTRICT_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN", "SUPER_ADMIN"].includes(role)) ||
+        (pathname.startsWith("/admin") && ["SUPER_ADMIN", "DISTRICT_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN"].includes(role)) ||
+        ((pathname.startsWith("/beneficiary") || pathname.startsWith("/department")) && ["BENEFICIARY_AGENCY", "SUPER_ADMIN"].includes(role)) ||
+        (pathname.startsWith("/rm") && ["CSR_RELATIONSHIP_MANAGER", "JOINT_SECRETARY", "PLANNING_SECRETARY", "SUPER_ADMIN"].includes(role)) ||
+        (pathname.startsWith("/js") && ["JOINT_SECRETARY", "PLANNING_SECRETARY", "SUPER_ADMIN"].includes(role)) ||
+        (pathname.startsWith("/secretary") && ["PLANNING_SECRETARY", "SUPER_ADMIN"].includes(role)) ||
+        (pathname.startsWith("/nodal") && ["DISTRICT_NODAL_OFFICER", "NODAL_OFFICER", "JOINT_SECRETARY", "PLANNING_SECRETARY", "SUPER_ADMIN"].includes(role)) ||
+        (pathname.startsWith("/state-cell") && ["STATE_CSR_CELL", "PLANNING_SECRETARY", "SUPER_ADMIN"].includes(role)) ||
+        (pathname.startsWith("/agency") && ["IMPLEMENTING_AGENCY_USER", "CORPORATE_USER", "SUPER_ADMIN"].includes(role)) ||
+        ((pathname === "/partner" || pathname.startsWith("/partner/")) && ["CORPORATE_USER", "CORPORATE_PARTNER", "COMPANY_ADMIN", "COMPANY_MEMBER", "SUPER_ADMIN"].includes(role)) ||
         pathname.startsWith("/dashboard") ||
         pathname.startsWith("/onboarding") ||
         pathname.startsWith("/queries") ||
@@ -251,8 +250,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
         pathname.startsWith("/track");
 
       if (!allowed) {
-        if (role === "MASTER_ADMIN") router.push("/master/dashboard");
-        else if (["NGO_ADMIN", "NGO_MEMBER"].includes(role)) router.push("/ngo/dashboard");
+        if (["NGO_ADMIN", "NGO_MEMBER"].includes(role)) router.push("/ngo/dashboard");
         else if (["COMPANY_ADMIN", "COMPANY_MEMBER"].includes(role)) router.push("/company/dashboard");
         else if (role === "CORPORATE_USER") router.push("/partner/dashboard");
         else if (role === "SUPER_ADMIN") router.push("/admin");
@@ -281,7 +279,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
   useEffect(() => {
     if (!isDashboard) return;
     const user = getStoredUser();
-    if (!user || user.role === "MASTER_ADMIN") {
+    if (!user) {
       setTenantFeatures({});
       return;
     }
@@ -297,7 +295,6 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
   };
 
   const getDashboardHref = (role: string): string => {
-    if (role === "MASTER_ADMIN") return "/master/dashboard";
     if (["NGO_ADMIN", "NGO_MEMBER"].includes(role)) return "/ngo/dashboard";
     if (["COMPANY_ADMIN", "COMPANY_MEMBER"].includes(role)) return "/company/dashboard";
     if (["CORPORATE_USER", "CORPORATE_PARTNER"].includes(role)) return "/partner/dashboard";
@@ -449,17 +446,6 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
         ];
       }
 
-      if (storedRole === "MASTER_ADMIN") {
-        return [
-          { label: "Dashboard", href: "/master/dashboard", icon: Layers },
-          { label: "Tenants", href: "/master/tenants", icon: Globe2 },
-          { label: "Create Tenant", href: "/master/tenants/create", icon: Sparkles },
-          { label: "Organizations", href: "/master/organizations", icon: Landmark },
-          { label: "Users", href: "/master/users", icon: Users },
-          { label: "Audit Logs", href: "/master/audit-logs", icon: FileText },
-          { label: "Settings", href: "/master/settings", icon: ShieldCheck }
-        ];
-      }
     }
 
     // Fallbacks based on pathname starts (e.g. for unauthenticated paths or direct deep links before user loads)
@@ -711,14 +697,13 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
   const isRouteFeatureDisabled = Boolean(
     isDashboard &&
     routeFeatureKey &&
-    storedRole !== "MASTER_ADMIN" &&
     tenantFeatures[routeFeatureKey] === false
   );
   const dashboardContent = isRouteFeatureDisabled ? (
     <div className="mx-auto max-w-3xl border border-amber-200 bg-amber-50 p-6 text-amber-950 shadow-sm">
       <div className="text-sm font-extrabold uppercase tracking-widest text-amber-700">Feature Disabled</div>
       <h1 className="mt-2 text-2xl font-extrabold text-gov-navy">This feature is not enabled for your portal instance.</h1>
-      <p className="mt-2 text-sm leading-6">Contact your Portal Admin or Master Admin to enable this module for your State Portal.</p>
+      <p className="mt-2 text-sm leading-6">Contact your Portal Admin to enable this module for your State Portal.</p>
     </div>
   ) : children;
 

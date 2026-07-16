@@ -6,7 +6,7 @@ import { listCsrProjects } from "../controllers/csrLifecycleController";
 
 const router = Router();
 
-router.use(authenticateToken, authorizeRoles([Role.MASTER_ADMIN, Role.NGO_ADMIN, Role.NGO_MEMBER, Role.SUPER_ADMIN]), resolveTenantContext, checkTenantActive);
+router.use(authenticateToken, authorizeRoles([Role.NGO_ADMIN, Role.NGO_MEMBER, Role.SUPER_ADMIN]), resolveTenantContext, checkTenantActive);
 router.get("/proposal-requests", checkFeatureEnabled("enableCSRMarketplace"), listCsrProjects);
 router.get("/assigned-projects", checkFeatureEnabled("enableCSRMarketplace"), listCsrProjects);
 

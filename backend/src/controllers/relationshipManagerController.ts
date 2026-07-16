@@ -153,7 +153,7 @@ export const getDashboardStats = async (
     const pitchFilter: any = {};
     const assessmentFilter: any = {};
 
-    if (tenantId && userRole !== Role.MASTER_ADMIN) {
+    if (tenantId) {
       enquiryFilter.tenantId = tenantId;
       pitchFilter.OR = [
         { tenantId: tenantId },
@@ -369,7 +369,7 @@ export const getPendingEnquiries = async (
 
     const where: any = {};
 
-    if (tenantId && userRole !== Role.MASTER_ADMIN) {
+    if (tenantId) {
       where.tenantId = tenantId;
     }
 
@@ -451,7 +451,7 @@ export const getRMEnquiryById = async (
     const tenantId = (req as any).tenantContext?.tenantId || req.user!.tenantId || null;
 
     const where: any = { id };
-    if (tenantId && userRole !== Role.MASTER_ADMIN) where.tenantId = tenantId;
+    if (tenantId) where.tenantId = tenantId;
     if (userRole === Role.CSR_RELATIONSHIP_MANAGER) {
       where.OR = [
         { assignedRelationshipManagerId: userId },
@@ -503,7 +503,7 @@ export const addRMEnquiryInteraction = async (
     }
 
     const where: any = { id };
-    if (tenantId && userRole !== Role.MASTER_ADMIN) where.tenantId = tenantId;
+    if (tenantId) where.tenantId = tenantId;
     if (userRole === Role.CSR_RELATIONSHIP_MANAGER) where.assignedRelationshipManagerId = userId;
 
     const enquiry = await prisma.corporateEnquiry.findFirst({ where });
@@ -569,8 +569,7 @@ export const getPendingPitches = async (
       Role.STATE_CSR_CELL,
       Role.PLANNING_SECRETARY,
       Role.CSR_ADMIN,
-      Role.DISTRICT_ADMIN,
-      Role.MASTER_ADMIN
+      Role.DISTRICT_ADMIN
     ];
 
     if (!allowedRoles.includes(userRole)) {
@@ -582,7 +581,7 @@ export const getPendingPitches = async (
     const where: any = {};
     const conditions: any[] = [];
 
-    if (tenantId && userRole !== Role.MASTER_ADMIN) {
+    if (tenantId) {
       conditions.push({
         OR: [
           { tenantId: tenantId },

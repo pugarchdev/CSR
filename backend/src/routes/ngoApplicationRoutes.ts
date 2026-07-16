@@ -16,7 +16,7 @@ import { Role } from "@prisma/client";
 const router = Router();
 const ngoTransaction = [
   authenticateToken,
-  authorizeRoles([Role.MASTER_ADMIN, Role.NGO_ADMIN, Role.NGO_MEMBER, Role.SUPER_ADMIN]),
+  authorizeRoles([Role.NGO_ADMIN, Role.NGO_MEMBER, Role.SUPER_ADMIN]),
   resolveTenantContext,
   checkTenantActive,
   checkFeatureEnabled("enableCSRMarketplace"),
@@ -28,7 +28,7 @@ router.get("/my", ...ngoTransaction, checkPermission("project:view"), getMyAppli
 router.get(
   "/requirement/:requirementId",
   authenticateToken,
-  authorizeRoles([Role.MASTER_ADMIN, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN, Role.BENEFICIARY_AGENCY]),
+  authorizeRoles([Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN, Role.BENEFICIARY_AGENCY]),
   resolveTenantContext,
   checkTenantActive,
   checkFeatureEnabled("enableNGOSelection"),
@@ -38,7 +38,7 @@ router.get(
 router.patch(
   "/:id/status",
   authenticateToken,
-  authorizeRoles([Role.MASTER_ADMIN, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN]),
+  authorizeRoles([Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN]),
   resolveTenantContext,
   checkTenantActive,
   checkFeatureEnabled("enableNGOSelection"),

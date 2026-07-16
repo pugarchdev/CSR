@@ -12,7 +12,7 @@ router.get("/requirements/:id", authenticateToken, getCSRRequirementById);
 router.post(
   "/requirements/:id/show-interest",
   authenticateToken,
-  authorizeRoles([Role.MASTER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_MEMBER, Role.SUPER_ADMIN]),
+  authorizeRoles([Role.COMPANY_ADMIN, Role.COMPANY_MEMBER, Role.SUPER_ADMIN]),
   resolveTenantContext,
   checkTenantActive,
   checkFeatureEnabled("enableCompanyInterest"),

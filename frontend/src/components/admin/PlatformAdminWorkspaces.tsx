@@ -1048,8 +1048,7 @@ export function MasterOrganizationsWorkspace() {
   );
 }
 
-// System roles a master admin can assign. MASTER_ADMIN is deliberately
-// excluded — it is immutable and cannot be created or granted from the portal.
+// System roles that can be assigned.
 const ASSIGNABLE_SYSTEM_ROLES = [
   "SUPER_ADMIN",
   "PORTAL_ADMIN",

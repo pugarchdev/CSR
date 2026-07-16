@@ -25,7 +25,7 @@ import { Role } from "@prisma/client";
 const router = Router();
 const departmentTransaction = [
   authenticateToken,
-  authorizeRoles([Role.MASTER_ADMIN, Role.BENEFICIARY_AGENCY, Role.SUPER_ADMIN]),
+  authorizeRoles([Role.BENEFICIARY_AGENCY, Role.SUPER_ADMIN]),
   resolveTenantContext,
   checkTenantActive,
   checkFeatureEnabled("enableRequirementCreation"),
@@ -33,7 +33,7 @@ const departmentTransaction = [
 ];
 const departmentRead = [
   authenticateToken,
-  authorizeRoles([Role.MASTER_ADMIN, Role.BENEFICIARY_AGENCY, Role.SUPER_ADMIN]),
+  authorizeRoles([Role.BENEFICIARY_AGENCY, Role.SUPER_ADMIN]),
   resolveTenantContext,
   checkTenantActive,
   checkFeatureEnabled("enableRequirementCreation"),
@@ -42,15 +42,15 @@ const departmentRead = [
 ];
 const requirementApproval = [
   authenticateToken,
-  authorizeRoles([Role.MASTER_ADMIN, Role.DISTRICT_ADMIN, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN]),
+  authorizeRoles([Role.DISTRICT_ADMIN, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN]),
   resolveTenantContext,
   checkTenantActive,
   checkPermission("requirement:approve")
 ];
 
 // Beneficiary Profile
-router.post("/profile", authenticateToken, authorizeRoles([Role.MASTER_ADMIN, Role.BENEFICIARY_AGENCY, Role.SUPER_ADMIN]), resolveTenantContext, checkTenantActive, upsertBeneficiaryProfile);
-router.get("/profile/me", authenticateToken, authorizeRoles([Role.MASTER_ADMIN, Role.BENEFICIARY_AGENCY, Role.SUPER_ADMIN]), resolveTenantContext, checkTenantActive, getMyBeneficiaryProfile);
+router.post("/profile", authenticateToken, authorizeRoles([Role.BENEFICIARY_AGENCY, Role.SUPER_ADMIN]), resolveTenantContext, checkTenantActive, upsertBeneficiaryProfile);
+router.get("/profile/me", authenticateToken, authorizeRoles([Role.BENEFICIARY_AGENCY, Role.SUPER_ADMIN]), resolveTenantContext, checkTenantActive, getMyBeneficiaryProfile);
 
 // Requirements
 router.post("/", ...departmentTransaction, checkPermission("requirement:create"), createCSRRequirement);

@@ -13,7 +13,7 @@ const router = Router();
 router.get("/", optionalAuthenticateToken, getNgos);
 router.get("/:id", optionalAuthenticateToken, getNgoById);
 router.patch("/:id", authenticateToken, updateNgo);
-router.patch("/:id/verify", authenticateToken, authorizeRoles([Role.MASTER_ADMIN, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN]), resolveTenantContext, checkTenantActive, verifyNgo);
-router.patch("/:id/empanelment", authenticateToken, authorizeRoles([Role.MASTER_ADMIN, Role.SUPER_ADMIN, Role.DISTRICT_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN]), resolveTenantContext, checkTenantActive, verifyNgoEmpanelment);
+router.patch("/:id/verify", authenticateToken, authorizeRoles([Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN]), resolveTenantContext, checkTenantActive, verifyNgo);
+router.patch("/:id/empanelment", authenticateToken, authorizeRoles([Role.SUPER_ADMIN, Role.DISTRICT_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN]), resolveTenantContext, checkTenantActive, verifyNgoEmpanelment);
 
 export default router;

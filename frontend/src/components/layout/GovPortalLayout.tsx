@@ -207,7 +207,6 @@ export default function GovPortalLayout({ children, userRole, showSidebar }: Gov
   };
 
   const getDashboardHref = (role: string): string => {
-    if (role === "MASTER_ADMIN") return "/master/dashboard";
     if (["NGO_ADMIN", "NGO_MEMBER"].includes(role)) return "/ngo/dashboard";
     if (["COMPANY_ADMIN", "COMPANY_MEMBER"].includes(role)) return "/company/dashboard";
     if (["CORPORATE_USER", "CORPORATE_PARTNER"].includes(role)) return "/partner/dashboard";

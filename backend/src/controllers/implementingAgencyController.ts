@@ -254,7 +254,6 @@ export const listPendingApprovals = async (
       Role.DISTRICT_NODAL_OFFICER,
       Role.SUPER_ADMIN,
       Role.PORTAL_ADMIN,
-      Role.MASTER_ADMIN,
       Role.STATE_CSR_CELL,
     ];
     if (!allowed.includes(userRole!)) {
@@ -295,7 +294,6 @@ export const decideSubLogin = async (
       Role.DISTRICT_NODAL_OFFICER,
       Role.SUPER_ADMIN,
       Role.PORTAL_ADMIN,
-      Role.MASTER_ADMIN,
     ];
     if (!allowed.includes(userRole!)) {
       return forbiddenResponse(res, "You don't have permission to approve implementing agencies");

@@ -32,7 +32,6 @@ const reportSchema = z.object({
 });
 
 const reportRoles = [
-  Role.MASTER_ADMIN,
   Role.SUPER_ADMIN,
   Role.PORTAL_ADMIN,
   Role.CSR_ADMIN,

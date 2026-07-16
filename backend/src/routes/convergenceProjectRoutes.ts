@@ -49,7 +49,6 @@ const completeProjectSchema = z.object({
 const projectReadAccess = [
   authenticateToken,
   authorizeRoles([
-    Role.MASTER_ADMIN,
     Role.SUPER_ADMIN,
     Role.PORTAL_ADMIN,
     Role.CSR_ADMIN,
@@ -74,7 +73,6 @@ const projectReadAccess = [
 const milestoneUpdateAccess = [
   authenticateToken,
   authorizeRoles([
-    Role.MASTER_ADMIN,
     Role.SUPER_ADMIN,
     Role.PORTAL_ADMIN,
     Role.CSR_ADMIN,
@@ -90,7 +88,6 @@ const milestoneUpdateAccess = [
 const ucUploadAccess = [
   authenticateToken,
   authorizeRoles([
-    Role.MASTER_ADMIN,
     Role.SUPER_ADMIN,
     Role.PORTAL_ADMIN,
     Role.CSR_ADMIN,
@@ -106,7 +103,6 @@ const ucUploadAccess = [
 const projectCompleteAccess = [
   authenticateToken,
   authorizeRoles([
-    Role.MASTER_ADMIN,
     Role.SUPER_ADMIN,
     Role.PORTAL_ADMIN,
     Role.CSR_ADMIN,

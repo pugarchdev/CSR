@@ -356,7 +356,7 @@ export const getPublicPitches = async (
     };
 
     const tenantId = (req as any).tenantContext?.tenantId || req.user?.tenantId || null;
-    if (tenantId && req.user?.role !== Role.MASTER_ADMIN) {
+    if (tenantId) {
       where.OR = [
         { tenantId: tenantId },
         { tenantId: null }

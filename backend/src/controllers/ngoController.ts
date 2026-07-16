@@ -12,13 +12,13 @@ import { VerificationStatus, Role } from "@prisma/client";
 const getRequestTenantId = async (req: AuthenticatedRequest) => {
   const tenantContextId = (req as any).tenantContext?.tenantId || req.user?.tenantId;
   if (tenantContextId) return tenantContextId;
-  if (req.user?.role === Role.MASTER_ADMIN || req.user?.role === Role.SUPER_ADMIN) return null;
+  if (req.user?.role === Role.SUPER_ADMIN) return null;
   const tenant = await prisma.tenant.findUnique({ where: { code: "MH-CSR" } });
   return tenant?.id || null;
 };
 
 const isGlobalAdmin = (req: AuthenticatedRequest) =>
-  req.user?.role === Role.MASTER_ADMIN || req.user?.role === Role.SUPER_ADMIN;
+  req.user?.role === Role.SUPER_ADMIN;
 
 export const getNgos = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {

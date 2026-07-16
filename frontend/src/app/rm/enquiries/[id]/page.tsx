@@ -280,7 +280,7 @@ export default function EnquiryDetailPage() {
   const isReadOnly = !!enquiry?.feasibilityAssessment;
 
   const currentUser = useAuthStore((state) => state.user);
-  const isAssigner = currentUser && ["SUPER_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN", "MASTER_ADMIN", "JOINT_SECRETARY", "STATE_CSR_CELL"].includes(currentUser.role);
+  const isAssigner = currentUser && ["SUPER_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN", "JOINT_SECRETARY", "STATE_CSR_CELL"].includes(currentUser.role);
 
   const [relationshipManagers, setRelationshipManagers] = useState<{ id: string; email: string; assignedDistrict?: string }[]>([]);
   const [selectedRmId, setSelectedRmId] = useState("");

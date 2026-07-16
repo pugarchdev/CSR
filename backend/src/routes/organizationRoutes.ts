@@ -17,7 +17,7 @@ import {
 const router = Router();
 const orgAdmin = [
   authenticateToken,
-  authorizeRoles([Role.MASTER_ADMIN, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN, Role.BENEFICIARY_AGENCY, Role.COMPANY_ADMIN, Role.NGO_ADMIN]),
+  authorizeRoles([Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN, Role.BENEFICIARY_AGENCY, Role.COMPANY_ADMIN, Role.NGO_ADMIN]),
   resolveTenantContext,
   checkTenantActive
 ];

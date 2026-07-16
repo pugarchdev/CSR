@@ -180,7 +180,6 @@ export const getProjects = async (
           Role.PORTAL_ADMIN,
           Role.STATE_CSR_CELL,
           Role.JOINT_SECRETARY,
-          Role.MASTER_ADMIN,
         ] as Role[]
       ).includes(userRole!)
     ) {
@@ -387,7 +386,6 @@ export const getProjectById = async (
     const isAuthorized =
       userRole === Role.SUPER_ADMIN ||
       userRole === Role.PORTAL_ADMIN ||
-      userRole === Role.MASTER_ADMIN ||
       userRole === Role.STATE_CSR_CELL ||
       userRole === Role.JOINT_SECRETARY ||
       project.nodalOfficerUserId === userId ||
@@ -706,7 +704,6 @@ export const completeProject = async (
     const allowedRoles: Role[] = [
       Role.SUPER_ADMIN,
       Role.PORTAL_ADMIN,
-      Role.MASTER_ADMIN,
       Role.STATE_CSR_CELL,
       Role.JOINT_SECRETARY,
       Role.DISTRICT_NODAL_OFFICER,

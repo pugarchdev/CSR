@@ -57,7 +57,6 @@ const closeGrievanceSchema = z.object({
 const grievanceAccess = [
   authenticateToken,
   authorizeRoles([
-    Role.MASTER_ADMIN,
     Role.SUPER_ADMIN,
     Role.PORTAL_ADMIN,
     Role.CSR_ADMIN,
@@ -82,7 +81,6 @@ const grievanceAccess = [
 const respondAccess = [
   authenticateToken,
   authorizeRoles([
-    Role.MASTER_ADMIN,
     Role.SUPER_ADMIN,
     Role.PORTAL_ADMIN,
     Role.CSR_ADMIN,
@@ -98,7 +96,6 @@ const respondAccess = [
 const escalateAccess = [
   authenticateToken,
   authorizeRoles([
-    Role.MASTER_ADMIN,
     Role.SUPER_ADMIN,
     Role.PORTAL_ADMIN,
     Role.CSR_ADMIN,
@@ -112,7 +109,6 @@ const escalateAccess = [
 const closeAccess = [
   authenticateToken,
   authorizeRoles([
-    Role.MASTER_ADMIN,
     Role.SUPER_ADMIN,
     Role.PORTAL_ADMIN,
     Role.CSR_ADMIN,

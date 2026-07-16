@@ -37,7 +37,6 @@ const RESOLVER_ROLES: Role[] = [
   Role.CSR_RELATIONSHIP_MANAGER,
   Role.SUPER_ADMIN,
   Role.PORTAL_ADMIN,
-  Role.MASTER_ADMIN,
 ];
 
 // ─── Public: submit helpdesk query ──────────────────────────────────

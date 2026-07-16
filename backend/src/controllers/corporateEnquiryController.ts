@@ -353,7 +353,6 @@ export const getAllEnquiries = async (
       Role.JOINT_SECRETARY,
       Role.SUPER_ADMIN,
       Role.PORTAL_ADMIN,
-      Role.MASTER_ADMIN,
       Role.CSR_ADMIN,
       Role.DISTRICT_ADMIN,
     ];
@@ -502,7 +501,6 @@ export const assignRM = async (
       Role.JOINT_SECRETARY,
       Role.SUPER_ADMIN,
       Role.PORTAL_ADMIN,
-      Role.MASTER_ADMIN,
       Role.CSR_ADMIN,
       Role.CSR_RELATIONSHIP_MANAGER,
     ];
@@ -664,8 +662,7 @@ export const recordContact = async (
       enquiry.assignedRelationshipManagerId === userId ||
       userRole === Role.STATE_CSR_CELL ||
       userRole === Role.SUPER_ADMIN ||
-      userRole === Role.PORTAL_ADMIN ||
-      userRole === Role.MASTER_ADMIN;
+      userRole === Role.PORTAL_ADMIN;
 
     if (!isAuthorized) {
       return forbiddenResponse(
@@ -840,7 +837,6 @@ export const getEnquiryById = async (
       Role.JOINT_SECRETARY,
       Role.SUPER_ADMIN,
       Role.PORTAL_ADMIN,
-      Role.MASTER_ADMIN,
     ];
 
     const isAuthorized =
@@ -887,7 +883,7 @@ export const getEnquiryById = async (
 /**
  * @desc Get all Relationship Managers
  * @route GET /api/corporate-enquiries/relationship-managers
- * @access Private (STATE_CSR_CELL, JOINT_SECRETARY, SUPER_ADMIN, PORTAL_ADMIN, CSR_ADMIN, MASTER_ADMIN)
+ * @access Private (STATE_CSR_CELL, JOINT_SECRETARY, SUPER_ADMIN, PORTAL_ADMIN, CSR_ADMIN)
  */
 export const getRelationshipManagers = async (
   req: AuthenticatedRequest,

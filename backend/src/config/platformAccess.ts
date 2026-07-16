@@ -62,7 +62,6 @@ export const PERMISSIONS = [
 ] as const;
 
 export const ROLE_PERMISSION_MAP: Record<string, string[]> = {
-  MASTER_ADMIN: PERMISSIONS.map(([key]) => key),
   PORTAL_ADMIN: [
     "organization:view",
     "organization:approve",

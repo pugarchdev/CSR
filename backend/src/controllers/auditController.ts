@@ -10,7 +10,6 @@ export const listAuditLogs = async (req: AuthenticatedRequest, res: Response, ne
 
     const canSeeAllLogs =
       req.user?.role === Role.SUPER_ADMIN ||
-      req.user?.role === Role.MASTER_ADMIN ||
       req.user?.role === Role.PORTAL_ADMIN;
 
     const where = canSeeAllLogs

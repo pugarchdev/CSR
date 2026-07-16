@@ -12,14 +12,14 @@ const router = Router();
 router.get(
   "/escalations",
   authenticateToken,
-  authorizeRoles([Role.PLANNING_SECRETARY, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN, Role.MASTER_ADMIN]),
+  authorizeRoles([Role.PLANNING_SECRETARY, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN]),
   asyncHandler(getSecretaryEscalations)
 );
 
 router.post(
   "/escalations/:id/resolve",
   authenticateToken,
-  authorizeRoles([Role.PLANNING_SECRETARY, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN, Role.MASTER_ADMIN]),
+  authorizeRoles([Role.PLANNING_SECRETARY, Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN]),
   asyncHandler(resolveSecretaryEscalation)
 );
 

@@ -10,7 +10,7 @@ const toNumber = (value: unknown, fallback = 0) => {
 };
 
 const isStateCell = (role?: Role) =>
-  role === Role.MASTER_ADMIN || role === Role.SUPER_ADMIN || role === Role.PORTAL_ADMIN || role === Role.CSR_ADMIN || role === Role.DISTRICT_ADMIN;
+  role === Role.SUPER_ADMIN || role === Role.PORTAL_ADMIN || role === Role.CSR_ADMIN || role === Role.DISTRICT_ADMIN;
 
 export const convertRequirementToProject = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {

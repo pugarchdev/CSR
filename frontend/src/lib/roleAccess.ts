@@ -40,7 +40,6 @@ export function hasRoleAccess(allowedRoles: string[]): boolean {
 
 /** Admin roles that have global access to most features. */
 export const ADMIN_ROLES = [
-  "MASTER_ADMIN",
   "SUPER_ADMIN",
   "PORTAL_ADMIN",
   "CSR_ADMIN",
