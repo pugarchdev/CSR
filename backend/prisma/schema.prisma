@@ -9,7 +9,6 @@ datasource db {
 
 model User {
   id                   String                    @id @default(uuid())
-  tenantId             String?
   organizationId       String?
   email                String                    @unique
   passwordHash         String
@@ -86,14 +85,17 @@ model User {
   helpdeskQueriesRaised    HelpdeskQuery[]               @relation("HelpdeskRaised")
   helpdeskQueriesResolved  HelpdeskQuery[]               @relation("HelpdeskResolved")
 
-  @@index([tenantId])
+  // API Setu Verification Module (GST / Aadhaar eKYC)
+  verificationRecordsInitiated VerificationRecord[]      @relation("VerificationRecordsInitiated")
+  sessions                     Session[]
+  workflowHistories            WorkflowHistory[]
+
   @@index([organizationId])
   @@index([parentCorporateUserId])
 }
 
 model NGO {
   id                      String                   @id @default(uuid())
-  tenantId                String?
   organizationId          String?
   name                    String
   registrationNumber      String                   @unique
@@ -153,13 +155,11 @@ model NGO {
   csrFundReleases         CSRFundRelease[]
   utilizationCertificates UtilizationCertificate[] @relation("NgoUC")
 
-  @@index([tenantId])
   @@index([organizationId])
 }
 
 model Company {
   id                 String             @id @default(uuid())
-  tenantId           String?
   organizationId     String?
   name               String
   cin                String             @unique
@@ -197,13 +197,11 @@ model Company {
   organizationRoles     OrganizationRole[]     @relation("CompanyRoles")
   userOrganizationRoles UserOrganizationRole[] @relation("CompanyUserRoles")
 
-  @@index([tenantId])
   @@index([organizationId])
 }
 
 model Project {
   id               String        @id @default(uuid())
-  tenantId         String?
   ngoId            String
   title            String
   description      String
@@ -227,12 +225,10 @@ model Project {
   milestones       Milestone[]
   ngo              NGO           @relation(fields: [ngoId], references: [id], onDelete: Cascade)
 
-  @@index([tenantId])
 }
 
 model Milestone {
   id                 String          @id @default(uuid())
-  tenantId           String?
   projectId          String
   name               String
   description        String
@@ -244,12 +240,10 @@ model Milestone {
   updatedAt          DateTime        @updatedAt
   project            Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  @@index([tenantId])
 }
 
 model Chat {
   id        String     @id @default(uuid())
-  tenantId  String?
   projectId String?
   ngoId     String
   companyId String
@@ -262,12 +256,10 @@ model Chat {
   messages  Message[]
 
   @@unique([ngoId, companyId, projectId])
-  @@index([tenantId])
 }
 
 model Message {
   id        String   @id @default(uuid())
-  tenantId  String?
   chatId    String
   senderId  String
   text      String?
@@ -278,12 +270,10 @@ model Message {
   chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
   sender    User     @relation(fields: [senderId], references: [id])
 
-  @@index([tenantId])
 }
 
 model Document {
   id             String    @id @default(uuid())
-  tenantId       String?
   organizationId String?
   title          String
   fileUrl        String
@@ -300,7 +290,6 @@ model Document {
   ngo            NGO?      @relation(fields: [ngoId], references: [id])
   project        Project?  @relation(fields: [projectId], references: [id])
 
-  @@index([tenantId])
   @@index([organizationId])
 }
 
@@ -320,7 +309,6 @@ model MatchScore {
 
 model Report {
   id          String     @id @default(uuid())
-  tenantId    String?
   title       String
   type        ReportType
   content     Json
@@ -333,12 +321,10 @@ model Report {
   createdBy   User       @relation(fields: [createdById], references: [id])
   ngo         NGO?       @relation(fields: [ngoId], references: [id])
 
-  @@index([tenantId])
 }
 
 model Notification {
   id        String           @id @default(uuid())
-  tenantId  String?
   userId    String
   title     String
   message   String
@@ -347,12 +333,10 @@ model Notification {
   createdAt DateTime         @default(now())
   user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([tenantId])
 }
 
 model AuditLog {
   id           String   @id @default(uuid())
-  tenantId     String?
   userId       String?
   actorUserId  String?
   actorRole    String?
@@ -367,9 +351,70 @@ model AuditLog {
   createdAt    DateTime @default(now())
   user         User?    @relation(fields: [userId], references: [id])
 
-  @@index([tenantId])
   @@index([actorUserId])
   @@index([entityType, entityId])
+}
+
+// ============================================
+// API Setu Verification Module (GST / Aadhaar eKYC)
+// Append-only: rows are never updated after completion or deleted.
+// ============================================
+
+enum VerificationModuleType {
+  GST
+  AADHAAR
+  PAN
+  CIN
+  UDYAM
+  DIGILOCKER
+}
+
+enum VerificationRecordStatus {
+  IN_PROGRESS
+  OTP_SENT
+  SUCCESS
+  FAILED
+  EXPIRED
+}
+
+enum VerificationEntityType {
+  COMPANY
+  NGO
+  ORGANIZATION
+  ONBOARDING_APPLICATION
+  USER
+}
+
+model VerificationRecord {
+  id               String                   @id @default(uuid())
+  entityType       VerificationEntityType
+  entityId         String
+  verificationType VerificationModuleType
+  status           VerificationRecordStatus @default(IN_PROGRESS)
+  attempt          Int                      @default(1)
+  isLatest         Boolean                  @default(true)
+  maskedIdentifier String? // full GSTIN (public id) or "XXXX-XXXX-1234" for Aadhaar
+  requestId        String                   @unique @default(uuid())
+  transactionId    String? // API Setu / UIDAI transaction reference
+  responseData     Json? // redacted safe subset used for UI autofill
+  encryptedPayload String? // AES-256-GCM encrypted full raw API response
+  errorCode        String?
+  errorMessage     String?
+  responseTimeMs   Int?
+  source           String? // onboarding | registration | admin | profile | nodal
+  ipAddress        String?
+  userAgent        String?
+  initiatedById    String
+  verifiedAt       DateTime?
+  expiresAt        DateTime? // Aadhaar OTP validity window
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  initiatedBy      User                     @relation("VerificationRecordsInitiated", fields: [initiatedById], references: [id])
+
+  @@index([entityType, entityId, verificationType, isLatest])
+  @@index([initiatedById])
+  @@index([createdAt])
+  @@index([transactionId])
 }
 
 model OnboardingApplication {
@@ -497,47 +542,10 @@ model VerificationCheck {
   updatedAt     DateTime              @updatedAt
   application   OnboardingApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   verifiedBy    User?                 @relation("VerificationsDone", fields: [verifiedById], references: [id])
-}
-
-model Tenant {
-  id             String             @id @default(uuid())
-  name           String
-  code           String             @unique
-  state          String
-  status         TenantStatus       @default(ACTIVE)
-  domain         String?
-  logo           String?
-  primaryColor   String?
-  secondaryColor String?
-  isHidden       Boolean            @default(false)
-  configJson     Json?
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
-  features       TenantFeature[]
-  organizations  Organization[]
-  roles          OrganizationRole[]
-
-  @@index([status])
-  @@index([state])
-}
-
-model TenantFeature {
-  id         String   @id @default(uuid())
-  tenantId   String
-  featureKey String
-  isEnabled  Boolean  @default(true)
-  configJson Json?
-  updatedBy  String?
-  updatedAt  DateTime @updatedAt
-  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, featureKey])
-  @@index([featureKey])
-}
+}
 
 model Organization {
   id                          String                       @id @default(uuid())
-  tenantId                    String
   organizationType            OrganizationKind
   name                        String
   legalName                   String?
@@ -576,7 +584,6 @@ model Organization {
   sourceBeneficiaryProfileId  String?
   createdAt                   DateTime                     @default(now())
   updatedAt                   DateTime                     @updatedAt
-  tenant                      Tenant                       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   documents                   OrganizationDocument[]
   csrCompanyProfile           CSRCompanyProfile?
   governmentDepartmentProfile GovernmentDepartmentProfile?
@@ -584,7 +591,6 @@ model Organization {
   roles                       OrganizationRole[]
   userRoles                   UserOrganizationRole[]
 
-  @@index([tenantId])
   @@index([organizationType])
   @@index([onboardingStatus])
   @@index([status])
@@ -592,7 +598,6 @@ model Organization {
 
 model OrganizationDocument {
   id                 String                     @id @default(uuid())
-  tenantId           String
   organizationId     String
   documentType       String
   fileUrl            String
@@ -608,7 +613,6 @@ model OrganizationDocument {
   updatedAt          DateTime                   @updatedAt
   organization       Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  @@index([tenantId])
   @@index([organizationId])
   @@index([verificationStatus])
 }
@@ -616,7 +620,6 @@ model OrganizationDocument {
 model CSRCompanyProfile {
   id                             String       @id @default(uuid())
   organizationId                 String       @unique
-  tenantId                       String
   companyType                    String?
   yearOfIncorporation            Int?
   mcaVerificationStatus          String?
@@ -672,13 +675,11 @@ model CSRCompanyProfile {
   updatedAt                      DateTime     @updatedAt
   organization                   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  @@index([tenantId])
 }
 
 model GovernmentDepartmentProfile {
   id                                 String       @id @default(uuid())
   organizationId                     String       @unique
-  tenantId                           String
   departmentType                     String?
   parentDepartment                   String?
   departmentCode                     String?
@@ -722,12 +723,10 @@ model GovernmentDepartmentProfile {
   updatedAt                          DateTime     @updatedAt
   organization                       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  @@index([tenantId])
 }
 
 model OnboardingReview {
   id             String                 @id @default(uuid())
-  tenantId       String
   organizationId String
   reviewedBy     String?
   reviewAction   OnboardingReviewAction
@@ -735,43 +734,71 @@ model OnboardingReview {
   createdAt      DateTime               @default(now())
   organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  @@index([tenantId])
   @@index([organizationId])
   @@index([reviewAction])
 }
 
 model Permission {
-  id              String                       @id @default(uuid())
-  key             String                       @unique
-  description     String?
-  module          String
-  createdAt       DateTime                     @default(now())
-  rolePermissions OrganizationRolePermission[]
+  id                      String                       @id @default(uuid())
+  key                     String                       @unique
+  description             String?
+  module                  String
+  createdAt               DateTime                     @default(now())
+  rolePermissions         OrganizationRolePermission[]
+  groupId                 String?
+  group                   PermissionGroup?             @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  workflowTransitions     WorkflowTransition[]
+  workflowAssignmentRules WorkflowAssignmentRule[]
+  workflowRules           WorkflowRule[]
+}
+
+model PermissionGroup {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  description String?
+  permissions Permission[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 }
 
 model OrganizationRole {
   id              String                       @id @default(uuid())
-  tenantId        String?
   organizationId  String?
   name            String
   description     String?
   scope           RoleScope
   isSystemRole    Boolean                      @default(false)
+  isPermanent     Boolean                      @default(false)
+  status          String                       @default("ACTIVE") // ACTIVE, INACTIVE, ARCHIVED
+  category        String?
+  displayOrder    Int                          @default(0)
   createdBy       String?
   createdAt       DateTime                     @default(now())
   updatedAt       DateTime                     @updatedAt
-  tenant          Tenant?                      @relation(fields: [tenantId], references: [id])
   organization    Organization?                @relation(fields: [organizationId], references: [id])
   rolePermissions OrganizationRolePermission[]
   userRoles       UserOrganizationRole[]
   companyId       String?
   company         Company?                     @relation("CompanyRoles", fields: [companyId], references: [id], onDelete: Cascade)
   users           User[]                       @relation("UserDynamicRole")
+  parentRoles     RoleHierarchy[]              @relation("ParentRoleHierarchy")
+  childRoles      RoleHierarchy[]              @relation("ChildRoleHierarchy")
 
-  @@unique([tenantId, organizationId, name])
-  @@index([tenantId])
+  @@unique([organizationId, name])
   @@index([organizationId])
   @@index([scope])
+}
+
+model RoleHierarchy {
+  id           String           @id @default(uuid())
+  parentRoleId String
+  childRoleId  String
+  parentRole   OrganizationRole @relation("ParentRoleHierarchy", fields: [parentRoleId], references: [id], onDelete: Cascade)
+  childRole    OrganizationRole @relation("ChildRoleHierarchy", fields: [childRoleId], references: [id], onDelete: Cascade)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@unique([parentRoleId, childRoleId])
 }
 
 model OrganizationRolePermission {
@@ -788,7 +815,6 @@ model UserOrganizationRole {
   userId         String
   roleId         String
   organizationId String?
-  tenantId       String?
   createdAt      DateTime         @default(now())
   user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   role           OrganizationRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
@@ -797,7 +823,6 @@ model UserOrganizationRole {
   company        Company?         @relation("CompanyUserRoles", fields: [companyId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roleId, organizationId])
-  @@index([tenantId])
   @@index([organizationId])
 }
 
@@ -1053,15 +1078,7 @@ enum UserAccountStatus {
   SUSPENDED
   DELETED
   PENDING_APPROVAL
-}
-
-enum TenantStatus {
-  ACTIVE
-  INACTIVE
-  HIDDEN
-  SUSPENDED
-  DELETED
-}
+}
 
 enum OrganizationKind {
   NGO
@@ -1452,7 +1469,6 @@ enum ProgressReportStatus {
 
 model BeneficiaryProfile {
   id             String   @id @default(uuid())
-  tenantId       String?
   organizationId String?
   userId         String   @unique
   agencyName     String
@@ -1477,13 +1493,11 @@ model BeneficiaryProfile {
   assetHandovers  AssetHandover[]
 
   @@index([district])
-  @@index([tenantId])
   @@index([organizationId])
 }
 
 model CSRRequirement {
   id                     String               @id @default(uuid())
-  tenantId               String?
   beneficiaryProfileId   String
   title                  String
   category               CSRCategory
@@ -1535,12 +1549,10 @@ model CSRRequirement {
   @@index([category])
   @@index([status])
   @@index([beneficiaryProfileId])
-  @@index([tenantId])
 }
 
 model CSRRequirementDocument {
   id               String   @id @default(uuid())
-  tenantId         String?
   csrRequirementId String
   title            String
   fileUrl          String
@@ -1555,12 +1567,10 @@ model CSRRequirementDocument {
   csrRequirement CSRRequirement @relation(fields: [csrRequirementId], references: [id], onDelete: Cascade)
 
   @@index([csrRequirementId])
-  @@index([tenantId])
 }
 
 model NGOApplication {
   id                  String               @id @default(uuid())
-  tenantId            String?
   csrRequirementId    String
   ngoId               String
   proposedPlan        String
@@ -1583,12 +1593,10 @@ model NGOApplication {
   @@index([csrRequirementId])
   @@index([ngoId])
   @@index([status])
-  @@index([tenantId])
 }
 
 model CompanyInterest {
   id                  String                @id @default(uuid())
-  tenantId            String?
   csrRequirementId    String
   companyId           String
   fundingAmount       Decimal
@@ -1611,12 +1619,10 @@ model CompanyInterest {
   @@index([csrRequirementId])
   @@index([companyId])
   @@index([status])
-  @@index([tenantId])
 }
 
 model Agreement {
   id                     String          @id @default(uuid())
-  tenantId               String?
   csrRequirementId       String
   companyId              String
   ngoId                  String
@@ -1637,12 +1643,10 @@ model Agreement {
 
   @@index([csrRequirementId])
   @@index([status])
-  @@index([tenantId])
 }
 
 model CSRFundMilestone {
   id                  String                 @id @default(uuid())
-  tenantId            String?
   csrRequirementId    String
   milestoneName       String
   milestonePercentage Decimal
@@ -1660,12 +1664,10 @@ model CSRFundMilestone {
 
   @@index([csrRequirementId])
   @@index([status])
-  @@index([tenantId])
 }
 
 model CSRProject {
   id                   String               @id @default(uuid())
-  tenantId             String?
   csrRequirementId     String
   companyId            String
   ngoId                String?
@@ -1699,12 +1701,10 @@ model CSRProject {
   @@index([companyId])
   @@index([ngoId])
   @@index([projectStatus])
-  @@index([tenantId])
 }
 
 model CSRFundRelease {
   id                       String                 @id @default(uuid())
-  tenantId                 String?
   csrProjectId             String?
   csrRequirementId         String
   companyId                String
@@ -1732,12 +1732,10 @@ model CSRFundRelease {
   @@index([companyId])
   @@index([ngoId])
   @@index([status])
-  @@index([tenantId])
 }
 
 model AssetHandover {
   id                   String    @id @default(uuid())
-  tenantId             String?
   csrProjectId         String?
   csrRequirementId     String
   beneficiaryProfileId String
@@ -1758,12 +1756,10 @@ model AssetHandover {
   @@index([csrRequirementId])
   @@index([beneficiaryProfileId])
   @@index([confirmationStatus])
-  @@index([tenantId])
 }
 
 model ProjectInspection {
   id                String    @id @default(uuid())
-  tenantId          String?
   csrProjectId      String?
   csrRequirementId  String
   districtOfficerId String?
@@ -1785,12 +1781,10 @@ model ProjectInspection {
   @@index([csrRequirementId])
   @@index([districtOfficerId])
   @@index([visitDate])
-  @@index([tenantId])
 }
 
 model ImpactMetric {
   id                  String   @id @default(uuid())
-  tenantId            String?
   csrProjectId        String?
   csrRequirementId    String
   studentsBenefited   Int      @default(0)
@@ -1809,12 +1803,10 @@ model ImpactMetric {
 
   @@index([csrProjectId])
   @@index([csrRequirementId])
-  @@index([tenantId])
 }
 
 model ProgressReport {
   id                      String               @id @default(uuid())
-  tenantId                String?
   csrRequirementId        String
   submittedByNgoId        String
   progressTitle           String
@@ -1838,12 +1830,10 @@ model ProgressReport {
 
   @@index([csrRequirementId])
   @@index([status])
-  @@index([tenantId])
 }
 
 model CompletionReport {
   id                     String   @id @default(uuid())
-  tenantId               String?
   csrRequirementId       String   @unique
   submittedByNgoId       String
   workCompletedSummary   String
@@ -1861,12 +1851,10 @@ model CompletionReport {
 
   csrRequirement CSRRequirement @relation(fields: [csrRequirementId], references: [id], onDelete: Cascade)
 
-  @@index([tenantId])
 }
 
 model ImpactReport {
   id                       String   @id @default(uuid())
-  tenantId                 String?
   csrRequirementId         String   @unique
   projectSummary           String
   companyContribution      String
@@ -1886,7 +1874,6 @@ model ImpactReport {
 
   csrRequirement CSRRequirement @relation(fields: [csrRequirementId], references: [id], onDelete: Cascade)
 
-  @@index([tenantId])
 }
 
 // ============================================
@@ -1896,7 +1883,6 @@ model ImpactReport {
 // 1. Corporate Enquiry - Entry point for corporate partners
 model CorporateEnquiry {
   id         String  @id @default(uuid())
-  tenantId   String?
   trackingId String  @unique // CSR-MH-YYYY-000001 format
 
   // Company Details
@@ -1945,13 +1931,11 @@ model CorporateEnquiry {
   @@index([status])
   @@index([assignedRelationshipManagerId])
   @@index([submittedAt])
-  @@index([tenantId])
 }
 
 // 2. Corporate Enquiry Interaction Log
 model CorporateEnquiryInteraction {
   id                 String           @id @default(uuid())
-  tenantId           String?
   corporateEnquiryId String
   corporateEnquiry   CorporateEnquiry @relation(fields: [corporateEnquiryId], references: [id], onDelete: Cascade)
 
@@ -1967,13 +1951,11 @@ model CorporateEnquiryInteraction {
   @@index([corporateEnquiryId])
   @@index([actorUserId])
   @@index([createdAt])
-  @@index([tenantId])
 }
 
 // 3. Feasibility Assessment - 13-point checklist
 model FeasibilityAssessment {
   id              String  @id @default(uuid())
-  tenantId        String?
   reportReference String  @unique
 
   // References - either corporate enquiry or government pitch
@@ -2020,13 +2002,11 @@ model FeasibilityAssessment {
   @@index([governmentPitchId])
   @@index([relationshipManagerId])
   @@index([feasibilityResult])
-  @@index([tenantId])
 }
 
 // 4. Feasibility Checklist Item - 13 items
 model FeasibilityChecklistItem {
   id           String                @id @default(uuid())
-  tenantId     String?
   assessmentId String
   assessment   FeasibilityAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
 
@@ -2042,13 +2022,11 @@ model FeasibilityChecklistItem {
 
   @@unique([assessmentId, itemNumber])
   @@index([assessmentId])
-  @@index([tenantId])
 }
 
 // 5. Government Pitch - Government officers propose development needs
 model GovernmentPitch {
   id               String  @id @default(uuid())
-  tenantId         String?
   pitchReferenceId String  @unique // GP-MH-YYYY-000001 format
 
   // Official Details
@@ -2104,13 +2082,11 @@ model GovernmentPitch {
   @@index([status])
   @@index([district])
   @@index([assignedRelationshipManagerId])
-  @@index([tenantId])
 }
 
 // 6. Government Pitch Photo - Geo-tagged photos
 model GovernmentPitchPhoto {
   id                String          @id @default(uuid())
-  tenantId          String?
   governmentPitchId String
   governmentPitch   GovernmentPitch @relation(fields: [governmentPitchId], references: [id], onDelete: Cascade)
 
@@ -2123,13 +2099,11 @@ model GovernmentPitchPhoto {
   createdAt DateTime @default(now())
 
   @@index([governmentPitchId])
-  @@index([tenantId])
 }
 
 // 7. Corporate Pitch Interest - Corporate responds to public pitch
 model CorporatePitchInterest {
   id                 String  @id @default(uuid())
-  tenantId           String?
   interestTrackingId String  @unique
 
   governmentPitchId String
@@ -2168,13 +2142,11 @@ model CorporatePitchInterest {
   @@index([governmentPitchId])
   @@index([interestTrackingId])
   @@index([mca21Cin])
-  @@index([tenantId])
 }
 
 // 8. Nodal Officer Appointment
 model NodalOfficerAppointment {
   id       String  @id @default(uuid())
-  tenantId String?
 
   // References
   corporateEnquiryId String?               @unique
@@ -2209,13 +2181,11 @@ model NodalOfficerAppointment {
   @@index([district])
   @@index([nodalOfficerUserId])
   @@index([appointedByJsId])
-  @@index([tenantId])
 }
 
 // 9. Standard MoU
 model StandardMou {
   id             String  @id @default(uuid())
-  tenantId       String?
   mouReferenceId String  @unique
 
   // References
@@ -2263,13 +2233,11 @@ model StandardMou {
 
   @@index([mouReferenceId])
   @@index([status])
-  @@index([tenantId])
 }
 
 // 10. Convergence Project - Main project tracking
 model ConvergenceProject {
   id        String  @id @default(uuid())
-  tenantId  String?
   projectId String  @unique // PRJ-MH-YYYY-000001 format
 
   // References
@@ -2326,13 +2294,11 @@ model ConvergenceProject {
   @@index([nodalOfficerUserId])
   @@index([implementingAgencyUserId])
   @@index([corporateUserId])
-  @@index([tenantId])
 }
 
 // Helpdesk Query — static-part public helpdesk with a 2-day resolution SLA.
 model HelpdeskQuery {
   id         String  @id @default(uuid())
-  tenantId   String?
   trackingId String  @unique // HD-MH-YYYY-000001
 
   subject     String
@@ -2356,13 +2322,11 @@ model HelpdeskQuery {
   @@index([status])
   @@index([resolutionDueAt])
   @@index([email])
-  @@index([tenantId])
 }
 
 // 11. Project Deliverable Milestone
 model ProjectDeliverableMilestone {
   id                   String             @id @default(uuid())
-  tenantId             String?
   convergenceProjectId String
   convergenceProject   ConvergenceProject @relation(fields: [convergenceProjectId], references: [id], onDelete: Cascade)
 
@@ -2386,13 +2350,11 @@ model ProjectDeliverableMilestone {
 
   @@index([convergenceProjectId])
   @@index([status])
-  @@index([tenantId])
 }
 
 // 12. Utilization Certificate
 model UtilizationCertificate {
   id       String  @id @default(uuid())
-  tenantId String?
 
   convergenceProjectId String?
   convergenceProject   ConvergenceProject?          @relation(fields: [convergenceProjectId], references: [id], onDelete: Cascade)
@@ -2431,13 +2393,11 @@ model UtilizationCertificate {
   @@index([milestoneId])
   @@index([uploadedByUserId])
   @@index([verificationStatus])
-  @@index([tenantId])
 }
 
 // 13. Grievance
 model Grievance {
   id          String  @id @default(uuid())
-  tenantId    String?
   grievanceId String  @unique // GRV-MH-YYYY-000001 format
 
   convergenceProjectId String
@@ -2478,13 +2438,11 @@ model Grievance {
   @@index([status])
   @@index([raisedByUserId])
   @@index([assignedNodalOfficerId])
-  @@index([tenantId])
 }
 
 // 14. Grievance Action Log
 model GrievanceActionLog {
   id          String    @id @default(uuid())
-  tenantId    String?
   grievanceId String
   grievance   Grievance @relation(fields: [grievanceId], references: [id], onDelete: Cascade)
 
@@ -2498,7 +2456,6 @@ model GrievanceActionLog {
 
   @@index([grievanceId])
   @@index([actorUserId])
-  @@index([tenantId])
 }
 
 model OtpVerification {
@@ -2520,7 +2477,6 @@ model OtpVerification {
 // 15. SLA Escalation Tracking
 model SLAEscalation {
   id       String  @id @default(uuid())
-  tenantId String?
 
   entityType String // CORPORATE_ENQUIRY, GOVERNMENT_PITCH, GRIEVANCE, etc.
   entityId   String
@@ -2546,12 +2502,10 @@ model SLAEscalation {
   @@index([responsibleUserId])
   @@index([isResolved])
   @@index([dueAt])
-  @@index([tenantId])
 }
 
 model ConvergenceProjectInspection {
   id                   String             @id @default(uuid())
-  tenantId             String?
   convergenceProjectId String
   districtOfficerId    String
   visitDate            DateTime           @default(now())
@@ -2570,12 +2524,10 @@ model ConvergenceProjectInspection {
 
   @@index([convergenceProjectId])
   @@index([districtOfficerId])
-  @@index([tenantId])
 }
 
 model NgoInvitation {
   id             String   @id @default(uuid())
-  tenantId       String?
   companyId      String
   email          String
   ngoName        String
@@ -2586,5 +2538,193 @@ model NgoInvitation {
   company        Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@index([companyId])
+}
+
+// ==========================================
+// 1. Session Management
+// ==========================================
+model Session {
+  id               String    @id @default(uuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userAgent        String?
+  ipAddress        String?
+  lastActivityIp   String?
+  device           String?
+  browser          String?
+  os               String?
+  deviceId         String?
+  loginTime        DateTime  @default(now())
+  lastActivity     DateTime  @default(now())
+  expiry           DateTime
+  isRevoked        Boolean   @default(false)
+  revokedByUserId  String?
+  revokedAt        DateTime?
+  revocationReason String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([isRevoked])
+}
+
+model PlatformSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ==========================================
+// 2. Configurable Workflow Engine Models
+// ==========================================
+model WorkflowDefinition {
+  id             String             @id @default(uuid())
+  name           String
+  description    String?
+  isActive       Boolean            @default(true)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  stages         WorkflowStage[]
+  instances      WorkflowInstance[]
+}
+
+model WorkflowStage {
+  id           String             @id @default(uuid())
+  definitionId String
+  definition   WorkflowDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+  name         String
+  displayOrder Int
+  slaHours     Int                @default(24)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  
+  rules        WorkflowRule[]
+  assignmentRules WorkflowAssignmentRule[]
+  fromTransitions WorkflowTransition[] @relation("FromStage")
+  toTransitions   WorkflowTransition[] @relation("ToStage")
+  historyFrom     WorkflowHistory[]    @relation("HistoryFromStage")
+  historyTo       WorkflowHistory[]    @relation("HistoryToStage")
+  instances       WorkflowInstance[]   @relation("CurrentStage")
+}
+
+model WorkflowTransition {
+  id                   String             @id @default(uuid())
+  fromStageId          String
+  fromStage            WorkflowStage      @relation("FromStage", fields: [fromStageId], references: [id], onDelete: Cascade)
+  toStageId            String
+  toStage              WorkflowStage      @relation("ToStage", fields: [toStageId], references: [id], onDelete: Cascade)
+  
+  requiredPermissionId String
+  requiredPermission   Permission         @relation(fields: [requiredPermissionId], references: [id])
+  
+  conditions         WorkflowCondition[]
+  createdAt          DateTime           @default(now())
+}
+
+model WorkflowCondition {
+  id           String             @id @default(uuid())
+  transitionId String
+  transition   WorkflowTransition @relation(fields: [transitionId], references: [id], onDelete: Cascade)
+  field        String
+  operator     String
+  value        String
+}
+
+model WorkflowAssignmentRule {
+  id           String             @id @default(uuid())
+  stageId      String
+  stage        WorkflowStage      @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  strategy     String
+  
+  requiredPermissionId String
+  requiredPermission   Permission         @relation(fields: [requiredPermissionId], references: [id])
+}
+
+model WorkflowRule {
+  id                 String        @id @default(uuid())
+  stageId            String
+  stage              WorkflowStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  actionType         String
+  
+  requiredPermissionId String?
+  requiredPermission   Permission? @relation(fields: [requiredPermissionId], references: [id])
+  
+  templateId         String?
+  template           NotificationTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  createdAt          DateTime      @default(now())
+}
+
+// ==========================================
+// 3. Workflow Execution Tracking
+// ==========================================
+model WorkflowInstance {
+  id             String             @id @default(uuid())
+  definitionId   String
+  definition     WorkflowDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+  currentStageId String
+  currentStage   WorkflowStage      @relation("CurrentStage", fields: [currentStageId], references: [id])
+  entityId       String
+  entityType     String
+  status         String
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  history        WorkflowHistory[]
+
+  @@index([entityId, entityType])
+}
+
+model WorkflowHistory {
+  id                   String           @id @default(uuid())
+  instanceId           String
+  instance             WorkflowInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  fromStageId          String?
+  fromStage            WorkflowStage?   @relation("HistoryFromStage", fields: [fromStageId], references: [id])
+  toStageId            String
+  toStage              WorkflowStage    @relation("HistoryToStage", fields: [toStageId], references: [id])
+  actionPerformedByUserId String
+  actionPerformedByUser   User           @relation(fields: [actionPerformedByUserId], references: [id])
+  actionPerformedAt    DateTime         @default(now())
+  remarks              String?
+
+  @@index([instanceId])
+}
+
+// ==========================================
+// 4. Notification Engine & Audit Logging
+// ==========================================
+model NotificationTemplate {
+  id        String         @id @default(uuid())
+  name      String
+  subject   String?
+  emailBody String?
+  smsBody   String?
+  channels  String[]
+  createdAt DateTime       @default(now())
+  rules     WorkflowRule[]
+}
+
+model NotificationLog {
+  id               String   @id @default(uuid())
+  recipientId      String
+  recipientEmail   String?
+  recipientPhone   String?
+  title            String
+  message          String
+  channel          String
+  status           String
+  retryCount       Int      @default(0)
+  lastError        String?
+  sentAt           DateTime?
+  correlationId    String?
+  smtpResponseCode String?
+  providerMessageId String?
+  workerNodeId     String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([recipientId])
+  @@index([status])
 }
 
