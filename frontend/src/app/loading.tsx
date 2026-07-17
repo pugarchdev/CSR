@@ -1,31 +1,47 @@
-// Route-level loading UI — appears instantly on navigation while the
-// target page's JS/data loads, making transitions feel SPA-immediate.
+// Route-level loading UI — premium shimmer skeleton
 export default function Loading() {
   return (
-    <div className="mx-auto w-full max-w-[1380px] px-4 py-6 sm:px-6 md:px-8" aria-busy="true" aria-label="Loading page">
+    <div className="mx-auto w-full max-w-[1380px] px-4 py-6 sm:px-6 md:px-8 animate-fade-in" aria-busy="true" aria-label="Loading page">
       {/* Page header skeleton */}
-      <div className="mb-4 rounded-lg border border-[#e0e4ea] bg-white p-4">
-        <div className="h-3 w-40 animate-pulse rounded bg-[#eef0f3]" />
-        <div className="mt-3 h-6 w-72 animate-pulse rounded bg-[#e0e4ea]" />
-        <div className="mt-2 h-3 w-96 max-w-full animate-pulse rounded bg-[#eef0f3]" />
+      <div className="mb-6 rounded-2xl bg-white/70 backdrop-blur-xl border border-white/20 shadow-glass p-5">
+        <div className="h-3 w-40 shimmer-loader rounded-full" />
+        <div className="mt-4 h-7 w-72 shimmer-loader rounded-lg" />
+        <div className="mt-3 h-3 w-96 max-w-full shimmer-loader rounded-full" />
       </div>
 
-      {/* Content grid skeleton */}
-      <div className="grid gap-4 md:grid-cols-3">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="rounded-lg border border-[#e0e4ea] bg-white p-4">
-            <div className="h-4 w-24 animate-pulse rounded bg-[#e0e4ea]" />
-            <div className="mt-3 h-3 w-full animate-pulse rounded bg-[#eef0f3]" />
-            <div className="mt-2 h-3 w-4/5 animate-pulse rounded bg-[#eef0f3]" />
-            <div className="mt-2 h-3 w-3/5 animate-pulse rounded bg-[#eef0f3]" />
+      {/* Stat cards skeleton */}
+      <div className="grid gap-4 md:grid-cols-4 mb-6">
+        {[0, 1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="rounded-2xl bg-white/70 backdrop-blur-xl border border-white/20 shadow-glass p-5"
+            style={{ animationDelay: `${i * 80}ms` }}
+          >
+            <div className="flex items-center justify-between">
+              <div className="space-y-3 flex-1">
+                <div className="h-3 w-20 shimmer-loader rounded-full" />
+                <div className="h-8 w-16 shimmer-loader rounded-lg" />
+              </div>
+              <div className="w-12 h-12 shimmer-loader rounded-xl" />
+            </div>
           </div>
         ))}
       </div>
 
-      <div className="mt-4 rounded-lg border border-[#e0e4ea] bg-white p-4">
-        <div className="h-4 w-32 animate-pulse rounded bg-[#e0e4ea]" />
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="mt-3 h-3 w-full animate-pulse rounded bg-[#eef0f3]" />
+      {/* Table skeleton */}
+      <div className="rounded-2xl bg-white/70 backdrop-blur-xl border border-white/20 shadow-glass overflow-hidden">
+        <div className="h-12 shimmer-loader rounded-none" />
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            className="h-14 border-t border-slate-100/50 flex items-center px-5 gap-6"
+            style={{ animationDelay: `${(i + 4) * 60}ms` }}
+          >
+            <div className="h-4 shimmer-loader rounded-full flex-[2]" />
+            <div className="h-4 shimmer-loader rounded-full flex-[3]" />
+            <div className="h-4 shimmer-loader rounded-full flex-1" />
+            <div className="h-6 w-16 shimmer-loader rounded-full" />
+          </div>
         ))}
       </div>
     </div>

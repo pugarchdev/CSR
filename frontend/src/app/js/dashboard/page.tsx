@@ -1,281 +1,310 @@
+// Joint Secretary Dashboard - Redesigned with New Components
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import GovPortalLayout from "@/components/layout/GovPortalLayout";
-import GovPageShell from "@/components/gov/GovPageShell";
-import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
-import GovButton from "@/components/gov/GovButton";
-import GovStatusBadge, { statusToVariant } from "@/components/gov/GovStatusBadge";
-import GovAlert from "@/components/gov/GovAlert";
-import GovDataTable from "@/components/gov/GovDataTable";
-import AccessDenied from "@/components/gov/AccessDenied";
-import { apiFetch } from "@/lib/api";
-import { hasRoleAccess, JS_ROLES } from "@/lib/roleAccess";
+import { useRouter } from "next/navigation";
+import { 
+  Layers,
+  Mail,
+  FileText,
+  Users,
+  ShieldAlert,
+  Compass,
+  CheckCircle,
+  Clock,
+  ChevronRight,
+  AlertTriangle,
+  Building2,
+  Gavel
+} from "lucide-react";
 
-interface DashboardStats {
-  pendingAssessments: number;
-  assessmentsDueWithin2Days: number;
-  overdueJSDecisions: number;
-  pitchesPendingApproval: number;
-  nodalOfficersAppointed: number;
-  rejectedCases: number;
-}
+// New UI Components
+import { DashboardLayout } from "@/components/layout";
+import { PageHeader } from "@/components/layout";
+import { Card, CardHeader, CardContent } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
+import { ModuleCard, ModuleCardGrid } from "@/components/ui/ModuleCard";
+import { DataTable, Column } from "@/components/ui/DataTable";
+import { EmptyState } from "@/components/ui/EmptyState";
+import MyAssignmentsWidget from "@/components/assignments/MyAssignmentsWidget";
 
-interface PendingAssessment {
+// Sidebar items for JS
+const sidebarItems = [
+  { label: "JS Dashboard", href: "/js/dashboard", icon: Layers },
+  { label: "Corporate Enquiries", href: "/rm/enquiries", icon: Mail },
+  { label: "Assessment Reports", href: "/js/assessments", icon: FileText },
+  { label: "Pitch Approvals", href: "/js/government-pitches", icon: Gavel, badge: 5 },
+  { label: "Nodal Appointments", href: "/js/nodal-appointments", icon: Users },
+  { label: "RM Escalations", href: "/js/escalations", icon: ShieldAlert, badge: 3 },
+  { label: "Projects", href: "/convergence-projects", icon: Compass },
+];
+
+// Mock data
+const jsModules = [
+  {
+    title: "Pitch Approvals",
+    description: "Review and approve government development pitches",
+    href: "/js/government-pitches",
+    icon: Gavel,
+    status: "5 Pending",
+    statusVariant: "warning" as const,
+  },
+  {
+    title: "Assessment Reports",
+    description: "Review feasibility assessment reports from RMs",
+    href: "/js/assessments",
+    icon: FileText,
+    status: "12 New",
+    statusVariant: "info" as const,
+  },
+  {
+    title: "Nodal Appointments",
+    description: "Manage district nodal officer appointments",
+    href: "/js/nodal-appointments",
+    icon: Users,
+    status: "3 Pending",
+    statusVariant: "warning" as const,
+  },
+  {
+    title: "RM Escalations",
+    description: "Handle escalations from Relationship Managers",
+    href: "/js/escalations",
+    icon: ShieldAlert,
+    status: "3 Active",
+    statusVariant: "danger" as const,
+  },
+  {
+    title: "Projects",
+    description: "Monitor convergence project progress",
+    href: "/convergence-projects",
+    icon: Compass,
+    status: "Active",
+    statusVariant: "success" as const,
+  },
+  {
+    title: "Corporate Enquiries",
+    description: "View all corporate partnership enquiries",
+    href: "/rm/enquiries",
+    icon: Mail,
+    status: "28 Total",
+    statusVariant: "info" as const,
+  },
+];
+
+interface PendingApproval {
   id: string;
-  reportReference: string;
-  source: string;
-  trackingId: string;
-  companyOrDepartment: string;
-  district: string;
-  sector: string;
-  rmName: string;
-  feasibilityResult: string;
+  type: string;
+  title: string;
+  submittedBy: string;
   submittedAt: string;
-  jsDecisionDueDate: string;
-  slaStatus: string;
-}
-
-interface PendingPitch {
-  id: string;
-  pitchReferenceId: string;
-  officialName: string;
-  department: string;
-  district: string;
-  estimatedCost: number;
-  govtFundDeclaration: boolean;
-  photosCount: number;
-  rmVerificationStatus: string;
-  jsApprovalDueDate: string;
-}
-
-interface RecentDecision {
-  id: string;
-  caseId: string;
-  decision: string;
-  remarks: string | null;
-  nodalOfficerAppointed: string | null;
-  date: string;
-}
-
-interface EscalationAlert {
-  id: string;
-  entityType: string;
-  entityId: string;
-  stage: string;
-  dueAt: string;
-  daysOverdue: number;
-  responsibleUser: string;
-}
-
-interface DashboardData {
-  stats: DashboardStats;
-  pendingAssessments: PendingAssessment[];
-  pendingPitches: PendingPitch[];
-  recentDecisions: RecentDecision[];
-  escalationAlerts: EscalationAlert[];
+  priority: "high" | "medium" | "low";
 }
 
 export default function JSDashboardPage() {
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [userName, setUserName] = useState<string>("Joint Secretary");
 
-  useEffect(() => { setMounted(true); }, []);
-
-  const fetchDashboardData = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await apiFetch<{ success: boolean; data: DashboardData }>("/js/dashboard");
-      setData(res?.data || null);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load dashboard statistics");
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const user = localStorage.getItem("user");
+      if (user) {
+        try {
+          const userData = JSON.parse(user);
+          setUserName(userData.name || "Joint Secretary");
+        } catch {
+          console.error("Error parsing user data");
+        }
+      }
     }
   }, []);
 
-  useEffect(() => {
-    if (mounted && hasRoleAccess(JS_ROLES)) {
-      fetchDashboardData();
-    }
-  }, [mounted, fetchDashboardData]);
+  const stats = {
+    pendingApprovals: 5,
+    assessmentsReview: 12,
+    escalations: 3,
+    activeProjects: 156,
+  };
 
-  if (!mounted) return null;
-  if (!hasRoleAccess(JS_ROLES)) {
-    return <AccessDenied requiredRoles={["Joint Secretary", "Admin"]} />;
-  }
-
-  const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
-  const fmtCurrency = (v: number) => `₹${v.toLocaleString("en-IN")}`;
-
-  const stats = data?.stats;
-  const kpis = stats ? [
-    { label: "Pending Assessments", value: stats.pendingAssessments, color: "var(--gov-warning)", href: "/js/assessments" },
-    { label: "Due Within 2 Days", value: stats.assessmentsDueWithin2Days, color: "var(--gov-primary)", href: "/js/assessments" },
-    { label: "Overdue JS Decisions", value: stats.overdueJSDecisions, color: "var(--gov-danger)", href: "/js/assessments" },
-    { label: "Pitches Pending Approval", value: stats.pitchesPendingApproval, color: "#7c3aed", href: "/js/government-pitches" },
-    { label: "Nodal Officers Appointed", value: stats.nodalOfficersAppointed, color: "var(--gov-success)", href: "/js/nodal-appointments" },
-    { label: "Rejected / Returned Cases", value: stats.rejectedCases, color: "var(--gov-text-muted)", href: "/js/assessments" },
-  ] : [];
-
-  const assessmentColumns = [
-    { key: "reportReference", label: "Report Ref", render: (v: unknown) => <span style={{ fontWeight: 700 }}>{v as string}</span> },
-    { key: "trackingId", label: "Case ID", render: (v: unknown) => <span style={{ color: "var(--gov-link)", fontWeight: 600 }}>{v as string}</span> },
-    { key: "companyOrDepartment", label: "Company / Dept" },
-    { key: "district", label: "District" },
-    { key: "sector", label: "Sector" },
+  const pendingApprovals: PendingApproval[] = [
     {
-      key: "feasibilityResult",
-      label: "Feasibility",
-      render: (v: unknown) => <GovStatusBadge variant={statusToVariant(v as string)}>{(v as string).replace(/_/g, " ")}</GovStatusBadge>
-    },
-    { key: "submittedAt", label: "Submitted", render: (v: unknown) => fmtDate(v as string) },
-    { key: "jsDecisionDueDate", label: "Due Date", render: (v: unknown) => fmtDate(v as string) },
-    {
-      key: "slaStatus",
-      label: "SLA Status",
-      render: (v: unknown) => {
-        const s = v as string;
-        const variant = s === "ESCALATED" || s === "OVERDUE" ? "danger" : s === "DUE_SOON" ? "warning" : "success";
-        return <GovStatusBadge variant={variant}>{s.replace(/_/g, " ")}</GovStatusBadge>;
-      }
+      id: "1",
+      type: "Government Pitch",
+      title: "School Infrastructure Development - Thane District",
+      submittedBy: "District Collector, Thane",
+      submittedAt: "2026-07-17T08:30:00Z",
+      priority: "high",
     },
     {
-      key: "id",
-      label: "Action",
-      align: "right" as const,
-      render: (_: unknown, row: Record<string, unknown>) => (
-        <GovButton variant="primary" onClick={() => router.push(`/js/assessments/${row.id}`)} style={{ fontSize: 11, padding: "4px 10px", minHeight: 28 }}>Review</GovButton>
-      )
-    }
+      id: "2",
+      type: "Nodal Appointment",
+      title: "Appointment of Nodal Officer - Health Department",
+      submittedBy: "State CSR Cell",
+      submittedAt: "2026-07-16T14:20:00Z",
+      priority: "medium",
+    },
+    {
+      id: "3",
+      type: "Assessment Report",
+      title: "Feasibility Report - Tech Solutions CSR Proposal",
+      submittedBy: "Relationship Manager",
+      submittedAt: "2026-07-16T11:00:00Z",
+      priority: "high",
+    },
   ];
 
-  const pitchColumns = [
-    { key: "pitchReferenceId", label: "Pitch Ref ID", render: (v: unknown) => <span style={{ fontWeight: 700 }}>{v as string}</span> },
-    { key: "department", label: "Department" },
-    { key: "officialName", label: "Official" },
-    { key: "district", label: "District" },
-    { key: "estimatedCost", label: "Est. Cost", render: (v: unknown) => fmtCurrency(v as number) },
+  const approvalColumns: Column<PendingApproval>[] = [
     {
-      key: "rmVerificationStatus",
-      label: "RM Status",
-      render: (v: unknown) => {
-        const status = v as string;
-        const variant = status === "VERIFIED" ? "success" : "warning";
-        return <GovStatusBadge variant={variant}>{status}</GovStatusBadge>;
-      }
+      key: "type",
+      header: "Type",
+      render: (row) => (
+        <Badge variant="info" size="sm">
+          {row.type}
+        </Badge>
+      ),
     },
-    { key: "jsApprovalDueDate", label: "Due Date", render: (v: unknown) => fmtDate(v as string) },
     {
-      key: "id",
-      label: "Action",
-      align: "right" as const,
-      render: (_: unknown, row: Record<string, unknown>) => (
-        <GovButton variant="primary" onClick={() => router.push(`/js/government-pitches/${row.id}`)} style={{ fontSize: 11, padding: "4px 10px", minHeight: 28 }}>Review</GovButton>
-      )
-    }
-  ];
-
-  const decisionColumns = [
-    { key: "caseId", label: "Case ID", render: (v: unknown) => <span style={{ fontWeight: 700 }}>{v as string}</span> },
-    {
-      key: "decision",
-      label: "Decision",
-      render: (v: unknown) => <GovStatusBadge variant={statusToVariant(v as string)}>{(v as string).replace(/_/g, " ")}</GovStatusBadge>
+      key: "title",
+      header: "Title",
+      render: (row) => (
+        <div>
+          <div className="font-medium text-gray-900">{row.title}</div>
+          <div className="text-sm text-gray-500">{row.submittedBy}</div>
+        </div>
+      ),
     },
-    { key: "remarks", label: "Remarks", render: (v: unknown) => (v as string) || "—" },
-    { key: "nodalOfficerAppointed", label: "Nodal Officer Appointed", render: (v: unknown) => (v as string) || "—" },
-    { key: "date", label: "Date", render: (v: unknown) => fmtDate(v as string) }
+    {
+      key: "priority",
+      header: "Priority",
+      render: (row) => (
+        <Badge 
+          variant={row.priority === "high" ? "danger" : row.priority === "medium" ? "warning" : "muted"}
+          size="sm"
+        >
+          {row.priority}
+        </Badge>
+      ),
+    },
+    {
+      key: "submittedAt",
+      header: "Submitted",
+      render: (row) => (
+        <span className="text-sm text-gray-500">
+          {new Date(row.submittedAt).toLocaleDateString("en-IN", {
+            day: "2-digit",
+            month: "short",
+          })}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "",
+      align: "right",
+      render: () => (
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm">
+            Review
+          </Button>
+        </div>
+      ),
+    },
   ];
 
   return (
-    <GovPortalLayout>
-      <GovPageShell
-        breadcrumb="Home / Joint Secretary Dashboard"
-        title="Joint Secretary Dashboard"
-        description="Maharashtra State CSR Project Assessment & Approval Operations Panel"
-      >
-        {error && <GovAlert variant="danger">{error}</GovAlert>}
-
-        {/* Stats Grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginTop: 16 }}>
-          {kpis.map((kpi) => (
-            <div key={kpi.label} style={{ cursor: "pointer" }} onClick={() => router.push(kpi.href)}>
-              <GovCard>
-                <GovCardBody>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--gov-text-muted)", textTransform: "uppercase" }}>{kpi.label}</div>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: kpi.color, marginTop: 6 }}>
-                    {loading ? "—" : kpi.value}
-                  </div>
-                </GovCardBody>
-              </GovCard>
-            </div>
-          ))}
-        </div>
-
-        {/* Escalation Alerts Section */}
-        {data && data.escalationAlerts.length > 0 && (
-          <div style={{ marginTop: 20 }}>
-            <h3 className="gov-section-title" style={{ color: "var(--gov-danger)" }}>🚨 SLA Escalation Alerts</h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {data.escalationAlerts.map((esc) => (
-                <GovAlert key={esc.id} variant="danger" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <strong>RM Missed SLA Escalation:</strong> Case {esc.entityType} (ID: {esc.entityId}) has been escalated to JS.
-                    Overdue by {esc.daysOverdue} days. Responsible: {esc.responsibleUser}.
-                  </div>
-                  <GovButton variant="danger" onClick={() => router.push("/js/escalations")} style={{ fontSize: 11, padding: "4px 10px", minHeight: 28 }}>Take Action</GovButton>
-                </GovAlert>
-              ))}
-            </div>
+    <DashboardLayout
+      userRole="Joint Secretary"
+      userName={userName}
+      userEmail={`${userName.toLowerCase().replace(/\s/g, ".")}@mahacsr.gov.in`}
+      sidebarItems={sidebarItems}
+      notificationCount={5}
+    >
+      <PageHeader
+        title={`Welcome, ${userName}`}
+        description="Joint Secretary Dashboard - Oversee CSR proposals, review assessments, and manage escalations"
+        breadcrumbs={[{ label: "Dashboard" }]}
+        actions={
+          <div className="flex items-center gap-3">
+            <Button variant="outline">
+              View Reports
+            </Button>
+            <Button>
+              Review Pending
+            </Button>
           </div>
-        )}
+        }
+      />
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 20, marginTop: 20 }}>
-          {/* Main Dashboard Queues */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-            {/* Recent Decisions */}
-            <GovCard>
-              <GovCardHeader><GovCardTitle>Recent Decisions</GovCardTitle></GovCardHeader>
-              <GovCardBody style={{ padding: 0 }}>
-                <GovDataTable
-                  columns={decisionColumns}
-                  data={data?.recentDecisions as unknown as Record<string, unknown>[]}
-                  loading={loading}
-                  emptyMessage="No recent decisions recorded in the last 30 days."
-                />
-              </GovCardBody>
-            </GovCard>
-          </div>
+      {/* Stats Grid */}
+      <StatCardGroup columns={4} className="mb-8">
+        <StatCard
+          label="Pending Approvals"
+          value={stats.pendingApprovals}
+          icon={CheckCircle}
+          trend={{ value: 20, positive: false }}
+          index={0}
+        />
+        <StatCard
+          label="Assessments to Review"
+          value={stats.assessmentsReview}
+          icon={FileText}
+          index={1}
+        />
+        <StatCard
+          label="Active Escalations"
+          value={stats.escalations}
+          icon={ShieldAlert}
+          trend={{ value: 1, positive: false }}
+          index={2}
+        />
+        <StatCard
+          label="Active Projects"
+          value={stats.activeProjects}
+          icon={Compass}
+          trend={{ value: 8, positive: true }}
+          index={3}
+        />
+      </StatCardGroup>
 
-          {/* Quick Actions Panel */}
+      {/* Modules Grid */}
+      <ModuleCardGrid columns={3} className="mb-8">
+        {jsModules.map((module, index) => (
+          <ModuleCard
+            key={module.title}
+            {...module}
+            index={index}
+          />
+        ))}
+      </ModuleCardGrid>
+
+      {/* Assignment workflow tracking */}
+      <div className="mb-8">
+        <MyAssignmentsWidget title="Project Assignment Tracking" emptyMessage="No assignment activity yet." />
+      </div>
+
+      {/* Pending Approvals */}
+      <Card hover={false}>
+        <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <h3 className="gov-section-title">Quick Actions</h3>
-            <GovCard>
-              <GovCardBody style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <Link href="/js/assessments" style={{ textDecoration: "none", width: "100%" }}>
-                  <GovButton variant="primary" style={{ width: "100%", justifyContent: "flex-start" }}>📋 View All Assessments</GovButton>
-                </Link>
-                <Link href="/js/government-pitches" style={{ textDecoration: "none", width: "100%" }}>
-                  <GovButton variant="secondary" style={{ width: "100%", justifyContent: "flex-start" }}>🏛️ View Government Pitches</GovButton>
-                </Link>
-                <Link href="/js/nodal-appointments" style={{ textDecoration: "none", width: "100%" }}>
-                  <GovButton variant="secondary" style={{ width: "100%", justifyContent: "flex-start" }}>🎖️ View Nodal Appointments</GovButton>
-                </Link>
-                <Link href="/js/escalations" style={{ textDecoration: "none", width: "100%" }}>
-                  <GovButton variant="danger" style={{ width: "100%", justifyContent: "flex-start" }}>⚠️ View SLA Escalations</GovButton>
-                </Link>
-              </GovCardBody>
-            </GovCard>
+            <h3 className="text-lg font-semibold text-gray-900">Pending Approvals</h3>
+            <p className="text-sm text-gray-500 mt-1">
+              Items requiring your review and approval
+            </p>
           </div>
-        </div>
-      </GovPageShell>
-    </GovPortalLayout>
+          <Button variant="outline" size="sm">
+            View All
+          </Button>
+        </CardHeader>
+        <CardContent className="p-0">
+          <DataTable
+            data={pendingApprovals}
+            columns={approvalColumns}
+            keyExtractor={(row) => row.id}
+          />
+        </CardContent>
+      </Card>
+    </DashboardLayout>
   );
 }

@@ -98,7 +98,6 @@ export async function onboardApprovedAssessmentToProject(input: OnboardInput): P
     return { status: "WAITING_FOR_CORPORATE_INTEREST" };
   }
 
-  const tenantId = assessment.tenantId;
   const appointment = assessment.nodalOfficerAppointment;
   const sourceTitle = assessment.corporateEnquiry
     ? firstWords(assessment.corporateEnquiry.proposedCsrWork, `${assessment.corporateEnquiry.companyName} CSR Project`)
@@ -118,7 +117,6 @@ export async function onboardApprovedAssessmentToProject(input: OnboardInput): P
   const result = await prisma.$transaction(async (tx) => {
     const mou = await tx.standardMou.create({
       data: {
-        tenantId,
         mouReferenceId,
         corporateEnquiryId: assessment.corporateEnquiryId,
         governmentPitchId: assessment.governmentPitchId,
@@ -148,7 +146,6 @@ export async function onboardApprovedAssessmentToProject(input: OnboardInput): P
 
     const project = await tx.convergenceProject.create({
       data: {
-        tenantId,
         projectId,
         corporateEnquiryId: assessment.corporateEnquiryId,
         governmentPitchId: assessment.governmentPitchId,
@@ -166,7 +163,6 @@ export async function onboardApprovedAssessmentToProject(input: OnboardInput): P
         status: "MOU_PENDING",
         milestones: {
           create: milestones.map((milestone) => ({
-            tenantId,
             ...milestone,
           })),
         },
@@ -193,7 +189,6 @@ export async function onboardApprovedAssessmentToProject(input: OnboardInput): P
 
     await tx.auditLog.create({
       data: {
-        tenantId,
         userId: input.actorUserId,
         action: "CONVERGENCE_PROJECT_ONBOARDED",
         entityType: "ConvergenceProject",

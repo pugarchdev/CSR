@@ -129,7 +129,6 @@ const raiseGrievance = asyncHandler(async (req, res) => {
   const grievanceId = await generateGrievanceTrackingId();
   const grievance = await prisma.grievance.create({
     data: {
-      tenantId: user.tenantId,
       grievanceId,
       convergenceProjectId: project.id,
       raisedByUserId: user.id,
@@ -140,7 +139,6 @@ const raiseGrievance = asyncHandler(async (req, res) => {
       assignedNodalOfficerId: project.nodalOfficerUserId,
       actionLogs: {
         create: {
-          tenantId: user.tenantId,
           actorUserId: user.id,
           action: "RAISED",
           note: `Grievance raised. Attachments: ${(req.body.attachmentUrls || []).join(", ") || "None"}`,
@@ -200,7 +198,7 @@ const respondToGrievance = asyncHandler(async (req, res) => {
       status,
       resolutionText: req.body.responseText,
       assignedNodalOfficerId: user.role === Role.DISTRICT_NODAL_OFFICER ? user.id : undefined,
-      actionLogs: { create: { tenantId: user.tenantId, actorUserId: user.id, action: status, note: req.body.responseText } },
+      actionLogs: { create: { actorUserId: user.id, action: status, note: req.body.responseText } },
     },
     include: { actionLogs: true, convergenceProject: true },
   });
@@ -218,7 +216,7 @@ const escalateGrievance = asyncHandler(async (req, res) => {
       level2DueAt: status === "ESCALATED_TO_STATE_CELL" ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : undefined,
       assignedStateCellUserId: status === "ESCALATED_TO_STATE_CELL" && user.role === Role.STATE_CSR_CELL ? user.id : undefined,
       finalAuthorityUserId: status === "ESCALATED_TO_JS_SECRETARY" ? user.id : undefined,
-      actionLogs: { create: { tenantId: user.tenantId, actorUserId: user.id, action: "ESCALATED", note: req.body.escalationReason } },
+      actionLogs: { create: { actorUserId: user.id, action: "ESCALATED", note: req.body.escalationReason } },
     },
     include: { actionLogs: true, convergenceProject: true },
   });
@@ -233,7 +231,7 @@ const closeGrievance = asyncHandler(async (req, res) => {
     data: {
       status: "CLOSED",
       resolutionText: req.body.resolutionSummary,
-      actionLogs: { create: { tenantId: user.tenantId, actorUserId: user.id, action: "CLOSED", note: req.body.closureReason } },
+      actionLogs: { create: { actorUserId: user.id, action: "CLOSED", note: req.body.closureReason } },
     },
     include: { actionLogs: true, convergenceProject: true },
   });
@@ -272,7 +270,6 @@ const assignGrievance = asyncHandler(async (req, res) => {
 
   await prisma.grievanceActionLog.create({
     data: {
-      tenantId: grievance.tenantId,
       grievanceId: grievance.id,
       actorUserId: user.id,
       action: "ASSIGNED",

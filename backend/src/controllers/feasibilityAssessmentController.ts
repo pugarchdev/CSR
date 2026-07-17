@@ -5,6 +5,7 @@ import { FeasibilityResult, ChecklistAnswer, CorporateEnquiryStatus, GovernmentP
 import { Role } from "../types/role";
 import { FEASIBILITY_CHECKLIST_TEMPLATE } from "../constants/feasibilityChecklist";
 import { onboardApprovedAssessmentToProject } from "../services/convergenceOnboardingService";
+import { onProjectApprovedByJS, recordNodalOfficerAssignment } from "../services/assignmentWorkflowService";
 
 // Extended Request type with user info
 interface AuthenticatedRequest extends Request {
@@ -38,7 +39,6 @@ export const getPendingAssessments = async (
     }
 
     const where: Prisma.FeasibilityAssessmentWhereInput = {
-      tenantId: tenantId || undefined,
       submittedToJsAt: { not: null }, // Only submitted ones
     };
 
@@ -94,7 +94,6 @@ export const getPendingAssessments = async (
     const [totalPending, byResult] = await Promise.all([
       prisma.feasibilityAssessment.count({
         where: {
-          tenantId: tenantId || undefined,
           jsDecisionById: null,
           submittedToJsAt: { not: null },
         },
@@ -102,7 +101,6 @@ export const getPendingAssessments = async (
       prisma.feasibilityAssessment.groupBy({
         by: ["feasibilityResult"],
         where: {
-          tenantId: tenantId || undefined,
           jsDecisionById: null,
           submittedToJsAt: { not: null },
         },
@@ -178,7 +176,6 @@ export const getAssessmentById = async (
     const assessment = await prisma.feasibilityAssessment.findFirst({
       where: {
         id,
-        tenantId: tenantId || undefined,
       },
       include: {
         checklistItems: {
@@ -314,7 +311,6 @@ export const submitJSDecision = async (
     const assessment = await prisma.feasibilityAssessment.findFirst({
       where: {
         id,
-        tenantId: tenantId || undefined,
         jsDecisionById: null,
         submittedToJsAt: { not: null },
       },
@@ -341,74 +337,97 @@ export const submitJSDecision = async (
       decision === "APPROVE_WITH_CONDITIONS" ? FeasibilityResult.PROCEED_WITH_CONDITIONS :
       FeasibilityResult.FEASIBLE;
 
-    // Update assessment with JS decision
-    const updatedAssessment = await prisma.feasibilityAssessment.update({
-      where: { id },
-      data: {
-        feasibilityResult,
-        jsDecisionBy: { connect: { id: userId } },
-        jsDecisionAt: now,
-        jsDecisionRemarks: remarks || null,
-        conditionText: decision === "APPROVE_WITH_CONDITIONS" ? conditions : null,
-        updatedAt: now,
-      },
-    });
-
-    // Update source entity status
-    if (assessment.corporateEnquiry) {
-      const newStatus =
-        decision === "REJECT" ? CorporateEnquiryStatus.JS_REJECTED :
-        CorporateEnquiryStatus.JS_APPROVED;
-
-      await prisma.corporateEnquiry.update({
-        where: { id: assessment.corporateEnquiry.id },
-        data: { status: newStatus },
-      });
-    }
-
-    if (assessment.governmentPitch) {
-      const newStatus =
-        decision === "REJECT" ? GovernmentPitchStatus.JS_REJECTED :
-        GovernmentPitchStatus.JS_APPROVED;
-
-      await prisma.governmentPitch.update({
-        where: { id: assessment.governmentPitch.id },
-        data: { status: newStatus },
-      });
-    }
-
-    // Resolve SLA escalation
-    await prisma.sLAEscalation.updateMany({
-      where: {
-        entityType: assessment.corporateEnquiry ? "CORPORATE_ENQUIRY" : "GOVERNMENT_PITCH",
-        entityId: assessment.corporateEnquiry?.id || assessment.governmentPitch?.id,
-        stage: "JS_DECISION",
-        isResolved: false,
-      },
-      data: {
-        isResolved: true,
-        resolvedAt: now,
-      },
-    });
-
-    // Create audit log
-    await prisma.auditLog.create({
-      data: {
-        tenantId,
-        userId,
-        action: `FEASIBILITY_ASSESSMENT_${decision}`,
-        entityType: "FeasibilityAssessment",
-        entityId: id,
-        details: {
-          decision,
+    // Apply the decision atomically: assessment, source entity status,
+    // SLA resolution and audit either all commit or none do.
+    const updatedAssessment = await prisma.$transaction(async (tx) => {
+      const updated = await tx.feasibilityAssessment.update({
+        where: { id },
+        data: {
           feasibilityResult,
-          remarks,
-          conditions,
-          corporateEnquiryId: assessment.corporateEnquiry?.id,
-          governmentPitchId: assessment.governmentPitch?.id,
+          jsDecisionBy: { connect: { id: userId } },
+          jsDecisionAt: now,
+          jsDecisionRemarks: remarks || null,
+          conditionText: decision === "APPROVE_WITH_CONDITIONS" ? conditions : null,
+          updatedAt: now,
         },
-      },
+      });
+
+      // Update source entity status
+      if (assessment.corporateEnquiry) {
+        const newStatus =
+          decision === "REJECT" ? CorporateEnquiryStatus.JS_REJECTED :
+          CorporateEnquiryStatus.JS_APPROVED;
+
+        await tx.corporateEnquiry.update({
+          where: { id: assessment.corporateEnquiry.id },
+          data: { status: newStatus },
+        });
+      }
+
+      if (assessment.governmentPitch) {
+        const newStatus =
+          decision === "REJECT" ? GovernmentPitchStatus.JS_REJECTED :
+          GovernmentPitchStatus.JS_APPROVED;
+
+        await tx.governmentPitch.update({
+          where: { id: assessment.governmentPitch.id },
+          data: { status: newStatus },
+        });
+      }
+
+      // Resolve SLA escalation
+      await tx.sLAEscalation.updateMany({
+        where: {
+          entityType: assessment.corporateEnquiry ? "CORPORATE_ENQUIRY" : "GOVERNMENT_PITCH",
+          entityId: assessment.corporateEnquiry?.id || assessment.governmentPitch?.id,
+          stage: "JS_DECISION",
+          isResolved: false,
+        },
+        data: {
+          isResolved: true,
+          resolvedAt: now,
+        },
+      });
+
+      // Create audit log
+      await tx.auditLog.create({
+        data: {
+          userId,
+          action: `FEASIBILITY_ASSESSMENT_${decision}`,
+          entityType: "FeasibilityAssessment",
+          entityId: id,
+          details: {
+            decision,
+            feasibilityResult,
+            remarks,
+            conditions,
+            corporateEnquiryId: assessment.corporateEnquiry?.id,
+            governmentPitchId: assessment.governmentPitch?.id,
+          },
+        },
+      });
+
+      return updated;
     });
+
+    // Post-commit: auto-trigger the assignment workflow on approval.
+    // Non-fatal by design — the JS decision must never be rolled back by
+    // notification/workflow infrastructure failures.
+    if (decision !== "REJECT") {
+      const entityType = assessment.corporateEnquiry ? "CORPORATE_ENQUIRY" as const : "GOVERNMENT_PITCH" as const;
+      const entityId = assessment.corporateEnquiry?.id || assessment.governmentPitch?.id;
+      if (entityId) {
+        onProjectApprovedByJS({
+          entityType,
+          entityId,
+          approvedById: userId,
+          remarks: remarks || null,
+          ipAddress: req.ip,
+        }).catch((error) =>
+          console.error("Assignment workflow trigger failed (non-fatal):", error)
+        );
+      }
+    }
 
     return successResponse(
       res,
@@ -497,7 +516,6 @@ export const appointNodalOfficer = async (
     const assessment = await prisma.feasibilityAssessment.findFirst({
       where: {
         id,
-        tenantId: tenantId || undefined,
         feasibilityResult: {
           in: [FeasibilityResult.FEASIBLE, FeasibilityResult.PROCEED_WITH_CONDITIONS],
         },
@@ -522,7 +540,6 @@ export const appointNodalOfficer = async (
     // Create nodal officer appointment
     const appointment = await prisma.nodalOfficerAppointment.create({
       data: {
-        tenantId,
         district,
         domain,
         nodalOfficerUser: { connect: { id: nodalOfficerUserId } },
@@ -576,7 +593,6 @@ export const appointNodalOfficer = async (
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        tenantId,
         userId,
         action: "NODAL_OFFICER_APPOINTED",
         entityType: "NodalOfficerAppointment",
@@ -597,6 +613,25 @@ export const appointNodalOfficer = async (
       assessmentId: id,
       actorUserId: userId,
     });
+
+    // Record the nodal officer assignment + advance the lifecycle workflow
+    // (NODAL_OFFICER_ASSIGNMENT -> FIELD_OFFICER_ASSIGNMENT). Non-fatal.
+    {
+      const assignEntityType = assessment.corporateEnquiry ? "CORPORATE_ENQUIRY" : "GOVERNMENT_PITCH";
+      const assignEntityId = assessment.corporateEnquiry?.id || assessment.governmentPitch?.id;
+      if (assignEntityId) {
+        recordNodalOfficerAssignment({
+          entityType: assignEntityType,
+          entityId: assignEntityId,
+          nodalOfficerId: nodalOfficerUserId,
+          assignedById: userId,
+          remarks: `Appointed via nodal officer appointment (${domain || "general"})`,
+          ipAddress: req.ip,
+        }).catch((error) =>
+          console.error("Nodal assignment workflow update failed (non-fatal):", error)
+        );
+      }
+    }
 
     return successResponse(
       res,
@@ -685,7 +720,6 @@ export const updateChecklistItems = async (
     const assessment = await prisma.feasibilityAssessment.findFirst({
       where: {
         id,
-        tenantId: tenantId || undefined,
         relationshipManagerId: userId, // Only RM who created can update
       },
     });
@@ -708,7 +742,6 @@ export const updateChecklistItems = async (
           remarks: item.remarks || null,
         },
         create: {
-          tenantId,
           assessment: { connect: { id } },
           itemNumber: item.itemNumber,
           dimension: item.dimension || FEASIBILITY_CHECKLIST_TEMPLATE.find(t => t.itemNumber === item.itemNumber)?.dimension || "General",
@@ -725,7 +758,6 @@ export const updateChecklistItems = async (
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        tenantId,
         userId,
         action: "CHECKLIST_ITEMS_UPDATED",
         entityType: "FeasibilityAssessment",
@@ -762,7 +794,6 @@ export const getNodalAppointments = async (
     const tenantId = req.user?.tenantId;
     const appointments = await prisma.nodalOfficerAppointment.findMany({
       where: {
-        tenantId: tenantId || undefined,
       },
       include: {
         nodalOfficerUser: {
@@ -810,7 +841,6 @@ export const getNodalAppointmentById = async (
     const appointment = await prisma.nodalOfficerAppointment.findFirst({
       where: {
         id,
-        tenantId: tenantId || undefined,
       },
       include: {
         nodalOfficerUser: {
@@ -877,7 +907,6 @@ export const getNodalOfficers = async (
     const nodalOfficers = await prisma.user.findMany({
       where: {
         role: Role.DISTRICT_NODAL_OFFICER,
-        tenantId: tenantId || undefined,
         accountStatus: "ACTIVE",
       },
       select: {

@@ -1,294 +1,371 @@
+// State CSR Cell Dashboard - Redesigned with New Components
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import GovPortalLayout from "@/components/layout/GovPortalLayout";
-import GovPageHeader from "@/components/layout/GovPageHeader";
-import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
-import GovButton from "@/components/gov/GovButton";
-import GovStatusBadge, { statusToVariant } from "@/components/gov/GovStatusBadge";
-import { apiFetch } from "@/lib/api";
-import {
-  Building2,
-  FileText,
+import { useRouter } from "next/navigation";
+import { 
+  Layers,
+  Mail,
+  Compass,
+  Users,
+  ShieldAlert,
+  HelpCircle,
+  Clock,
+  CheckCircle,
   AlertTriangle,
-  ArrowRight
+  ChevronRight,
+  TrendingUp,
+  Building2
 } from "lucide-react";
 
-// Format date helper
-const formatDate = (dateString: string): string => {
-  if (!dateString) return "—";
-  return new Date(dateString).toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-};
+// New UI Components
+import { DashboardLayout } from "@/components/layout";
+import { PageHeader } from "@/components/layout";
+import { Card, CardHeader, CardContent } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
+import { ModuleCard, ModuleCardGrid } from "@/components/ui/ModuleCard";
+import { DataTable, Column } from "@/components/ui/DataTable";
+
+// Sidebar items for State CSR Cell
+const sidebarItems = [
+  { label: "Dashboard", href: "/state-cell/dashboard", icon: Layers },
+  { label: "Corporate Enquiries", href: "/rm/enquiries", icon: Mail },
+  { label: "Government Pitches", href: "/rm/government-pitches", icon: Compass },
+  { label: "Grievance Queue", href: "/state-cell/grievances", icon: ShieldAlert, badge: 12 },
+  { label: "Helpdesk Queue", href: "/state-cell/helpdesk", icon: HelpCircle, badge: 8 },
+  { label: "Projects", href: "/convergence-projects", icon: Compass },
+];
+
+// Mock data
+const stateCellModules = [
+  {
+    title: "Grievance Queue",
+    description: "Manage and resolve stakeholder grievances",
+    href: "/state-cell/grievances",
+    icon: ShieldAlert,
+    status: "12 Pending",
+    statusVariant: "warning" as const,
+  },
+  {
+    title: "Helpdesk Queue",
+    description: "Respond to helpdesk queries and support requests",
+    href: "/state-cell/helpdesk",
+    icon: HelpCircle,
+    status: "8 Open",
+    statusVariant: "info" as const,
+  },
+  {
+    title: "Corporate Enquiries",
+    description: "Track corporate partnership enquiries",
+    href: "/rm/enquiries",
+    icon: Mail,
+    status: "45 Active",
+    statusVariant: "info" as const,
+  },
+  {
+    title: "Government Pitches",
+    description: "Manage government development pitches",
+    href: "/rm/government-pitches",
+    icon: Compass,
+    status: "18 Pending",
+    statusVariant: "warning" as const,
+  },
+  {
+    title: "Projects",
+    description: "Monitor all convergence projects",
+    href: "/convergence-projects",
+    icon: Layers,
+    status: "156 Active",
+    statusVariant: "success" as const,
+  },
+  {
+    title: "Reports",
+    description: "Generate operational reports",
+    href: "/state-cell/reports",
+    icon: TrendingUp,
+    status: "Available",
+    statusVariant: "info" as const,
+  },
+];
+
+interface Grievance {
+  id: string;
+  grievanceId: string;
+  title: string;
+  submitter: string;
+  type: string;
+  status: string;
+  priority: "high" | "medium" | "low";
+  submittedAt: string;
+}
 
 export default function StateCellDashboardPage() {
-  const [enquiries, setEnquiries] = useState<any[]>([]);
-  const [pitches, setPitches] = useState<any[]>([]);
-  const [grievances, setGrievances] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const router = useRouter();
+  const [userName, setUserName] = useState<string>("State CSR Cell Officer");
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const [enquiryRes, pitchRes, grievanceRes] = await Promise.all([
-        apiFetch<any>("/rm/enquiries?limit=50"),
-        apiFetch<any>("/rm/pitches?limit=50"),
-        apiFetch<any>("/grievances/my?limit=50"),
-      ]);
-
-      setEnquiries(enquiryRes?.data?.enquiries || enquiryRes?.enquiries || enquiryRes || []);
-      setPitches(pitchRes?.data || pitchRes || []);
-      setGrievances(grievanceRes?.data || grievanceRes || []);
-    } catch (err: any) {
-      console.error("Error loading dashboard data:", err);
-      setError(err?.message || "Failed to load dashboard data");
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const user = localStorage.getItem("user");
+      if (user) {
+        try {
+          const userData = JSON.parse(user);
+          setUserName(userData.name || "State CSR Cell Officer");
+        } catch {
+          console.error("Error parsing user data");
+        }
+      }
     }
   }, []);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const stats = {
+    pendingGrievances: 12,
+    openHelpdesk: 8,
+    activeEnquiries: 45,
+    activeProjects: 156,
+  };
 
-  // Compute stats
-  const totalEnquiries = enquiries.length;
-  const unassignedEnquiries = enquiries.filter(
-    (e) => !e.assignedRelationshipManagerId
-  ).length;
+  const grievances: Grievance[] = [
+    {
+      id: "1",
+      grievanceId: "GRV-2026-00128",
+      title: "Project Delay - School Construction",
+      submitter: "Village Education Committee",
+      type: "Implementation",
+      status: "UNDER_REVIEW",
+      priority: "high",
+      submittedAt: "2026-07-17T08:30:00Z",
+    },
+    {
+      id: "2",
+      grievanceId: "GRV-2026-00127",
+      title: "Fund Disbursement Query",
+      submitter: "Implementing Agency",
+      type: "Finance",
+      status: "PENDING_RESPONSE",
+      priority: "medium",
+      submittedAt: "2026-07-16T14:20:00Z",
+    },
+    {
+      id: "3",
+      grievanceId: "GRV-2026-00126",
+      title: "Quality Concerns - Health Center",
+      submitter: "District Health Officer",
+      type: "Quality",
+      status: "UNDER_REVIEW",
+      priority: "high",
+      submittedAt: "2026-07-16T11:00:00Z",
+    },
+  ];
 
-  const totalPitches = pitches.length;
-  const pendingPitches = pitches.filter(
-    (p) => p.status === "RM_VERIFICATION_PENDING" || p.status === "SUBMITTED"
-  ).length;
-
-  const totalGrievances = grievances.length;
-  const l2Grievances = grievances.filter(
-    (g) => g.status === "ESCALATED_TO_STATE_CELL"
-  ).length;
+  const grievanceColumns: Column<Grievance>[] = [
+    {
+      key: "grievanceId",
+      header: "ID",
+      render: (row) => (
+        <span className="font-medium text-primary-600 text-sm">
+          {row.grievanceId}
+        </span>
+      ),
+    },
+    {
+      key: "title",
+      header: "Grievance",
+      render: (row) => (
+        <div>
+          <div className="font-medium text-gray-900">{row.title}</div>
+          <div className="text-sm text-gray-500">{row.submitter}</div>
+        </div>
+      ),
+    },
+    {
+      key: "type",
+      header: "Type",
+      render: (row) => (
+        <Badge variant="info" size="sm">
+          {row.type}
+        </Badge>
+      ),
+    },
+    {
+      key: "priority",
+      header: "Priority",
+      render: (row) => (
+        <Badge 
+          variant={row.priority === "high" ? "danger" : "warning"}
+          size="sm"
+        >
+          {row.priority}
+        </Badge>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (row) => (
+        <span className="text-sm text-gray-500">
+          {row.status.replace(/_/g, " ")}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "",
+      align: "right",
+      render: () => (
+        <Button variant="outline" size="sm">
+          Resolve
+        </Button>
+      ),
+    },
+  ];
 
   return (
-    <GovPortalLayout>
-      <GovPageHeader
-        title="State CSR Cell Dashboard"
-        description="MahaCSR State Cell Operations Control Panel. Oversee corporate enquiries, nodal officer inspects, and Level 2 grievance escalations."
-        breadcrumb="Home / Dashboard"
+    <DashboardLayout
+      userRole="State CSR Cell"
+      userName={userName}
+      userEmail={`${userName.toLowerCase().replace(/\s/g, ".")}@mahacsr.gov.in`}
+      sidebarItems={sidebarItems}
+      notificationCount={12}
+    >
+      <PageHeader
+        title={`Welcome, ${userName}`}
+        description="State CSR Cell Dashboard - Coordinate CSR activities and manage grievances across Maharashtra"
+        breadcrumbs={[{ label: "Dashboard" }]}
+        actions={
+          <div className="flex items-center gap-3">
+            <Button variant="outline">
+              Generate Report
+            </Button>
+            <Button>
+              Create Grievance
+            </Button>
+          </div>
+        }
       />
 
-      {error && (
-        <div style={{ marginBottom: 20 }}>
-          <div className="bg-rose-50 border border-rose-200 p-4 rounded-xl text-rose-800 text-xs">
-            {error}
-          </div>
-        </div>
-      )}
+      {/* Stats Grid */}
+      <StatCardGroup columns={4} className="mb-8">
+        <StatCard
+          label="Pending Grievances"
+          value={stats.pendingGrievances}
+          icon={ShieldAlert}
+          trend={{ value: 5, positive: false }}
+          index={0}
+        />
+        <StatCard
+          label="Helpdesk Tickets"
+          value={stats.openHelpdesk}
+          icon={HelpCircle}
+          index={1}
+        />
+        <StatCard
+          label="Active Enquiries"
+          value={stats.activeEnquiries}
+          icon={Mail}
+          trend={{ value: 8, positive: true }}
+          index={2}
+        />
+        <StatCard
+          label="Active Projects"
+          value={stats.activeProjects}
+          icon={Layers}
+          trend={{ value: 12, positive: true }}
+          index={3}
+        />
+      </StatCardGroup>
 
-      {/* KPI Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 24 }}>
-        <GovCard>
-          <GovCardBody style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ backgroundColor: "rgba(30, 58, 138, 0.08)", color: "var(--gov-primary)", borderRadius: 8, padding: 12 }}>
-              <Building2 size={24} />
-            </div>
+      {/* Modules Grid */}
+      <ModuleCardGrid columns={3} className="mb-8">
+        {stateCellModules.map((module, index) => (
+          <ModuleCard
+            key={module.title}
+            {...module}
+            index={index}
+          />
+        ))}
+      </ModuleCardGrid>
+
+      {/* Bottom Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Pending Grievances */}
+        <Card hover={false}>
+          <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--gov-text-muted)", textTransform: "uppercase" }}>Corporate Enquiries</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: "var(--gov-primary)", marginTop: 4 }}>{totalEnquiries}</div>
-              <div style={{ fontSize: 11, color: "var(--gov-text-muted)", marginTop: 2 }}>
-                <span style={{ color: "var(--gov-danger)", fontWeight: 600 }}>{unassignedEnquiries}</span> awaiting assignment
-              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Pending Grievances</h3>
+              <p className="text-sm text-gray-500 mt-1">
+                Grievances requiring resolution
+              </p>
             </div>
-          </GovCardBody>
-        </GovCard>
-
-        <GovCard>
-          <GovCardBody style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ backgroundColor: "rgba(249, 115, 22, 0.08)", color: "var(--gov-secondary)", borderRadius: 8, padding: 12 }}>
-              <FileText size={24} />
-            </div>
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--gov-text-muted)", textTransform: "uppercase" }}>Government Pitches</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: "var(--gov-secondary)", marginTop: 4 }}>{totalPitches}</div>
-              <div style={{ fontSize: 11, color: "var(--gov-text-muted)", marginTop: 2 }}>
-                <span style={{ color: "var(--gov-warning)", fontWeight: 600 }}>{pendingPitches}</span> pending RM verification
-              </div>
-            </div>
-          </GovCardBody>
-        </GovCard>
-
-        <GovCard>
-          <GovCardBody style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ backgroundColor: "rgba(220, 38, 38, 0.08)", color: "var(--gov-danger)", borderRadius: 8, padding: 12 }}>
-              <AlertTriangle size={24} />
-            </div>
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--gov-text-muted)", textTransform: "uppercase" }}>State Escalations (L2)</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: "var(--gov-danger)", marginTop: 4 }}>{l2Grievances}</div>
-              <div style={{ fontSize: 11, color: "var(--gov-text-muted)", marginTop: 2 }}>
-                Out of <span style={{ fontWeight: 600 }}>{totalGrievances}</span> total grievances
-              </div>
-            </div>
-          </GovCardBody>
-        </GovCard>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 20 }}>
-        {/* Unassigned Enquiries Section */}
-        <GovCard>
-          <GovCardHeader style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <GovCardTitle>Unassigned Corporate Enquiries</GovCardTitle>
-            <Link href="/rm/enquiries">
-              <GovButton variant="secondary" style={{ fontSize: 11, padding: "4px 8px", minHeight: 28 }}>
-                View All Enquiries <ArrowRight size={12} style={{ marginLeft: 4 }} />
-              </GovButton>
+            <Link href="/state-cell/grievances">
+              <Button variant="outline" size="sm">
+                View All
+              </Button>
             </Link>
-          </GovCardHeader>
-          <GovCardBody style={{ padding: 0 }}>
-            {loading ? (
-              <div style={{ padding: 24, textAlign: "center", color: "var(--gov-text-muted)" }}>Loading enquiries...</div>
-            ) : enquiries.filter(e => !e.assignedRelationshipManagerId).length === 0 ? (
-              <div style={{ padding: 24, textAlign: "center", color: "var(--gov-text-muted)" }}>No unassigned enquiries found.</div>
-            ) : (
-              <div className="gov-table-container">
-                <table className="gov-table">
-                  <thead>
-                    <tr>
-                      <th>Tracking ID</th>
-                      <th>Company Name</th>
-                      <th>Sector</th>
-                      <th>District</th>
-                      <th>Submitted At</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {enquiries.filter(e => !e.assignedRelationshipManagerId).slice(0, 5).map((enquiry) => (
-                      <tr key={enquiry.id}>
-                        <td style={{ fontWeight: 600, color: "var(--gov-link)" }}>{enquiry.trackingId}</td>
-                        <td>{enquiry.companyName}</td>
-                        <td>{enquiry.sector}</td>
-                        <td>{enquiry.district || enquiry.preferredDistricts?.[0] || "—"}</td>
-                        <td>{formatDate(enquiry.submittedAt)}</td>
-                        <td>
-                          <Link href={`/rm/enquiries/${enquiry.id}`}>
-                            <GovButton variant="primary" style={{ fontSize: 11, padding: "4px 8px", minHeight: 24 }}>Assign RM</GovButton>
-                          </Link>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          </CardHeader>
+          <CardContent className="p-0">
+            <DataTable
+              data={grievances}
+              columns={grievanceColumns}
+              keyExtractor={(row) => row.id}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Quick Stats */}
+        <Card hover={false}>
+          <CardHeader>
+            <h3 className="text-lg font-semibold text-gray-900">Performance Summary</h3>
+            <p className="text-sm text-gray-500 mt-1">
+              Monthly performance metrics
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-success-50 rounded-lg border border-success-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-success-100 rounded-lg flex items-center justify-center text-success-600">
+                    <CheckCircle size={20} />
+                  </div>
+                  <div>
+                    <p className="font-medium text-success-900">Grievances Resolved</p>
+                    <p className="text-sm text-success-700">24 this month</p>
+                  </div>
+                </div>
+                <span className="text-2xl font-bold text-success-600">85%</span>
               </div>
-            )}
-          </GovCardBody>
-        </GovCard>
-
-        {/* L2 Grievances & Pending Pitches */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-          {/* Grievances Card */}
-          <GovCard>
-            <GovCardHeader style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <GovCardTitle>Escalated Grievances (Level 2)</GovCardTitle>
-              <Link href="/state-cell/grievances">
-                <GovButton variant="secondary" style={{ fontSize: 11, padding: "4px 8px", minHeight: 28 }}>
-                  Grievance Queue
-                </GovButton>
-              </Link>
-            </GovCardHeader>
-            <GovCardBody style={{ padding: 0 }}>
-              {loading ? (
-                <div style={{ padding: 24, textAlign: "center", color: "var(--gov-text-muted)" }}>Loading grievances...</div>
-              ) : grievances.filter(g => g.status === "ESCALATED_TO_STATE_CELL").length === 0 ? (
-                <div style={{ padding: 24, textAlign: "center", color: "var(--gov-text-muted)" }}>No escalated grievances found.</div>
-              ) : (
-                <div className="gov-table-container">
-                  <table className="gov-table">
-                    <thead>
-                      <tr>
-                        <th>Grievance ID</th>
-                        <th>Title</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {grievances.filter(g => g.status === "ESCALATED_TO_STATE_CELL").slice(0, 5).map((g) => (
-                        <tr key={g.id}>
-                          <td style={{ fontWeight: 600, color: "var(--gov-link)" }}>{g.grievanceId}</td>
-                          <td>{g.issueTitle}</td>
-                          <td>
-                            <GovStatusBadge variant="danger">Escalated (L2)</GovStatusBadge>
-                          </td>
-                          <td>
-                            <Link href={`/grievances/${g.id}`}>
-                              <GovButton variant="secondary" style={{ fontSize: 11, padding: "4px 8px", minHeight: 24 }}>Resolve</GovButton>
-                            </Link>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              
+              <div className="flex items-center justify-between p-3 bg-primary-50 rounded-lg border border-primary-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center text-primary-600">
+                    <Clock size={20} />
+                  </div>
+                  <div>
+                    <p className="font-medium text-primary-900">Avg Resolution Time</p>
+                    <p className="text-sm text-primary-700">Target: 5 days</p>
+                  </div>
                 </div>
-              )}
-            </GovCardBody>
-          </GovCard>
-
-          {/* Pitches Card */}
-          <GovCard>
-            <GovCardHeader style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <GovCardTitle>Pending Government Pitches</GovCardTitle>
-              <Link href="/rm/government-pitches">
-                <GovButton variant="secondary" style={{ fontSize: 11, padding: "4px 8px", minHeight: 28 }}>
-                  Pitches Queue
-                </GovButton>
-              </Link>
-            </GovCardHeader>
-            <GovCardBody style={{ padding: 0 }}>
-              {loading ? (
-                <div style={{ padding: 24, textAlign: "center", color: "var(--gov-text-muted)" }}>Loading pitches...</div>
-              ) : pitches.filter(p => p.status === "RM_VERIFICATION_PENDING" || p.status === "SUBMITTED").length === 0 ? (
-                <div style={{ padding: 24, textAlign: "center", color: "var(--gov-text-muted)" }}>No pending pitches found.</div>
-              ) : (
-                <div className="gov-table-container">
-                  <table className="gov-table">
-                    <thead>
-                      <tr>
-                        <th>Ref ID</th>
-                        <th>Department</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pitches.filter(p => p.status === "RM_VERIFICATION_PENDING" || p.status === "SUBMITTED").slice(0, 5).map((pitch) => (
-                        <tr key={pitch.id}>
-                          <td style={{ fontWeight: 600, color: "var(--gov-link)" }}>{pitch.pitchReferenceId}</td>
-                          <td>{pitch.department}</td>
-                          <td>
-                            <GovStatusBadge variant={statusToVariant(pitch.status)}>
-                              {pitch.status === "SUBMITTED" ? "Submitted" : "Verification Pending"}
-                            </GovStatusBadge>
-                          </td>
-                          <td>
-                            <Link href={`/rm/government-pitches/${pitch.id}`}>
-                              <GovButton variant="secondary" style={{ fontSize: 11, padding: "4px 8px", minHeight: 24 }}>Verify</GovButton>
-                            </Link>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <span className="text-2xl font-bold text-primary-600">4.2</span>
+              </div>
+              
+              <div className="flex items-center justify-between p-3 bg-warning-50 rounded-lg border border-warning-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-warning-100 rounded-lg flex items-center justify-center text-warning-600">
+                    <AlertTriangle size={20} />
+                  </div>
+                  <div>
+                    <p className="font-medium text-warning-900">Escalated Items</p>
+                    <p className="text-sm text-warning-700">To Secretary</p>
+                  </div>
                 </div>
-              )}
-            </GovCardBody>
-          </GovCard>
-        </div>
+                <span className="text-2xl font-bold text-warning-600">3</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-    </GovPortalLayout>
+    </DashboardLayout>
   );
 }

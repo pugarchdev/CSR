@@ -31,7 +31,6 @@ export const createCSRRequirement = async (req: AuthenticatedRequest, res: Respo
 
     const requirement = await prisma.cSRRequirement.create({
       data: {
-        tenantId,
         beneficiaryProfileId: profile.id,
         title,
         category,
@@ -164,8 +163,8 @@ export const getMyRequirements = async (req: AuthenticatedRequest, res: Response
 
     const { status } = req.query;
     const filter: any = { beneficiaryProfileId: profile.id };
-    if ((req as any).tenantContext?.tenantId || req.user?.tenantId) {
-      filter.tenantId = (req as any).tenantContext?.tenantId || req.user?.tenantId;
+    if ((req as any).tenantContext?.tenantId || undefined) {
+      filter.tenantId = (req as any).tenantContext?.tenantId || undefined;
     }
     if (status) filter.status = status as CSRRequirementStatus;
 
@@ -411,7 +410,7 @@ export const getMarketplaceRequirements = async (req: AuthenticatedRequest, res:
     ];
 
     const where: any = { status: { in: visibleStatuses } };
-    const tenantId = (req as any).tenantContext?.tenantId || req.user?.tenantId || null;
+    const tenantId = (req as any).tenantContext?.tenantId || undefined || null;
     if (tenantId) where.tenantId = tenantId;
 
     if (district) where.district = district as string;
@@ -482,8 +481,8 @@ export const getVerificationQueue = async (req: AuthenticatedRequest, res: Respo
         ]
       }
     };
-    if ((req as any).tenantContext?.tenantId || req.user?.tenantId) {
-      filter.tenantId = (req as any).tenantContext?.tenantId || req.user?.tenantId;
+    if ((req as any).tenantContext?.tenantId || undefined) {
+      filter.tenantId = (req as any).tenantContext?.tenantId || undefined;
     }
 
     // District admin can only see their district
@@ -592,14 +591,12 @@ export const upsertBeneficiaryProfile = async (req: AuthenticatedRequest, res: R
     const profile = await prisma.beneficiaryProfile.upsert({
       where: { userId },
       update: {
-        tenantId,
         organizationId,
         agencyName, agencyType, district, taluka, village, city,
         address, pincode, contactPerson, contactEmail, contactPhone,
         designation, website
       },
       create: {
-        tenantId,
         organizationId,
         userId, agencyName, agencyType, district, taluka, village, city,
         address, pincode, contactPerson, contactEmail, contactPhone,
@@ -643,7 +640,6 @@ export const addRequirementDocument = async (req: AuthenticatedRequest, res: Res
 
     const doc = await prisma.cSRRequirementDocument.create({
       data: {
-        tenantId: (req as any).tenantContext?.tenantId || req.user?.tenantId || requirement.tenantId,
         csrRequirementId: requirementId,
         title,
         fileUrl,

@@ -1,4 +1,8 @@
+"use client";
+
+import { useRef } from "react";
 import Link from "next/link";
+import { motion, useScroll, useTransform } from "framer-motion";
 import {
   ArrowRight,
   BarChart3,
@@ -13,6 +17,7 @@ import {
 import HeroSection from "@/components/HeroSection";
 import { GisMap } from "@/components/LazyComponents";
 import HomeStatsStrip from "@/components/HomeStatsStrip";
+import { Card } from "@/components/ui/Card";
 
 const workflow = [
   {
@@ -44,7 +49,7 @@ const roleCards = [
     action: "Partner with Maharashtra",
     href: "/partner-with-maharashtra",
     icon: Building2,
-    tone: "blue",
+    gradient: "from-blue-600 to-indigo-700",
   },
   {
     title: "Government Departments & Districts",
@@ -52,7 +57,7 @@ const roleCards = [
     action: "Pitch a Development Need",
     href: "/pitch-development-need",
     icon: Landmark,
-    tone: "orange",
+    gradient: "from-amber-500 to-orange-600",
   },
   {
     title: "Track a Partnership",
@@ -60,7 +65,7 @@ const roleCards = [
     action: "Track Status",
     href: "/track",
     icon: ClipboardCheck,
-    tone: "green",
+    gradient: "from-emerald-500 to-teal-600",
   },
 ];
 
@@ -95,259 +100,492 @@ const pillars = [
   },
 ];
 
-const cardTone = {
-  green: "border-[#c8e6c9] bg-[#e8f5e9] text-[#2e7d32]",
-  blue: "border-[#c4ddf2] bg-[#e3f0fa] text-[#14274e]",
-  orange: "border-[#fbe0b8] bg-[#fef3e0] text-[#b06000]",
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 },
+  },
 };
+
+const cardFadeUp = {
+  hidden: { opacity: 0, y: 40, rotateX: 8 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    rotateX: 0,
+    transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] },
+  },
+};
+
+const sectionFade = {
+  hidden: { opacity: 0, y: 60 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] },
+  },
+};
+
+function Parallax3DSection({ children, className }: { children: React.ReactNode; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start end", "end start"],
+  });
+  const y = useTransform(scrollYProgress, [0, 1], [60, -60]);
+  const rotateX = useTransform(scrollYProgress, [0, 0.5, 1], [4, 0, -4]);
+
+  return (
+    <motion.div
+      ref={ref}
+      style={{ y, rotateX, transformPerspective: 1200 }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+const resources = [
+  { title: "Framework & Policy Information", description: "The State's CSR convergence framework explained simply; benefits to corporates. Marathi & English.", href: "/framework-policy" },
+  { title: "Document Library", description: "CSR Rules 2014 & MCA amendments; Schedule VII; State GRs; progress formats; checklists.", href: "/document-library" },
+  { title: "Workflow Explainer", description: "Simple visual guide showing exactly how the partnership works, step by step, with timelines.", href: "/workflow" },
+  { title: "Success Stories & Case Studies", description: "Completed projects with photos, investment, beneficiaries, corporate name. Builds confidence through proof.", href: "/success-stories" },
+  { title: "CSR Summits & Events", description: "Past summit reports and videos; upcoming events; registration links.", href: "/csr-events" },
+  { title: "Directory", description: "Contact details of the State CSR Cell, the CSR Relationship Managers, and all District Nodal Officers.", href: "/directory" },
+  { title: "Completed Projects Gallery", description: "Permanent, searchable public record of all portal projects — by district, sector, corporate, year.", href: "/completed-projects" },
+  { title: "Public Development Needs (Live)", description: "Government pitches approved and made public — open for any corporate to fund.", href: "/public-development-needs" },
+  { title: "FAQs, News & Recognition", description: "Common questions; portal updates; CSR awards and recognition of corporate partners.", href: "/faq-news-recognition" },
+];
 
 export default function LandingPage() {
   return (
-    <div className="bg-[#f4f5f7] text-[#333333]">
+    <div className="bg-slate-50 text-slate-700 min-h-screen font-sans relative overflow-hidden">
+      {/* Ambient blobs */}
+      <div className="absolute top-20 -left-12 w-96 h-96 bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-float" />
+      <div className="absolute bottom-20 -right-12 w-96 h-96 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-float" style={{ animationDelay: "2.5s" }} />
+
       <HeroSection />
 
-      <main className="mx-auto flex w-full max-w-[1380px] flex-col gap-6 px-4 pb-10 pt-8 sm:px-6 md:px-8 lg:pt-14">
-        <section className="rounded-lg border border-[#e0e4ea] bg-white p-4 sm:p-5 md:p-6">
-          <div className="flex flex-col gap-4 border-b border-[#e0e4ea] pb-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#6b7280]">State-Led, District-Executed Convergence</div>
-              <h2 className="mt-1 break-words text-xl font-extrabold leading-tight text-[#14274e] sm:text-2xl">How the partnership works</h2>
-            </div>
-            <div className="rounded-md border border-[#e0e4ea] bg-[#f4f5f7] px-4 py-3 text-xs font-semibold leading-5 text-[#6b7280] md:max-w-[390px]">
-              A single State CSR Coordinating Unit routes every corporate to one accountable District Nodal Officer.
-            </div>
-          </div>
+      <main className="mx-auto flex w-full max-w-[1380px] flex-col gap-10 px-4 pb-16 pt-8 sm:px-6 md:px-8 lg:pt-14">
 
-          <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {workflow.map((step, index) => (
-              <div key={step.title} className="relative rounded-md border border-[#e0e4ea] bg-[#f4f5f7] p-5">
-                <div className="absolute -top-4 left-1/2 grid h-8 w-8 -translate-x-1/2 place-items-center rounded-full bg-[#1789d6] text-xs font-extrabold text-white">
-                  {index + 1}
-                </div>
-                <step.icon className="mt-3 text-[#1789d6]" size={28} />
-                <h3 className="mt-3 text-sm font-extrabold text-[#14274e]">{step.title}</h3>
-                <p className="mt-1 text-[11px] font-medium leading-5 text-[#6b7280]">{step.detail}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="rounded-lg border border-[#e0e4ea] bg-white p-4 sm:p-5 md:p-6">
-          <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#6b7280]">Two Ways to Engage</div>
-          <h2 className="mt-1 break-words text-xl font-extrabold leading-tight text-[#14274e] sm:text-2xl">Start your convergence partnership</h2>
-          <div className="mt-5 grid gap-5 lg:grid-cols-3">
-            {roleCards.map((card) => (
-              <Link
-                key={card.title}
-                href={card.href}
-                className={`rounded-lg border p-6 transition-colors hover:no-underline ${cardTone[card.tone as keyof typeof cardTone]}`}
-              >
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center lg:flex-col lg:items-start xl:flex-row xl:items-center">
-                  <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full border border-current/20 bg-white/75">
-                    <card.icon size={34} />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-extrabold">{card.title}</h3>
-                    <p className="mt-2 text-xs font-medium leading-5 text-slate-600">{card.detail}</p>
-                    <span className="mt-5 inline-flex items-center gap-2 text-xs font-extrabold">
-                      {card.action} <ArrowRight size={14} />
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        <section className="rounded-lg border border-[#e0e4ea] bg-white p-4 sm:p-5 md:p-6">
-          <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#6b7280]">Public Information Directory</div>
-          <h2 className="mt-1 break-words text-xl font-extrabold leading-tight text-[#14274e] sm:text-2xl">MahaCSR Setu Resources</h2>
-          
-          <div className="mt-6 grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              {
-                title: "Framework & Policy Information",
-                description: "The State's CSR convergence framework explained simply; benefits to corporates. Marathi & English.",
-                href: "/framework-policy",
-                bulletColor: "bg-[#14274e]"
-              },
-              {
-                title: "Document Library",
-                description: "CSR Rules 2014 & MCA amendments; Schedule VII; State GRs; progress formats; checklists.",
-                href: "/document-library",
-                bulletColor: "bg-[#f7941d]"
-              },
-              {
-                title: "Workflow Explainer",
-                description: "Simple visual guide showing exactly how the partnership works, step by step, with timelines.",
-                href: "/workflow",
-                bulletColor: "bg-[#43a047]"
-              },
-              {
-                title: "Success Stories & Case Studies",
-                description: "Completed projects with photos, investment, beneficiaries, corporate name. Builds confidence through proof.",
-                href: "/success-stories",
-                bulletColor: "bg-[#0f7c8a]"
-              },
-              {
-                title: "CSR Summits & Events",
-                description: "Past summit reports and videos; upcoming events; registration links.",
-                href: "/csr-events",
-                bulletColor: "bg-[#f7941d]"
-              },
-              {
-                title: "Directory",
-                description: "Contact details of the State CSR Cell, the CSR Relationship Managers, and all District Nodal Officers.",
-                href: "/directory",
-                bulletColor: "bg-red-600"
-              },
-              {
-                title: "Completed Projects Gallery",
-                description: "Permanent, searchable public record of all portal projects — by district, sector, corporate, year.",
-                href: "/completed-projects",
-                bulletColor: "bg-indigo-600"
-              },
-              {
-                title: "Public Development Needs (Live)",
-                description: "Government pitches approved and made public — open for any corporate to fund.",
-                href: "/public-development-needs",
-                bulletColor: "bg-sky-600"
-              },
-              {
-                title: "FAQs, News & Recognition",
-                description: "Common questions; portal updates; CSR awards and recognition of corporate partners.",
-                href: "/faq-news-recognition",
-                bulletColor: "bg-teal-600"
-              }
-            ].map((item) => (
-              <Link 
-                key={item.title} 
-                href={item.href}
-                className="flex items-start gap-3 rounded-lg border border-[#e0e4ea] bg-white p-4 hover:border-[#1789d6] transition-colors hover:no-underline group"
-              >
-                <span className={`h-3 w-3 rounded-sm ${item.bulletColor} shrink-0 mt-1.5`} />
+        {/* ── Workflow Section ── */}
+        <Parallax3DSection>
+          <motion.div
+            variants={sectionFade}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+          >
+            <Card hover={false} tilt={false} className="p-6 sm:p-8">
+              <div className="flex flex-col gap-4 border-b border-slate-100/80 pb-6 md:flex-row md:items-end md:justify-between">
                 <div>
-                  <h3 className="text-sm font-extrabold text-slate-800 leading-snug group-hover:text-[#1789d6] transition-colors">{item.title}</h3>
-                  <p className="mt-1.5 text-[11px] font-semibold leading-relaxed text-slate-500">{item.description}</p>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">
+                    State-Led, District-Executed Convergence
+                  </span>
+                  <h2 className="mt-3 break-words text-2xl font-bold leading-tight text-slate-900 sm:text-3xl tracking-tight">
+                    How the partnership works
+                  </h2>
                 </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        <section className="rounded-lg border border-[#e0e4ea] bg-white p-4 sm:p-5 md:p-6">
-          <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#6b7280]">MahaCSR at a Glance</div>
-          <p className="mt-1 text-xs font-semibold text-[#6b7280]">Live figures drawn only from projects onboarded and certified on the portal.</p>
-          <HomeStatsStrip />
-        </section>
-
-        <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-          <div className="rounded-lg border border-[#e0e4ea] bg-white p-4 sm:p-5 md:p-6">
-            <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#6b7280]">Framework Principles</div>
-            <div className="mt-5 flex flex-col gap-3">
-              {recommendations.map((item) => (
-                <div key={item} className="flex items-center gap-3 rounded-md border border-[#e0e4ea] bg-white p-3">
-                  <CheckCircle2 className="shrink-0 text-[#2e7d32]" size={18} />
-                  <p className="flex-1 text-sm font-semibold leading-6 text-[#4b5563]">{item}</p>
-                  <ArrowRight className="shrink-0 text-[#1789d6]" size={17} />
+                <div className="rounded-xl border border-slate-100 bg-slate-50/50 px-5 py-4 text-xs font-medium leading-relaxed text-slate-500 md:max-w-[400px]">
+                  A single State CSR Coordinating Unit routes every corporate to one accountable District Nodal Officer.
                 </div>
-              ))}
-            </div>
-            
-          </div>
+              </div>
 
-          <div className="rounded-lg border border-[#e0e4ea] bg-white p-4 sm:p-5 md:p-6">
-            <div className="flex items-center justify-between">
-              <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#6b7280]">Circulars & Notices</div>
-              <Link href="/circulars" className="text-xs font-extrabold text-[#1789d6] hover:no-underline">View All</Link>
-            </div>
-            <div className="mt-5 flex flex-wrap gap-3 border-b border-[#e0e4ea] pb-3 text-xs font-extrabold">
-              <span className="rounded bg-[#1789d6] px-4 py-2 text-white">All</span>
-              <span className="px-2 py-2 text-[#4b5563]">Policy Notices</span>
-              <span className="px-2 py-2 text-[#4b5563]">Government Resolutions</span>
-              <span className="px-2 py-2 text-[#4b5563]">Circulars</span>
-            </div>
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full min-w-[620px] border-collapse text-left text-xs">
-                <thead className="bg-[#f4f5f7] text-[#14274e]">
-                  <tr>
-                    <th className="border border-[#e0e4ea] px-3 py-3">Title</th>
-                    <th className="border border-[#e0e4ea] px-3 py-3">Category</th>
-                    <th className="border border-[#e0e4ea] px-3 py-3">Type</th>
-                    <th className="border border-[#e0e4ea] px-3 py-3">Date</th>
-                  </tr>
-                </thead>
-                <tbody className="text-[#4b5563]">
-                  {notices.map(([title, category, type, date]) => (
-                    <tr key={title}>
-                      <td className="border border-[#e0e4ea] px-3 py-3 font-semibold">{title}</td>
-                      <td className="border border-[#e0e4ea] px-3 py-3">{category}</td>
-                      <td className="border border-[#e0e4ea] px-3 py-3">{type}</td>
-                      <td className="border border-[#e0e4ea] px-3 py-3">{date}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <Link href="/circulars" className="mt-5 inline-flex min-h-10 items-center rounded-md border border-[#e0e4ea] px-5 text-xs font-extrabold text-[#1789d6] hover:bg-[#e3f0fa] hover:no-underline">
-              View All Notices & Circulars
-            </Link>
-          </div>
-        </section>
+              <motion.div
+                variants={staggerContainer}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4"
+                style={{ perspective: "800px" }}
+              >
+                {workflow.map((step, index) => (
+                  <motion.div key={step.title} variants={cardFadeUp} style={{ transformStyle: "preserve-3d" }}>
+                    <Card
+                      index={index}
+                      className="relative p-6 pt-8 bg-white/60 border border-slate-100"
+                    >
+                      <div className="absolute -top-4 left-6 grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-xs font-bold text-white shadow-lg shadow-blue-500/30">
+                        {index + 1}
+                      </div>
+                      <div className="text-blue-600 p-2.5 bg-blue-50/60 rounded-xl inline-block shadow-sm">
+                        <step.icon size={22} />
+                      </div>
+                      <h3 className="mt-4 text-sm font-bold text-slate-900 tracking-tight">{step.title}</h3>
+                      <p className="mt-2 text-xs leading-relaxed text-slate-500">{step.detail}</p>
+                    </Card>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </Card>
+          </motion.div>
+        </Parallax3DSection>
 
-        <section className="rounded-lg border border-[#e0e4ea] bg-white p-4 sm:p-5 md:p-6">
-          <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#6b7280]">District CSR Register</div>
-              <h2 className="mt-1 break-words text-lg font-extrabold text-[#14274e]">Visualize CSR activity across Maharashtra</h2>
-          <div className="mt-5">
-            <GisMap />
-          </div>
-        </section>
-
-        <section className="rounded-lg border border-[#e0e4ea] bg-white p-5 md:p-6">
-          <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#6b7280]">The Convergence Model</div>
-          <h2 className="mt-1 text-lg font-extrabold text-[#14274e]">State-Led, District-Executed</h2>
-          <div className="mt-5 grid gap-5 lg:grid-cols-3">
-            {pillars.map((pillar, index) => (
-              <div key={pillar.title} className="rounded-md border border-[#e0e4ea] bg-white p-5">
-                <div className="flex items-start gap-5">
-                  <div className="relative grid h-16 w-16 shrink-0 place-items-center rounded-full border border-[#c4ddf2] bg-[#e3f0fa] text-[#1789d6]">
-                    <span className="absolute -left-2 -top-2 grid h-7 w-7 place-items-center rounded-full bg-[#1789d6] text-[11px] font-extrabold text-white">0{index + 1}</span>
-                    <pillar.icon size={30} />
+        {/* ── Enhanced Two-Tile Action Hub ── */}
+        <Parallax3DSection>
+          <motion.div
+            variants={sectionFade}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+          >
+            <div className="grid gap-8 md:grid-cols-2" style={{ perspective: "1000px" }}>
+              {/* Tile 1: Partner with Maharashtra */}
+              <motion.div
+                whileHover={{ y: -8, rotateY: -3, scale: 1.01 }}
+                transition={{ type: "spring", stiffness: 200, damping: 18 }}
+                className="relative overflow-hidden rounded-3xl border border-slate-200/60 bg-gradient-to-br from-white/90 via-slate-50/50 to-blue-50/40 p-8 shadow-glass group"
+                style={{ transformStyle: "preserve-3d" }}
+              >
+                {/* Decorative absolute background glow */}
+                <div className="absolute -right-16 -top-16 w-48 h-48 rounded-full bg-blue-500/10 blur-3xl group-hover:bg-blue-500/20 transition-all duration-500" />
+                
+                <div className="relative z-10 flex flex-col justify-between h-full min-h-[280px]">
+                  <div className="flex flex-col gap-5">
+                    <div className="grid h-14 w-14 place-items-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-500/20 transition-transform duration-300 group-hover:scale-110">
+                      <Building2 size={26} />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-blue-600">For Corporate Partners</span>
+                      <h3 className="mt-2 text-2xl font-extrabold text-slate-900 tracking-tight">Partner with Maharashtra</h3>
+                      <p className="mt-4 text-sm leading-relaxed text-slate-500 max-w-lg">
+                        Submit a CSR partnership enquiry, browse live government development needs, and track your enquiry through a single point of coordination.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-sm font-extrabold text-[#14274e]">{pillar.title}</h3>
-                    <p className="mt-2 text-xs font-medium leading-5 text-[#6b7280]">{pillar.detail}</p>
-                    <Link href="/knowledge" className="mt-4 inline-flex items-center gap-2 text-xs font-extrabold text-[#1789d6] hover:no-underline">
-                      Learn more <ArrowRight size={14} />
+                  <div className="mt-8">
+                    <Link
+                      href="/partner-with-maharashtra"
+                      className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-blue-600 hover:bg-blue-700 px-6 text-sm font-bold text-white shadow-lg shadow-blue-500/10 hover:no-underline transition-all hover:scale-105"
+                    >
+                      Submit Partnership Enquiry <ArrowRight size={16} className="ml-2" />
                     </Link>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </section>
+              </motion.div>
 
-        <section className="rounded-lg bg-[#0e2144] px-6 py-6 text-white md:px-8">
-          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
-              <Headphones className="shrink-0 text-white/80" size={44} />
+              {/* Tile 2: Pitch a Development Need */}
+              <motion.div
+                whileHover={{ y: -8, rotateY: 3, scale: 1.01 }}
+                transition={{ type: "spring", stiffness: 200, damping: 18 }}
+                className="relative overflow-hidden rounded-3xl border border-slate-200/60 bg-gradient-to-br from-white/90 via-slate-50/50 to-amber-50/40 p-8 shadow-glass group"
+                style={{ transformStyle: "preserve-3d" }}
+              >
+                {/* Decorative absolute background glow */}
+                <div className="absolute -right-16 -top-16 w-48 h-48 rounded-full bg-amber-500/10 blur-3xl group-hover:bg-amber-500/20 transition-all duration-500" />
+                
+                <div className="relative z-10 flex flex-col justify-between h-full min-h-[280px]">
+                  <div className="flex flex-col gap-5">
+                    <div className="grid h-14 w-14 place-items-center rounded-2xl bg-amber-500 text-white shadow-lg shadow-amber-500/20 transition-transform duration-300 group-hover:scale-110">
+                      <Landmark size={26} />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-600">For Government Departments</span>
+                      <h3 className="mt-2 text-2xl font-extrabold text-slate-900 tracking-tight">Pitch a Development Need</h3>
+                      <p className="mt-4 text-sm leading-relaxed text-slate-500 max-w-lg">
+                        Pitch a specific development need with district, budget, and location evidence to seek CSR support under the convergence framework.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-8">
+                    <Link
+                      href="/pitch-development-need"
+                      className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-amber-500 hover:bg-amber-600 px-6 text-sm font-bold text-white shadow-lg shadow-amber-500/10 hover:no-underline transition-all hover:scale-105"
+                    >
+                      Pitch Development Need <ArrowRight size={16} className="ml-2" />
+                    </Link>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Quick Track Bar Below */}
+            <div className="mt-8 p-6 rounded-2xl border border-slate-200/50 bg-white/70 backdrop-blur-xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-glass">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+                  <ClipboardCheck size={20} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900">Track an existing enquiry or pitch?</h4>
+                  <p className="text-xs text-slate-500">Enter your tracking ID to view real-time convergence status.</p>
+                </div>
+              </div>
+              <Link
+                href="/track"
+                className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 px-5 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:no-underline transition-colors w-full sm:w-auto"
+              >
+                Track Status <ArrowRight size={14} className="ml-1.5" />
+              </Link>
+            </div>
+          </motion.div>
+        </Parallax3DSection>
+
+        {/* ── Resources Directory ── */}
+        <Parallax3DSection>
+          <motion.div
+            variants={sectionFade}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+          >
+            <Card hover={false} tilt={false} className="p-6 sm:p-8">
               <div>
-                <h2 className="text-xl font-extrabold">Need help partnering with Maharashtra or pitching a development need?</h2>
-                <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-white/80">
-                  Use the knowledge center for the framework guide, the standard MoU template, document checklists, and the official helpdesk.
+                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">
+                  Public Information Directory
+                </span>
+                <h2 className="mt-3 break-words text-2xl font-bold leading-tight text-slate-900 sm:text-3xl tracking-tight">
+                  MahaCSR Setu Resources
+                </h2>
+              </div>
+
+              <motion.div
+                variants={staggerContainer}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                className="mt-8 grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+              >
+                {resources.map((item, index) => (
+                  <motion.div key={item.title} variants={cardFadeUp}>
+                    <Link href={item.href} className="hover:no-underline flex">
+                      <Card
+                        index={index}
+                        className="flex items-start gap-4 p-5 bg-white/60 border border-slate-100 hover:border-blue-200/50 w-full group"
+                      >
+                        <span className="h-2.5 w-2.5 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 shrink-0 mt-1.5 shadow-sm shadow-blue-500/30" />
+                        <div>
+                          <h3 className="text-sm font-bold text-slate-800 leading-snug group-hover:text-blue-600 transition-colors tracking-tight">{item.title}</h3>
+                          <p className="mt-2 text-xs leading-relaxed text-slate-500">{item.description}</p>
+                        </div>
+                      </Card>
+                    </Link>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </Card>
+          </motion.div>
+        </Parallax3DSection>
+
+        {/* ── Live Stats ── */}
+        <Parallax3DSection>
+          <motion.div
+            variants={sectionFade}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+          >
+            <Card hover={false} tilt={false} className="p-6 sm:p-8">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">
+                  MahaCSR at a Glance
+                </span>
+                <p className="mt-2 text-xs font-normal text-slate-400">
+                  Live figures drawn only from projects onboarded and certified on the portal.
                 </p>
               </div>
+              <div className="mt-6">
+                <HomeStatsStrip />
+              </div>
+            </Card>
+          </motion.div>
+        </Parallax3DSection>
+
+        {/* ── Guidelines & Circulars ── */}
+        <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+          <Parallax3DSection>
+            <motion.div
+              variants={sectionFade}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+            >
+              <Card hover={false} tilt={false} className="p-6 sm:p-8 h-full">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">
+                    Framework Principles
+                  </span>
+                </div>
+                <div className="mt-6 flex flex-col gap-3">
+                  {recommendations.map((item) => (
+                    <motion.div
+                      key={item}
+                      whileHover={{ x: 6, scale: 1.01 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                      className="flex items-center gap-4 rounded-xl border border-slate-100 bg-slate-50/30 p-4 transition-colors hover:bg-slate-50/60 hover:border-blue-200/40 cursor-default"
+                    >
+                      <CheckCircle2 className="shrink-0 text-emerald-500" size={18} />
+                      <p className="flex-1 text-xs font-medium leading-relaxed text-slate-600">{item}</p>
+                      <ArrowRight className="shrink-0 text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" size={15} />
+                    </motion.div>
+                  ))}
+                </div>
+              </Card>
+            </motion.div>
+          </Parallax3DSection>
+
+          <Parallax3DSection>
+            <motion.div
+              variants={sectionFade}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+            >
+              <Card hover={false} tilt={false} className="p-6 sm:p-8 h-full">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">
+                    Circulars & Notices
+                  </span>
+                  <Link href="/circulars" className="text-xs font-bold text-blue-600 hover:underline">
+                    View All
+                  </Link>
+                </div>
+                <div className="mt-5 flex flex-wrap gap-2 border-b border-slate-100 pb-3 text-xs font-bold">
+                  <span className="rounded-lg bg-blue-600 px-3.5 py-1.5 text-white shadow-sm shadow-blue-500/20">All</span>
+                  <span className="px-3 py-1.5 text-slate-500 hover:text-slate-800 cursor-pointer transition-colors">Policy Notices</span>
+                  <span className="px-3 py-1.5 text-slate-500 hover:text-slate-800 cursor-pointer transition-colors">Government Resolutions</span>
+                  <span className="px-3 py-1.5 text-slate-500 hover:text-slate-800 cursor-pointer transition-colors">Circulars</span>
+                </div>
+                <div className="mt-4 overflow-x-auto rounded-xl border border-slate-100 overflow-hidden">
+                  <table className="w-full min-w-[500px] border-collapse text-left text-xs">
+                    <thead>
+                      <tr className="bg-slate-50/50 text-slate-900 border-b border-slate-100">
+                        <th className="px-3 py-3 font-bold">Title</th>
+                        <th className="px-3 py-3 font-bold">Category</th>
+                        <th className="px-3 py-3 font-bold">Type</th>
+                        <th className="px-3 py-3 font-bold">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-slate-500">
+                      {notices.map(([title, category, type, date]) => (
+                        <tr key={title} className="hover:bg-blue-50/30 transition-colors border-b border-slate-100/80">
+                          <td className="px-3 py-3.5 font-medium text-slate-700">{title}</td>
+                          <td className="px-3 py-3.5">{category}</td>
+                          <td className="px-3 py-3.5">{type}</td>
+                          <td className="px-3 py-3.5 whitespace-nowrap">{date}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            </motion.div>
+          </Parallax3DSection>
+        </div>
+
+        {/* ── GIS Map ── */}
+        <Parallax3DSection>
+          <motion.div
+            variants={sectionFade}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+          >
+            <Card hover={false} tilt={false} className="p-6 sm:p-8">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">
+                  District CSR Register
+                </span>
+                <h2 className="mt-3 break-words text-lg font-bold text-slate-900 tracking-tight">
+                  Visualize CSR activity across Maharashtra
+                </h2>
+              </div>
+              <div className="mt-6 rounded-xl overflow-hidden border border-slate-100 shadow-sm bg-white">
+                <GisMap />
+              </div>
+            </Card>
+          </motion.div>
+        </Parallax3DSection>
+
+        {/* ── Model Pillars ── */}
+        <Parallax3DSection>
+          <motion.div
+            variants={sectionFade}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+          >
+            <Card hover={false} tilt={false} className="p-6 sm:p-8">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">
+                  The Convergence Model
+                </span>
+                <h2 className="mt-3 text-lg font-bold text-slate-900 tracking-tight">
+                  State-Led, District-Executed
+                </h2>
+              </div>
+              <motion.div
+                variants={staggerContainer}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                className="mt-6 grid gap-6 lg:grid-cols-3"
+                style={{ perspective: "800px" }}
+              >
+                {pillars.map((pillar, index) => (
+                  <motion.div key={pillar.title} variants={cardFadeUp} style={{ transformStyle: "preserve-3d" }}>
+                    <Card
+                      index={index}
+                      className="p-6 bg-white/60 border border-slate-100"
+                    >
+                      <div className="flex items-start gap-5">
+                        <div className="relative grid h-14 w-14 shrink-0 place-items-center rounded-xl border border-blue-100 bg-blue-50 text-blue-600">
+                          <span className="absolute -left-2.5 -top-2.5 grid h-6 w-6 place-items-center rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-[10px] font-bold text-white shadow-lg shadow-blue-500/30">
+                            0{index + 1}
+                          </span>
+                          <pillar.icon size={24} />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-bold text-slate-900 tracking-tight">{pillar.title}</h3>
+                          <p className="mt-2 text-xs font-normal leading-relaxed text-slate-500">{pillar.detail}</p>
+                          <Link href="/knowledge" className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:underline">
+                            Learn more <ArrowRight size={13} />
+                          </Link>
+                        </div>
+                      </div>
+                    </Card>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </Card>
+          </motion.div>
+        </Parallax3DSection>
+
+        {/* ── Bottom CTA ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <Card hover={false} tilt={false} className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 p-6 sm:p-10 relative overflow-hidden">
+            <div className="absolute top-0 right-0 h-48 w-48 bg-blue-500/10 rounded-full filter blur-3xl -mr-12 -mt-12" />
+            <div className="absolute bottom-0 left-0 h-48 w-48 bg-amber-500/8 rounded-full filter blur-3xl -ml-12 -mb-12" />
+
+            <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+                <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 backdrop-blur-xl flex items-center justify-center shrink-0 border border-white/10">
+                  <Headphones className="text-blue-300" size={28} />
+                </div>
+                <div>
+                  <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">Need help partnering with Maharashtra or pitching a development need?</h2>
+                  <p className="mt-2 max-w-2xl text-xs sm:text-sm font-normal leading-relaxed text-slate-300">
+                    Use the knowledge center for the framework guide, the standard MoU template, document checklists, and the official helpdesk.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-3 shrink-0">
+                <Link href="/knowledge" className="inline-flex min-h-10 items-center justify-center rounded-xl border border-white/20 px-5 text-xs font-bold text-white hover:bg-white/5 hover:no-underline transition-all">
+                  Knowledge Center
+                </Link>
+                <Link href="/contact" className="inline-flex min-h-10 items-center justify-center rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-5 text-xs font-bold text-white hover:from-amber-600 hover:to-orange-600 hover:no-underline shadow-lg shadow-orange-500/20 transition-all">
+                  Contact Helpdesk
+                </Link>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <Link href="/knowledge" className="inline-flex min-h-11 items-center rounded-md border border-white/45 px-5 text-sm font-extrabold text-white hover:bg-white/10 hover:no-underline">
-                Knowledge Center
-              </Link>
-              <Link href="/contact" className="inline-flex min-h-11 items-center rounded-md bg-[#f7941d] px-5 text-sm font-extrabold text-white hover:bg-[#e07f00] hover:no-underline">
-                Contact Helpdesk
-              </Link>
-            </div>
-          </div>
-        </section>
+          </Card>
+        </motion.div>
       </main>
     </div>
   );

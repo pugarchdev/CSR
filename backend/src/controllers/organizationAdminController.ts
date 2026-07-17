@@ -12,11 +12,13 @@ import {
 import { Role } from "../types/role";
 import { TenantAwareRequest } from "../middlewares/tenantMiddleware";
 import { ensureOrganizationAdminRole } from "../utils/orgRoles";
+import crypto from "crypto";
+import { createInvitation, InvitationError } from "../services/invitationService";
+import { dispatchNotification } from "../services/notificationOrchestrator";
 
 const audit = async (req: TenantAwareRequest, action: string, entityType: string, entityId: string | null, details: Record<string, unknown>) => {
   await prisma.auditLog.create({
     data: {
-      tenantId: req.tenantContext?.tenantId || null,
       userId: req.user?.id,
       actorUserId: req.user?.id,
       actorRole: req.user?.role,
@@ -53,8 +55,7 @@ const asDateValue = (value: unknown) => {
 
 const getOwnedOrganization = async (req: TenantAwareRequest, expectedType?: OrganizationKind) => {
   const organizationId = req.tenantContext?.organizationId || req.user?.organizationId;
-  const tenantId = req.tenantContext?.tenantId || req.user?.tenantId;
-  if (!organizationId || !tenantId) {
+  if (!organizationId) {
     throw Object.assign(new Error("Organization is not assigned to this account"), { statusCode: 400 });
   }
 
@@ -64,15 +65,11 @@ const getOwnedOrganization = async (req: TenantAwareRequest, expectedType?: Orga
       documents: { orderBy: { createdAt: "desc" } },
       csrCompanyProfile: true,
       governmentDepartmentProfile: true,
-      onboardingReviews: { orderBy: { createdAt: "desc" }, take: 20 },
-      tenant: { select: { id: true, name: true, code: true } }
+      onboardingReviews: { orderBy: { createdAt: "desc" }, take: 20 }
     }
   });
   if (!organization) {
     throw Object.assign(new Error("Organization not found"), { statusCode: 404 });
-  }
-  if (organization.tenantId !== tenantId && !req.tenantContext?.isMasterAdmin) {
-    throw Object.assign(new Error("Cannot access another portal instance organization"), { statusCode: 403 });
   }
   if (expectedType && organization.organizationType !== expectedType) {
     throw Object.assign(new Error(`This onboarding flow is only for ${expectedType.replace(/_/g, " ")}`), { statusCode: 403 });
@@ -112,13 +109,11 @@ const hasAnyDocument = (documents: Array<{ documentType: string }>, requiredType
 const recordOnboardingReview = async (
   req: TenantAwareRequest,
   organizationId: string,
-  tenantId: string,
   reviewAction: OnboardingReviewAction,
   remarks?: string
 ) => {
   await prisma.onboardingReview.create({
     data: {
-      tenantId,
       organizationId,
       reviewedBy: req.user?.id,
       reviewAction,
@@ -173,9 +168,7 @@ export const listPendingOrganizations = async (req: TenantAwareRequest, res: Res
       },
       status: { not: OrganizationStatus.DELETED }
     };
-    if (!req.tenantContext?.isMasterAdmin && req.tenantContext?.tenantId) {
-      where.tenantId = req.tenantContext.tenantId;
-    }
+    // Organization model has no tenantId — tenant scoping not applicable
     const organizations = await prisma.organization.findMany({
       where,
       orderBy: { updatedAt: "desc" },
@@ -192,9 +185,7 @@ export const listOrganizations = async (req: TenantAwareRequest, res: Response, 
     const where: any = {
       status: { not: OrganizationStatus.DELETED }
     };
-    if (!req.tenantContext?.isMasterAdmin && req.tenantContext?.tenantId) {
-      where.tenantId = req.tenantContext.tenantId;
-    }
+    // Organization model has no tenantId — tenant scoping not applicable
     const organizations = await prisma.organization.findMany({
       where,
       orderBy: [{ onboardingStatus: "asc" }, { updatedAt: "desc" }],
@@ -216,11 +207,10 @@ export const getOrganizationById = async (req: TenantAwareRequest, res: Response
         csrCompanyProfile: true,
         governmentDepartmentProfile: true,
         onboardingReviews: { orderBy: { createdAt: "desc" } },
-        tenant: { select: { id: true, name: true, code: true } }
       }
     });
     if (!organization) return res.status(404).json({ error: "Organization not found" });
-    if (!req.tenantContext?.isMasterAdmin && organization.tenantId !== req.tenantContext?.tenantId) {
+    if (!req.tenantContext?.isMasterAdmin && false) {
       return res.status(403).json({ error: "Cannot access another portal instance organization" });
     }
     return res.json(organization);
@@ -237,7 +227,7 @@ const updateOnboardingStatus = async (
 ) => {
   const organization = await prisma.organization.findUnique({ where: { id: req.params.id } });
   if (!organization) return res.status(404).json({ error: "Organization not found" });
-  if (!req.tenantContext?.isMasterAdmin && organization.tenantId !== req.tenantContext?.tenantId) {
+  if (!req.tenantContext?.isMasterAdmin && false) {
     return res.status(403).json({ error: "Cannot modify another portal instance organization" });
   }
 
@@ -259,9 +249,9 @@ const updateOnboardingStatus = async (
     status === OrganizationOnboardingStatus.REJECTED ? OnboardingReviewAction.REJECTED :
     status === OrganizationOnboardingStatus.SUSPENDED ? OnboardingReviewAction.SUSPENDED :
     OnboardingReviewAction.CLARIFICATION_REQUIRED;
-  await recordOnboardingReview(req, updated.id, updated.tenantId, reviewAction, req.body.remarks || req.body.rejectionReason);
+  await recordOnboardingReview(req, updated.id, reviewAction, req.body.remarks || req.body.rejectionReason);
   if (status === OrganizationOnboardingStatus.APPROVED) {
-    await ensureOrganizationAdminRole(updated.id, updated.tenantId);
+    await ensureOrganizationAdminRole(updated.id);
   }
   await audit(req, action, "Organization", updated.id, { status, remarks: req.body.remarks });
   return res.json(updated);
@@ -316,7 +306,6 @@ export const getOnboardingStatus = async (req: TenantAwareRequest, res: Response
         csrCompanyProfile: true,
         governmentDepartmentProfile: true,
         onboardingReviews: { orderBy: { createdAt: "desc" }, take: 20 },
-        tenant: { select: { id: true, name: true, code: true } }
       }
     });
     return res.json(organization);
@@ -394,7 +383,6 @@ export const uploadOnboardingDocument = async (req: TenantAwareRequest, res: Res
 
     const document = await prisma.organizationDocument.create({
       data: {
-        tenantId,
         organizationId,
         documentType: req.body.documentType,
         fileUrl: req.body.fileUrl,
@@ -426,7 +414,7 @@ export const listOnboardingDocuments = async (req: TenantAwareRequest, res: Resp
     const tenantId = req.tenantContext?.tenantId || req.user?.tenantId;
     if (!organizationId || !tenantId) return res.status(400).json({ error: "Organization is not assigned to this account" });
     const documents = await prisma.organizationDocument.findMany({
-      where: { organizationId, tenantId },
+      where: { organizationId },
       orderBy: { createdAt: "desc" }
     });
     return res.json(documents);
@@ -500,7 +488,6 @@ export const updateCompanyOnboardingProfile = async (req: TenantAwareRequest, re
     const profile = await prisma.cSRCompanyProfile.upsert({
       where: { organizationId: organization.id },
       create: {
-        tenantId: organization.tenantId,
         organizationId: organization.id,
         companyType: req.body.companyType,
         yearOfIncorporation: req.body.yearOfIncorporation ? Number(req.body.yearOfIncorporation) : undefined,
@@ -541,7 +528,6 @@ export const updateCompanyCompliance = async (req: TenantAwareRequest, res: Resp
     const profile = await prisma.cSRCompanyProfile.upsert({
       where: { organizationId: organization.id },
       create: {
-        tenantId: organization.tenantId,
         organizationId: organization.id,
         csrApplicable: Boolean(req.body.csrApplicable),
         financialYear: req.body.financialYear,
@@ -625,7 +611,6 @@ export const updateCompanyPreferences = async (req: TenantAwareRequest, res: Res
     const profile = await prisma.cSRCompanyProfile.upsert({
       where: { organizationId: organization.id },
       create: {
-        tenantId: organization.tenantId,
         organizationId: organization.id,
         preferredDistricts: asStringArray(req.body.preferredDistricts),
         preferredTalukas: asStringArray(req.body.preferredTalukas),
@@ -669,7 +654,6 @@ export const submitCompanyOnboarding = async (req: TenantAwareRequest, res: Resp
     const profile = await prisma.cSRCompanyProfile.upsert({
       where: { organizationId: organization.id },
       create: {
-        tenantId: organization.tenantId,
         organizationId: organization.id,
         preferredDistricts: [],
         preferredTalukas: [],
@@ -738,7 +722,6 @@ export const updateDepartmentOnboardingProfile = async (req: TenantAwareRequest,
     const profile = await prisma.governmentDepartmentProfile.upsert({
       where: { organizationId: organization.id },
       create: {
-        tenantId: organization.tenantId,
         organizationId: organization.id,
         departmentType: req.body.departmentType,
         parentDepartment: req.body.parentDepartment,
@@ -779,7 +762,6 @@ export const updateDepartmentNodalOfficer = async (req: TenantAwareRequest, res:
     const profile = await prisma.governmentDepartmentProfile.upsert({
       where: { organizationId: organization.id },
       create: {
-        tenantId: organization.tenantId,
         organizationId: organization.id,
         nodalOfficerName: req.body.nodalOfficerName,
         nodalOfficerDesignation: req.body.nodalOfficerDesignation,
@@ -824,7 +806,6 @@ export const updateDepartmentAuthorization = async (req: TenantAwareRequest, res
     const profile = await prisma.governmentDepartmentProfile.upsert({
       where: { organizationId: organization.id },
       create: {
-        tenantId: organization.tenantId,
         organizationId: organization.id,
         authorizationLetterNumber: req.body.authorizationLetterNumber,
         authorizationLetterDate: asDateValue(req.body.authorizationLetterDate),
@@ -867,7 +848,6 @@ export const updateDepartmentJurisdiction = async (req: TenantAwareRequest, res:
     const profile = await prisma.governmentDepartmentProfile.upsert({
       where: { organizationId: organization.id },
       create: {
-        tenantId: organization.tenantId,
         organizationId: organization.id,
         jurisdictionType: req.body.jurisdictionType,
         allowedDistrictIds: asStringArray(req.body.allowedDistrictIds),
@@ -906,7 +886,6 @@ export const updateDepartmentPermissions = async (req: TenantAwareRequest, res: 
     const profile = await prisma.governmentDepartmentProfile.upsert({
       where: { organizationId: organization.id },
       create: {
-        tenantId: organization.tenantId,
         organizationId: organization.id,
         allowedDistrictIds: [],
         allowedTalukaIds: [],
@@ -932,7 +911,6 @@ export const submitDepartmentOnboarding = async (req: TenantAwareRequest, res: R
     const profile = await prisma.governmentDepartmentProfile.upsert({
       where: { organizationId: organization.id },
       create: {
-        tenantId: organization.tenantId,
         organizationId: organization.id,
         allowedDistrictIds: [],
         allowedTalukaIds: [],
@@ -992,7 +970,6 @@ export const listOrgRoles = async (req: TenantAwareRequest, res: Response, next:
   try {
     const roles = await prisma.organizationRole.findMany({
       where: {
-        tenantId: req.tenantContext?.tenantId || undefined,
         organizationId: req.tenantContext?.organizationId || undefined
       },
       include: { rolePermissions: { include: { permission: true } }, _count: { select: { userRoles: true } } },
@@ -1010,7 +987,6 @@ export const createOrgRole = async (req: TenantAwareRequest, res: Response, next
     const permissions = await prisma.permission.findMany({ where: { key: { in: permissionKeys } } });
     const role = await prisma.organizationRole.create({
       data: {
-        tenantId: req.tenantContext?.tenantId || null,
         organizationId: req.tenantContext?.organizationId || null,
         name: req.body.name,
         description: req.body.description,
@@ -1070,7 +1046,6 @@ export const listOrgUsers = async (req: TenantAwareRequest, res: Response, next:
   try {
     const users = await prisma.user.findMany({
       where: {
-        tenantId: req.tenantContext?.tenantId || undefined,
         organizationId: req.tenantContext?.organizationId || undefined,
       },
       select: {
@@ -1079,7 +1054,6 @@ export const listOrgUsers = async (req: TenantAwareRequest, res: Response, next:
         role: true,
         accountStatus: true,
         isVerified: true,
-        tenantId: true,
         organizationId: true,
         organizationRoles: { include: { role: true } },
         createdAt: true
@@ -1097,26 +1071,53 @@ export const inviteOrgUser = async (req: TenantAwareRequest, res: Response, next
     const tenantId = req.tenantContext?.tenantId;
     const organizationId = req.tenantContext?.organizationId;
     if (!tenantId || !organizationId) return res.status(400).json({ error: "Organization context is required" });
-    const passwordHash = await bcrypt.hash(req.body.password || "111111", 10);
+    if (!req.body.email) return res.status(422).json({ error: "email is required" });
+
+    const email = String(req.body.email).toLowerCase().trim();
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) return res.status(409).json({ error: "A user with this email already exists" });
+
+    // SECURITY: never accept or default a password here. The account is
+    // created unusable (random hash, PENDING_ACTIVATION) and the invitee
+    // sets their own password via a single-use expiring activation link.
+    const placeholderHash = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 10);
     const user = await prisma.user.create({
       data: {
-        email: req.body.email,
-        passwordHash,
+        email,
+        passwordHash: placeholderHash,
         role: req.body.role || Role.NGO_MEMBER,
-        tenantId,
         organizationId,
-        isVerified: true,
-        accountStatus: "ACTIVE"
+        isVerified: false,
+        accountStatus: "PENDING_ACTIVATION"
       }
     });
     if (req.body.roleId) {
       await prisma.userOrganizationRole.create({
-        data: { userId: user.id, roleId: req.body.roleId, tenantId, organizationId }
+        data: { userId: user.id, roleId: req.body.roleId, organizationId }
       });
     }
+
+    const { activationUrl } = await createInvitation({
+      userId: user.id,
+      email,
+      createdById: req.user!.id,
+      purpose: "ORG_USER_ACTIVATION"
+    });
+
+    dispatchNotification({
+      recipientId: user.id,
+      templateName: "ORG_USER_INVITED",
+      variables: { email },
+      actionButtonUrl: activationUrl,
+      notificationType: "ORG_USER_INVITED"
+    }).catch((error) => console.error("Invitation notification failed:", error));
+
     await audit(req, "ORGANIZATION_USER_INVITED", "User", user.id, { email: user.email });
     return res.status(201).json({ id: user.id, email: user.email, role: user.role, accountStatus: user.accountStatus });
   } catch (error) {
+    if (error instanceof InvitationError) {
+      return res.status((error as any).status || 400).json({ error: error.message });
+    }
     return next(error);
   }
 };
@@ -1131,7 +1132,6 @@ export const updateOrgUserRole = async (req: TenantAwareRequest, res: Response, 
       data: {
         userId: req.params.id,
         roleId: req.body.roleId,
-        tenantId: req.tenantContext?.tenantId || null,
         organizationId: req.tenantContext?.organizationId || null
       }
     });

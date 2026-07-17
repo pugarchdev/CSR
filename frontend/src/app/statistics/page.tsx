@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
 import { Coins, HeartHandshake, FolderHeart, ShieldCheck, MapPin, Landmark, BarChart2, Star } from "lucide-react";
-import { StatsCard } from "@/components/ui/StatsCard";
+import { StatCard } from "@/components/ui/StatCard";
 import dynamic from "next/dynamic";
 
 const GisMap = dynamic(() => import("@/components/GisMap"), {
@@ -27,10 +26,10 @@ export default function StatisticsPage() {
       </div>
 
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatsCard label="Aggregate Sourced CSR Funds" value="₹18.40 Cr" icon={Coins} />
-        <StatsCard label="Direct Beneficiaries Served" value="2.4 Lakhs" icon={HeartHandshake} />
-        <StatsCard label="Active Approved Projects" value="420 Projects" icon={FolderHeart} />
-        <StatsCard label="Compliance Audits Passed" value="98.4%" icon={ShieldCheck} />
+        <StatCard label="Aggregate Sourced CSR Funds" value="₹18.40 Cr" icon={Coins} />
+        <StatCard label="Direct Beneficiaries Served" value="2.4 Lakhs" icon={HeartHandshake} />
+        <StatCard label="Active Approved Projects" value="420 Projects" icon={FolderHeart} />
+        <StatCard label="Compliance Audits Passed" value="98.4%" icon={ShieldCheck} />
       </section>
 
       <section className="flex flex-col gap-4">

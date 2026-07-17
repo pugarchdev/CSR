@@ -99,7 +99,6 @@ export const createSubLogin = async (
         email: email.toLowerCase(),
         passwordHash,
         role: Role.IMPLEMENTING_AGENCY_USER,
-        tenantId: req.user?.tenantId || null,
         accountStatus: UserAccountStatus.PENDING_APPROVAL,
         isVerified: true, // credential delivery handled by corporate; activation gated on nodal approval
         parentCorporateUserId: userId,

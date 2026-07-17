@@ -144,7 +144,6 @@ export const raiseGrievance = async (
     const project = await prisma.convergenceProject.findFirst({
       where: {
         id: projectId,
-        tenantId: tenantId || undefined,
         OR: [
           { nodalOfficerUserId: userId },
           { implementingAgencyUserId: userId },
@@ -177,7 +176,6 @@ export const raiseGrievance = async (
     // Create grievance
     const grievance = await prisma.grievance.create({
       data: {
-        tenantId,
         grievanceId,
         convergenceProjectId: projectId,
         raisedByUserId: userId,
@@ -209,7 +207,6 @@ export const raiseGrievance = async (
     // Create initial action log
     await prisma.grievanceActionLog.create({
       data: {
-        tenantId,
         grievanceId: grievance.id,
         actorUserId: userId,
         action: "GRIEVANCE_RAISED",
@@ -224,13 +221,11 @@ export const raiseGrievance = async (
       stage: SLAStage.GRIEVANCE_LEVEL_1,
       responsibleUserId: project.nodalOfficerUserId,
       dueAt: level1DueAt,
-      tenantId: tenantId || undefined,
     });
 
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        tenantId,
         userId,
         action: "GRIEVANCE_RAISED",
         entityType: "Grievance",
@@ -277,7 +272,6 @@ export const getMyGrievances = async (
 
     // Build filter based on user role
     const where: Prisma.GrievanceWhereInput = {
-      tenantId: tenantId || undefined,
     };
 
     // Role-based filtering
@@ -428,7 +422,6 @@ export const getGrievanceById = async (
     const grievance = await prisma.grievance.findFirst({
       where: {
         id,
-        tenantId: tenantId || undefined,
       },
       include: {
         convergenceProject: {
@@ -564,7 +557,6 @@ export const respondToGrievance = async (
     const grievance = await prisma.grievance.findFirst({
       where: {
         id,
-        tenantId: tenantId || undefined,
       },
       include: {
         convergenceProject: {
@@ -668,7 +660,6 @@ export const respondToGrievance = async (
     // Create action log
     await prisma.grievanceActionLog.create({
       data: {
-        tenantId,
         grievanceId: id,
         actorUserId: userId,
         action: actionType,
@@ -708,7 +699,6 @@ export const respondToGrievance = async (
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        tenantId,
         userId,
         action: actionType,
         entityType: "Grievance",
@@ -775,7 +765,6 @@ export const escalateGrievance = async (
     const grievance = await prisma.grievance.findFirst({
       where: {
         id,
-        tenantId: tenantId || undefined,
       },
       include: {
         convergenceProject: {
@@ -880,7 +869,6 @@ export const escalateGrievance = async (
     // Create action log
     await prisma.grievanceActionLog.create({
       data: {
-        tenantId,
         grievanceId: id,
         actorUserId: userId,
         action: `ESCALATED_TO_LEVEL_${body.escalateToLevel}`,
@@ -911,7 +899,6 @@ export const escalateGrievance = async (
           stage: SLAStage.GRIEVANCE_LEVEL_2,
           responsibleUserId: targetUserId,
           dueAt: calculateDueDate(SLAStage.GRIEVANCE_LEVEL_2),
-          tenantId: tenantId || undefined,
         });
       }
     }
@@ -919,7 +906,6 @@ export const escalateGrievance = async (
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        tenantId,
         userId,
         action: `GRIEVANCE_ESCALATED_TO_LEVEL_${body.escalateToLevel}`,
         entityType: "Grievance",
@@ -989,7 +975,6 @@ export const closeGrievance = async (
     const grievance = await prisma.grievance.findFirst({
       where: {
         id,
-        tenantId: tenantId || undefined,
       },
     });
 
@@ -1066,7 +1051,6 @@ export const closeGrievance = async (
     // Create action log
     await prisma.grievanceActionLog.create({
       data: {
-        tenantId,
         grievanceId: id,
         actorUserId: userId,
         action: "GRIEVANCE_CLOSED",
@@ -1090,7 +1074,6 @@ export const closeGrievance = async (
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        tenantId,
         userId,
         action: "GRIEVANCE_CLOSED",
         entityType: "Grievance",

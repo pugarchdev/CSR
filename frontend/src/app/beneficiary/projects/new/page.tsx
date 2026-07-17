@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, API_BASE_URL, getAccessToken } from "@/lib/api";
-import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
+import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { PlusCircle, FileText, ArrowLeft, Loader2, UploadCloud, Trash2, CheckCircle2 } from "lucide-react";
+import { Input, TextArea, Select } from "@/components/ui/Input";
+import { PlusCircle, FileText, ArrowLeft, Loader2, UploadCloud, Trash2 } from "lucide-react";
 
 const CATEGORIES = [
   "EDUCATION", "HEALTH", "WATER", "SANITATION", "SKILL_DEVELOPMENT",
@@ -185,25 +186,39 @@ export default function NewCSRRequirement() {
   if (profileLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="animate-spin text-blue-900" size={32} />
+        <Loader2 className="animate-spin text-primary-600" size={32} />
       </div>
     );
   }
 
+  const categoryOptions = CATEGORIES.map(cat => ({
+    value: cat,
+    label: cat.replace(/_/g, " ")
+  }));
+
+  const priorityOptions = [
+    { value: "LOW", label: "LOW" },
+    { value: "MEDIUM", label: "MEDIUM" },
+    { value: "HIGH", label: "HIGH" },
+    { value: "CRITICAL", label: "CRITICAL" }
+  ];
+
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
+    <div className="p-6 max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between border-b pb-4 border-slate-200">
+      <div className="flex items-center justify-between border-b pb-4 border-gray-200">
         <div className="flex items-center gap-3">
           <Button 
+            variant="outline"
+            size="sm"
             onClick={() => router.back()} 
-            className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full"
+            className="rounded-full p-2"
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={16} />
           </Button>
           <div>
-            <h1 className="text-xl font-bold font-heading text-blue-950">Post New CSR Requirement</h1>
-            <p className="text-xs text-slate-500">Provide detail of social / rural requirements to invite corporate sponsors</p>
+            <h1 className="text-2xl font-bold text-gray-900">Post New CSR Requirement</h1>
+            <p className="text-sm text-gray-500">Provide detail of social / rural requirements to invite corporate sponsors</p>
           </div>
         </div>
       </div>
@@ -211,187 +226,149 @@ export default function NewCSRRequirement() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Form Fields */}
         <div className="lg:col-span-2 space-y-6">
-          <GovCard>
-            <GovCardHeader className="bg-slate-50 border-b">
-              <GovCardTitle>Project Details</GovCardTitle>
-            </GovCardHeader>
-            <GovCardBody className="space-y-4">
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">Requirement Title *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Installation of Solar Water Purifier in GP School"
-                  className="w-full border rounded px-3 py-2 text-sm focus:ring-1 focus:ring-blue-900 focus:outline-none"
-                  value={form.title}
-                  onChange={e => setForm({ ...form, title: e.target.value })}
-                />
-              </div>
+          <Card>
+            <CardHeader>
+              <h3 className="text-lg font-semibold text-gray-900">Project Details</h3>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Input
+                label="Requirement Title"
+                type="text"
+                required
+                placeholder="e.g. Installation of Solar Water Purifier in GP School"
+                value={form.title}
+                onChange={e => setForm({ ...form, title: e.target.value })}
+              />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1">Category / Sector *</label>
-                  <select
-                    className="w-full border rounded px-3 py-2 text-sm focus:ring-1 focus:ring-blue-900 focus:outline-none bg-white"
-                    value={form.category}
-                    onChange={e => setForm({ ...form, category: e.target.value })}
-                  >
-                    {CATEGORIES.map(cat => (
-                      <option key={cat} value={cat}>{cat.replace(/_/g, " ")}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1">Priority Level *</label>
-                  <select
-                    className="w-full border rounded px-3 py-2 text-sm focus:ring-1 focus:ring-blue-900 focus:outline-none bg-white"
-                    value={form.priorityLevel}
-                    onChange={e => setForm({ ...form, priorityLevel: e.target.value })}
-                  >
-                    <option value="LOW">LOW</option>
-                    <option value="MEDIUM">MEDIUM</option>
-                    <option value="HIGH">HIGH</option>
-                    <option value="CRITICAL">CRITICAL</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1">Estimated Cost (INR) *</label>
-                  <input
-                    type="number"
-                    required
-                    placeholder="e.g. 450000"
-                    className="w-full border rounded px-3 py-2 text-sm focus:ring-1 focus:ring-blue-900 focus:outline-none"
-                    value={form.estimatedCost}
-                    onChange={e => setForm({ ...form, estimatedCost: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1">Beneficiary Count *</label>
-                  <input
-                    type="number"
-                    required
-                    placeholder="e.g. 350"
-                    className="w-full border rounded px-3 py-2 text-sm focus:ring-1 focus:ring-blue-900 focus:outline-none"
-                    value={form.beneficiaryCount}
-                    onChange={e => setForm({ ...form, beneficiaryCount: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">Requirement / Need Description *</label>
-                <textarea
+                <Select
+                  label="Category / Sector"
                   required
-                  placeholder="Elaborate the requirement, existing problems, and why this project is critical."
-                  className="w-full border rounded px-3 py-2 text-sm focus:ring-1 focus:ring-blue-900 focus:outline-none"
-                  rows={4}
-                  value={form.description}
-                  onChange={e => setForm({ ...form, description: e.target.value })}
+                  options={categoryOptions}
+                  value={form.category}
+                  onChange={e => setForm({ ...form, category: e.target.value })}
+                />
+                <Select
+                  label="Priority Level"
+                  required
+                  options={priorityOptions}
+                  value={form.priorityLevel}
+                  onChange={e => setForm({ ...form, priorityLevel: e.target.value })}
+                />
+                <Input
+                  label="Estimated Cost (INR)"
+                  type="number"
+                  required
+                  placeholder="e.g. 450000"
+                  value={form.estimatedCost}
+                  onChange={e => setForm({ ...form, estimatedCost: e.target.value })}
+                />
+                <Input
+                  label="Beneficiary Count"
+                  type="number"
+                  required
+                  placeholder="e.g. 350"
+                  value={form.beneficiaryCount}
+                  onChange={e => setForm({ ...form, beneficiaryCount: e.target.value })}
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">Expected Social Impact *</label>
-                <textarea
-                  required
-                  placeholder="Expected results: e.g. clean drinking water access to 350 school children, reducing absenteeism by 40%."
-                  className="w-full border rounded px-3 py-2 text-sm focus:ring-1 focus:ring-blue-900 focus:outline-none"
-                  rows={2}
-                  value={form.expectedImpact}
-                  onChange={e => setForm({ ...form, expectedImpact: e.target.value })}
-                />
-              </div>
-            </GovCardBody>
-          </GovCard>
+              <TextArea
+                label="Requirement / Need Description"
+                required
+                placeholder="Elaborate the requirement, existing problems, and why this project is critical."
+                rows={4}
+                value={form.description}
+                onChange={e => setForm({ ...form, description: e.target.value })}
+              />
+
+              <TextArea
+                label="Expected Social Impact"
+                required
+                placeholder="Expected results: e.g. clean drinking water access to 350 school children, reducing absenteeism by 40%."
+                rows={2}
+                value={form.expectedImpact}
+                onChange={e => setForm({ ...form, expectedImpact: e.target.value })}
+              />
+            </CardContent>
+          </Card>
 
           {/* Location details */}
-          <GovCard>
-            <GovCardHeader className="bg-slate-50 border-b">
-              <GovCardTitle>Location details</GovCardTitle>
-            </GovCardHeader>
-            <GovCardBody className="space-y-4">
+          <Card>
+            <CardHeader>
+              <h3 className="text-lg font-semibold text-gray-900">Location Details</h3>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1">District *</label>
-                  <input
-                    type="text"
-                    disabled
-                    className="w-full border rounded px-3 py-2 text-sm bg-slate-100 text-slate-600"
-                    value={form.district}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1">Taluka *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Haveli"
-                    className="w-full border rounded px-3 py-2 text-sm focus:ring-1 focus:ring-blue-900 focus:outline-none"
-                    value={form.taluka}
-                    onChange={e => setForm({ ...form, taluka: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1">Village</label>
-                  <input
-                    type="text"
-                    placeholder="Shikrapur"
-                    className="w-full border rounded px-3 py-2 text-sm focus:ring-1 focus:ring-blue-900 focus:outline-none"
-                    value={form.village}
-                    onChange={e => setForm({ ...form, village: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">Specific Site Address *</label>
-                <input
+                <Input
+                  label="District"
+                  type="text"
+                  disabled
+                  value={form.district}
+                />
+                <Input
+                  label="Taluka"
                   type="text"
                   required
-                  placeholder="e.g. ZP Primary School, Shikrapur, Haveli"
-                  className="w-full border rounded px-3 py-2 text-sm focus:ring-1 focus:ring-blue-900 focus:outline-none"
-                  value={form.address}
-                  onChange={e => setForm({ ...form, address: e.target.value })}
+                  placeholder="Haveli"
+                  value={form.taluka}
+                  onChange={e => setForm({ ...form, taluka: e.target.value })}
+                />
+                <Input
+                  label="Village"
+                  type="text"
+                  placeholder="Shikrapur"
+                  value={form.village}
+                  onChange={e => setForm({ ...form, village: e.target.value })}
                 />
               </div>
-            </GovCardBody>
-          </GovCard>
+
+              <Input
+                label="Specific Site Address"
+                type="text"
+                required
+                placeholder="e.g. ZP Primary School, Shikrapur, Haveli"
+                value={form.address}
+                onChange={e => setForm({ ...form, address: e.target.value })}
+              />
+            </CardContent>
+          </Card>
 
           {/* SDG Goals */}
-          <GovCard>
-            <GovCardHeader className="bg-slate-50 border-b">
-              <GovCardTitle>UN SDG Goals Alignment</GovCardTitle>
-            </GovCardHeader>
-            <GovCardBody>
+          <Card>
+            <CardHeader>
+              <h3 className="text-lg font-semibold text-gray-900">UN SDG Goals Alignment</h3>
+            </CardHeader>
+            <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {SDG_GOALS.map(goal => {
                   const checked = form.sdgGoals.includes(goal);
                   return (
-                    <label key={goal} className="flex items-start gap-2 cursor-pointer p-2 rounded hover:bg-slate-50 transition-colors border border-slate-100">
+                    <label key={goal} className="flex items-start gap-2.5 cursor-pointer p-2.5 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100">
                       <input
                         type="checkbox"
-                        className="mt-1"
+                        className="mt-1 rounded text-primary-600 focus:ring-primary-500"
                         checked={checked}
                         onChange={() => handleSdgChange(goal)}
                       />
-                      <span className="text-xs text-slate-700 font-medium">{goal}</span>
+                      <span className="text-xs text-gray-700 font-medium">{goal}</span>
                     </label>
                   );
                 })}
               </div>
-            </GovCardBody>
-          </GovCard>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Sidebar panels (Documents, Actions) */}
         <div className="space-y-6">
           {/* Documents upload */}
-          <GovCard>
-            <GovCardHeader className="bg-slate-50 border-b">
-              <GovCardTitle>Supporting Documents</GovCardTitle>
-            </GovCardHeader>
-            <GovCardBody className="space-y-4">
-              <div className="border-2 border-dashed border-slate-200 rounded-lg p-4 text-center hover:border-blue-900 transition-colors cursor-pointer relative">
+          <Card>
+            <CardHeader>
+              <h3 className="text-lg font-semibold text-gray-900">Supporting Documents</h3>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="border-2 border-dashed border-gray-200 hover:border-primary-500 rounded-xl p-6 text-center transition-colors cursor-pointer relative">
                 <input
                   type="file"
                   className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
@@ -400,21 +377,21 @@ export default function NewCSRRequirement() {
                   accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
                 />
                 <div className="flex flex-col items-center gap-2">
-                  <UploadCloud className="text-slate-400" size={32} />
-                  <span className="text-xs font-bold text-slate-700">
+                  <UploadCloud className="text-gray-400" size={32} />
+                  <span className="text-sm font-semibold text-gray-700">
                     {uploadingDoc ? "Uploading to Cloudinary..." : "Drag files or click to upload"}
                   </span>
-                  <span className="text-[10px] text-slate-500">PDF, JPG, PNG up to 10MB</span>
+                  <span className="text-xs text-gray-500">PDF, JPG, PNG up to 10MB</span>
                 </div>
               </div>
 
               {uploadedDocs.length > 0 && (
                 <div className="space-y-2 mt-4">
                   {uploadedDocs.map((doc, idx) => (
-                    <div key={idx} className="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100 text-xs">
+                    <div key={idx} className="flex justify-between items-center bg-gray-50 p-2.5 rounded-lg border border-gray-100 text-xs">
                       <div className="flex items-center gap-2 truncate">
-                        <FileText size={16} className="text-slate-500 shrink-0" />
-                        <span className="truncate font-semibold text-slate-800">{doc.fileName}</span>
+                        <FileText size={16} className="text-gray-400 shrink-0" />
+                        <span className="truncate font-medium text-gray-800">{doc.fileName}</span>
                       </div>
                       <button 
                         type="button" 
@@ -427,16 +404,16 @@ export default function NewCSRRequirement() {
                   ))}
                 </div>
               )}
-            </GovCardBody>
-          </GovCard>
+            </CardContent>
+          </Card>
 
           {/* Guidelines */}
-          <GovCard>
-            <GovCardHeader className="bg-slate-50 border-b">
-              <GovCardTitle>Declaration & Terms</GovCardTitle>
-            </GovCardHeader>
-            <GovCardBody className="space-y-4">
-              <div className="text-[11px] leading-relaxed text-slate-600 space-y-2">
+          <Card>
+            <CardHeader>
+              <h3 className="text-lg font-semibold text-gray-900">Declaration & Terms</h3>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-xs leading-relaxed text-gray-600 space-y-2">
                 <p>
                   1. The requirement submitted belongs to a genuine government facility or village necessity.
                 </p>
@@ -448,20 +425,20 @@ export default function NewCSRRequirement() {
                 </p>
               </div>
 
-              <label className="flex items-start gap-2 cursor-pointer pt-2 border-t border-slate-100">
+              <label className="flex items-start gap-2.5 cursor-pointer pt-3 border-t border-gray-100">
                 <input
                   type="checkbox"
                   required
-                  className="mt-1"
+                  className="mt-0.5 rounded text-primary-600 focus:ring-primary-500"
                   checked={form.declarationAccepted}
                   onChange={e => setForm({ ...form, declarationAccepted: e.target.checked })}
                 />
-                <span className="text-xs font-bold text-slate-700 leading-tight">
+                <span className="text-xs font-semibold text-gray-700 leading-tight">
                   I accept and declare that the information is true *
                 </span>
               </label>
-            </GovCardBody>
-          </GovCard>
+            </CardContent>
+          </Card>
 
           {/* Submission Buttons */}
           <div className="space-y-3">
@@ -469,15 +446,16 @@ export default function NewCSRRequirement() {
               type="button"
               disabled={loading}
               onClick={() => handleSubmit(true)}
-              className="w-full bg-[#f7941d] hover:bg-[#e07f00] text-white font-bold text-sm py-3 shadow"
+              className="w-full text-white font-semibold text-sm py-3 justify-center shadow-md bg-saffron hover:bg-orange-600 transition-colors"
             >
               {loading ? "Submitting..." : "Submit for Verification"}
             </Button>
             <Button
               type="button"
+              variant="outline"
               disabled={loading}
               onClick={() => handleSubmit(false)}
-              className="w-full bg-blue-900 hover:bg-blue-950 text-white font-bold text-sm py-3 shadow"
+              className="w-full font-semibold text-sm py-3 justify-center shadow-sm"
             >
               Save as Draft
             </Button>

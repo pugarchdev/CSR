@@ -79,9 +79,16 @@ const networkFetch = async <T>(path: string, init: RequestInit, isCacheable: boo
   }
 
   if (!response.ok) {
-    const error = new Error(data?.error || "Request failed") as Error & { validationErrors?: string[]; status?: number };
+    const error = new Error(data?.error || "Request failed") as Error & {
+      validationErrors?: string[];
+      status?: number;
+      errorCode?: string;
+      meta?: Record<string, unknown>;
+    };
     error.validationErrors = data?.validationErrors || data?.details;
     error.status = response.status;
+    error.errorCode = data?.errorCode;
+    error.meta = data?.meta;
     throw error;
   }
 

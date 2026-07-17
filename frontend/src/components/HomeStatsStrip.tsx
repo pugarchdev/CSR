@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { Building2, CheckCircle2, Landmark, MapPin, Wallet } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 
@@ -21,6 +22,21 @@ const fmtCrore = (v: number | string | undefined) => {
   if (num >= 10000000) return `${(num / 10000000).toFixed(2)} Cr`;
   if (num >= 100000) return `${(num / 100000).toFixed(2)} L`;
   return num.toLocaleString("en-IN");
+};
+
+const cardContainer = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05
+    }
+  }
+};
+
+const cardItem = {
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100, damping: 15 } }
 };
 
 export default function HomeStatsStrip() {
@@ -49,20 +65,31 @@ export default function HomeStatsStrip() {
   ];
 
   return (
-    <div className="mt-4 grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+    <motion.div 
+      variants={cardContainer}
+      initial="hidden"
+      whileInView="show"
+      viewport={{ once: true }}
+      className="mt-6 grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"
+    >
       {cards.map((c) => (
-        <div key={c.label} className="rounded-md border border-[#e0e4ea] bg-white p-4">
+        <motion.div 
+          variants={cardItem}
+          whileHover={{ y: -4, boxShadow: "0 8px 20px rgba(0,0,0,0.04)", borderColor: "#cbd5e1" }}
+          key={c.label} 
+          className="rounded-xl border border-slate-150 bg-white p-5 transition-all"
+        >
           <div className="flex items-center gap-3">
-            <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg ${c.accent ? "bg-[#fef3e0] text-[#b06000]" : "bg-[#e3f0fa] text-[#14274e]"}`}>
+            <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg ${c.accent ? "bg-amber-50 text-amber-700" : "bg-blue-50 text-blue-900"}`}>
               <c.icon size={20} />
             </div>
             <div className="min-w-0">
-              <div className="text-xl font-extrabold text-[#14274e] truncate">{c.value}</div>
-              <div className="text-xs font-semibold text-[#6b7280] leading-tight">{c.label}</div>
+              <div className="text-lg font-bold text-slate-800 truncate leading-none mb-1.5">{c.value}</div>
+              <div className="text-[11px] font-semibold text-slate-400 leading-tight">{c.label}</div>
             </div>
           </div>
-        </div>
+        </motion.div>
       ))}
-    </div>
+    </motion.div>
   );
 }

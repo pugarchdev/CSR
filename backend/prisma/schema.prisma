@@ -90,6 +90,15 @@ model User {
   sessions                     Session[]
   workflowHistories            WorkflowHistory[]
 
+  // Project assignment & invitation workflow
+  officerProfile           UserOfficerProfile?
+  assignmentsGiven         ProjectAssignment[]           @relation("AssignmentsGiven")
+  assignmentsReceived      ProjectAssignment[]           @relation("AssignmentsReceived")
+  invitationsReceived      UserInvitation[]              @relation("InvitedUser")
+  invitationsSent          UserInvitation[]              @relation("InvitationsSent")
+  nodalDistrictMappings    DistrictNodalMapping[]        @relation("NodalDistrictMappings")
+  nodalMappingsAssigned    DistrictNodalMapping[]        @relation("NodalMappingsAssigned")
+
   @@index([organizationId])
   @@index([parentCorporateUserId])
 }
@@ -542,7 +551,7 @@ model VerificationCheck {
   updatedAt     DateTime              @updatedAt
   application   OnboardingApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   verifiedBy    User?                 @relation("VerificationsDone", fields: [verifiedById], references: [id])
-}
+}
 
 model Organization {
   id                          String                       @id @default(uuid())
@@ -783,6 +792,7 @@ model OrganizationRole {
   users           User[]                       @relation("UserDynamicRole")
   parentRoles     RoleHierarchy[]              @relation("ParentRoleHierarchy")
   childRoles      RoleHierarchy[]              @relation("ChildRoleHierarchy")
+  projectAssignments ProjectAssignment[]
 
   @@unique([organizationId, name])
   @@index([organizationId])
@@ -1078,7 +1088,8 @@ enum UserAccountStatus {
   SUSPENDED
   DELETED
   PENDING_APPROVAL
-}
+  PENDING_ACTIVATION
+}
 
 enum OrganizationKind {
   NGO
@@ -1303,6 +1314,8 @@ enum SLAStage {
   GRIEVANCE_LEVEL_1
   GRIEVANCE_LEVEL_2
   STATIC_HELPDESK
+  NODAL_ASSIGNMENT
+  FIELD_OFFICER_ASSIGNMENT
 }
 
 enum GrievanceStatus {
@@ -2721,10 +2734,108 @@ model NotificationLog {
   smtpResponseCode String?
   providerMessageId String?
   workerNodeId     String?
+  notificationType String?
+  pushStatus       String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
   @@index([recipientId])
   @@index([status])
+}
+
+// ==========================================
+// 5. Project Assignment & User Invitation Workflow
+// ==========================================
+
+// Generic assignment of a user to a workflow entity (project/enquiry/pitch).
+// entityType/entityId pattern matches WorkflowInstance and SLAEscalation so new
+// entity kinds need no schema change.
+model ProjectAssignment {
+  id             String    @id @default(uuid())
+  entityType     String // CONVERGENCE_PROJECT | CORPORATE_ENQUIRY | GOVERNMENT_PITCH
+  entityId       String
+  assignmentType String // NODAL_OFFICER | FIELD_OFFICER | ...
+  assignedById   String
+  assignedBy     User      @relation("AssignmentsGiven", fields: [assignedById], references: [id])
+  assignedToId   String
+  assignedTo     User      @relation("AssignmentsReceived", fields: [assignedToId], references: [id], onDelete: Cascade)
+  assignedRoleId String?
+  assignedRole   OrganizationRole? @relation(fields: [assignedRoleId], references: [id], onDelete: SetNull)
+  status         String    @default("ACTIVE") // ACTIVE | PENDING_ACTIVATION | REVOKED | COMPLETED
+  remarks        String?
+  companyId      String?
+  assignedAt     DateTime  @default(now())
+  revokedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([entityId, entityType])
+  @@index([assignedToId, status])
+  @@index([assignedById])
+}
+
+// Secure account-activation invitation. Raw token is never stored - only sha256 hash.
+model UserInvitation {
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation("InvitedUser", fields: [userId], references: [id], onDelete: Cascade)
+  email        String
+  mobile       String?
+  tokenHash    String    @unique
+  purpose      String    @default("OFFICER_ACTIVATION")
+  status       String    @default("PENDING") // PENDING | ACCEPTED | EXPIRED | REVOKED
+  expiresAt    DateTime
+  acceptedAt   DateTime?
+  revokedAt    DateTime?
+  attemptCount Int       @default(0)
+  createdById  String
+  createdBy    User      @relation("InvitationsSent", fields: [createdById], references: [id])
+  companyId    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([email, status])
+}
+
+// Officer-specific profile fields kept off the shared User model.
+model UserOfficerProfile {
+  id            String  @id @default(uuid())
+  userId        String  @unique
+  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName      String
+  mobile        String?
+  employeeId    String?
+  designation   String?
+  department    String?
+  officeAddress String?
+  district      String?
+  taluka        String?
+  block         String?
+  office        String?
+  remarks       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([employeeId])
+  @@index([district])
+}
+
+// Active mapping of a CSR Nodal Officer to a district. Supersedes the single
+// User.assignedDistrict string (which is still dual-written for legacy readers).
+model DistrictNodalMapping {
+  id           String   @id @default(uuid())
+  district     String
+  domain       String?
+  userId       String
+  user         User     @relation("NodalDistrictMappings", fields: [userId], references: [id], onDelete: Cascade)
+  isActive     Boolean  @default(true)
+  assignedById String
+  assignedBy   User     @relation("NodalMappingsAssigned", fields: [assignedById], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([district, isActive])
+  @@index([userId])
 }
 

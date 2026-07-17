@@ -34,7 +34,6 @@ export const expressInterest = async (req: AuthenticatedRequest, res: Response, 
 
     const interest = await prisma.companyInterest.create({
       data: {
-        tenantId,
         csrRequirementId,
         companyId,
         fundingAmount: parseFloat(fundingAmount),
@@ -91,7 +90,7 @@ export const getMyInterests = async (req: AuthenticatedRequest, res: Response, n
 
     const where: any = { companyId };
     if ((req as any).tenantContext?.tenantId || req.user?.tenantId) {
-      where.tenantId = (req as any).tenantContext?.tenantId || req.user?.tenantId;
+      ((where as any).tenantId) = (req as any).tenantContext?.tenantId || req.user?.tenantId;
     }
 
     const interests = await prisma.companyInterest.findMany({
@@ -120,7 +119,7 @@ export const getInterestsForRequirement = async (req: AuthenticatedRequest, res:
 
     const where: any = { csrRequirementId: requirementId };
     if ((req as any).tenantContext?.tenantId || req.user?.tenantId) {
-      where.tenantId = (req as any).tenantContext?.tenantId || req.user?.tenantId;
+      ((where as any).tenantId) = (req as any).tenantContext?.tenantId || req.user?.tenantId;
     }
 
     const interests = await prisma.companyInterest.findMany({
@@ -144,7 +143,7 @@ export const listCompanyInterestsForAdmin = async (req: AuthenticatedRequest, re
     const { status, district } = req.query;
     const where: any = {};
     if ((req as any).tenantContext?.tenantId || req.user?.tenantId) {
-      where.tenantId = (req as any).tenantContext?.tenantId || req.user?.tenantId;
+      ((where as any).tenantId) = (req as any).tenantContext?.tenantId || req.user?.tenantId;
     }
 
     if (status) where.status = status;

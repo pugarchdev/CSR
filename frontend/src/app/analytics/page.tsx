@@ -25,7 +25,7 @@ const GisMap = dynamic(() => import("@/components/GisMap"), {
     </div>
   )
 });
-import { StatsCard } from "@/components/ui/StatsCard";
+import { StatCard } from "@/components/ui/StatCard";
 
 const mockSdgStats = [
   { name: "SDG 4: Quality Education", count: 18 },
@@ -65,10 +65,10 @@ export default function AnalyticsDashboard() {
 
       {/* KPI Counters */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatsCard label="Cumulative CSR Funding Sourced" value="₹18.4 Crore" icon={Coins} trend={{ value: "12%", positive: true }} />
-        <StatsCard label="Direct Beneficiaries Served" value="2.4 Lakhs" icon={HeartHandshake} trend={{ value: "8%", positive: true }} />
-        <StatsCard label="Active Projects Registered" value="420" icon={FolderHeart} />
-        <StatsCard label="Compliance Audits Passed" value="98.4%" icon={ShieldCheck} />
+        <StatCard label="Cumulative CSR Funding Sourced" value="₹18.4 Crore" icon={Coins} trend={{ value: 12, positive: true }} />
+        <StatCard label="Direct Beneficiaries Served" value="2.4 Lakhs" icon={HeartHandshake} trend={{ value: 8, positive: true }} />
+        <StatCard label="Active Projects Registered" value="420" icon={FolderHeart} />
+        <StatCard label="Compliance Audits Passed" value="98.4%" icon={ShieldCheck} />
       </section>
 
       {/* Interactive GIS Section */}

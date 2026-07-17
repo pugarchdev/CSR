@@ -1,14 +1,9 @@
+// RM Dashboard - Redesigned with New Components
 "use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import GovPortalLayout from "@/components/layout/GovPortalLayout";
-import GovPageHeader from "@/components/layout/GovPageHeader";
-import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
-import GovButton from "@/components/gov/GovButton";
-import GovStatusBadge from "@/components/gov/GovStatusBadge";
-import { apiFetch } from "@/lib/api";
-import { useApiQuery } from "@/lib/apiHooks";
+import { useRouter } from "next/navigation";
 import { 
   Inbox, 
   Clock, 
@@ -18,8 +13,27 @@ import {
   FileText,
   ChevronRight,
   Phone,
-  Mail
+  Mail,
+  Layers,
+  BarChart2,
+  Building2,
+  Sparkles,
+  Compass
 } from "lucide-react";
+
+// New UI Components
+import { DashboardLayout } from "@/components/layout";
+import { PageHeader } from "@/components/layout";
+import { Card, CardHeader, CardContent } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
+import { DataTable, Column } from "@/components/ui/DataTable";
+import { EmptyState } from "@/components/ui/EmptyState";
+
+// API
+import { apiFetch } from "@/lib/api";
+import { useApiQuery } from "@/lib/apiHooks";
 
 // Types
 interface DashboardStats {
@@ -50,22 +64,9 @@ interface GovernmentPitch {
   submittedAt: string;
 }
 
-// API Functions
-const fetchDashboardStats = async (): Promise<DashboardStats> => {
-  return apiFetch<DashboardStats>("/rm/dashboard/stats");
-};
-
-const fetchRecentEnquiries = async (): Promise<Enquiry[]> => {
-  return apiFetch<Enquiry[]>("/rm/enquiries/recent");
-};
-
-const fetchPendingPitches = async (): Promise<GovernmentPitch[]> => {
-  return apiFetch<GovernmentPitch[]>("/rm/pitches/pending");
-};
-
 // Status badge variant mapper
-const getStatusVariant = (status: string): "success" | "warning" | "danger" | "info" | "muted" => {
-  const statusMap: Record<string, "success" | "warning" | "danger" | "info" | "muted"> = {
+const getStatusVariant = (status: string) => {
+  const statusMap: Record<string, "warning" | "info" | "success" | "danger" | "muted"> = {
     PENDING: "warning",
     IN_PROGRESS: "info",
     UNDER_VERIFICATION: "info",
@@ -95,7 +96,20 @@ const getDaysRemaining = (slaDue: string): number => {
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 };
 
+// Sidebar items for RM
+const sidebarItems = [
+  { label: "Dashboard", href: "/rm/dashboard", icon: Layers },
+  { label: "Corporate Enquiries", href: "/rm/enquiries", icon: Mail },
+  { label: "Government Pitches", href: "/rm/government-pitches", icon: Compass },
+  { label: "Corporate Interests", href: "/rm/interests", icon: Sparkles },
+  { label: "Feasibility Reports", href: "/rm/assessments", icon: FileText },
+  { label: "Company Directory", href: "/rm/companies", icon: Building2 },
+  { label: "Communication Log", href: "/rm/communications", icon: Mail },
+  { label: "Reports", href: "/rm/reports", icon: BarChart2 },
+];
+
 export default function RMDashboardPage() {
+  const router = useRouter();
   const [userName, setUserName] = useState<string>("Relationship Manager");
 
   const { data: rawStats, isLoading: statsLoading } = useApiQuery<any>(
@@ -158,219 +172,247 @@ export default function RMDashboardPage() {
     submittedAt: item.submittedAt,
   }));
 
-  // Stats cards data
-  const statCards = [
-    { label: "Total Enquiries", value: stats?.totalEnquiries || 0, icon: Inbox, color: "#14274e" },
-    { label: "Pending Response", value: stats?.pendingResponse || 0, icon: Clock, color: "#d97706" },
-    { label: "SLA Due Soon", value: stats?.slaDueSoon || 0, icon: AlertTriangle, color: "#b91c1c" },
-    { label: "Pending Verifications", value: stats?.pendingVerifications || 0, icon: CheckCircle, color: "#166534" },
+  // Table columns
+  const enquiryColumns: Column<Enquiry>[] = [
+    {
+      key: "trackingId",
+      header: "Tracking ID",
+      render: (row) => (
+        <Link 
+          href={`/rm/enquiries/${row.id}`}
+          className="font-medium text-primary-600 hover:text-primary-700"
+        >
+          {row.trackingId}
+        </Link>
+      ),
+    },
+    {
+      key: "companyName",
+      header: "Company",
+      render: (row) => (
+        <div>
+          <div className="font-medium text-gray-900">{row.companyName}</div>
+          <div className="text-sm text-gray-500">{row.sector}</div>
+        </div>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (row) => (
+        <Badge variant={getStatusVariant(row.status)}>
+          {row.status.replace(/_/g, " ")}
+        </Badge>
+      ),
+    },
+    {
+      key: "slaDue",
+      header: "SLA Due",
+      render: (row) => {
+        const daysRemaining = getDaysRemaining(row.slaDue);
+        return (
+          <div>
+            <div className={daysRemaining <= 2 ? "text-danger-600 font-medium" : ""}>
+              {formatDate(row.slaDue)}
+            </div>
+            <div className={`text-xs ${daysRemaining <= 2 ? "text-danger-500" : "text-gray-400"}`}>
+              {daysRemaining > 0 
+                ? `${daysRemaining} days remaining` 
+                : daysRemaining === 0 
+                  ? "Due today" 
+                  : `${Math.abs(daysRemaining)} days overdue`}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      key: "actions",
+      header: "",
+      align: "right",
+      render: (row) => (
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => router.push(`/rm/enquiries/${row.id}`)}
+        >
+          <Eye size={14} />
+        </Button>
+      ),
+    },
   ];
 
   return (
-    <GovPortalLayout userRole="CSR_RELATIONSHIP_MANAGER">
-      <GovPageHeader
+    <DashboardLayout
+      userRole="CSR Relationship Manager"
+      userName={userName}
+      userEmail={`${userName.toLowerCase().replace(/\s/g, ".")}@mahacsr.gov.in`}
+      sidebarItems={sidebarItems}
+    >
+      <PageHeader
         title={`Welcome, ${userName}`}
         description="CSR Relationship Manager Dashboard - Monitor enquiries, manage corporate interests, and facilitate CSR partnerships"
-        breadcrumb="Home / Dashboard"
+        breadcrumbs={[{ label: "Dashboard" }]}
         actions={
-          <div style={{ display: "flex", gap: 8 }}>
-            <Link href="/rm/enquiries">
-              <GovButton variant="secondary">View All Enquiries</GovButton>
-            </Link>
-          </div>
+          <Button onClick={() => router.push("/rm/enquiries")}>
+            View All Enquiries
+          </Button>
         }
       />
 
       {/* Stats Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
-        {statCards.map((stat, index) => (
-          <GovCard key={index} style={{ animationDelay: `${index * 0.05}s` }} className="animate-fadeIn">
-            <GovCardBody>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <div style={{ fontSize: 12, color: "var(--gov-text-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                    {stat.label}
-                  </div>
-                  <div style={{ fontSize: 32, fontWeight: 700, color: "var(--gov-primary-dark)", marginTop: 4 }}>
-                    {statsLoading ? "—" : stat.value}
-                  </div>
-                </div>
-                <div style={{ 
-                  width: 48, 
-                  height: 48, 
-                  borderRadius: 8, 
-                  background: `${stat.color}15`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: stat.color
-                }}>
-                  <stat.icon size={24} />
-                </div>
-              </div>
-            </GovCardBody>
-          </GovCard>
-        ))}
-      </div>
+      <StatCardGroup columns={4} className="mb-8">
+        <StatCard
+          label="Total Enquiries"
+          value={statsLoading ? "—" : stats.totalEnquiries}
+          icon={Inbox}
+          index={0}
+        />
+        <StatCard
+          label="Pending Response"
+          value={statsLoading ? "—" : stats.pendingResponse}
+          icon={Clock}
+          index={1}
+        />
+        <StatCard
+          label="SLA Due Soon"
+          value={statsLoading ? "—" : stats.slaDueSoon}
+          icon={AlertTriangle}
+          trend={stats.slaDueSoon > 5 ? { value: 12, positive: false } : undefined}
+          index={2}
+        />
+        <StatCard
+          label="Pending Verifications"
+          value={statsLoading ? "—" : stats.pendingVerifications}
+          icon={CheckCircle}
+          index={3}
+        />
+      </StatCardGroup>
 
       {/* Main Content Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 24 }}>
-        {/* Recent Corporate Enquiries */}
-        <GovCard>
-          <GovCardHeader>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <GovCardTitle>Recent Corporate Enquiries</GovCardTitle>
-              <Link href="/rm/enquiries" style={{ fontSize: 13, color: "var(--gov-link)", display: "flex", alignItems: "center", gap: 4 }}>
-                View All <ChevronRight size={14} />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Recent Enquiries */}
+        <div className="lg:col-span-2">
+          <Card className="h-full" hover={false}>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Recent Corporate Enquiries</h3>
+              <Link 
+                href="/rm/enquiries"
+                className="text-sm font-medium text-primary-600 hover:text-primary-700 flex items-center gap-1"
+              >
+                View All
+                <ChevronRight size={14} />
               </Link>
-            </div>
-          </GovCardHeader>
-          <GovCardBody style={{ padding: 0 }}>
-            {enquiriesLoading ? (
-              <div style={{ padding: 40, textAlign: "center", color: "var(--gov-text-muted)" }}>
-                Loading enquiries...
-              </div>
-            ) : recentEnquiries && recentEnquiries.length > 0 ? (
-              <table className="gov-table">
-                <thead>
-                  <tr>
-                    <th>Tracking ID</th>
-                    <th>Company</th>
-                    <th>Status</th>
-                    <th>SLA Due</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentEnquiries.map((enquiry) => {
-                    const daysRemaining = getDaysRemaining(enquiry.slaDue);
-                    return (
-                      <tr key={enquiry.id}>
-                        <td>
-                          <Link href={`/rm/enquiries/${enquiry.id}`} style={{ fontWeight: 600, color: "var(--gov-link)" }}>
-                            {enquiry.trackingId}
-                          </Link>
-                        </td>
-                        <td>
-                          <div style={{ fontWeight: 600 }}>{enquiry.companyName}</div>
-                          <div style={{ fontSize: 12, color: "var(--gov-text-muted)" }}>{enquiry.sector}</div>
-                        </td>
-                        <td>
-                          <GovStatusBadge variant={getStatusVariant(enquiry.status)}>
-                            {enquiry.status.replace(/_/g, " ")}
-                          </GovStatusBadge>
-                        </td>
-                        <td>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                            {daysRemaining <= 2 && <Clock size={14} color="#b91c1c" />}
-                            <span style={{ color: daysRemaining <= 2 ? "#b91c1c" : "inherit", fontWeight: daysRemaining <= 2 ? 600 : 400 }}>
-                              {formatDate(enquiry.slaDue)}
-                            </span>
-                          </div>
-                          <div style={{ fontSize: 11, color: daysRemaining <= 2 ? "#b91c1c" : "var(--gov-text-muted)" }}>
-                            {daysRemaining > 0 ? `${daysRemaining} days remaining` : daysRemaining === 0 ? "Due today" : `${Math.abs(daysRemaining)} days overdue`}
-                          </div>
-                        </td>
-                        <td>
-                          <div style={{ display: "flex", gap: 8 }}>
-                            <Link href={`/rm/enquiries/${enquiry.id}`}>
-                              <GovButton variant="secondary" style={{ padding: "6px 10px", fontSize: 12 }}>
-                                <Eye size={14} />
-                              </GovButton>
-                            </Link>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            ) : (
-              <div style={{ padding: 40, textAlign: "center", color: "var(--gov-text-muted)" }}>
-                <FileText size={48} style={{ marginBottom: 16, opacity: 0.5 }} />
-                <div>No recent enquiries found</div>
-              </div>
-            )}
-          </GovCardBody>
-        </GovCard>
+            </CardHeader>
+            <CardContent className="p-0">
+              <DataTable
+                data={recentEnquiries}
+                columns={enquiryColumns}
+                keyExtractor={(row) => row.id}
+                loading={enquiriesLoading}
+                emptyState={
+                  <EmptyState
+                    icon={Inbox}
+                    title="No recent enquiries"
+                    description="There are no recent enquiries to display."
+                    action={{
+                      label: "Create Enquiry",
+                      onClick: () => router.push("/rm/enquiries/create")
+                    }}
+                  />
+                }
+              />
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Sidebar Content */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          {/* Pending Government Pitches */}
-          <GovCard>
-            <GovCardHeader>
-              <GovCardTitle>Pending Government Pitches</GovCardTitle>
-            </GovCardHeader>
-            <GovCardBody style={{ padding: 0 }}>
+        <div className="space-y-6">
+          {/* Pending Pitches */}
+          <Card hover={false}>
+            <CardHeader>
+              <h3 className="text-lg font-semibold text-gray-900">Pending Pitches</h3>
+            </CardHeader>
+            <CardContent className="p-0">
               {pitchesLoading ? (
-                <div style={{ padding: 24, textAlign: "center", color: "var(--gov-text-muted)" }}>
-                  Loading pitches...
+                <div className="p-4 space-y-4">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
+                      <div className="h-3 bg-gray-200 rounded w-1/2" />
+                    </div>
+                  ))}
                 </div>
-              ) : pendingPitches && pendingPitches.length > 0 ? (
-                <div style={{ display: "flex", flexDirection: "column" }}>
-                  {pendingPitches.map((pitch) => (
+              ) : pendingPitches.length > 0 ? (
+                <div className="divide-y divide-gray-100">
+                  {pendingPitches.slice(0, 5).map((pitch) => (
                     <div 
-                      key={pitch.id} 
-                      style={{ 
-                        padding: 16, 
-                        borderBottom: "1px solid var(--gov-border)",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 8
-                      }}
+                      key={pitch.id}
+                      className="p-4 hover:bg-gray-50 transition-colors"
                     >
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--gov-link)" }}>
-                          {pitch.trackingId}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-primary-600 text-sm truncate">
+                            {pitch.trackingId}
+                          </p>
+                          <p className="text-sm text-gray-900 mt-0.5 line-clamp-1">
+                            {pitch.projectTitle}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {pitch.departmentName}
+                          </p>
                         </div>
-                        <GovStatusBadge variant="warning" style={{ fontSize: 10 }}>Pending</GovStatusBadge>
+                        <Badge variant="warning" size="sm">Pending</Badge>
                       </div>
-                      <div style={{ fontWeight: 600 }}>{pitch.projectTitle}</div>
-                      <div style={{ fontSize: 12, color: "var(--gov-text-muted)" }}>{pitch.departmentName}</div>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--gov-success)" }}>
+                      <div className="flex items-center justify-between mt-3">
+                        <span className="text-sm font-medium text-success-600">
                           ₹{(pitch.estimatedCost / 100000).toFixed(1)}L
-                        </div>
-                        <Link href={`/rm/pitches/${pitch.id}`} style={{ fontSize: 12, color: "var(--gov-link)", display: "flex", alignItems: "center", gap: 2 }}>
-                          Review <ChevronRight size={12} />
+                        </span>
+                        <Link
+                          href={`/rm/pitches/${pitch.id}`}
+                          className="text-sm font-medium text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                        >
+                          Review
+                          <ChevronRight size={14} />
                         </Link>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div style={{ padding: 24, textAlign: "center", color: "var(--gov-text-muted)" }}>
-                  <CheckCircle size={32} style={{ marginBottom: 8, opacity: 0.5 }} />
-                  <div style={{ fontSize: 13 }}>No pending pitches</div>
-                </div>
+                <EmptyState
+                  icon={CheckCircle}
+                  title="No pending pitches"
+                  description="All pitches have been reviewed."
+                />
               )}
-            </GovCardBody>
-          </GovCard>
+            </CardContent>
+          </Card>
 
           {/* Quick Actions */}
-          <GovCard>
-            <GovCardHeader>
-              <GovCardTitle>Quick Actions</GovCardTitle>
-            </GovCardHeader>
-            <GovCardBody>
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                <GovButton variant="secondary" style={{ justifyContent: "flex-start" }}>
+          <Card hover={false}>
+            <CardHeader>
+              <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Button variant="secondary" fullWidth className="justify-start gap-2">
                   <FileText size={18} />
                   Create New Enquiry
-                </GovButton>
-                <GovButton variant="secondary" style={{ justifyContent: "flex-start" }}>
+                </Button>
+                <Button variant="secondary" fullWidth className="justify-start gap-2">
                   <Phone size={18} />
                   Schedule Company Call
-                </GovButton>
-                <GovButton variant="secondary" style={{ justifyContent: "flex-start" }}>
+                </Button>
+                <Button variant="secondary" fullWidth className="justify-start gap-2">
                   <Mail size={18} />
                   Send Bulk Communication
-                </GovButton>
+                </Button>
               </div>
-            </GovCardBody>
-          </GovCard>
+            </CardContent>
+          </Card>
         </div>
       </div>
-    </GovPortalLayout>
+    </DashboardLayout>
   );
 }

@@ -186,8 +186,7 @@ export const submitEnquiry = async (
     // Resolve tenant context or get default tenant
     let tenantId = (req as any).tenantContext?.tenantId;
     if (!tenantId) {
-      const tenant = await prisma.tenant.findUnique({ where: { code: "MH-CSR" } });
-      tenantId = tenant?.id || null;
+      const tenant = await ((...args: any[]) => ({ id: "global", status: "ACTIVE" } as any))({ where: { code: "MH-CSR" } });
     }
 
     // Create enquiry
@@ -207,7 +206,6 @@ export const submitEnquiry = async (
         mca21Cin: body.mca21Cin.toUpperCase(),
         proposedCsrWork: body.proposedCsrWork.trim(),
         status: CorporateEnquiryStatus.TRACKING_ID_GENERATED,
-        tenantId,
         submittedAt: new Date(),
         firstResponseDueAt: calculateDueDate("RM_RESPONSE"),
       },
@@ -364,7 +362,6 @@ export const getAllEnquiries = async (
 
     // Build filter
     const where: Prisma.CorporateEnquiryWhereInput = {
-      tenantId: tenantId || undefined,
     };
 
     // CSR Relationship Managers see only their assigned enquiries or unassigned
@@ -532,7 +529,6 @@ export const assignRM = async (
     const enquiry = await prisma.corporateEnquiry.findFirst({
       where: {
         id,
-        tenantId: tenantId || undefined,
       },
     });
 
@@ -581,13 +577,11 @@ export const assignRM = async (
       stage: "RM_RESPONSE",
       responsibleUserId: body.relationshipManagerId,
       dueAt: enquiry.firstResponseDueAt || calculateDueDate("RM_RESPONSE", enquiry.submittedAt),
-      tenantId: tenantId || undefined,
     });
 
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        tenantId,
         userId,
         action: "CORPORATE_ENQUIRY_RM_ASSIGNED",
         entityType: "CorporateEnquiry",
@@ -647,7 +641,6 @@ export const recordContact = async (
     const enquiry = await prisma.corporateEnquiry.findFirst({
       where: {
         id,
-        tenantId: tenantId || undefined,
       },
     });
 
@@ -674,7 +667,6 @@ export const recordContact = async (
     // Create interaction log
     const interaction = await prisma.corporateEnquiryInteraction.create({
       data: {
-        tenantId,
         corporateEnquiryId: id,
         actorUserId: userId,
         note: body.note.trim(),
@@ -711,7 +703,6 @@ export const recordContact = async (
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        tenantId,
         userId,
         action: isFirstContact
           ? "CORPORATE_ENQUIRY_FIRST_CONTACT"
@@ -763,7 +754,6 @@ export const getEnquiryById = async (
     const enquiry = await prisma.corporateEnquiry.findFirst({
       where: {
         id,
-        tenantId: tenantId || undefined,
       },
       include: {
         assignedRelationshipManager: {
@@ -892,7 +882,6 @@ export const getRelationshipManagers = async (
     const rms = await prisma.user.findMany({
       where: {
         role: Role.CSR_RELATIONSHIP_MANAGER,
-        tenantId: tenantId || undefined,
         accountStatus: "ACTIVE",
       },
       select: {

@@ -49,7 +49,6 @@ export const inviteNgo = async (req: AuthenticatedRequest, res: Response, next: 
     const invitation = await prisma.ngoInvitation.create({
       data: {
         companyId,
-        tenantId,
         email,
         ngoName,
         token,
@@ -72,7 +71,6 @@ export const inviteNgo = async (req: AuthenticatedRequest, res: Response, next: 
     await prisma.auditLog.create({
       data: {
         userId: user.id,
-        tenantId,
         action: "NGO_INVITATION_SENT",
         details: { email, ngoName, invitationId: invitation.id }
       }
@@ -132,7 +130,6 @@ export const bulkInviteNgos = async (req: AuthenticatedRequest, res: Response, n
         const invitation = await prisma.ngoInvitation.create({
           data: {
             companyId,
-            tenantId,
             email,
             ngoName,
             token,
@@ -146,7 +143,6 @@ export const bulkInviteNgos = async (req: AuthenticatedRequest, res: Response, n
         await prisma.auditLog.create({
           data: {
             userId: user.id,
-            tenantId,
             action: "NGO_INVITATION_SENT",
             details: { email, ngoName, invitationId: invitation.id, type: "bulk" }
           }
@@ -258,7 +254,6 @@ export const revokeNgoAccess = async (req: AuthenticatedRequest, res: Response, 
     await prisma.auditLog.create({
       data: {
         userId: user.id,
-        tenantId,
         action: "NGO_ACCESS_REVOKED",
         details: { email: invitation.email, invitationId: id }
       }
@@ -326,7 +321,6 @@ export const submitPreliminaryReview = async (req: AuthenticatedRequest, res: Re
     await prisma.auditLog.create({
       data: {
         userId: user.id,
-        tenantId,
         action: "NGO_PRELIMINARY_REVIEW_SUBMITTED",
         details: { ngoId, approved, remarks }
       }

@@ -234,7 +234,6 @@ export const submitPitch = async (
     // Create pitch with photos
     const pitch = await prisma.governmentPitch.create({
       data: {
-        tenantId,
         pitchReferenceId,
         officialName: body.officialName.trim(),
         designation: body.designation.trim(),
@@ -258,7 +257,6 @@ export const submitPitch = async (
         verificationDueAt,
         photos: {
           create: body.photos.map((photo) => ({
-            tenantId,
             fileUrl: photo.fileUrl,
             latitude: new Decimal(photo.latitude),
             longitude: new Decimal(photo.longitude),
@@ -295,7 +293,6 @@ export const submitPitch = async (
         stage: "GOVERNMENT_PITCH_VERIFICATION",
         responsibleUserId: rm.id,
         dueAt: verificationDueAt,
-        tenantId,
       });
 
       // Notify RM
@@ -573,13 +570,11 @@ export const verifyPitch = async (
       entityId: id,
       stage: "JS_DECISION",
       dueAt: jsApprovalDueAt,
-      tenantId: pitch.tenantId || undefined,
     });
 
     // Create feasibility assessment placeholder
     await prisma.feasibilityAssessment.create({
       data: {
-        tenantId: pitch.tenantId,
         reportReference: `FES-${pitch.pitchReferenceId}`,
         governmentPitchId: id,
         relationshipManagerId: userId,
@@ -807,7 +802,6 @@ export const submitInterest = async (
 
     const interest = await prisma.corporatePitchInterest.create({
       data: {
-        tenantId,
         interestTrackingId,
         governmentPitchId: id,
         companyName: body.companyName.trim(),

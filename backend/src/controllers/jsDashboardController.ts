@@ -50,7 +50,6 @@ export const getJSDashboard = async (
       // Pending assessment reports
       prisma.feasibilityAssessment.count({
         where: {
-          tenantId: tenantId || undefined,
           jsDecisionById: null,
           submittedToJsAt: { not: null },
         },
@@ -59,7 +58,6 @@ export const getJSDashboard = async (
       // Assessments due within 2 days
       prisma.feasibilityAssessment.count({
         where: {
-          tenantId: tenantId || undefined,
           jsDecisionById: null,
           submittedToJsAt: {
             not: null,
@@ -71,7 +69,6 @@ export const getJSDashboard = async (
       // Overdue JS decisions (older than 3 days)
       prisma.feasibilityAssessment.count({
         where: {
-          tenantId: tenantId || undefined,
           jsDecisionById: null,
           submittedToJsAt: {
             lte: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
@@ -90,26 +87,19 @@ export const getJSDashboard = async (
               GovernmentPitchStatus.PUBLIC_LISTED
             ]
           },
-          ...(tenantId ? {
-            OR: [
-              { tenantId: tenantId },
-              { tenantId: null }
-            ]
-          } : {})
+          
         },
       }),
 
       // Nodal officers appointed
       prisma.nodalOfficerAppointment.count({
         where: {
-          tenantId: tenantId || undefined,
         },
       }),
 
       // Rejected/returned cases
       prisma.feasibilityAssessment.count({
         where: {
-          tenantId: tenantId || undefined,
           feasibilityResult: FeasibilityResult.NOT_FEASIBLE,
         },
       }),
@@ -117,7 +107,6 @@ export const getJSDashboard = async (
       // Recent decisions (last 30 days)
       prisma.feasibilityAssessment.findMany({
         where: {
-          tenantId: tenantId || undefined,
           jsDecisionAt: {
             gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
           },
@@ -147,7 +136,6 @@ export const getJSDashboard = async (
       // Active escalations to JS
       prisma.sLAEscalation.findMany({
         where: {
-          tenantId: tenantId || undefined,
           stage: "JS_DECISION",
           isResolved: false,
         },
@@ -167,7 +155,6 @@ export const getJSDashboard = async (
     // Get pending assessments for table
     const pendingAssessmentsList = await prisma.feasibilityAssessment.findMany({
       where: {
-        tenantId: tenantId || undefined,
         jsDecisionById: null,
         submittedToJsAt: { not: null },
       },
@@ -210,12 +197,7 @@ export const getJSDashboard = async (
     const pendingPitches = await prisma.governmentPitch.findMany({
       where: {
         status: GovernmentPitchStatus.JS_APPROVAL_PENDING,
-        ...(tenantId ? {
-          OR: [
-            { tenantId: tenantId },
-            { tenantId: null }
-          ]
-        } : {})
+        
       },
       include: {
         assignedRelationshipManager: {
@@ -354,12 +336,7 @@ export const getJSGovernmentPitches = async (
             GovernmentPitchStatus.PUBLIC_LISTED
           ]
         },
-        ...(tenantId ? {
-          OR: [
-            { tenantId: tenantId },
-            { tenantId: null }
-          ]
-        } : {})
+        
       },
       include: {
         assignedRelationshipManager: {
@@ -407,7 +384,6 @@ export const getJSEscalations = async (
     // Get escalations where JS is the responsible party
     const escalations = await prisma.sLAEscalation.findMany({
       where: {
-        tenantId: tenantId || undefined,
         stage: "JS_DECISION",
         isResolved: false,
       },
@@ -513,7 +489,6 @@ export const handleEscalationAction = async (
     const escalation = await prisma.sLAEscalation.findFirst({
       where: {
         id,
-        tenantId: tenantId || undefined,
       },
     });
 
@@ -527,7 +502,6 @@ export const handleEscalationAction = async (
       // Create new escalation to Planning Secretary
       await prisma.sLAEscalation.create({
         data: {
-          tenantId,
           entityType: escalation.entityType,
           entityId: escalation.entityId,
           stage: "SECRETARY_ESCALATION",
@@ -558,7 +532,6 @@ export const handleEscalationAction = async (
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        tenantId,
         userId,
         action: `JS_ESCALATION_${action}`,
         entityType: "SLAEscalation",

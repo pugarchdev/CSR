@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
+import { Skeleton } from "../ui/Skeleton";
 import "../../styles/gov-theme.css";
 
 interface Column {
@@ -21,8 +22,7 @@ interface GovDataTableProps {
 }
 
 /**
- * Government-styled data table with loading, error, and empty states.
- * Wraps in a horizontal-scroll container for mobile.
+ * Government-styled data table redesigned to look like a premium SaaS data table.
  */
 export default function GovDataTable({
   columns,
@@ -35,38 +35,31 @@ export default function GovDataTable({
 }: GovDataTableProps) {
   if (loading) {
     return (
-      <div className="gov-card">
-        <div className="gov-card-body" style={{ textAlign: "center", padding: 48 }}>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              border: "3px solid var(--gov-border)",
-              borderTopColor: "var(--gov-primary)",
-              borderRadius: "50%",
-              animation: "spin 1s linear infinite",
-              margin: "0 auto 12px",
-            }}
-          />
-          <p style={{ color: "var(--gov-text-muted)", fontSize: 13 }}>Loading data…</p>
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        </div>
+      <div className="gov-card p-6">
+        <div className="h-10 shimmer-loader rounded-lg mb-3" />
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="h-12 border-t border-slate-100/50 flex items-center gap-4 py-2">
+            {[...Array(columns.length)].map((_, j) => (
+              <Skeleton key={j} className="h-4 flex-1 rounded-full" />
+            ))}
+          </div>
+        ))}
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="gov-alert danger">
-        {error}
+      <div className="gov-alert danger bg-red-50 text-red-700 border-red-200/60 p-4 rounded-xl border flex items-center gap-3">
+        <span className="font-semibold">{error}</span>
       </div>
     );
   }
 
   return (
-    <div className="gov-card">
-      <div className="gov-table-container">
-        <table className="gov-table">
+    <div className="gov-card overflow-hidden">
+      <div className="gov-table-container overflow-x-auto">
+        <table className="gov-table w-full">
           <thead>
             <tr>
               {columns.map((col) => (
@@ -79,7 +72,7 @@ export default function GovDataTable({
           <tbody>
             {data.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} style={{ textAlign: "center", padding: 32, color: "var(--gov-text-muted)" }}>
+                <td colSpan={columns.length} style={{ textAlign: "center", padding: 48, color: "var(--gov-text-muted)" }}>
                   {emptyMessage}
                 </td>
               </tr>
@@ -89,7 +82,7 @@ export default function GovDataTable({
                   key={(row.id as string) || idx}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
                   style={onRowClick ? { cursor: "pointer" } : undefined}
-                  className={rowClassName ? rowClassName(row) : undefined}
+                  className={`${rowClassName ? rowClassName(row) : ""} transition-colors`}
                 >
                   {columns.map((col) => (
                     <td key={col.key} style={{ textAlign: col.align || "left" }}>

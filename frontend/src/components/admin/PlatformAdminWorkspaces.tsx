@@ -116,17 +116,14 @@ function WorkspaceShell({
 }) {
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-6 md:px-8">
-      <section className="border border-gov-line bg-white shadow-sm">
-        <div className="h-1.5 bg-gradient-to-r from-[#FF9933] via-white to-[#138808]" />
-        <div className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between md:p-6">
-          <div>
-            <div className="text-[11px] font-extrabold uppercase tracking-widest text-gov-saffron">{eyebrow}</div>
-            <h1 className="mt-2 text-2xl font-extrabold text-gov-navy">{title}</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-gov-muted">{description}</p>
-          </div>
-          {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200/60 pb-5">
+        <div>
+          <div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">{eyebrow}</div>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
+          <p className="mt-1 text-sm text-slate-500 leading-normal">{description}</p>
         </div>
-      </section>
+        {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
+      </div>
       {children}
     </div>
   );
@@ -168,7 +165,7 @@ function SearchBox({ value, onChange, placeholder }: { value: string; onChange: 
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="w-full border border-gov-line bg-white py-2.5 pl-10 pr-3 text-sm outline-none focus:border-gov-blue"
+        className="w-full border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm rounded-xl outline-none focus:border-blue-500 shadow-sm transition-all focus:ring-2 focus:ring-blue-500/10"
       />
     </label>
   );
@@ -242,7 +239,7 @@ export function MasterTenantsWorkspace() {
       actions={<Link href="/master/tenants/create" className="inline-flex min-h-10 items-center gap-2 bg-gov-blue px-4 text-sm font-bold text-white"><Plus size={16} /> Create Tenant</Link>}
     >
       <ErrorBox error={error} />
-      <section className="border border-gov-line bg-white shadow-sm">
+      <section className="border border-slate-200/60 bg-white/70 backdrop-blur-xl rounded-2xl shadow-glass overflow-hidden">
         <div className="flex flex-col gap-3 border-b border-gov-line p-4 md:flex-row md:items-center md:justify-between">
           <SearchBox value={search} onChange={setSearch} placeholder="Search tenants..." />
           <div className="text-xs font-bold text-gov-muted">{filtered.length} portal instance(s)</div>
@@ -288,7 +285,7 @@ export function MasterTenantsWorkspace() {
       {editingTenant && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <form onSubmit={saveTenant} className="w-full max-w-2xl bg-white border border-slate-200 shadow-xl rounded-xl overflow-hidden flex flex-col">
-            <div className="h-1 bg-gradient-to-r from-[#FF9933] via-white to-[#138808]" />
+            <div className="h-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600" />
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
               <h2 className="text-lg font-extrabold text-gov-navy">Edit Tenant</h2>
               <button type="button" className="text-slate-400 hover:text-slate-600 font-bold" onClick={() => setEditingTenant(null)}>✕</button>
@@ -490,7 +487,7 @@ export function TenantFeaturesWorkspace({ tenantId }: { tenantId: string }) {
       actions={<Button onClick={save} loading={saving}><Save size={16} className="mr-2" /> Save Features</Button>}
     >
       <ErrorBox error={error} />
-      <section className="border border-gov-line bg-white shadow-sm">
+      <section className="border border-slate-200/60 bg-white/70 backdrop-blur-xl rounded-2xl shadow-glass overflow-hidden">
         <div className="divide-y divide-gov-line">
           {loading ? <div className="p-8 text-sm text-gov-muted">Loading feature flags...</div> : features.map((feature) => (
             <button
@@ -617,7 +614,7 @@ export function MasterOrganizationsWorkspace() {
       }
     >
       <ErrorBox error={error} />
-      <section className="border border-gov-line bg-white shadow-sm">
+      <section className="border border-slate-200/60 bg-white/70 backdrop-blur-xl rounded-2xl shadow-glass overflow-hidden">
         <div className="border-b border-gov-line p-4"><SearchBox value={search} onChange={setSearch} placeholder="Search organizations..." /></div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[900px] text-left text-sm">
@@ -658,7 +655,7 @@ export function MasterOrganizationsWorkspace() {
       {viewingOrg && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-2xl bg-white border border-slate-200 shadow-xl rounded-xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="h-1 bg-gradient-to-r from-[#FF9933] via-white to-[#138808]" />
+            <div className="h-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600" />
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
               <h2 className="text-lg font-extrabold text-gov-navy">Organization Details</h2>
               <button className="text-slate-400 hover:text-slate-600 font-bold" onClick={() => setViewingOrg(null)}>✕</button>
@@ -749,7 +746,7 @@ export function MasterOrganizationsWorkspace() {
       {editingOrg && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <form onSubmit={saveOrg} className="w-full max-w-2xl bg-white border border-slate-200 shadow-xl rounded-xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="h-1 bg-gradient-to-r from-[#FF9933] via-white to-[#138808]" />
+            <div className="h-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600" />
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
               <h2 className="text-lg font-extrabold text-gov-navy">Edit Organization</h2>
               <button type="button" className="text-slate-400 hover:text-slate-600 font-bold" onClick={() => setEditingOrg(null)}>✕</button>
@@ -916,7 +913,7 @@ export function MasterOrganizationsWorkspace() {
       {creatingOrg && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <form onSubmit={createOrg} className="w-full max-w-2xl bg-white border border-slate-200 shadow-xl rounded-xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="h-1 bg-gradient-to-r from-[#FF9933] via-white to-[#138808]" />
+            <div className="h-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600" />
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
               <h2 className="text-lg font-extrabold text-gov-navy">Create Organization</h2>
               <button type="button" className="text-slate-400 hover:text-slate-600 font-bold" onClick={() => setCreatingOrg(false)}>✕</button>
@@ -1252,7 +1249,7 @@ export function MasterUsersWorkspace() {
       }
     >
       <ErrorBox error={error} />
-      <section className="border border-gov-line bg-white shadow-sm">
+      <section className="border border-slate-200/60 bg-white/70 backdrop-blur-xl rounded-2xl shadow-glass overflow-hidden">
         <div className="border-b border-gov-line p-4"><SearchBox value={search} onChange={setSearch} placeholder="Search users..." /></div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
@@ -1289,7 +1286,7 @@ export function MasterUsersWorkspace() {
       {viewingUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-lg bg-white border border-slate-200 shadow-xl rounded-xl overflow-hidden flex flex-col">
-            <div className="h-1 bg-gradient-to-r from-[#FF9933] via-white to-[#138808]" />
+            <div className="h-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600" />
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
               <h2 className="text-lg font-extrabold text-gov-navy">User Details</h2>
               <button className="text-slate-400 hover:text-slate-600 font-bold" onClick={() => setViewingUser(null)}>✕</button>
@@ -1369,7 +1366,7 @@ export function MasterUsersWorkspace() {
       {editingUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <form onSubmit={saveUser} className="w-full max-w-lg bg-white border border-slate-200 shadow-xl rounded-xl overflow-hidden flex flex-col">
-            <div className="h-1 bg-gradient-to-r from-[#FF9933] via-white to-[#138808]" />
+            <div className="h-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600" />
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
               <h2 className="text-lg font-extrabold text-gov-navy">Edit User</h2>
               <button type="button" className="text-slate-400 hover:text-slate-600 font-bold" onClick={() => setEditingUser(null)}>✕</button>
@@ -1434,7 +1431,7 @@ export function MasterUsersWorkspace() {
       {creatingUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <form onSubmit={createUser} className="w-full max-w-lg bg-white border border-slate-200 shadow-xl rounded-xl overflow-hidden flex flex-col">
-            <div className="h-1 bg-gradient-to-r from-[#FF9933] via-white to-[#138808]" />
+            <div className="h-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600" />
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
               <h2 className="text-lg font-extrabold text-gov-navy">Create User</h2>
               <button type="button" className="text-slate-400 hover:text-slate-600 font-bold" onClick={() => setCreatingUser(false)}>✕</button>
@@ -1500,7 +1497,7 @@ export function MasterUsersWorkspace() {
       {rolesOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-4xl bg-white border border-slate-200 shadow-xl rounded-xl overflow-hidden flex flex-col max-h-[92vh]">
-            <div className="h-1 bg-gradient-to-r from-[#FF9933] via-white to-[#138808]" />
+            <div className="h-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600" />
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
               <h2 className="text-lg font-extrabold text-gov-navy">Roles &amp; Permissions</h2>
               <div className="flex items-center gap-2">
@@ -1670,7 +1667,7 @@ export function MasterAuditLogsWorkspace() {
   return (
     <WorkspaceShell eyebrow="Master Admin" title="Audit Logs" description="Sensitive actions, blocked feature access, tenant updates and approval decisions.">
       <ErrorBox error={error} />
-      <section className="border border-gov-line bg-white shadow-sm">
+      <section className="border border-slate-200/60 bg-white/70 backdrop-blur-xl rounded-2xl shadow-glass overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[900px] text-left text-sm">
             <thead className="bg-gov-mist text-[11px] uppercase tracking-wider text-gov-muted">
@@ -1725,7 +1722,7 @@ export function AdminOnboardingApprovalsWorkspace() {
   return (
     <WorkspaceShell eyebrow="Portal Admin" title="Onboarding Approvals" description="Approve NGO, CSR company and government department onboarding before transactions are allowed.">
       <ErrorBox error={error} />
-      <section className="border border-gov-line bg-white shadow-sm">
+      <section className="border border-slate-200/60 bg-white/70 backdrop-blur-xl rounded-2xl shadow-glass overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[980px] text-left text-sm">
             <thead className="bg-gov-mist text-[11px] uppercase tracking-wider text-gov-muted">
@@ -2028,7 +2025,7 @@ export function OrganizationRolesWorkspace() {
             <Button type="submit">Create Role</Button>
           </div>
         </form>
-        <section className="border border-gov-line bg-white shadow-sm">
+        <section className="border border-slate-200/60 bg-white/70 backdrop-blur-xl rounded-2xl shadow-glass overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-left text-sm">
               <thead className="bg-gov-mist text-[11px] uppercase tracking-wider text-gov-muted">
@@ -2094,7 +2091,7 @@ export function OrganizationUsersWorkspace() {
         </select>
         <Button type="submit"><Plus size={16} className="mr-2" /> Invite</Button>
       </form>
-      <section className="border border-gov-line bg-white shadow-sm">
+      <section className="border border-slate-200/60 bg-white/70 backdrop-blur-xl rounded-2xl shadow-glass overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[860px] text-left text-sm">
             <thead className="bg-gov-mist text-[11px] uppercase tracking-wider text-gov-muted">
@@ -2159,7 +2156,7 @@ export function AdminOrganizationsWorkspace() {
   return (
     <WorkspaceShell eyebrow="Portal Admin" title="Government Departments" description="Review government department organizations in this portal instance and manage onboarding status.">
       <ErrorBox error={error} />
-      <section className="border border-gov-line bg-white shadow-sm">
+      <section className="border border-slate-200/60 bg-white/70 backdrop-blur-xl rounded-2xl shadow-glass overflow-hidden">
         <div className="flex flex-col gap-3 border-b border-gov-line p-4 md:flex-row md:items-center md:justify-between">
           <SearchBox value={search} onChange={setSearch} placeholder="Search departments..." />
           <div className="text-xs font-bold text-gov-muted">{filtered.length} department(s)</div>

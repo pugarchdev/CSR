@@ -7,6 +7,7 @@ import GovPageHeader from "@/components/layout/GovPageHeader";
 import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
 import GovButton from "@/components/gov/GovButton";
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
+import MyAssignmentsWidget from "@/components/assignments/MyAssignmentsWidget";
 import "../../styles/gov-theme.css";
 
 export default function DashboardPage() {
@@ -172,6 +173,11 @@ export default function DashboardPage() {
             </GovCardBody>
           </GovCard>
         ))}
+      </div>
+
+      {/* Project assignments (field/nodal officers land here after activation) */}
+      <div className="mb-6">
+        <MyAssignmentsWidget />
       </div>
 
       {/* Modules Grid */}

@@ -151,16 +151,15 @@ export default function LiveCSRReportPage({ title, description, endpoint }: Live
 
   return (
     <main className="mx-auto min-h-screen max-w-7xl space-y-5 px-5 py-7">
-      <section className="border border-gov-line bg-white shadow-sm">
-        <div className="h-1.5 bg-gradient-to-r from-[#FF9933] via-white to-[#138808]" />
-        <div className="p-5">
-          <p className="text-[11px] font-extrabold uppercase tracking-widest text-gov-saffron">CSR Reports</p>
-          <h1 className="mt-2 text-2xl font-extrabold text-gov-navy">{title}</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-gov-muted">{description}</p>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200/60 pb-5">
+        <div>
+          <div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">CSR Reports</div>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
+          <p className="mt-1 text-sm text-slate-500 leading-normal">{description}</p>
         </div>
-      </section>
+      </div>
 
-      <section className="border border-gov-line bg-white p-4 shadow-sm">
+      <section className="border border-slate-200/60 bg-white/70 backdrop-blur-xl rounded-2xl p-4 shadow-glass">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
           {filterFields.map((field) => (
             <label key={field} className="text-xs font-bold uppercase tracking-wide text-gov-muted">
@@ -282,9 +281,9 @@ export default function LiveCSRReportPage({ title, description, endpoint }: Live
             })}
           </section>
 
-          <section className="border border-gov-line bg-white shadow-sm">
-            <div className="border-b border-gov-line px-5 py-4">
-              <h2 className="text-base font-extrabold text-gov-navy">Report Table</h2>
+          <section className="border border-slate-200/60 bg-white/70 backdrop-blur-xl rounded-2xl shadow-glass overflow-hidden">
+            <div className="border-b border-slate-100 px-5 py-4 bg-slate-50/50">
+              <h2 className="text-base font-bold text-slate-900">Report Table</h2>
             </div>
             {rows.length === 0 ? (
               <div className="p-8 text-center text-sm text-gov-muted">No report rows match the selected filters.</div>

@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   Building2, Landmark, Search, Bell, Mail, ChevronLeft, ChevronRight,
   Layers, Sparkles, Award, Coins, Compass, FileText, BarChart2,
@@ -11,6 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/Button";
 import { apiFetch, getStoredUser } from "@/lib/api";
+import { useAuthStore } from "@/store/authStore";
 
 interface SaaSLayoutProps {
   children: React.ReactNode;
@@ -68,6 +70,7 @@ const publicNavGroups = [
 export default function SaaSLayout({ children }: SaaSLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { user: storeUser, roles: storeRoles, isAdmin: storeIsAdmin, hasPermission } = useAuthStore();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -77,9 +80,19 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
   const [userEmail, setUserEmail] = useState("user@mahacsr.gov.in");
   const [tenantFeatures, setTenantFeatures] = useState<Record<string, boolean>>({});
   const [mounted, setMounted] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    const handleScroll = () => {
+      if (window.scrollY > 20) {
+        setScrolled(true);
+      } else {
+        setScrolled(false);
+      }
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const isLoggedIn = mounted && typeof window !== "undefined" && !!localStorage.getItem("accessToken");
@@ -211,24 +224,26 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
     if (token && user && isDashboard) {
       setUserEmail(user.email || "user@mahacsr.gov.in");
 
-      const role = user.role as string;
+      const activeRoles = storeRoles.length > 0 ? storeRoles : (user.role ? [user.role] : []);
+      const hasAnyAllowedRole = (allowedRoles: string[]) => activeRoles.some(r => allowedRoles.includes(r)) || storeIsAdmin;
+
       const allowed =
-        (pathname.startsWith("/ngo-dashboard") && ["NGO_ADMIN", "NGO_MEMBER"].includes(role)) ||
-        (pathname.startsWith("/company-dashboard") && ["COMPANY_ADMIN", "COMPANY_MEMBER"].includes(role)) ||
-        (pathname.startsWith("/government-portal") && ["SUPER_ADMIN", "PORTAL_ADMIN", "DISTRICT_ADMIN"].includes(role)) ||
-        ((pathname === "/company" || pathname.startsWith("/company/")) && ["COMPANY_ADMIN", "COMPANY_MEMBER", "SUPER_ADMIN", "CORPORATE_USER"].includes(role)) ||
-        ((pathname === "/ngo" || pathname.startsWith("/ngo/")) && ["NGO_ADMIN", "NGO_MEMBER", "SUPER_ADMIN"].includes(role)) ||
-        (pathname.startsWith("/district") && ["DISTRICT_ADMIN", "SUPER_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN"].includes(role)) ||
-        (pathname.startsWith("/organization") && ["BENEFICIARY_AGENCY", "COMPANY_ADMIN", "COMPANY_MEMBER", "CORPORATE_USER", "NGO_ADMIN", "NGO_MEMBER", "DISTRICT_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN", "SUPER_ADMIN"].includes(role)) ||
-        (pathname.startsWith("/admin") && ["SUPER_ADMIN", "DISTRICT_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN"].includes(role)) ||
-        ((pathname.startsWith("/beneficiary") || pathname.startsWith("/department")) && ["BENEFICIARY_AGENCY", "SUPER_ADMIN"].includes(role)) ||
-        (pathname.startsWith("/rm") && ["CSR_RELATIONSHIP_MANAGER", "JOINT_SECRETARY", "PLANNING_SECRETARY", "SUPER_ADMIN"].includes(role)) ||
-        (pathname.startsWith("/js") && ["JOINT_SECRETARY", "PLANNING_SECRETARY", "SUPER_ADMIN"].includes(role)) ||
-        (pathname.startsWith("/secretary") && ["PLANNING_SECRETARY", "SUPER_ADMIN"].includes(role)) ||
-        (pathname.startsWith("/nodal") && ["DISTRICT_NODAL_OFFICER", "NODAL_OFFICER", "JOINT_SECRETARY", "PLANNING_SECRETARY", "SUPER_ADMIN"].includes(role)) ||
-        (pathname.startsWith("/state-cell") && ["STATE_CSR_CELL", "PLANNING_SECRETARY", "SUPER_ADMIN"].includes(role)) ||
-        (pathname.startsWith("/agency") && ["IMPLEMENTING_AGENCY_USER", "CORPORATE_USER", "SUPER_ADMIN"].includes(role)) ||
-        ((pathname === "/partner" || pathname.startsWith("/partner/")) && ["CORPORATE_USER", "CORPORATE_PARTNER", "COMPANY_ADMIN", "COMPANY_MEMBER", "SUPER_ADMIN"].includes(role)) ||
+        (pathname.startsWith("/ngo-dashboard") && hasAnyAllowedRole(["NGO_ADMIN", "NGO_MEMBER"])) ||
+        (pathname.startsWith("/company-dashboard") && hasAnyAllowedRole(["COMPANY_ADMIN", "COMPANY_MEMBER"])) ||
+        (pathname.startsWith("/government-portal") && hasAnyAllowedRole(["SUPER_ADMIN", "PORTAL_ADMIN", "DISTRICT_ADMIN"])) ||
+        ((pathname === "/company" || pathname.startsWith("/company/")) && hasAnyAllowedRole(["COMPANY_ADMIN", "COMPANY_MEMBER", "SUPER_ADMIN", "CORPORATE_USER"])) ||
+        ((pathname === "/ngo" || pathname.startsWith("/ngo/")) && hasAnyAllowedRole(["NGO_ADMIN", "NGO_MEMBER", "SUPER_ADMIN"])) ||
+        (pathname.startsWith("/district") && hasAnyAllowedRole(["DISTRICT_ADMIN", "SUPER_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN"])) ||
+        (pathname.startsWith("/organization") && hasAnyAllowedRole(["BENEFICIARY_AGENCY", "COMPANY_ADMIN", "COMPANY_MEMBER", "CORPORATE_USER", "NGO_ADMIN", "NGO_MEMBER", "DISTRICT_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN", "SUPER_ADMIN"])) ||
+        (pathname.startsWith("/admin") && hasAnyAllowedRole(["SUPER_ADMIN", "DISTRICT_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN"])) ||
+        ((pathname.startsWith("/beneficiary") || pathname.startsWith("/department")) && hasAnyAllowedRole(["BENEFICIARY_AGENCY", "SUPER_ADMIN"])) ||
+        (pathname.startsWith("/rm") && hasAnyAllowedRole(["CSR_RELATIONSHIP_MANAGER", "JOINT_SECRETARY", "PLANNING_SECRETARY", "SUPER_ADMIN"])) ||
+        (pathname.startsWith("/js") && hasAnyAllowedRole(["JOINT_SECRETARY", "PLANNING_SECRETARY", "SUPER_ADMIN"])) ||
+        (pathname.startsWith("/secretary") && hasAnyAllowedRole(["PLANNING_SECRETARY", "SUPER_ADMIN"])) ||
+        (pathname.startsWith("/nodal") && hasAnyAllowedRole(["DISTRICT_NODAL_OFFICER", "NODAL_OFFICER", "JOINT_SECRETARY", "PLANNING_SECRETARY", "SUPER_ADMIN"])) ||
+        (pathname.startsWith("/state-cell") && hasAnyAllowedRole(["STATE_CSR_CELL", "PLANNING_SECRETARY", "SUPER_ADMIN"])) ||
+        (pathname.startsWith("/agency") && hasAnyAllowedRole(["IMPLEMENTING_AGENCY_USER", "CORPORATE_USER", "SUPER_ADMIN"])) ||
+        ((pathname === "/partner" || pathname.startsWith("/partner/")) && hasAnyAllowedRole(["CORPORATE_USER", "CORPORATE_PARTNER", "COMPANY_ADMIN", "COMPANY_MEMBER", "SUPER_ADMIN"])) ||
         pathname.startsWith("/dashboard") ||
         pathname.startsWith("/onboarding") ||
         pathname.startsWith("/queries") ||
@@ -250,19 +265,20 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
         pathname.startsWith("/track");
 
       if (!allowed) {
-        if (["NGO_ADMIN", "NGO_MEMBER"].includes(role)) router.push("/ngo/dashboard");
-        else if (["COMPANY_ADMIN", "COMPANY_MEMBER"].includes(role)) router.push("/company/dashboard");
-        else if (role === "CORPORATE_USER") router.push("/partner/dashboard");
-        else if (role === "SUPER_ADMIN") router.push("/admin");
-        else if (role === "DISTRICT_ADMIN") router.push("/district/dashboard");
-        else if (role === "PORTAL_ADMIN") router.push("/government-portal");
-        else if (role === "BENEFICIARY_AGENCY") router.push("/department/dashboard");
-        else if (role === "CSR_RELATIONSHIP_MANAGER") router.push("/rm/dashboard");
-        else if (role === "JOINT_SECRETARY") router.push("/js/dashboard");
-        else if (role === "PLANNING_SECRETARY") router.push("/secretary/dashboard");
-        else if (["DISTRICT_NODAL_OFFICER", "NODAL_OFFICER"].includes(role)) router.push("/nodal/dashboard");
-        else if (role === "STATE_CSR_CELL") router.push("/state-cell/dashboard");
-        else if (role === "IMPLEMENTING_AGENCY_USER") router.push("/agency/dashboard");
+        const primaryRole = activeRoles.find(r => r !== "GOVERNMENT_OFFICER" && r !== "CORPORATE_USER") || activeRoles[0];
+        if (["NGO_ADMIN", "NGO_MEMBER"].includes(primaryRole)) router.push("/ngo/dashboard");
+        else if (["COMPANY_ADMIN", "COMPANY_MEMBER"].includes(primaryRole)) router.push("/company/dashboard");
+        else if (primaryRole === "CORPORATE_USER") router.push("/partner/dashboard");
+        else if (primaryRole === "SUPER_ADMIN") router.push("/admin");
+        else if (primaryRole === "DISTRICT_ADMIN") router.push("/district/dashboard");
+        else if (primaryRole === "PORTAL_ADMIN") router.push("/government-portal");
+        else if (primaryRole === "BENEFICIARY_AGENCY") router.push("/department/dashboard");
+        else if (primaryRole === "CSR_RELATIONSHIP_MANAGER") router.push("/rm/dashboard");
+        else if (primaryRole === "JOINT_SECRETARY") router.push("/js/dashboard");
+        else if (primaryRole === "PLANNING_SECRETARY") router.push("/secretary/dashboard");
+        else if (["DISTRICT_NODAL_OFFICER", "NODAL_OFFICER"].includes(primaryRole)) router.push("/nodal/dashboard");
+        else if (primaryRole === "STATE_CSR_CELL") router.push("/state-cell/dashboard");
+        else if (primaryRole === "IMPLEMENTING_AGENCY_USER") router.push("/agency/dashboard");
         else router.push("/");
       }
     }
@@ -311,7 +327,8 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
   };
 
   const storedUser = typeof window !== "undefined" ? getStoredUser() : null;
-  const storedRole = storedUser?.role as string | undefined;
+  const activeRoles = storeRoles.length > 0 ? storeRoles : (storedUser?.role ? [storedUser.role] : []);
+  const storedRole = activeRoles.find(r => r !== "GOVERNMENT_OFFICER" && r !== "CORPORATE_USER") || activeRoles[0];
   const storedOrganizationType = storedUser?.organization?.organizationType as string | undefined;
 
   const getSidebarItems = () => {
@@ -328,8 +345,8 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
       { label: "Projects", href: "/convergence-projects", icon: ShieldCheck },
       { label: "Handover", href: "/department/handover", icon: Layers },
       { label: "Reports", href: "/department/reports", icon: BarChart2, featureKey: "enableReportsExport" },
-      { label: "Users", href: "/organization/users", icon: Users },
-      { label: "Roles", href: "/organization/roles", icon: ShieldAlert },
+      { label: "Users", href: "/organization/users", icon: Users, requiredPermission: "user:update" },
+      { label: "Roles", href: "/organization/roles", icon: ShieldAlert, requiredPermission: "role:view" },
       { label: "Settings", href: "/organization/settings", icon: ShieldCheck }
     ];
 
@@ -345,8 +362,8 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
       { label: "Funded Projects", href: "/convergence-projects", icon: ShieldCheck },
       { label: "Fund Releases", href: "/company/funds", icon: Coins, featureKey: "enableFundDisbursement" },
       { label: "Reports", href: "/company/reports", icon: BarChart2, featureKey: "enableReportsExport" },
-      { label: "Users", href: "/organization/users", icon: Users },
-      { label: "Roles", href: "/organization/roles", icon: ShieldAlert },
+      { label: "Users", href: "/organization/users", icon: Users, requiredPermission: "user:update" },
+      { label: "Roles", href: "/organization/roles", icon: ShieldAlert, requiredPermission: "role:view" },
       { label: "Settings", href: "/organization/settings", icon: ShieldCheck }
     ];
 
@@ -359,8 +376,8 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
       { label: "Milestones", href: "/ngo/milestones", icon: Award, featureKey: "enableMilestoneMonitoring" },
       { label: "Fund Releases", href: "/ngo/funds", icon: Coins, featureKey: "enableFundDisbursement" },
       { label: "Reports", href: "/ngo/reports", icon: BarChart2, featureKey: "enableReportsExport" },
-      { label: "Users", href: "/organization/users", icon: Users },
-      { label: "Roles", href: "/organization/roles", icon: ShieldAlert },
+      { label: "Users", href: "/organization/users", icon: Users, requiredPermission: "user:update" },
+      { label: "Roles", href: "/organization/roles", icon: ShieldAlert, requiredPermission: "role:view" },
       { label: "Settings", href: "/organization/settings", icon: ShieldCheck }
     ];
 
@@ -568,6 +585,8 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
       return [
         { label: "Statewide Monitor", href: "/government-portal/statewide", icon: Layers },
         { label: "District Register", href: "/government-portal/district", icon: Compass },
+        { label: "Users", href: "/admin/users-roles?tab=users", icon: Users, requiredPermission: "role:view" },
+        { label: "Roles & Permissions", href: "/admin/users-roles?tab=roles", icon: ShieldAlert, requiredPermission: "role:view" },
         { label: "Verification Queues", href: "/government-portal/ngo-verify", icon: Landmark },
         { label: "Project Approvals", href: "/government-portal/project-verify", icon: ShieldCheck },
         { label: "Compliance Audit", href: "/government-portal/compliance", icon: ShieldAlert },
@@ -580,7 +599,8 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
     if (["SUPER_ADMIN", "CSR_ADMIN"].includes(storedRole || "") || pathname.startsWith("/admin")) {
       return [
         { label: "Dashboard", href: "/admin/dashboard", icon: Layers },
-        { label: "Users", href: "/admin/users-roles", icon: Users },
+        { label: "Users", href: "/admin/users-roles?tab=users", icon: Users, requiredPermission: "role:view" },
+        { label: "Roles & Permissions", href: "/admin/users-roles?tab=roles", icon: ShieldAlert, requiredPermission: "role:view" },
         { label: "Onboarding Approvals", href: "/admin/onboarding-approvals", icon: ShieldCheck },
         { label: "Government Departments", href: "/admin/organizations", icon: Landmark },
         { label: "Implementing Agencies", href: "/admin/ngo-registry", icon: Landmark },
@@ -685,7 +705,9 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
     ];
   };
 
-  const dashboardNavigationItems = getSidebarItems().filter((item) => !("featureKey" in item) || !item.featureKey || tenantFeatures[item.featureKey] !== false);
+  const dashboardNavigationItems = getSidebarItems()
+    .filter((item) => !("featureKey" in item) || !item.featureKey || tenantFeatures[item.featureKey] !== false)
+    .filter((item) => !("requiredPermission" in item) || !item.requiredPermission || hasPermission(item.requiredPermission));
   const routeFeatureKey =
     pathname.includes("/requirements") ? "enableRequirementCreation" :
     pathname.includes("/marketplace") ? "enableCSRMarketplace" :
@@ -720,11 +742,11 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
     <div className="flex flex-col min-h-screen bg-[#f4f5f7] text-[#333333] font-sans">
 
 
-      {isDashboard && <div className="fixed top-0 left-0 right-0 h-1 z-[60] flex"><span className="flex-1 bg-[#f7941d]" /><span className="flex-1 bg-white" /><span className="flex-1 bg-[#43a047]" /></div>}
+      {isDashboard && <div className="fixed top-0 left-0 right-0 h-1 z-[60] bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600"></div>}
 
       {isDashboard ? (
         <header
-          className="fixed top-1 left-0 right-0 h-[56px] z-50 bg-white border-b border-[#e0e4ea] flex justify-between items-center px-4 md:px-6"
+          className="fixed top-1 left-0 right-0 h-[56px] z-50 bg-white/80 backdrop-blur-md border-b border-slate-200/50 flex justify-between items-center px-4 md:px-6 shadow-sm"
         >
           <div className="contents">
             {/* Brand Logo */}
@@ -739,16 +761,16 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
 
               <Link href={getDashboardHref(storedRole || "")} className="flex min-w-0 items-center gap-3 hover:no-underline">
                 <svg viewBox="0 0 100 100" className="w-9 h-9" fill="none" stroke="currentColor">
-                  <polygon points="50,5 82,18 95,50 82,82 50,95 18,82 5,50 18,18" stroke="#14274e" strokeWidth="4.5" fill="#e3f0fa" />
-                  <path d="M28,32 L72,32 M32,44 L68,44 M28,56 L72,56 M36,68 L64,68" stroke="#f7941d" strokeWidth="3" strokeLinecap="round" />
-                  <path d="M42,80 L58,80" stroke="#14274e" strokeWidth="2.5" strokeLinecap="round" />
+                  <polygon points="50,5 82,18 95,50 82,82 50,95 18,82 5,50 18,18" stroke="var(--primary)" strokeWidth="4.5" fill="var(--primary-light)" />
+                  <path d="M28,32 L72,32 M32,44 L68,44 M28,56 L72,56 M36,68 L64,68" stroke="var(--saffron)" strokeWidth="3" strokeLinecap="round" />
+                  <path d="M42,80 L58,80" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round" />
                 </svg>
                 <div className="flex min-w-0 flex-col leading-none">
-                  <span className="font-heading font-bold text-lg text-[#14274e]">
-                    Maha<span className="text-[#f7941d]">CSR</span> Setu
+                  <span className="font-heading font-bold text-base text-slate-900">
+                    Maha<span className="text-blue-600">CSR</span> Setu
                   </span>
-                  <span className="text-[8px] text-[#6b7280] tracking-wider font-semibold mt-0.5 uppercase">
-                    Government of Maharashtra | महाराष्ट्र शासन
+                  <span className="text-[9px] text-slate-400 font-semibold mt-1 uppercase tracking-wider">
+                    Smart CSR Platform
                   </span>
                 </div>
               </Link>
@@ -759,12 +781,11 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
               <input
                 type="text"
                 placeholder="Search proposals, NGOs, or metrics..."
-                className="govt-input pr-10 focus:border-[#1789d6] transition-all font-sans"
-                style={{ paddingLeft: "2.5rem" }}
+                className="w-full bg-slate-50/70 hover:bg-slate-50 border border-slate-200/80 rounded-xl py-2 pl-10 pr-16 text-xs placeholder:text-slate-400 focus:outline-none focus:border-blue-500/50 focus:bg-white focus:ring-[3px] focus:ring-blue-500/10 transition-all font-sans"
               />
-              <Search size={14} className="absolute left-3 text-[#97a0ac]" />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-0.5 pointer-events-none select-none text-[10px] font-semibold text-[#97a0ac] bg-[#f4f5f7] border border-[#e0e4ea] px-1.5 py-0.5 rounded-lg">
-                <span>Ctrl</span>
+              <Search size={14} className="absolute left-3 text-slate-400" />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-0.5 pointer-events-none select-none text-[9px] font-semibold text-slate-400 bg-slate-100 border border-slate-200/80 px-1.5 py-0.5 rounded-md">
+                <span>⌘</span>
                 <span>K</span>
               </div>
             </div>
@@ -772,52 +793,52 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
             {/* Right Actions */}
             <div className="flex items-center gap-4">
               {/* Messages */}
-              <Link href="/chat" className="text-[#97a0ac] hover:text-[#14274e] transition-colors relative">
-                <Mail size={18} />
-                <span className="absolute -top-1 -right-1.5 w-2 h-2 rounded-full bg-[#f7941d]" />
+              <Link href="/chat" className="text-slate-400 hover:text-slate-900 transition-colors relative p-2 rounded-xl hover:bg-slate-50/80">
+                <Mail size={16} />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-orange-500" />
               </Link>
 
               {/* Notifications */}
               <div className="relative">
                 <button
-                  className="text-[#97a0ac] hover:text-[#14274e] transition-colors"
+                  className="text-slate-400 hover:text-slate-900 transition-colors p-2 rounded-xl hover:bg-slate-50/80"
                   onClick={() => setNotificationsOpen(!notificationsOpen)}
                 >
-                  <Bell size={18} />
+                  <Bell size={16} />
                   {notifications.some((notification) => !notification.isRead) && (
-                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#c62828] border-2 border-white" />
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500" />
                   )}
                 </button>
 
                 {notificationsOpen && (
-                  <div className="absolute right-0 mt-3 w-80 bg-white border border-[#c7cdd6] rounded-lg p-4 z-50 flex flex-col gap-3">
-                    <div className="flex justify-between items-center pb-2 border-b border-[#e0e4ea]">
-                      <span className="text-xs font-bold text-[#14274e]">Notifications</span>
+                  <div className="absolute right-0 mt-3 w-80 bg-white/90 backdrop-blur-xl border border-slate-200/50 rounded-2xl p-4 z-50 flex flex-col gap-3 shadow-lg">
+                    <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                      <span className="text-xs font-bold text-slate-900">Notifications</span>
                       <button
                         onClick={() => {
                           apiFetch("/notifications/read-all", { method: "PATCH" })
                             .then(() => setNotifications((items) => items.map((item) => ({ ...item, isRead: true }))))
                             .catch(() => {});
                         }}
-                        className="text-[10px] text-[#1789d6] font-bold cursor-pointer hover:underline"
+                        className="text-[10px] text-blue-600 font-semibold cursor-pointer hover:underline"
                       >
                         Clear all
                       </button>
                     </div>
                     <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
                       {notifications.length === 0 ? (
-                        <div className="p-3 rounded-lg bg-[#f4f5f7] border border-[#e0e4ea] text-[11px] text-[#6b7280]">
+                        <div className="p-3 rounded-xl bg-slate-50/50 border border-slate-100 text-[11px] text-slate-500 text-center">
                           No notifications yet.
                         </div>
                       ) : notifications.slice(0, 8).map((notification) => (
                         <div
                           key={notification.id}
-                          className={`p-3 rounded-lg border flex flex-col gap-1 text-[11px] ${
-                            notification.isRead ? "bg-[#f4f5f7] border-[#e0e4ea]" : "bg-[#e3f0fa] border-[#c4ddf2]"
+                          className={`p-3 rounded-xl border flex flex-col gap-1 text-[11px] transition-colors ${
+                            notification.isRead ? "bg-slate-50/50 border-slate-100 text-slate-600" : "bg-blue-50/50 border-blue-100/50 text-slate-800"
                           }`}
                         >
-                          <span className="font-bold text-[#333333]">{notification.title}</span>
-                          <span className="text-[#4b5563]">{notification.message}</span>
+                          <span className="font-bold">{notification.title}</span>
+                          <span className="text-xs text-slate-500">{notification.message}</span>
                         </div>
                       ))}
                     </div>
@@ -829,30 +850,36 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
               <div className="relative">
                 <button
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 p-1 rounded-xl hover:bg-slate-50/80 transition-colors"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-[#14274e] text-white flex items-center justify-center font-heading font-bold text-xs">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center font-heading font-bold text-xs shadow-sm shadow-blue-500/20">
                     U
                   </div>
                 </button>
 
                 {userDropdownOpen && (
-                  <div className="absolute right-0 mt-3 w-52 bg-white border border-[#c7cdd6] rounded-lg py-2 z-50">
-                    <div className="px-4 py-2.5 border-b border-[#eef0f3] flex flex-col">
-                      <span className="text-xs font-bold text-[#14274e]">User Account</span>
-                      <span className="text-[10px] text-[#97a0ac] truncate">{userEmail}</span>
+                  <div className="absolute right-0 mt-3 w-52 bg-white/90 backdrop-blur-xl border border-slate-200/50 rounded-2xl py-2 z-50 shadow-lg">
+                    <div className="px-4 py-2.5 border-b border-slate-100 flex flex-col">
+                      <span className="text-xs font-bold text-slate-900">User Account</span>
+                      <span className="text-[10px] text-slate-400 truncate mt-0.5">{userEmail}</span>
                     </div>
                     <button
-                      onClick={() => router.push("/profile")}
-                      className="w-full text-left px-4 py-2 text-xs text-[#4b5563] hover:bg-[#f4f5f7] hover:text-[#14274e] transition-colors flex items-center gap-2 mt-1"
+                      onClick={() => {
+                        setUserDropdownOpen(false);
+                        router.push("/profile");
+                      }}
+                      className="w-full text-left px-4 py-2 text-xs text-slate-600 hover:bg-slate-50/80 hover:text-slate-900 transition-colors flex items-center gap-2 mt-1"
                     >
-                      <Users size={14} /> Account
+                      <Users size={14} className="text-slate-400" /> Account
                     </button>
                     <button
-                      onClick={handleLogout}
-                      className="w-full text-left px-4 py-2 text-xs text-[#c62828] hover:bg-[#fdecea] transition-colors flex items-center gap-2 border-t border-[#eef0f3] mt-1"
+                      onClick={() => {
+                        setUserDropdownOpen(false);
+                        handleLogout();
+                      }}
+                      className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50/40 transition-colors flex items-center gap-2 border-t border-slate-100 mt-1 pt-2"
                     >
-                      <LogOut size={14} /> Log Out
+                      <LogOut size={14} className="text-red-400" /> Log Out
                     </button>
                   </div>
                 )}
@@ -861,174 +888,133 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
           </div>
         </header>
       ) : (
-        <header className="sticky top-0 z-50 bg-white flex flex-col w-full">
-          {/* Tier 0: Utility Bar (Dark Navy) */}
-          <div className="bg-[#0e2144] text-white">
-            <div className="max-w-[1380px] w-full mx-auto flex items-center justify-between px-4 sm:px-6 md:px-8 h-[28px] text-[11px]">
-              <div className="flex items-center gap-6">
-                <a href="#main-content" className="text-white/90 hover:text-white hover:no-underline">Skip to main content</a>
-                <Link href="/about" className="hidden sm:inline text-white/90 hover:text-white hover:no-underline">Site Map</Link>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="hidden md:inline text-white/80">Government of Maharashtra | महाराष्ट्र शासन</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Tier 1: Brand Band (White) */}
-          <div className="bg-white h-[56px] sm:h-[64px] flex items-center justify-between px-4 sm:px-6 md:px-8 max-w-[1380px] w-full mx-auto">
-            {/* Left Block: Government Seal & MahaCSR Setu Brand */}
-            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-              {/* Gov Seal Logo */}
-              <Link href="/" className="flex items-center gap-2 hover:no-underline shrink-0">
+        <header className={`sticky top-0 z-50 w-full transition-all duration-300 ${
+          scrolled 
+            ? "backdrop-blur-md bg-white/80 border-b border-slate-200/50 shadow-sm" 
+            : "bg-white/95 border-b border-slate-100 shadow-sm"
+        }`}>
+          <div className="max-w-[1380px] w-full mx-auto px-4 sm:px-6 md:px-8 h-16 sm:h-[72px] flex items-center justify-between">
+            {/* Left Block: Brand & Seal combined */}
+            <div className="flex items-center gap-4 min-w-0">
+              <Link href="/" className="flex items-center gap-2.5 hover:no-underline shrink-0">
                 <img
                   src="/maharashtra_seal.png"
                   alt="Government of Maharashtra Seal"
                   className="h-9 w-9 sm:h-10 sm:w-10 object-contain"
                 />
-                <div className="flex flex-col text-[11px] sm:text-xs font-semibold leading-tight text-[#333333]">
+                <div className="flex flex-col text-[10px] sm:text-xs font-semibold leading-tight text-slate-800">
                   <span>Government of Maharashtra</span>
-                  <span className="text-[#6b7280]">महाराष्ट्र शासन</span>
+                  <span className="text-slate-400 font-normal">महाराष्ट्र शासन</span>
                 </div>
               </Link>
 
-              {/* Vertical Divider */}
-              <div className="hidden min-[480px]:block h-8 w-[1px] bg-[#e0e4ea] shrink-0" />
+              <div className="h-8 w-[1px] bg-slate-200 shrink-0" />
 
-              {/* Brand Logo */}
-              <Link href="/" className="hidden min-h-0 min-[480px]:flex flex-col leading-none hover:no-underline shrink-0">
-                <span className="font-heading font-bold text-base sm:text-xl text-[#14274e]">
-                  Maha<span className="text-[#f7941d]">CSR</span> Setu
+              <Link href="/" className="flex flex-col leading-none hover:no-underline shrink-0">
+                <span className="font-heading font-bold text-base sm:text-lg text-slate-900 tracking-tight">
+                  Maha<span className="text-blue-600">CSR</span> Setu
                 </span>
-                <span className="text-[10px] font-semibold text-[#f7941d] mt-0.5">
+                <span className="text-[9px] font-bold text-blue-600 mt-0.5 uppercase tracking-wider">
                   महाराष्ट्र CSR सेतु
                 </span>
               </Link>
-
-              {/* Vertical Divider */}
-              <div className="hidden lg:block h-8 w-[1px] bg-[#e0e4ea] shrink-0" />
-
-              {/* Subtitle taglines */}
-              <div className="hidden lg:flex flex-col text-[11px] leading-tight font-semibold text-[#6b7280] shrink-0">
-                <span className="text-[#14274e]">Converging Initiatives.</span>
-                <span className="text-[#f7941d]">Transforming Maharashtra.</span>
-              </div>
             </div>
 
-            {/* Right Block: Auth Actions */}
-            <div className="flex items-center gap-3 sm:gap-4 shrink-0">
-              {/* Login & Register buttons */}
-              <div className="flex items-center gap-2 sm:gap-3">
-                <Link href="/login" className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[#c7cdd6] px-4 text-xs font-semibold text-[#14274e] hover:bg-[#f4f5f7] hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f7941d]/50">
+            {/* Middle Block: Menu Links (Desktop) */}
+            <nav className="hidden lg:flex items-center gap-1 h-full text-sm font-medium text-slate-600">
+              <Link
+                href="/"
+                className={`px-3.5 py-1.5 rounded-lg transition-colors hover:no-underline ${
+                  pathname === "/"
+                    ? "bg-blue-50 text-blue-600 font-semibold"
+                    : "hover:bg-slate-50 hover:text-slate-900"
+                }`}
+              >
+                Home
+              </Link>
+              
+              {publicNavGroups.map((group) => {
+                const isActive = pathname === group.href || group.links.some((link) => pathname === link.href || pathname.startsWith(link.href + "/"));
+                const isOpen = openNavGroup === group.label;
+                return (
+                  <div
+                    key={group.label}
+                    className="relative py-2"
+                    onMouseEnter={() => setOpenNavGroup(group.label)}
+                    onMouseLeave={() => setOpenNavGroup(null)}
+                    onFocusCapture={() => setOpenNavGroup(group.label)}
+                    onBlurCapture={(event) => {
+                      if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+                        setOpenNavGroup(null);
+                      }
+                    }}
+                  >
+                    <Link
+                      href={group.href}
+                      onClick={() => setOpenNavGroup(null)}
+                      className={`px-3.5 py-1.5 rounded-lg flex items-center gap-1 transition-colors hover:no-underline ${
+                        isActive
+                          ? "bg-blue-50 text-blue-600 font-semibold"
+                          : "hover:bg-slate-50 hover:text-slate-900"
+                      }`}
+                    >
+                      {group.label}
+                      <ChevronDown 
+                        size={12} 
+                        aria-hidden="true" 
+                        className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} 
+                      />
+                    </Link>
+                    <AnimatePresence>
+                      {isOpen && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                          className="absolute left-0 top-full mt-1.5 z-[70] w-[260px] border border-slate-200/50 bg-white/95 backdrop-blur-xl p-1.5 rounded-2xl shadow-xl"
+                        >
+                          {group.links.map((link) => (
+                            <Link
+                              key={link.href}
+                              href={link.href}
+                              onClick={() => setOpenNavGroup(null)}
+                              className={`block px-3 py-2 rounded-xl text-xs font-medium leading-5 hover:no-underline transition-all ${
+                                pathname === link.href || pathname.startsWith(link.href + "/")
+                                  ? "bg-blue-50 text-blue-600 font-semibold"
+                                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                              }`}
+                            >
+                              {link.label}
+                            </Link>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              })}
+            </nav>
+
+            {/* Right Block: Buttons and Mobile Toggle */}
+            <div className="flex items-center gap-3 shrink-0">
+              <div className="hidden sm:flex items-center gap-2">
+                <Link href="/login" className="inline-flex min-h-9 items-center justify-center rounded-xl border border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:no-underline transition-colors">
                   Login
                 </Link>
-                <Link href="/register" className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#1789d6] px-4 sm:px-5 text-xs font-semibold text-white hover:bg-[#146fb0] hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f7941d]/50">
+                <Link href="/register" className="inline-flex min-h-9 items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 px-4.5 text-xs font-bold text-white hover:no-underline shadow-md shadow-blue-500/10 transition-colors">
                   Register
                 </Link>
               </div>
 
               {/* Mobile Hamburger menu */}
               <button
-                className="lg:hidden text-[#6b7280] hover:text-[#333333] focus:outline-none"
+                className="lg:hidden p-2 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 focus:outline-none"
                 onClick={() => setMobileMenuOpen(true)}
                 aria-label="Toggle Navigation Menu"
               >
-                <Menu size={20} />
+                <Menu size={18} />
               </button>
-            </div>
-          </div>
-
-          {/* Tier 2: Navigation Bar (Deep Navy) */}
-          <div className="bg-[#0e2144] h-[44px] w-full flex items-center justify-between px-4 sm:px-6 md:px-8">
-            <div className="max-w-[1380px] w-full mx-auto flex items-center justify-between h-full">
-              {/* Left side: Home button and Menu links */}
-              <div className="flex items-center h-full">
-                {/* Home tab — solid bright blue when active, per csr.gov.in */}
-                <Link
-                  href="/"
-                  className={`h-[44px] px-6 flex items-center text-[14px] font-semibold hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f7941d]/50 ${
-                    pathname === "/"
-                      ? "bg-[#1789d6] text-white"
-                      : "text-white/90 hover:bg-white/10 hover:text-white"
-                  }`}
-                  aria-label="Home"
-                >
-                  Home
-                </Link>
-
-                {/* Menu links with government-style dropdowns */}
-                <nav className="hidden lg:flex items-center h-full text-[14px] font-medium text-white/95">
-                  <Link
-                    href="/partner-with-maharashtra"
-                    className={`px-4 h-[44px] flex items-center transition-colors hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f7941d]/50 ${
-                      pathname === "/partner-with-maharashtra"
-                        ? "bg-[#1789d6] text-white font-semibold"
-                        : "text-white/90 hover:bg-white/10 hover:text-white"
-                    }`}
-                  >
-                    Partner with Maharashtra
-                  </Link>
-                  <Link
-                    href="/pitch-development-need"
-                    className={`px-4 h-[44px] flex items-center transition-colors hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f7941d]/50 ${
-                      pathname === "/pitch-development-need"
-                        ? "bg-[#1789d6] text-white font-semibold"
-                        : "text-white/90 hover:bg-white/10 hover:text-white"
-                    }`}
-                  >
-                    Pitch a Development Need
-                  </Link>
-                  {publicNavGroups.map((group) => {
-                    const isActive = pathname === group.href || group.links.some((link) => pathname === link.href || pathname.startsWith(link.href + "/"));
-                    const isOpen = openNavGroup === group.label;
-                    return (
-                      <div
-                        key={group.label}
-                        className="relative h-[44px]"
-                        onMouseEnter={() => setOpenNavGroup(group.label)}
-                        onMouseLeave={() => setOpenNavGroup(null)}
-                        onFocusCapture={() => setOpenNavGroup(group.label)}
-                        onBlurCapture={(event) => {
-                          if (!event.currentTarget.contains(event.relatedTarget as Node)) {
-                            setOpenNavGroup(null);
-                          }
-                        }}
-                      >
-                        <Link
-                          href={group.href}
-                          onClick={() => setOpenNavGroup(null)}
-                          className={`px-4 h-[44px] flex items-center gap-1 transition-colors hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f7941d]/50 ${
-                            isActive
-                              ? "bg-[#1789d6] text-white font-semibold"
-                              : "text-white/90 hover:bg-white/10 hover:text-white"
-                          }`}
-                        >
-                          {group.label}
-                          <ChevronDown size={13} aria-hidden="true" />
-                        </Link>
-                        {isOpen && (
-                          <div className="absolute left-0 top-[44px] z-[70] w-[280px] border border-[#e0e4ea] bg-white py-2">
-                            {group.links.map((link) => (
-                              <Link
-                                key={link.href}
-                                href={link.href}
-                                onClick={() => setOpenNavGroup(null)}
-                                className={`block border-l-4 px-4 py-2.5 text-[13px] font-medium leading-5 hover:bg-[#f4f5f7] hover:no-underline ${
-                                  pathname === link.href || pathname.startsWith(link.href + "/")
-                                    ? "border-[#f7941d] bg-[#f4f5f7] text-[#14274e] font-semibold"
-                                    : "border-transparent text-[#4b5563]"
-                                }`}
-                              >
-                                {link.label}
-                              </Link>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </nav>
-              </div>
             </div>
           </div>
         </header>
@@ -1040,7 +1026,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
         {/* Desktop Sidebar */}
         {isDashboard && (
           <aside
-            className={`hidden lg:flex flex-col border-r border-[#e0e4ea] bg-white shrink-0 transition-all duration-300 relative justify-between py-4 ${
+            className={`hidden lg:flex flex-col border-r border-slate-200/50 bg-slate-50/75 backdrop-blur-xl shrink-0 transition-all duration-300 relative justify-between py-4 shadow-sm ${
               sidebarCollapsed ? "w-[68px]" : "w-60"
             }`}
           >
@@ -1064,8 +1050,8 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                     href={item.href}
                     className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[12px] font-medium transition-all group relative ${
                       isActive
-                        ? "bg-[#1789d6] text-white"
-                        : "text-[#4b5563] hover:text-[#14274e] hover:bg-[#f4f5f7]"
+                        ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/10"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
                     }`}
                   >
                     <item.icon size={15} className={isActive ? "text-white" : "text-[#97a0ac] group-hover:text-[#14274e]"} />
@@ -1085,7 +1071,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
             <div className="px-2 pt-2">
               <button
                 onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                className="w-full flex items-center justify-center p-2 border border-[#e0e4ea] hover:bg-[#f4f5f7] rounded-lg text-[#6b7280] hover:text-[#14274e] transition-colors"
+                className="w-full flex items-center justify-center p-2 border border-slate-200/60 hover:bg-slate-100/80 rounded-xl text-slate-400 hover:text-slate-900 transition-colors"
               >
                 {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
               </button>
@@ -1094,30 +1080,28 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
         )}
 
         {/* Mobile Sidebar */}
-        {mobileMenuOpen && (
-          <div className="fixed inset-0 z-50 flex bg-black/60 animate-fadeIn lg:hidden">
-            <div className="w-64 bg-white p-5 flex flex-col justify-between h-full border-r border-[#e0e4ea]">
-              <div className="flex flex-col gap-4">
-                <div className="flex justify-between items-center pb-3 border-b border-[#e0e4ea]">
-                  <span className="font-heading font-bold text-[#14274e] text-sm">Navigation</span>
-                  <button onClick={() => setMobileMenuOpen(false)} className="text-[#6b7280] hover:text-[#14274e]"><X size={18} /></button>
-                </div>
-                <div className="flex flex-col gap-0.5 overflow-y-auto max-h-[calc(100vh-160px)]">
-                  {(isDashboard ? dashboardNavigationItems : [
-                    { label: "Home", href: "/", icon: Layers },
-                    { label: "Partner with Maharashtra", href: "/partner-with-maharashtra", icon: Handshake },
-                    { label: "Pitch a Development Need", href: "/pitch-development-need", icon: Sparkles },
-                    ...publicNavGroups.flatMap((group) => group.links.map((link) => ({
-                      label: link.label,
-                      href: link.href,
-                      icon: group.label === "About" ? HelpCircle : group.label === "Projects" ? Compass : group.label === "Documents" ? BookOpen : group.label === "Updates" ? FileText : Phone,
-                    }))),
-                  ]).map((item) => {
-                    const isExact = pathname === item.href ||
-                                    (item.href.endsWith("/overview") && pathname === item.href.replace("/overview", "")) ||
-                                    (item.href.endsWith("/statewide") && pathname === item.href.replace("/statewide", "")) ||
-                                    (item.href.endsWith("/dashboard") && pathname === item.href.replace("/dashboard", ""));
-                    const navigationList = isDashboard ? dashboardNavigationItems : [
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex bg-black/60 lg:hidden"
+            >
+              <motion.div 
+                initial={{ x: "-100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "-100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                className="w-72 bg-white p-6 flex flex-col justify-between h-full border-r border-[#e0e4ea] shadow-xl"
+              >
+                <div className="flex flex-col gap-4">
+                  <div className="flex justify-between items-center pb-3 border-b border-[#e0e4ea]">
+                    <span className="font-heading font-bold text-[#14274e] text-sm">Navigation</span>
+                    <button onClick={() => setMobileMenuOpen(false)} className="text-[#6b7280] hover:text-[#14274e]"><X size={18} /></button>
+                  </div>
+                  <div className="flex flex-col gap-0.5 overflow-y-auto max-h-[calc(100vh-160px)]">
+                    {(isDashboard ? dashboardNavigationItems : [
                       { label: "Home", href: "/", icon: Layers },
                       { label: "Partner with Maharashtra", href: "/partner-with-maharashtra", icon: Handshake },
                       { label: "Pitch a Development Need", href: "/pitch-development-need", icon: Sparkles },
@@ -1126,60 +1110,76 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                         href: link.href,
                         icon: group.label === "About" ? HelpCircle : group.label === "Projects" ? Compass : group.label === "Documents" ? BookOpen : group.label === "Updates" ? FileText : Phone,
                       }))),
-                    ];
-                    const hasExactMatch = navigationList.some((it) => 
-                      pathname === it.href ||
-                      (it.href.endsWith("/overview") && pathname === it.href.replace("/overview", "")) ||
-                      (it.href.endsWith("/statewide") && pathname === it.href.replace("/statewide", "")) ||
-                      (it.href.endsWith("/dashboard") && pathname === it.href.replace("/dashboard", ""))
-                    );
-                    const isActive = hasExactMatch ? isExact : (item.href !== "/" && pathname.startsWith(item.href));
-                    return (
-                      <Link
-                        key={item.label}
-                        href={item.href}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${
-                          isActive
-                            ? "bg-[#1789d6] text-white"
-                            : "text-[#4b5563] hover:text-[#14274e] hover:bg-[#f4f5f7]"
-                        }`}
-                      >
-                        <item.icon size={16} className={isActive ? "text-white" : "text-[#97a0ac]"} />
-                        <span>{item.label}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-              <div className="flex flex-col gap-2 pt-3 border-t border-[#e0e4ea]">
-                {isDashboard ? (
-                  <button
-                    onClick={handleLogout}
-                    className="w-full text-left px-3 py-2.5 text-xs text-[#c62828] hover:bg-[#fdecea] rounded-lg flex items-center gap-3 transition-all"
-                  >
-                    <LogOut size={16} />
-                    <span>Log Out</span>
-                  </button>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    <Link
-                      href="/login"
-                      className="w-full text-center py-2 rounded-lg text-xs font-bold text-[#4b5563] hover:bg-[#f4f5f7] border border-[#e0e4ea]"
-                    >
-                      Login
-                    </Link>
-                    <Link
-                      href="/register"
-                      className="w-full text-center py-2 rounded-lg text-xs font-bold text-white bg-[#1789d6] hover:bg-[#146fb0]"
-                    >
-                      Register
-                    </Link>
+                    ]).map((item) => {
+                      const isExact = pathname === item.href ||
+                                      (item.href.endsWith("/overview") && pathname === item.href.replace("/overview", "")) ||
+                                      (item.href.endsWith("/statewide") && pathname === item.href.replace("/statewide", "")) ||
+                                      (item.href.endsWith("/dashboard") && pathname === item.href.replace("/dashboard", ""));
+                      const navigationList = isDashboard ? dashboardNavigationItems : [
+                        { label: "Home", href: "/", icon: Layers },
+                        { label: "Partner with Maharashtra", href: "/partner-with-maharashtra", icon: Handshake },
+                        { label: "Pitch a Development Need", href: "/pitch-development-need", icon: Sparkles },
+                        ...publicNavGroups.flatMap((group) => group.links.map((link) => ({
+                          label: link.label,
+                          href: link.href,
+                          icon: group.label === "About" ? HelpCircle : group.label === "Projects" ? Compass : group.label === "Documents" ? BookOpen : group.label === "Updates" ? FileText : Phone,
+                        }))),
+                      ];
+                      const hasExactMatch = navigationList.some((it) => 
+                        pathname === it.href ||
+                        (it.href.endsWith("/overview") && pathname === it.href.replace("/overview", "")) ||
+                        (it.href.endsWith("/statewide") && pathname === it.href.replace("/statewide", "")) ||
+                        (it.href.endsWith("/dashboard") && pathname === it.href.replace("/dashboard", ""))
+                      );
+                      const isActive = hasExactMatch ? isExact : (item.href !== "/" && pathname.startsWith(item.href));
+                      return (
+                        <Link
+                          key={item.label}
+                          href={item.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${
+                            isActive
+                              ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/10"
+                              : "text-[#4b5563] hover:text-[#14274e] hover:bg-[#f4f5f7]"
+                          }`}
+                        >
+                          <item.icon size={16} className={isActive ? "text-white" : "text-[#97a0ac]"} />
+                          <span>{item.label}</span>
+                        </Link>
+                      );
+                    })}
                   </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+                </div>
+                <div className="flex flex-col gap-2 pt-3 border-t border-[#e0e4ea]">
+                  {isDashboard ? (
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-left px-3 py-2.5 text-xs text-[#c62828] hover:bg-[#fdecea] rounded-lg flex items-center gap-3 transition-all"
+                    >
+                      <LogOut size={16} />
+                      <span>Log Out</span>
+                    </button>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      <Link
+                        href="/login"
+                        className="w-full text-center py-2 rounded-lg text-xs font-bold text-[#4b5563] hover:bg-[#f4f5f7] border border-[#e0e4ea]"
+                      >
+                        Login
+                      </Link>
+                      <Link
+                        href="/register"
+                        className="w-full text-center py-2 rounded-lg text-xs font-bold text-white bg-[#1789d6] hover:bg-[#146fb0]"
+                      >
+                        Register
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Main Content */}
         <div className="flex-grow flex flex-col min-w-0">

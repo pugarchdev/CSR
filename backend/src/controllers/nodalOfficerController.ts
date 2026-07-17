@@ -51,7 +51,6 @@ export const getDashboard = async (
       prisma.convergenceProject.count({
         where: {
           nodalOfficerUserId: userId,
-          tenantId: tenantId || undefined,
         },
       }),
       // Pending milestones to verify
@@ -59,7 +58,6 @@ export const getDashboard = async (
         where: {
           convergenceProject: {
             nodalOfficerUserId: userId,
-            tenantId: tenantId || undefined,
           },
           status: SimpleMilestoneStatus.COMPLETED,
           verifiedAt: null,
@@ -70,7 +68,6 @@ export const getDashboard = async (
         where: {
           convergenceProject: {
             nodalOfficerUserId: userId,
-            tenantId: tenantId || undefined,
           },
           status: {
             in: [GrievanceStatus.RAISED, GrievanceStatus.LEVEL_1_REVIEW],
@@ -82,7 +79,6 @@ export const getDashboard = async (
         where: {
           convergenceProject: {
             nodalOfficerUserId: userId,
-            tenantId: tenantId || undefined,
           },
           verificationStatus: "PENDING",
         },
@@ -91,7 +87,6 @@ export const getDashboard = async (
       prisma.convergenceProject.count({
         where: {
           nodalOfficerUserId: userId,
-          tenantId: tenantId || undefined,
           status: "COMPLETED",
         },
       }),
@@ -101,7 +96,6 @@ export const getDashboard = async (
     const recentProjects = await prisma.convergenceProject.findMany({
       where: {
         nodalOfficerUserId: userId,
-        tenantId: tenantId || undefined,
       },
       select: {
         id: true,
@@ -174,7 +168,6 @@ export const getMyProjects = async (
 
     const where: Prisma.ConvergenceProjectWhereInput = {
       nodalOfficerUserId: userId,
-      tenantId: tenantId || undefined,
     };
 
     if (status && status !== "all") {
@@ -293,7 +286,6 @@ export const updateMilestoneStatus = async (
         id,
         convergenceProject: {
           nodalOfficerUserId: userId,
-          tenantId: tenantId || undefined,
         },
       },
       include: {
@@ -346,7 +338,6 @@ export const updateMilestoneStatus = async (
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        tenantId,
         userId,
         action: "MILESTONE_STATUS_UPDATED",
         entityType: "ProjectDeliverableMilestone",
@@ -401,7 +392,6 @@ export const verifyMilestone = async (
         id,
         convergenceProject: {
           nodalOfficerUserId: userId,
-          tenantId: tenantId || undefined,
         },
         status: SimpleMilestoneStatus.COMPLETED,
       },
@@ -444,7 +434,6 @@ export const verifyMilestone = async (
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        tenantId,
         userId,
         action: isVerified ? "MILESTONE_VERIFIED" : "MILESTONE_VERIFICATION_ATTEMPTED",
         entityType: "ProjectDeliverableMilestone",
@@ -499,7 +488,6 @@ export const verifyUC = async (
         id,
         convergenceProject: {
           nodalOfficerUserId: userId,
-          tenantId: tenantId || undefined,
         },
         verificationStatus: "PENDING",
       },
@@ -562,7 +550,6 @@ export const verifyUC = async (
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        tenantId,
         userId,
         action: verificationStatus === "VERIFIED" ? "UC_VERIFIED" : "UC_REJECTED",
         entityType: "UtilizationCertificate",
@@ -618,7 +605,6 @@ export const respondToGrievance = async (
         id,
         convergenceProject: {
           nodalOfficerUserId: userId,
-          tenantId: tenantId || undefined,
         },
         status: {
           in: [GrievanceStatus.RAISED, GrievanceStatus.LEVEL_1_REVIEW],
@@ -652,7 +638,6 @@ export const respondToGrievance = async (
     // Create action log
     await prisma.grievanceActionLog.create({
       data: {
-        tenantId,
         grievance: { connect: { id } },
         actorUser: { connect: { id: userId } },
         action: "LEVEL_1_RESPONSE",
@@ -677,7 +662,6 @@ export const respondToGrievance = async (
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        tenantId,
         userId,
         action: "GRIEVANCE_LEVEL_1_RESOLVED",
         entityType: "Grievance",
@@ -728,7 +712,6 @@ export const generateProgressReport = async (
       where: {
         id,
         nodalOfficerUserId: userId,
-        tenantId: tenantId || undefined,
       },
       include: {
         milestones: {
@@ -773,20 +756,20 @@ export const generateProgressReport = async (
     // Calculate statistics
     const totalMilestones = project.milestones.length;
     const completedMilestones = project.milestones.filter(
-      (m) => m.status === SimpleMilestoneStatus.COMPLETED
+      (m: any) => m.status === SimpleMilestoneStatus.COMPLETED
     ).length;
     const verifiedMilestones = project.milestones.filter(
-      (m) => m.verifiedByNodalOfficerId !== null
+      (m: any) => m.verifiedByNodalOfficerId !== null
     ).length;
 
     const totalUCs = project.utilizationCertificates.length;
     const verifiedUCs = project.utilizationCertificates.filter(
-      (uc) => uc.verificationStatus === "VERIFIED"
+      (uc: any) => uc.verificationStatus === "VERIFIED"
     ).length;
 
     const totalGrievances = project.grievances.length;
     const resolvedGrievances = project.grievances.filter(
-      (g) => g.status === GrievanceStatus.LEVEL_1_RESOLVED || g.status === GrievanceStatus.LEVEL_2_RESOLVED
+      (g: any) => g.status === GrievanceStatus.LEVEL_1_RESOLVED || g.status === GrievanceStatus.LEVEL_2_RESOLVED
     ).length;
 
     const report = {
@@ -813,7 +796,7 @@ export const generateProgressReport = async (
         completed: completedMilestones,
         verified: verifiedMilestones,
         pending: totalMilestones - completedMilestones,
-        items: project.milestones.map((m) => ({
+        items: project.milestones.map((m: any) => ({
           id: m.id,
           name: m.name,
           status: m.status,
@@ -827,10 +810,10 @@ export const generateProgressReport = async (
         verified: verifiedUCs,
         pending: totalUCs - verifiedUCs,
         totalAmount: project.utilizationCertificates.reduce(
-          (sum, uc) => sum + Number(uc.amountUtilized),
+          (sum: any, uc: any) => sum + Number(uc.amountUtilized),
           0
         ),
-        items: project.utilizationCertificates.map((uc) => ({
+        items: project.utilizationCertificates.map((uc: any) => ({
           id: uc.id,
           amount: uc.amountUtilized,
           status: uc.verificationStatus,
@@ -842,7 +825,7 @@ export const generateProgressReport = async (
         total: totalGrievances,
         resolved: resolvedGrievances,
         pending: totalGrievances - resolvedGrievances,
-        items: project.grievances.map((g) => ({
+        items: project.grievances.map((g: any) => ({
           id: g.grievanceId,
           title: g.issueTitle,
           status: g.status,
@@ -857,7 +840,6 @@ export const generateProgressReport = async (
     // Create report record in database
     await prisma.report.create({
       data: {
-        tenantId,
         title: `Progress Report - ${project.title}`,
         type: "IMPACT",
         content: report as any,
@@ -881,7 +863,7 @@ async function updateProjectProgress(projectId: string): Promise<void> {
 
     const totalMilestones = milestones.length;
     const completedMilestones = milestones.filter(
-      (m) => m.status === SimpleMilestoneStatus.COMPLETED
+      (m: any) => m.status === SimpleMilestoneStatus.COMPLETED
     ).length;
 
     const physicalProgressPercent = totalMilestones > 0
@@ -907,7 +889,7 @@ async function updateProjectFinancialProgress(projectId: string): Promise<void> 
       },
     });
 
-    const totalUtilized = verifiedUCs.reduce((sum, uc) => sum + Number(uc.amountUtilized), 0);
+    const totalUtilized = verifiedUCs.reduce((sum: any, uc: any) => sum + Number(uc.amountUtilized), 0);
 
     const project = await prisma.convergenceProject.findUnique({
       where: { id: projectId },
@@ -1012,7 +994,6 @@ export const createInspection = async (
 
     const inspection = await prisma.convergenceProjectInspection.create({
       data: {
-        tenantId,
         convergenceProjectId,
         districtOfficerId: userId,
         visitDate: visitDate ? new Date(visitDate) : new Date(),
@@ -1209,7 +1190,6 @@ export const updateMouStatus = async (
 
       mou = await prisma.standardMou.create({
         data: {
-          tenantId: project.tenantId,
           mouReferenceId,
           corporateEnquiryId: project.corporateEnquiryId,
           governmentPitchId: project.governmentPitchId,
@@ -1377,7 +1357,6 @@ export const submitFinalNgoVerification = async (
     await prisma.auditLog.create({
       data: {
         userId,
-        tenantId: req.user?.tenantId || null,
         action: "NGO_FINAL_VERIFICATION_SUBMITTED",
         details: { ngoId, approved, remarks }
       }

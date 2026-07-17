@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import { Bell, Calendar, ArrowRight, ShieldAlert, Award, Landmark } from "lucide-react";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 

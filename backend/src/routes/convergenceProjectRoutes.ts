@@ -178,7 +178,6 @@ const uploadUtilizationCertificate = asyncHandler(async (req, res) => {
   if (!user) return res.status(401).json({ error: "Authentication required" });
   const uc = await prisma.utilizationCertificate.create({
     data: {
-      tenantId: user.tenantId,
       convergenceProjectId: req.params.id,
       milestoneId: req.body.milestoneId,
       uploadedByUserId: user.id,

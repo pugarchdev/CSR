@@ -71,7 +71,7 @@ const createUserSchema = z.object({
 
 const roleSchema = z.object({
   body: z.object({
-    role: z.enum(adminManageableRoles),
+    role: z.preprocess((val) => (val === "" ? null : val), z.enum(adminManageableRoles).nullable()).optional(),
     assignedDistrict: z.string().optional(),
     accountStatus: z.enum(["ACTIVE", "INACTIVE", "SUSPENDED"]).optional()
   })

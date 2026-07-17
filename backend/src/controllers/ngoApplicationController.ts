@@ -48,7 +48,6 @@ export const submitNGOApplication = async (req: AuthenticatedRequest, res: Respo
 
     const application = await prisma.nGOApplication.create({
       data: {
-        tenantId,
         csrRequirementId,
         ngoId,
         proposedPlan,

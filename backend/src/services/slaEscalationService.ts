@@ -47,6 +47,12 @@ export const SLA_TIMELINES = {
   
   /** Static helpdesk response time: 2 days */
   STATIC_HELPDESK: 2,
+
+  /** Nodal officer must be resolved/notified for an approved project: 2 days */
+  NODAL_ASSIGNMENT: 2,
+
+  /** Nodal officer has 3 days to assign a field officer */
+  FIELD_OFFICER_ASSIGNMENT: 3,
 } as const;
 
 export type SLATimelineKey = keyof typeof SLA_TIMELINES;
@@ -54,13 +60,14 @@ export type SLATimelineKey = keyof typeof SLA_TIMELINES;
 /**
  * Entity types that can have SLA escalations
  */
-export type EscalationEntityType = 
+export type EscalationEntityType =
   | "CORPORATE_ENQUIRY"
   | "GOVERNMENT_PITCH"
   | "GRIEVANCE"
   | "PROJECT_MILESTONE"
   | "UTILIZATION_CERTIFICATE"
-  | "STATIC_HELPDESK";
+  | "STATIC_HELPDESK"
+  | "CONVERGENCE_PROJECT";
 
 /**
  * Escalation level definitions
@@ -141,6 +148,12 @@ export function calculateDueDate(stage: SLAStage, startDate: Date = new Date()):
     case "STATIC_HELPDESK":
       dueDate.setDate(dueDate.getDate() + SLA_TIMELINES.STATIC_HELPDESK);
       break;
+    case "NODAL_ASSIGNMENT":
+      dueDate.setDate(dueDate.getDate() + SLA_TIMELINES.NODAL_ASSIGNMENT);
+      break;
+    case "FIELD_OFFICER_ASSIGNMENT":
+      dueDate.setDate(dueDate.getDate() + SLA_TIMELINES.FIELD_OFFICER_ASSIGNMENT);
+      break;
     default:
       // Default to 5 days for unknown stages
       dueDate.setDate(dueDate.getDate() + 5);
@@ -171,7 +184,6 @@ export async function createSLAEscalation(
         stage: input.stage,
         responsibleUserId: input.responsibleUserId,
         dueAt: input.dueAt,
-        tenantId: input.tenantId,
         isResolved: false,
       },
     });
@@ -409,7 +421,6 @@ export async function escalateToNextLevel(
         stage: nextStage,
         responsibleUserId: escalatedToUserId,
         dueAt: newDueAt,
-        tenantId: currentEscalation.tenantId,
         isResolved: false,
       },
     });
@@ -524,6 +535,8 @@ export async function getSLAStatistics(
       GRIEVANCE_LEVEL_1: 0,
       GRIEVANCE_LEVEL_2: 0,
       STATIC_HELPDESK: 0,
+      NODAL_ASSIGNMENT: 0,
+      FIELD_OFFICER_ASSIGNMENT: 0,
     };
 
     byStage.forEach((group) => {

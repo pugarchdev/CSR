@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { Role } from "../types/role";
 import { authenticateToken, authorizeRoles } from "../middlewares/authMiddleware";
-import { checkFeatureEnabled, checkTenantActive, resolveTenantContext } from "../middlewares/tenantMiddleware";
 import prisma from "../config/db";
 import { listCsrProjects } from "../controllers/csrLifecycleController";
 import {
@@ -14,12 +13,11 @@ import {
 
 const router = Router();
 
-router.use(authenticateToken, authorizeRoles([Role.COMPANY_ADMIN, Role.COMPANY_MEMBER, Role.SUPER_ADMIN, Role.CORPORATE_USER]), resolveTenantContext, checkTenantActive);
+router.use(authenticateToken, authorizeRoles([Role.CORPORATE_USER, Role.SUPER_ADMIN]));
 
 router.get("/enquiries", async (req, res, next) => {
   try {
     const user = (req as any).user;
-    const tenantId = (req as any).tenantContext?.tenantId || user?.tenantId || undefined;
     const company = user?.companyId
       ? await prisma.company.findUnique({
           where: { id: user.companyId },
@@ -36,7 +34,6 @@ router.get("/enquiries", async (req, res, next) => {
 
     const enquiries = await prisma.corporateEnquiry.findMany({
       where: {
-        ...(tenantId ? { OR: [{ tenantId }, { tenantId: null }] } : {}),
         AND: [{ OR: orFilters }]
       },
       orderBy: { submittedAt: "desc" }
@@ -51,7 +48,6 @@ router.get("/enquiries", async (req, res, next) => {
 router.get("/interests", async (req, res, next) => {
   try {
     const user = (req as any).user;
-    const tenantId = (req as any).tenantContext?.tenantId || user?.tenantId || undefined;
     const company = user?.companyId
       ? await prisma.company.findUnique({
           where: { id: user.companyId },
@@ -68,7 +64,6 @@ router.get("/interests", async (req, res, next) => {
 
     const interests = await prisma.corporatePitchInterest.findMany({
       where: {
-        ...(tenantId ? { OR: [{ tenantId }, { tenantId: null }] } : {}),
         AND: [{ OR: orFilters }]
       },
       include: {
@@ -96,7 +91,8 @@ router.get("/interests", async (req, res, next) => {
     return next(error);
   }
 });
-router.get("/projects", checkFeatureEnabled("enableCSRMarketplace"), listCsrProjects);
+
+router.get("/projects", listCsrProjects);
 
 router.post("/ngos/invite", inviteNgo);
 router.post("/ngos/invite/bulk", bulkInviteNgos);

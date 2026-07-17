@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { 
   Coins, Star, Award, Layers, Sparkles, FolderKanban, Check, 
@@ -11,10 +11,11 @@ import {
 } from "lucide-react";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { StatsCard } from "@/components/ui/StatsCard";
+import { StatCard } from "@/components/ui/StatCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import dynamic from "next/dynamic";
 import { apiFetch, getStoredUser, API_BASE_URL } from "@/lib/api";
+import MyAssignmentsWidget from "@/components/assignments/MyAssignmentsWidget";
 
 const BudgetPieChart = dynamic(() => import("@/components/BudgetPieChart"), {
   ssr: false,
@@ -490,11 +491,14 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
           </Card> */}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            <StatsCard label="CSR Budget Limit" value={`₹${totalBudget.toLocaleString("en-IN")}`} icon={Coins} />
-            <StatsCard label="Funds Allocated" value={`₹${fundedAmount.toLocaleString("en-IN")}`} icon={Award} />
-            <StatsCard label="Audited Payments" value={`₹${utilizedAmount.toLocaleString("en-IN")}`} icon={FileCheck2} />
-            <StatsCard label="Focus SDGs Supported" value={`${focusSdgCount} Focus SDGs`} icon={Compass} />
+            <StatCard label="CSR Budget Limit" value={`₹${totalBudget.toLocaleString("en-IN")}`} icon={Coins} />
+            <StatCard label="Funds Allocated" value={`₹${fundedAmount.toLocaleString("en-IN")}`} icon={Award} />
+            <StatCard label="Audited Payments" value={`₹${utilizedAmount.toLocaleString("en-IN")}`} icon={FileCheck2} />
+            <StatCard label="Focus SDGs Supported" value={`${focusSdgCount} Focus SDGs`} icon={Compass} />
           </div>
+
+          {/* Read-only view of officer assignments on this company's projects */}
+          <MyAssignmentsWidget title="Project Officer Assignments" emptyMessage="No officer assignments on your projects yet." />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             <div className="lg:col-span-2 flex flex-col gap-5">
@@ -1486,10 +1490,10 @@ export default function CompanyDashboard({ params }: { params?: { tab?: string }
       {activeTab === "analytics" && (
         <div className="flex flex-col gap-6 animate-fadeIn">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-            <StatsCard label="Verified NGOs" value="145" icon={Landmark} />
-            <StatsCard label="CSR Companies" value="52" icon={Users} />
-            <StatsCard label="Approved Projects" value="420" icon={FolderKanban} />
-            <StatsCard label="Audit Pass Rate" value="98.4%" icon={ShieldCheck} />
+            <StatCard label="Verified NGOs" value="145" icon={Landmark} />
+            <StatCard label="CSR Companies" value="52" icon={Users} />
+            <StatCard label="Approved Projects" value="420" icon={FolderKanban} />
+            <StatCard label="Audit Pass Rate" value="98.4%" icon={ShieldCheck} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

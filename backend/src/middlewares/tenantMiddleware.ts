@@ -1,46 +1,26 @@
 import { NextFunction, Response } from "express";
-import { OrganizationOnboardingStatus, OrganizationStatus, TenantStatus } from "@prisma/client";
+import { OrganizationOnboardingStatus, OrganizationStatus } from "@prisma/client";
 import { Role } from "../types/role";
 import prisma from "../config/db";
 import { AuthenticatedRequest } from "./authMiddleware";
 import { ROLE_PERMISSION_MAP } from "../config/platformAccess";
+import { resolveUserPermission } from "../services/permissionService";
 
 export interface TenantAwareRequest extends AuthenticatedRequest {
   tenantContext?: {
-    tenantId: string | null;
     organizationId: string | null;
     isMasterAdmin: boolean;
+    tenantId?: string | null;
   };
 }
 
-const DEFAULT_TENANT_CODE = "MH-CSR";
-
 export const resolveTenantContext = async (req: TenantAwareRequest, res: Response, next: NextFunction) => {
   try {
-    if (!req.user) {
-      const tenant = await prisma.tenant.findUnique({ where: { code: DEFAULT_TENANT_CODE } });
-      req.tenantContext = {
-        tenantId: tenant?.id || null,
-        organizationId: null,
-        isMasterAdmin: false
-      };
-      return next();
-    }
-
-
-
-    let tenantId = req.user.tenantId || null;
-    if (!tenantId) {
-      const tenant = await prisma.tenant.findUnique({ where: { code: DEFAULT_TENANT_CODE } });
-      tenantId = tenant?.id || null;
-    }
-
     req.tenantContext = {
-      tenantId,
-      organizationId: req.user.organizationId || null,
-      isMasterAdmin: false
+      organizationId: req.user?.organizationId || null,
+      isMasterAdmin: false,
+      tenantId: "global"
     };
-
     return next();
   } catch (error) {
     return next(error);
@@ -48,26 +28,12 @@ export const resolveTenantContext = async (req: TenantAwareRequest, res: Respons
 };
 
 export const checkTenantActive = async (req: TenantAwareRequest, res: Response, next: NextFunction) => {
-  try {
-    if (req.tenantContext?.isMasterAdmin) return next();
-    const tenantId = req.tenantContext?.tenantId;
-    if (!tenantId) return res.status(403).json({ error: "Portal instance is not assigned to this account." });
-
-    const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
-    if (!tenant || tenant.status !== TenantStatus.ACTIVE || tenant.isHidden) {
-      return res.status(403).json({ error: "This portal instance is not active." });
-    }
-
-    return next();
-  } catch (error) {
-    return next(error);
-  }
+  return next();
 };
 
 const auditBlockedAccess = async (req: TenantAwareRequest, action: string, details: Record<string, unknown>) => {
   await prisma.auditLog.create({
     data: {
-      tenantId: req.tenantContext?.tenantId || null,
       userId: req.user?.id,
       actorUserId: req.user?.id,
       actorRole: req.user?.role,
@@ -82,44 +48,13 @@ const auditBlockedAccess = async (req: TenantAwareRequest, action: string, detai
 
 export const checkFeatureEnabled = (featureKey: string, sensitive = true) => {
   return async (req: TenantAwareRequest, res: Response, next: NextFunction) => {
-    try {
-      if (req.tenantContext?.isMasterAdmin) return next();
-      const tenantId = req.tenantContext?.tenantId;
-      if (!tenantId) return res.status(403).json({ error: "Portal instance is not assigned to this account." });
-
-      const feature = await prisma.tenantFeature.findUnique({
-        where: { tenantId_featureKey: { tenantId, featureKey } }
-      });
-
-      if (feature && !feature.isEnabled) {
-        if (sensitive) {
-          await auditBlockedAccess(req, "FEATURE_ACCESS_BLOCKED", { featureKey, path: req.originalUrl });
-        }
-        return res.status(403).json({ error: "This feature is not enabled for your portal instance." });
-      }
-
-      return next();
-    } catch (error) {
-      return next(error);
-    }
+    return next();
   };
 };
 
 export const checkPublicFeatureEnabled = (featureKey: string) => {
   return async (_req: TenantAwareRequest, res: Response, next: NextFunction) => {
-    try {
-      const tenant = await prisma.tenant.findUnique({ where: { code: DEFAULT_TENANT_CODE } });
-      if (!tenant) return next();
-      const feature = await prisma.tenantFeature.findUnique({
-        where: { tenantId_featureKey: { tenantId: tenant.id, featureKey } }
-      });
-      if (feature && !feature.isEnabled) {
-        return res.status(403).json({ error: "This feature is not enabled for your portal instance." });
-      }
-      return next();
-    } catch (error) {
-      return next(error);
-    }
+    return next();
   };
 };
 
@@ -170,28 +105,11 @@ export const checkPermission = (permissionKey: string) => {
       const fallbackPermissions = req.user.role ? (ROLE_PERMISSION_MAP[req.user.role] || []) : [];
       if (fallbackPermissions.includes(permissionKey)) return next();
 
-      const userRoles = await prisma.userOrganizationRole.findMany({
-        where: {
-          userId: req.user.id,
-          OR: [
-            { tenantId: req.tenantContext?.tenantId || undefined },
-            { organizationId: req.tenantContext?.organizationId || undefined }
-          ]
-        },
-        include: {
-          role: {
-            include: {
-              rolePermissions: {
-                include: { permission: true }
-              }
-            }
-          }
-        }
+      // Shared resolver (same logic used by the workflow engine)
+      const hasPermission = await resolveUserPermission(req.user.id, permissionKey, {
+        role: null, // static fallback already checked above
+        organizationId: req.tenantContext?.organizationId || undefined
       });
-
-      const hasPermission = userRoles.some((assignment) =>
-        assignment.role.rolePermissions.some((rolePermission) => rolePermission.permission.key === permissionKey)
-      );
 
       if (!hasPermission) {
         await auditBlockedAccess(req, "PERMISSION_ACCESS_BLOCKED", { permissionKey, path: req.originalUrl });

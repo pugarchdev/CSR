@@ -8,6 +8,10 @@ interface GovPageHeaderProps {
   actions?: ReactNode;
 }
 
+/**
+ * Modernized space-saving inline page header layout.
+ * Replaces the bulky card banner with a clean, typography-only header.
+ */
 export default function GovPageHeader({
   title,
   description,
@@ -15,17 +19,17 @@ export default function GovPageHeader({
   actions,
 }: GovPageHeaderProps) {
   return (
-    <div className="gov-page-header">
-      {breadcrumb && <div className="gov-breadcrumb">{breadcrumb}</div>}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
-        <div style={{ flex: 1 }}>
-          <h2 className="gov-page-title">{title}</h2>
-          {description && <p className="gov-page-description">{description}</p>}
-        </div>
-        {actions && <div style={{ flexShrink: 0 }}>{actions}</div>}
+    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200/60 pb-4 mb-6">
+      <div>
+        {breadcrumb && (
+          <div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-1">
+            {breadcrumb}
+          </div>
+        )}
+        <h2 className="text-xl font-bold tracking-tight text-slate-900">{title}</h2>
+        {description && <p className="text-xs text-slate-500 mt-1 leading-normal max-w-4xl">{description}</p>}
       </div>
+      {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
     </div>
   );
 }
-
-// Made with Bob

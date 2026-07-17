@@ -508,7 +508,6 @@ export const addRMEnquiryInteraction = async (
 
     const interaction = await prisma.corporateEnquiryInteraction.create({
       data: {
-        tenantId,
         corporateEnquiryId: id,
         actorUserId: userId,
         interactionType: type === "OTHER" ? "PORTAL_NOTE" : (type || "PORTAL_NOTE"),
@@ -788,7 +787,6 @@ export const submitFeasibilityAssessment = async (
     // Create assessment with checklist items
     const assessment = await prisma.feasibilityAssessment.create({
       data: {
-        tenantId,
         reportReference,
         relationshipManagerId: userId,
         companyName: body.companyName.trim(),
@@ -810,7 +808,6 @@ export const submitFeasibilityAssessment = async (
           create: body.checklistItems.map(item => {
             const dimension = FEASIBILITY_CHECKLIST_TEMPLATE.find(d => d.itemNumber === item.itemNumber);
             return {
-              tenantId,
               itemNumber: item.itemNumber,
               dimension: dimension?.dimension || "General",
               checkText: dimension?.checkText || `Checklist Item ${item.itemNumber}`,
@@ -839,7 +836,6 @@ export const submitFeasibilityAssessment = async (
       entityId: linkedEnquiry.id,
       stage: "JS_DECISION",
       dueAt: calculateDueDate("JS_DECISION"),
-      tenantId,
     });
 
     // Notify JS

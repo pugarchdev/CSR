@@ -8,6 +8,7 @@ import { apiFetch, API_BASE_URL } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { locationData } from "@/lib/locationData";
 import { FieldFormat, sanitizeField, validateField, inputModeFor, FIELD_MAX_LENGTH } from "@/lib/validation";
+import GstVerificationField from "@/components/verification/GstVerificationField";
 import "@/styles/gov-theme.css";
 
 type OrganizationDocument = {
@@ -163,23 +164,20 @@ function Shell({
 }) {
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-6 md:px-8">
-      <section className="border border-gov-line bg-white shadow-sm">
-        <div className="h-1.5 bg-gradient-to-r from-[#FF9933] via-white to-[#138808]" />
-        <div className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
-          <div>
-            <div className="text-[11px] font-extrabold uppercase tracking-widest text-gov-saffron">Organization onboarding</div>
-            <h1 className="mt-2 text-2xl font-extrabold text-gov-navy">{title}</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-gov-muted">{description}</p>
-          </div>
-          {status && <Badge>{status}</Badge>}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200/60 pb-5">
+        <div>
+          <div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Organization onboarding</div>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
+          <p className="mt-1 text-sm text-slate-500 leading-normal">{description}</p>
         </div>
-      </section>
+        {status && <Badge>{status}</Badge>}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-5">
         {/* Stepper Sidebar */}
         <aside>
-          <div className="border border-gov-line bg-white p-5 shadow-sm">
-            <h3 className="text-sm font-extrabold text-gov-navy uppercase tracking-wider mb-4 border-b border-gov-line pb-2">
+          <div className="border border-slate-200/60 bg-white/70 backdrop-blur-xl rounded-2xl p-5 shadow-glass">
+            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">
               Application Steps
             </h3>
             <div className="gov-stepper flex flex-col gap-2">
@@ -603,7 +601,7 @@ export function CompanyOnboardingStep() {
     return (
       <Shell title="CSR Company Declaration" description="Submit the verified company onboarding application to Portal Admin." steps={companySteps} currentStep={step} onStepChange={setStep} status={organization.onboardingStatus}>
         <ErrorBox error={error} validationErrors={validationErrors} />
-        <section className="border border-gov-line bg-white p-5 shadow-sm">
+        <section className="border border-slate-200/60 bg-white/70 backdrop-blur-xl rounded-2xl p-5 shadow-glass">
           <div className="space-y-3 text-sm text-gov-ink">
             <p><CheckCircle2 className="mr-2 inline text-emerald-600" size={16} /> Information submitted is true and accurate.</p>
             <p><CheckCircle2 className="mr-2 inline text-emerald-600" size={16} /> Company is authorized to participate in CSR project discovery and funding.</p>
@@ -621,7 +619,7 @@ export function CompanyOnboardingStep() {
   return (
     <Shell title={step === "profile" ? "CSR Company Profile" : step === "compliance" ? "CSR Applicability and Compliance" : "CSR Preference Setup"} description="Approved company onboarding is mandatory before showing interest or recording CSR funding." steps={companySteps} currentStep={step} onStepChange={setStep} status={organization.onboardingStatus}>
       <ErrorBox error={error} />
-      <form onSubmit={save} className="grid gap-4 border border-gov-line bg-white p-5 shadow-sm md:grid-cols-2">
+      <form onSubmit={save} className="grid gap-4 border border-slate-200/60 bg-white/70 backdrop-blur-xl rounded-2xl p-5 shadow-glass md:grid-cols-2">
         {step === "profile" && (
           <>
             <Field label="Legal company name" required value={data.legalName || data.name} onChange={(value) => setData("legalName", value)} />
@@ -629,7 +627,22 @@ export function CompanyOnboardingStep() {
             <SelectField label="Organization type" required value={data.companyType} onChange={(value) => setData("companyType", value)} options={["Public Limited Company", "Private Limited Company", "Section 8 Company", "Government Company / PSU", "LLP", "Foreign Company", "Other"]} />
             <Field label="CIN / LLPIN" required format="cin" value={data.cin || data.llpin} onChange={(value) => data.companyType === "LLP" ? setData("llpin", value) : setData("cin", value)} />
             <Field label="PAN" required format="pan" value={data.pan} onChange={(value) => setData("pan", value)} />
-            <Field label="GSTIN" format="gst" value={data.gstin} onChange={(value) => setData("gstin", value)} />
+            <div className="md:col-span-2">
+              <GstVerificationField
+                value={data.gstin || ""}
+                onChange={(value) => setData("gstin", value)}
+                entityType="ORGANIZATION"
+                entityId={organization.id}
+                source="onboarding"
+                onVerified={(result) => {
+                  // Auto-fill company profile fields from government-verified GSTN data.
+                  if (result.data.legalName) setData("legalName", result.data.legalName);
+                  if (result.data.tradeName) setData("displayName", result.data.tradeName);
+                  if (result.data.address) setData("registeredOfficeAddress", result.data.address);
+                  if (result.data.district) setData("district", result.data.district);
+                }}
+              />
+            </div>
             <TextAreaField label="Registered office address" value={data.registeredOfficeAddress || data.address} onChange={(value) => setData("registeredOfficeAddress", value)} />
             <TextAreaField label="Corporate office address" value={data.corporateOfficeAddress} onChange={(value) => setData("corporateOfficeAddress", value)} />
             <Field label="District" value={data.district} onChange={(value) => setData("district", value)} />
@@ -819,8 +832,8 @@ function DocumentsStep({
     <Shell title={title} description="Upload onboarding verification documents. Each document type below has a dedicated upload slot. Mandatory documents are marked with a red star (*)." steps={steps} currentStep={currentStep} onStepChange={onStepChange} status={status}>
       <ErrorBox error={error} />
       
-      <div className="border border-gov-line bg-white shadow-sm flex flex-col rounded-lg">
-        <div className="border-b border-gov-line p-4 flex justify-between items-center bg-slate-50/30">
+      <div className="border border-slate-200/60 bg-white/70 backdrop-blur-xl flex flex-col rounded-2xl shadow-glass overflow-hidden">
+        <div className="border-b border-slate-100 p-4 flex justify-between items-center bg-slate-50/50">
           <div>
             <div className="text-xs font-bold text-gov-navy uppercase tracking-wider">Required Verification Documents</div>
             <p className="text-[11px] text-gov-muted mt-0.5">Please provide files for each document class below</p>
@@ -1006,7 +1019,7 @@ export function DepartmentOnboardingStep() {
     return (
       <Shell title="Government Department Declaration" description="Submit department onboarding for Portal Admin verification." steps={departmentSteps} currentStep={step} onStepChange={setStep} status={organization.onboardingStatus}>
         <ErrorBox error={error} validationErrors={validationErrors} />
-        <section className="border border-gov-line bg-white p-5 shadow-sm">
+        <section className="border border-slate-200/60 bg-white/70 backdrop-blur-xl rounded-2xl p-5 shadow-glass">
           <div className="space-y-3 text-sm text-gov-ink">
             <p><CheckCircle2 className="mr-2 inline text-emerald-600" size={16} /> Nodal officer is authorized to use the portal.</p>
             <p><CheckCircle2 className="mr-2 inline text-emerald-600" size={16} /> Requirements created will be genuine public/government needs.</p>
@@ -1022,7 +1035,7 @@ export function DepartmentOnboardingStep() {
   return (
     <Shell title={step === "profile" ? "Department Basic Profile" : step === "nodal-officer" ? "Nodal Officer Details" : step === "authorization" ? "Authority and Approval Details" : "Jurisdiction and Requirement Permissions"} description="Approved department onboarding is mandatory before creating or submitting CSR requirements." steps={departmentSteps} currentStep={step} onStepChange={setStep} status={organization.onboardingStatus}>
       <ErrorBox error={error} />
-      <form onSubmit={save} className="grid gap-4 border border-gov-line bg-white p-5 shadow-sm md:grid-cols-2">
+      <form onSubmit={save} className="grid gap-4 border border-slate-200/60 bg-white/70 backdrop-blur-xl rounded-2xl p-5 shadow-glass md:grid-cols-2">
         {step === "profile" && (
           <>
             <Field label="Department / entity name" required value={data.legalName || data.name} onChange={(value) => setData("legalName", value)} />

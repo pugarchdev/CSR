@@ -14,7 +14,7 @@ export const ImpactSphere = dynamic(() => import("@/components/ImpactSphere"), {
   ),
 });
 
-export const GisMap = dynamic(() => import("@/components/GisMap"), {
+export const GisMap = dynamic(() => import("@/components/gis/MaharashtraCsrMap"), {
   ssr: false,
   loading: () => (
     <div className="w-full h-[400px] flex items-center justify-center bg-slate-50 rounded-lg">

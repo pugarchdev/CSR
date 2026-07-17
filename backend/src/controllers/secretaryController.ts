@@ -26,7 +26,6 @@ export const getSecretaryEscalations = async (
     // Fetch all unresolved SLAEscalation records
     const escalations = await prisma.sLAEscalation.findMany({
       where: {
-        tenantId: tenantId || undefined,
         isResolved: false,
       },
       include: {
@@ -168,7 +167,6 @@ export const resolveSecretaryEscalation = async (
     const escalation = await prisma.sLAEscalation.findFirst({
       where: {
         id,
-        tenantId: tenantId || undefined,
       },
     });
 
@@ -190,7 +188,6 @@ export const resolveSecretaryEscalation = async (
     // Create Audit Log
     await prisma.auditLog.create({
       data: {
-        tenantId,
         userId,
         action: `SECRETARY_ESCALATION_RESOLVED`,
         entityType: "SLAEscalation",

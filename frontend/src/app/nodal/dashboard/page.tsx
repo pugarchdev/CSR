@@ -21,6 +21,7 @@ import GovAlert from "@/components/gov/GovAlert";
 import { PageSkeleton, TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { apiFetch, API_BASE_URL } from "@/lib/api";
+import MyAssignmentsWidget from "@/components/assignments/MyAssignmentsWidget";
 
 // Types
 interface NodalDashboardStats {
@@ -299,6 +300,10 @@ export default function NodalDashboardPage() {
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Project Assignments (new assignment workflow) */}
+        <div className="lg:col-span-2">
+          <MyAssignmentsWidget title="Pending Officer Assignments" emptyMessage="No projects awaiting officer assignment." />
+        </div>
         {/* Active Projects */}
         <GovCard className="lg:col-span-2">
           <GovCardHeader>

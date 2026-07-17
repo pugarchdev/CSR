@@ -70,6 +70,8 @@ import jsRoutes from "./routes/jsRoutes";
 import implementingAgencyRoutes from "./routes/implementingAgencyRoutes";
 import helpdeskRoutes from "./routes/helpdeskRoutes";
 import secretaryRoutes from "./routes/secretaryRoutes";
+import assignmentRoutes from "./routes/assignmentRoutes";
+import roleRoutes from "./routes/roleRoutes";
 
 // Middlewares
 import { errorHandler } from "./middlewares/errorMiddleware";
@@ -137,6 +139,7 @@ app.use("/api/otp", otpRoutes);
 app.use("/api/tracking", trackingRoutes);
 app.use("/api/onboarding", onboardingRoutes);
 app.use("/api/company-interests", companyInterestRoutes);
+app.use("/api/roles", roleRoutes);
 
 // Department portal (BENEFICIARY_AGENCY) — dashboard stats, profile, and requirements
 app.use("/api/csr-dashboard", csrDashboardRoutes);
@@ -154,6 +157,7 @@ app.use("/api/js", jsRoutes);
 app.use("/api/implementing-agency", implementingAgencyRoutes);
 app.use("/api/helpdesk", helpdeskRoutes);
 app.use("/api/secretary", secretaryRoutes);
+app.use("/api/assignments", assignmentRoutes);
 
 // LEGACY NGO MARKETPLACE ROUTES - DISABLED FOR MAHA CSR CONVERGENCE MODEL
 // These routes are commented out as per the Maharashtra CSR Portal framework

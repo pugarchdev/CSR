@@ -1,5 +1,4 @@
 import prisma from "./config/db";
-import { Role } from "./types/role";
 import { register, verifyOtp, login } from "./controllers/authController";
 import http from "http";
 import express from "express";

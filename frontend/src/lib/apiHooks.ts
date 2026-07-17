@@ -1,11 +1,6 @@
-import React from "react";
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "./api";
-
-export const getAccessToken = () => {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("accessToken");
-};
 
 export const useApiQuery = <T>(
   key: string[],
@@ -61,7 +56,7 @@ export const useApiMutation = <TData, TVariables>(
 export const usePrefetchRoutes = (routes: string[]) => {
   const queryClient = useQueryClient();
 
-  React.useEffect(() => {
+  useEffect(() => {
     routes.forEach((route) => {
       queryClient.prefetchQuery({
         queryKey: [route],

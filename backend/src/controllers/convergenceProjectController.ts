@@ -77,7 +77,7 @@ const updateProjectProgress = async (projectId: string): Promise<void> => {
 
   const totalMilestones = milestones.length;
   const completedMilestones = milestones.filter(
-    (m) => m.status === SimpleMilestoneStatus.COMPLETED
+    (m: any) => m.status === SimpleMilestoneStatus.COMPLETED
   ).length;
 
   const physicalProgressPercent = totalMilestones > 0
@@ -100,7 +100,7 @@ const updateProjectFinancialProgress = async (projectId: string): Promise<void> 
   });
 
   const totalUtilized = verifiedUCs.reduce(
-    (sum, uc) => sum + Number(uc.amountUtilized),
+    (sum: any, uc: any) => sum + Number(uc.amountUtilized),
     0
   );
 
@@ -132,7 +132,7 @@ export const getProjects = async (
   try {
     const userId = req.user?.id;
     const userRole = req.user?.role;
-    const tenantId = req.user?.tenantId;
+    const tenantId = undefined;
 
     if (!userId) {
       return unauthorizedResponse(res, "User not authenticated");
@@ -154,7 +154,6 @@ export const getProjects = async (
 
     // Build filter based on user role
     const where: Prisma.ConvergenceProjectWhereInput = {
-      tenantId: tenantId || undefined,
     };
 
     // Role-based access control
@@ -283,7 +282,7 @@ export const getProjectById = async (
   try {
     const userId = req.user?.id;
     const userRole = req.user?.role;
-    const tenantId = req.user?.tenantId;
+    const tenantId = undefined;
     const { id } = req.params;
 
     if (!userId) {
@@ -293,7 +292,6 @@ export const getProjectById = async (
     const project = await prisma.convergenceProject.findFirst({
       where: {
         id,
-        tenantId: tenantId || undefined,
       },
       include: {
         milestones: {
@@ -408,7 +406,7 @@ export const updateMilestoneProgress = async (
   try {
     const userId = req.user?.id;
     const userRole = req.user?.role;
-    const tenantId = req.user?.tenantId;
+    const tenantId = undefined;
     const { id } = req.params;
     const body = req.body as UpdateMilestoneProgressBody;
 
@@ -429,7 +427,6 @@ export const updateMilestoneProgress = async (
       where: {
         id,
         convergenceProject: {
-          tenantId: tenantId || undefined,
           OR: [
             { nodalOfficerUserId: userId },
             { implementingAgencyUserId: userId },
@@ -510,14 +507,12 @@ export const updateMilestoneProgress = async (
         stage: "GOVERNMENT_PITCH_VERIFICATION",
         responsibleUserId: milestone.convergenceProject.nodalOfficerUserId,
         dueAt: calculateDueDate("GOVERNMENT_PITCH_VERIFICATION"),
-        tenantId: tenantId || undefined,
       });
     }
 
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        tenantId,
         userId,
         action: "MILESTONE_PROGRESS_UPDATED",
         entityType: "ProjectDeliverableMilestone",
@@ -551,7 +546,7 @@ export const uploadUC = async (
 ): Promise<Response | void> => {
   try {
     const userId = req.user?.id;
-    const tenantId = req.user?.tenantId;
+    const tenantId = undefined;
     const { id } = req.params;
     const body = req.body as UploadUCBody;
 
@@ -578,7 +573,6 @@ export const uploadUC = async (
     const project = await prisma.convergenceProject.findFirst({
       where: {
         id,
-        tenantId: tenantId || undefined,
         OR: [
           { nodalOfficerUserId: userId },
           { implementingAgencyUserId: userId },
@@ -596,7 +590,7 @@ export const uploadUC = async (
     // Validate milestone if provided
     let milestoneId: string | undefined;
     if (body.milestoneId) {
-      const milestone = project.milestones.find((m) => m.id === body.milestoneId);
+      const milestone = project.milestones.find((m: any) => m.id === body.milestoneId);
       if (!milestone) {
         return validationErrorResponse(
           res,
@@ -615,7 +609,6 @@ export const uploadUC = async (
     // Create utilization certificate
     const uc = await prisma.utilizationCertificate.create({
       data: {
-        tenantId,
         convergenceProjectId: id,
         milestoneId,
         uploadedByUserId: userId,
@@ -649,13 +642,11 @@ export const uploadUC = async (
       stage: "GOVERNMENT_PITCH_VERIFICATION",
       responsibleUserId: project.nodalOfficerUserId,
       dueAt: calculateDueDate("GOVERNMENT_PITCH_VERIFICATION"),
-      tenantId: tenantId || undefined,
     });
 
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        tenantId,
         userId,
         action: "UC_UPLOADED",
         entityType: "UtilizationCertificate",
@@ -688,7 +679,7 @@ export const completeProject = async (
   try {
     const userId = req.user?.id;
     const userRole = req.user?.role;
-    const tenantId = req.user?.tenantId;
+    const tenantId = undefined;
     const { id } = req.params;
     const { completionNotes, beneficiariesSummary, impactSummary } = req.body;
 
@@ -716,7 +707,6 @@ export const completeProject = async (
     const project = await prisma.convergenceProject.findFirst({
       where: {
         id,
-        tenantId: tenantId || undefined,
       },
       include: {
         milestones: true,
@@ -729,7 +719,7 @@ export const completeProject = async (
 
     // Check if all milestones are completed
     const incompleteMilestones = project.milestones.filter(
-      (m) => m.status !== SimpleMilestoneStatus.COMPLETED
+      (m: any) => m.status !== SimpleMilestoneStatus.COMPLETED
     );
 
     if (incompleteMilestones.length > 0) {
@@ -770,7 +760,6 @@ export const completeProject = async (
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        tenantId,
         userId,
         action: "PROJECT_COMPLETED",
         entityType: "ConvergenceProject",
@@ -802,7 +791,7 @@ export const generateCompletionReport = async (
 ): Promise<Response | void> => {
   try {
     const userId = req.user?.id;
-    const tenantId = req.user?.tenantId;
+    const tenantId = undefined;
     const { id } = req.params;
     const { format = "json" } = req.query;
 
@@ -814,7 +803,6 @@ export const generateCompletionReport = async (
     const project = await prisma.convergenceProject.findFirst({
       where: {
         id,
-        tenantId: tenantId || undefined,
       },
       include: {
         milestones: {
@@ -887,25 +875,25 @@ export const generateCompletionReport = async (
     // Calculate statistics
     const totalMilestones = project.milestones.length;
     const completedMilestones = project.milestones.filter(
-      (m) => m.status === SimpleMilestoneStatus.COMPLETED
+      (m: any) => m.status === SimpleMilestoneStatus.COMPLETED
     ).length;
 
     const totalUCs = project.utilizationCertificates.length;
     const verifiedUCs = project.utilizationCertificates.filter(
-      (uc) => uc.verificationStatus === "VERIFIED"
+      (uc: any) => uc.verificationStatus === "VERIFIED"
     ).length;
 
     const totalGrievances = project.grievances.length;
     const resolvedGrievances = project.grievances.filter(
-      (g) =>
+      (g: any) =>
         g.status === GrievanceStatus.LEVEL_1_RESOLVED ||
         g.status === GrievanceStatus.LEVEL_2_RESOLVED ||
         g.status === GrievanceStatus.CLOSED
     ).length;
 
     const totalUtilized = project.utilizationCertificates
-      .filter((uc) => uc.verificationStatus === "VERIFIED")
-      .reduce((sum, uc) => sum + Number(uc.amountUtilized), 0);
+      .filter((uc: any) => uc.verificationStatus === "VERIFIED")
+      .reduce((sum: any, uc: any) => sum + Number(uc.amountUtilized), 0);
 
     const completionReport = {
       certificateInfo: {
@@ -948,7 +936,7 @@ export const generateCompletionReport = async (
         physicalProgressPercent: project.physicalProgressPercent,
         financialProgressPercent: project.financialProgressPercent,
       },
-      milestones: project.milestones.map((m) => ({
+      milestones: project.milestones.map((m: any) => ({
         id: m.id,
         name: m.name,
         description: m.description,
@@ -978,7 +966,6 @@ export const generateCompletionReport = async (
     // Save report to database
     await prisma.report.create({
       data: {
-        tenantId,
         title: `Project Completion Certificate - ${project.title}`,
         type: "CSR",
         content: completionReport as any,

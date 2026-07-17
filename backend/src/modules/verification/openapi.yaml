@@ -1,0 +1,253 @@
+openapi: 3.0.3
+info:
+  title: MahaCSR Verification Module API
+  description: |
+    Government of India API Setu integration for GSTIN (GSTN) verification and
+    Aadhaar OTP eKYC (UIDAI), exposed as a secure backend proxy for the
+    Maharashtra CSR Portal. All API Setu credentials remain server-side.
+
+    Privacy: the full Aadhaar number and OTP are never persisted or logged.
+    Only the masked identifier (XXXX-XXXX-1234), transaction references and
+    redacted demographic data are stored; the full raw responses are encrypted
+    at rest with AES-256-GCM.
+  version: 1.0.0
+servers:
+  - url: /api/verification
+security:
+  - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    EntityType:
+      type: string
+      enum: [COMPANY, NGO, ORGANIZATION, ONBOARDING_APPLICATION, USER]
+    ErrorResponse:
+      type: object
+      properties:
+        success: { type: boolean, example: false }
+        error: { type: string }
+        errorCode:
+          type: string
+          enum: [INVALID_GSTIN, GSTIN_NOT_FOUND, INVALID_AADHAAR, INVALID_OTP, OTP_EXPIRED,
+                 OTP_ATTEMPTS_EXCEEDED, ALREADY_VERIFIED, VERIFICATION_IN_PROGRESS,
+                 RECORD_NOT_FOUND, RECORD_NOT_OWNED, APISETU_TIMEOUT, APISETU_UNAVAILABLE,
+                 APISETU_UNAUTHORIZED, APISETU_RATE_LIMITED, ENCRYPTION_NOT_CONFIGURED,
+                 VERIFICATION_FAILED]
+        meta: { type: object }
+    GstVerifiedData:
+      type: object
+      properties:
+        gstin: { type: string, example: "27AAPFU0939F1ZV" }
+        legalName: { type: string, nullable: true }
+        tradeName: { type: string, nullable: true }
+        gstinStatus: { type: string, nullable: true, example: "Active" }
+        registrationDate: { type: string, nullable: true }
+        constitutionOfBusiness: { type: string, nullable: true }
+        taxpayerType: { type: string, nullable: true }
+        state: { type: string, nullable: true }
+        district: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        pincode: { type: string, nullable: true }
+    AadhaarVerifiedData:
+      type: object
+      properties:
+        name: { type: string, nullable: true }
+        gender: { type: string, nullable: true }
+        yearOfBirth: { type: string, nullable: true }
+        state: { type: string, nullable: true }
+        district: { type: string, nullable: true }
+        pincode: { type: string, nullable: true }
+paths:
+  /gst/verify:
+    post:
+      summary: Verify a GSTIN via API Setu GSTN
+      description: Requires permission `verification:execute`. Rate limited to 5/min per IP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [gstin, entityType, entityId]
+              properties:
+                gstin: { type: string, example: "27AAPFU0939F1ZV" }
+                entityType: { $ref: "#/components/schemas/EntityType" }
+                entityId: { type: string, format: uuid }
+                source: { type: string, example: "onboarding" }
+      responses:
+        "200":
+          description: GSTIN verified
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: object
+                    properties:
+                      recordId: { type: string, format: uuid }
+                      status: { type: string, example: SUCCESS }
+                      attempt: { type: integer }
+                      transactionId: { type: string, nullable: true }
+                      verifiedAt: { type: string, format: date-time }
+                      responseTimeMs: { type: integer }
+                      data: { $ref: "#/components/schemas/GstVerifiedData" }
+        "400": { description: Invalid GSTIN format, content: { application/json: { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+        "409": { description: Already verified or verification in progress, content: { application/json: { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+        "422": { description: GSTIN not found at GSTN, content: { application/json: { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+        "429": { description: Rate limit exceeded }
+        "503": { description: Upstream service unavailable, content: { application/json: { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+  /gst/reverify:
+    post:
+      summary: Re-verify an already verified GSTIN (authorized roles only)
+      description: Requires permission `verification:reverify`. Appends a new attempt to the immutable history.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [gstin, entityType, entityId, reason]
+              properties:
+                gstin: { type: string }
+                entityType: { $ref: "#/components/schemas/EntityType" }
+                entityId: { type: string, format: uuid }
+                source: { type: string }
+                reason: { type: string, minLength: 5, maxLength: 500 }
+      responses:
+        "200": { description: GSTIN re-verified }
+        "403": { description: Missing verification:reverify permission }
+  /gst/history/{id}:
+    get:
+      summary: Full GST verification history for an entity (append-only, newest first)
+      description: Requires permission `verification:view-history`. Non-admin users may only view their own organization.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: entityType
+          in: query
+          required: true
+          schema: { $ref: "#/components/schemas/EntityType" }
+      responses:
+        "200": { description: Verification history rows (encrypted payloads never included) }
+        "403": { description: Not owner and not authorized }
+  /aadhaar/generate-otp:
+    post:
+      summary: Generate an Aadhaar eKYC OTP via API Setu / UIDAI
+      description: |
+        Requires permission `verification:execute` and explicit user consent. Rate limited to 3/min per IP.
+        The Aadhaar number is used only for the upstream call and is never stored.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [aadhaarNumber, entityType, entityId, consent]
+              properties:
+                aadhaarNumber: { type: string, example: "234123412346" }
+                entityType: { $ref: "#/components/schemas/EntityType" }
+                entityId: { type: string, format: uuid }
+                consent: { type: boolean, enum: [true] }
+                source: { type: string }
+      responses:
+        "200":
+          description: OTP sent to the Aadhaar-registered mobile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      recordId: { type: string, format: uuid }
+                      transactionId: { type: string }
+                      maskedAadhaar: { type: string, example: "XXXX-XXXX-2346" }
+                      expiresAt: { type: string, format: date-time }
+        "400": { description: Invalid Aadhaar number (format or Verhoeff checksum) }
+        "409": { description: Verification already in progress }
+        "429": { description: Rate limit exceeded }
+  /aadhaar/verify-otp:
+    post:
+      summary: Verify the Aadhaar OTP and complete eKYC
+      description: |
+        Rate limited to 5/min per IP. Maximum 3 OTP attempts per record. The OTP and
+        Aadhaar number are never persisted; the eKYC photograph is discarded.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [recordId, otp, aadhaarNumber]
+              properties:
+                recordId: { type: string, format: uuid }
+                otp: { type: string, pattern: "^[0-9]{6}$" }
+                aadhaarNumber: { type: string }
+                shareCode: { type: string, pattern: "^[0-9]{4}$" }
+      responses:
+        "200":
+          description: eKYC completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      recordId: { type: string, format: uuid }
+                      status: { type: string, example: SUCCESS }
+                      maskedAadhaar: { type: string }
+                      verifiedAt: { type: string, format: date-time }
+                      data: { $ref: "#/components/schemas/AadhaarVerifiedData" }
+        "400": { description: "Incorrect OTP (meta.attemptsLeft), expired OTP, or Aadhaar mismatch" }
+        "403": { description: Record belongs to another user }
+        "404": { description: Record not found }
+  /aadhaar/status/{id}:
+    get:
+      summary: Status of an Aadhaar verification record
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200": { description: "recordId, status, maskedAadhaar, transactionId, expiresAt, verifiedAt, attempt" }
+        "403": { description: Not the record owner }
+  /dashboard/stats:
+    get:
+      summary: Verification analytics (totals, success rate, response time, daily/monthly series)
+      description: Requires permission `verification:dashboard`. Tenant-scoped unless SUPER_ADMIN.
+      parameters:
+        - { name: from, in: query, schema: { type: string, format: date } }
+        - { name: to, in: query, schema: { type: string, format: date } }
+        - { name: verificationType, in: query, schema: { type: string, enum: [GST, AADHAAR] } }
+      responses:
+        "200": { description: Aggregated statistics }
+  /dashboard/logs:
+    get:
+      summary: Paginated verification logs with filters
+      description: Requires permission `verification:dashboard`.
+      parameters:
+        - { name: verificationType, in: query, schema: { type: string, enum: [GST, AADHAAR] } }
+        - { name: status, in: query, schema: { type: string, enum: [IN_PROGRESS, OTP_SENT, SUCCESS, FAILED, EXPIRED] } }
+        - { name: entityType, in: query, schema: { $ref: "#/components/schemas/EntityType" } }
+        - { name: entityId, in: query, schema: { type: string } }
+        - { name: initiatedById, in: query, schema: { type: string } }
+        - { name: from, in: query, schema: { type: string, format: date } }
+        - { name: to, in: query, schema: { type: string, format: date } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, default: 20, maximum: 100 } }
+      responses:
+        "200": { description: Paginated records with initiating user }

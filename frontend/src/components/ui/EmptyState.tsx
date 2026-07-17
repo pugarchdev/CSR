@@ -1,32 +1,103 @@
-import React from "react";
+// Empty State Component — Premium Design
+"use client";
+
+import { motion } from "framer-motion";
 import { LucideIcon } from "lucide-react";
 import { Button } from "./Button";
 import { cn } from "@/lib/utils";
 
 interface EmptyStateProps {
+  icon: LucideIcon;
   title: string;
   description: string;
-  icon: LucideIcon;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
+  secondaryAction?: {
+    label: string;
+    onClick: () => void;
+  };
   actionText?: string;
   onAction?: () => void;
   className?: string;
 }
 
-export function EmptyState({ title, description, icon: Icon, actionText, onAction, className }: EmptyStateProps) {
+export function EmptyState({
+  icon: Icon,
+  title,
+  description,
+  action,
+  secondaryAction,
+  actionText,
+  onAction,
+  className
+}: EmptyStateProps) {
+  const primaryAction = action || (actionText && onAction ? { label: actionText, onClick: onAction } : undefined);
   return (
-    <div className={cn("flex flex-col items-center justify-center p-12 text-center rounded-lg border border-dashed border-[#c7cdd6] bg-[#f4f5f7] gap-6", className)}>
-      <div className="bg-white border border-[#e0e4ea] p-4 rounded-lg text-[#14274e] flex items-center justify-center">
-        <Icon size={32} />
-      </div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      className={cn(
+        "flex flex-col items-center justify-center py-20 px-4 text-center",
+        className
+      )}
+    >
+      <motion.div
+        animate={{ y: [0, -6, 0] }}
+        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+        className="w-16 h-16 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl flex items-center justify-center text-blue-500 mb-5 shadow-sm"
+      >
+        <Icon size={28} />
+      </motion.div>
+      <h3 className="text-lg font-semibold text-slate-900 tracking-tight">{title}</h3>
+      <p className="mt-2 text-sm text-slate-500 max-w-sm leading-relaxed">{description}</p>
+      {(primaryAction || secondaryAction) && (
+        <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
+          {primaryAction && (
+            <Button onClick={primaryAction.onClick}>
+              {primaryAction.label}
+            </Button>
+          )}
+          {secondaryAction && (
+            <Button variant="outline" onClick={secondaryAction.onClick}>
+              {secondaryAction.label}
+            </Button>
+          )}
+        </div>
+      )}
+    </motion.div>
+  );
+}
 
-      <div className="flex flex-col gap-1.5 max-w-sm">
-        <h3 className="font-heading font-bold text-lg text-[#14274e] tracking-tight">{title}</h3>
-        <p className="text-[#6b7280] text-sm leading-relaxed">{description}</p>
-      </div>
+// Empty State for Tables
+interface EmptyTableStateProps {
+  title?: string;
+  description?: string;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
+}
 
-      {actionText && onAction && (
-        <Button variant="outline" size="sm" onClick={onAction}>
-          {actionText}
+export function EmptyTableState({
+  title = "No data found",
+  description = "There are no items to display at the moment.",
+  action
+}: EmptyTableStateProps) {
+  return (
+    <div className="py-16 px-4 text-center">
+      <p className="text-slate-500 font-medium">{title}</p>
+      <p className="text-sm text-slate-400 mt-1.5">{description}</p>
+      {action && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={action.onClick}
+          className="mt-5"
+        >
+          {action.label}
         </Button>
       )}
     </div>

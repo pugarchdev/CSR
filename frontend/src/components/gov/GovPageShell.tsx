@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
+import { motion } from "framer-motion";
 import "../../styles/gov-theme.css";
 
 interface GovPageShellProps {
@@ -13,7 +14,7 @@ interface GovPageShellProps {
 
 /**
  * Common inner-page wrapper with breadcrumb, title, subtitle, and right-side actions.
- * Uses the existing gov-page-header CSS class.
+ * Redesigned with Framer Motion entry animations.
  */
 export default function GovPageShell({
   breadcrumb,
@@ -23,18 +24,25 @@ export default function GovPageShell({
   children,
 }: GovPageShellProps) {
   return (
-    <>
-      <div className="gov-page-header">
-        <div className="gov-breadcrumb">{breadcrumb}</div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
-          <div>
-            <h1 className="gov-page-title">{title}</h1>
-            {description && <p className="gov-page-description">{description}</p>}
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      className="w-full"
+    >
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200/60 pb-4 mb-6">
+        <div>
+          <div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-1">
+            {breadcrumb}
           </div>
-          {actions && <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>{actions}</div>}
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">{title}</h1>
+          {description && <p className="text-xs text-slate-500 mt-1 leading-normal max-w-4xl">{description}</p>}
         </div>
+        {actions && <div className="flex gap-2 flex-shrink-0">{actions}</div>}
       </div>
-      {children}
-    </>
+      <div className="animate-fade-in-up">
+        {children}
+      </div>
+    </motion.div>
   );
 }

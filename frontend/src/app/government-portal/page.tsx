@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { 
   Building2, Landmark, ShieldCheck, CheckCircle2, XCircle, 
@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { StatsCard } from "@/components/ui/StatsCard";
+import { StatCard } from "@/components/ui/StatCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import dynamic from "next/dynamic";
 import { apiFetch } from "@/lib/api";
@@ -326,10 +326,10 @@ export default function GovernmentPortal({ params }: { params?: { tab?: string }
       {activeTab === "statewide" && (
         <div className="flex flex-col gap-7 animate-fadeIn">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            <StatsCard label="Aggregate Sourced CSR Funds" value="₹18.40 Cr" icon={Coins} />
-            <StatsCard label="Escrow Capital Disbursed" value="₹10.50 Cr" icon={ShieldCheck} />
-            <StatsCard label="Verified NGO accounts" value="145 NGOs" icon={Landmark} />
-            <StatsCard label="Active CSR Corporates" value="52 Companies" icon={Building2} />
+            <StatCard label="Aggregate Sourced CSR Funds" value="₹18.40 Cr" icon={Coins} />
+            <StatCard label="Escrow Capital Disbursed" value="₹10.50 Cr" icon={ShieldCheck} />
+            <StatCard label="Verified NGO accounts" value="145 NGOs" icon={Landmark} />
+            <StatCard label="Active CSR Corporates" value="52 Companies" icon={Building2} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">

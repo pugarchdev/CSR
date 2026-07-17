@@ -34,10 +34,7 @@ export const getCurrentUserPermissions = async (
     const userOrgRoles = await prisma.userOrganizationRole.findMany({
       where: {
         userId,
-        OR: [
-          { tenantId: tenantId || undefined },
-          { organizationId: organizationId || undefined },
-        ],
+        organizationId: organizationId || undefined,
       },
       include: {
         role: {
@@ -53,8 +50,8 @@ export const getCurrentUserPermissions = async (
     });
 
     // Add permissions from organization roles
-    userOrgRoles.forEach((assignment) => {
-      assignment.role.rolePermissions.forEach((rolePermission) => {
+    userOrgRoles.forEach((assignment: any) => {
+      assignment.role.rolePermissions.forEach((rolePermission: any) => {
         permissionSet.add(rolePermission.permission.key);
       });
     });
@@ -117,10 +114,7 @@ export const getModulePermissions = async (
     const userOrgRoles = await prisma.userOrganizationRole.findMany({
       where: {
         userId,
-        OR: [
-          { tenantId: tenantId || undefined },
-          { organizationId: organizationId || undefined },
-        ],
+        organizationId: organizationId || undefined,
       },
       include: {
         role: {
@@ -135,8 +129,8 @@ export const getModulePermissions = async (
       },
     });
 
-    userOrgRoles.forEach((assignment) => {
-      assignment.role.rolePermissions.forEach((rolePermission) => {
+    userOrgRoles.forEach((assignment: any) => {
+      assignment.role.rolePermissions.forEach((rolePermission: any) => {
         if (rolePermission.permission.module === module) {
           permissionSet.add(rolePermission.permission.key);
         }
@@ -191,10 +185,7 @@ export const checkUserPermission = async (
     const userOrgRoles = await prisma.userOrganizationRole.findMany({
       where: {
         userId,
-        OR: [
-          { tenantId: tenantId || undefined },
-          { organizationId: organizationId || undefined },
-        ],
+        organizationId: organizationId || undefined,
       },
       include: {
         role: {
@@ -212,7 +203,7 @@ export const checkUserPermission = async (
     });
 
     const hasPermission = userOrgRoles.some(
-      (assignment) => assignment.role.rolePermissions.length > 0
+      (assignment: any) => assignment.role.rolePermissions.length > 0
     );
 
     return successResponse(res, { hasPermission, permission });

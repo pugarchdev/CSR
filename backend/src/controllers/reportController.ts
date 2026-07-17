@@ -45,7 +45,6 @@ export const createReport = async (req: AuthenticatedRequest, res: Response, nex
 
     const report = await prisma.report.create({
       data: {
-        tenantId,
         title,
         type,
         content,
@@ -58,7 +57,6 @@ export const createReport = async (req: AuthenticatedRequest, res: Response, nex
 
     await prisma.auditLog.create({
       data: {
-        tenantId,
         userId: req.user?.id,
         actorUserId: req.user?.id,
         actorRole: req.user?.role,
@@ -93,7 +91,6 @@ export const generateAnnualSummary = async (req: AuthenticatedRequest, res: Resp
 
     const report = await prisma.report.create({
       data: {
-        tenantId,
         title: `Annual CSR Summary ${new Date().getFullYear()}`,
         type: ReportType.ANNUAL,
         createdById: req.user!.id,
@@ -131,7 +128,6 @@ const asNumber = (value: unknown) => Number(value || 0);
 const auditReportAccess = async (req: AuthenticatedRequest, reportName: string, filters: Record<string, unknown>) => {
   await prisma.auditLog.create({
     data: {
-      tenantId: getRequestTenantId(req),
       userId: req.user?.id,
       actorUserId: req.user?.id,
       actorRole: req.user?.role,

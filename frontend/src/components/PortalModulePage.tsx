@@ -30,46 +30,45 @@ export default function PortalModulePage({
 }: PortalModulePageProps) {
   return (
     <div className="mx-auto flex min-h-screen max-w-7xl flex-col gap-6 px-6 py-8 md:px-10">
-      <section className="border border-gov-line bg-white shadow-sm">
-        <div className="h-1.5 bg-gradient-to-r from-[#FF9933] via-white to-[#138808]" />
-        <div className="p-6 md:p-7">
-          <span className="text-[11px] font-extrabold uppercase tracking-widest text-gov-saffron">{eyebrow}</span>
-          <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-gov-navy md:text-3xl">{title}</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-gov-muted">{description}</p>
-          {actions.length > 0 && (
-            <div className="mt-5 flex flex-wrap gap-3">
-              {actions.map((action) => (
-                <Link
-                  key={action.label}
-                  href={action.href}
-                  className={`inline-flex min-h-10 items-center border px-4 py-2 text-sm font-bold ${
-                    action.primary
-                      ? "border-gov-blue bg-gov-blue text-white hover:bg-gov-navy"
-                      : "border-gov-line bg-white text-gov-blue hover:bg-gov-mist"
-                  }`}
-                >
-                  {action.label}
-                </Link>
-              ))}
-            </div>
-          )}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200/60 pb-5">
+        <div>
+          <div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">{eyebrow}</div>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
+          <p className="mt-1 text-sm text-slate-500 leading-normal">{description}</p>
         </div>
-      </section>
+        {actions.length > 0 && (
+          <div className="flex flex-wrap gap-2.5">
+            {actions.map((action) => (
+              <Link
+                key={action.label}
+                href={action.href}
+                className={`inline-flex min-h-10 items-center justify-center rounded-xl border px-4 py-2 text-xs font-semibold transition-all ${
+                  action.primary
+                    ? "border-blue-600 bg-blue-600 text-white shadow-sm shadow-blue-500/10 hover:bg-blue-700"
+                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                {action.label}
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
 
       {metrics.length > 0 && (
         <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {metrics.map((metric) => (
-            <div key={metric.label} className="border border-gov-line bg-white p-5 shadow-sm">
-              <div className="text-[10px] font-bold uppercase tracking-widest text-gov-muted">{metric.label}</div>
-              <div className="mt-2 text-2xl font-extrabold text-gov-ink">{metric.value}</div>
+            <div key={metric.label} className="border border-slate-200/60 bg-white/70 backdrop-blur-xl rounded-2xl p-5 shadow-glass">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{metric.label}</div>
+              <div className="mt-2 text-2xl font-extrabold text-slate-900">{metric.value}</div>
             </div>
           ))}
         </section>
       )}
 
-      <section className="border border-gov-line bg-white shadow-sm">
-        <div className="border-b border-gov-line px-5 py-4">
-          <h2 className="text-base font-extrabold text-gov-navy">Work Queue</h2>
+      <section className="border border-slate-200/60 bg-white/70 backdrop-blur-xl rounded-2xl shadow-glass overflow-hidden">
+        <div className="border-b border-slate-100 px-5 py-4 bg-slate-50/50">
+          <h2 className="text-base font-bold text-slate-900">Work Queue</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-sm">

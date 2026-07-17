@@ -55,3 +55,20 @@ export const getAllowedOrigins = () => {
     "https://pugarch-csr.vercel.app"
   ];
 };
+
+export const getApiSetuConfig = () => {
+  return {
+    baseUrl: process.env.APISETU_BASE_URL || "https://apisetu.gov.in/partner/api",
+    requestTimeoutMs: Number(process.env.APISETU_REQUEST_TIMEOUT) || 10000,
+    clientId: process.env.APISETU_CLIENT_ID || "dev_client_id",
+    apiKeys: (process.env.APISETU_API_KEY || "dev_api_key").split(",").map(k => k.trim()).filter(Boolean),
+    maxRetries: Number(process.env.APISETU_MAX_RETRIES) || 3,
+    aadhaarGenerateOtpEndpoint: process.env.APISETU_AADHAAR_GENERATE_OTP_ENDPOINT || "/aadhaar/otp",
+    aadhaarVerifyOtpEndpoint: process.env.APISETU_AADHAAR_VERIFY_OTP_ENDPOINT || "/aadhaar/verify",
+    gstVerifyEndpoint: process.env.APISETU_GST_VERIFY_ENDPOINT || "/gst/verify"
+  };
+};
+
+export const getVerificationEncryptionKey = () => {
+  return process.env.VERIFICATION_ENCRYPTION_KEY || "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+};

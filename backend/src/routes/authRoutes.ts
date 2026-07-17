@@ -1,5 +1,9 @@
 import { Router } from "express";
 import { register, login, verifyOtp, refresh, logout, getInvitationDetails, registerInvitedNgo } from "../controllers/authController";
+import {
+  getInvitationDetails as getUserInvitationDetails,
+  activateInvitation
+} from "../controllers/invitationController";
 import { getCurrentUserPermissions, getModulePermissions, checkUserPermission } from "../controllers/permissionController";
 import { validateRequest } from "../middlewares/validationMiddleware";
 import { asyncHandler } from "../middlewares/asyncHandler";
@@ -65,6 +69,10 @@ router.post("/refresh", asyncHandler(refresh));
 router.post("/logout", asyncHandler(logout));
 router.get("/ngo/invitation-details", asyncHandler(getInvitationDetails));
 router.post("/ngo/register-invited", asyncHandler(registerInvitedNgo));
+
+// Officer activation via secure single-use invitation token (public, rate limited)
+router.get("/invitations/:token", strictRateLimiter, asyncHandler(getUserInvitationDetails));
+router.post("/invitations/:token/activate", strictRateLimiter, asyncHandler(activateInvitation));
 
 // Dynamic permission routes
 router.get("/permissions", authenticateToken, asyncHandler(getCurrentUserPermissions));

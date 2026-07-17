@@ -6,7 +6,7 @@ import { RoleScope, OrganizationKind } from "@prisma/client";
  * Ensures that the system role for an organization exists, and that the organization's registering user
  * is mapped to this role in the UserOrganizationRole table.
  */
-export async function ensureOrganizationAdminRole(organizationId: string, tenantId: string) {
+export async function ensureOrganizationAdminRole(organizationId: string) {
   try {
     // 1. Get the organization to determine its type
     const organization = await prisma.organization.findUnique({
@@ -51,7 +51,6 @@ export async function ensureOrganizationAdminRole(organizationId: string, tenant
 
       orgRole = await prisma.organizationRole.create({
         data: {
-          tenantId,
           organizationId,
           name: roleName,
           description: `${roleName.replace(/_/g, " ")} system role`,
@@ -90,7 +89,6 @@ export async function ensureOrganizationAdminRole(organizationId: string, tenant
           data: {
             userId: user.id,
             roleId: orgRole.id,
-            tenantId,
             organizationId
           }
         });
