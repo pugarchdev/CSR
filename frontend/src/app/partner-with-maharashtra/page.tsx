@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import GovInput from "@/components/gov/GovInput";
 import GovSelect from "@/components/gov/GovSelect";
@@ -11,7 +12,7 @@ import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/
 import GovAlert from "@/components/gov/GovAlert";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import OtpVerification from "@/components/OtpVerification";
-import { Building2, Handshake, CheckCircle, Loader2, Copy } from "lucide-react";
+import { Building2, Handshake, CheckCircle, Loader2, Copy, ArrowRight } from "lucide-react";
 
 const SECTORS = [
   { value: "", label: "Select Sector" },
@@ -370,10 +371,15 @@ export default function PartnerWithMaharashtraPage() {
                 <GovCardTitle>How to Track</GovCardTitle>
               </GovCardHeader>
               <GovCardBody>
-                <p style={{ margin: 0, color: "var(--gov-text-secondary)", fontSize: 13, lineHeight: 1.6 }}>
-                  After submission, use the generated tracking ID at <strong>/track</strong> to see status updates, RM interactions, escalation movement, JS decision, nodal appointment, and project onboarding progress.
+                                <p style={{ margin: 0, color: "var(--gov-text-secondary)", fontSize: 13, lineHeight: 1.6 }}>
+                  After submission, use the generated tracking ID at <strong>track Status</strong> to see status updates, RM interactions, escalation movement, JS decision, nodal appointment, and project onboarding progress.
                 </p>
-              </GovCardBody>
+                  <Link
+                href="/track"
+                className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 px-5 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:no-underline transition-colors w-full sm:w-auto"
+              >
+                Track Status <ArrowRight size={14} className="ml-1.5" />
+              </Link>              </GovCardBody>
             </GovCard>
           </div>
         </div>
