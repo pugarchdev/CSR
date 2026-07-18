@@ -76,6 +76,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [openNavGroup, setOpenNavGroup] = useState<string | null>(null);
+  const [mobileOpenNavGroup, setMobileOpenNavGroup] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Array<{ id: string; title: string; message: string; isRead: boolean }>>([]);
   const [userEmail, setUserEmail] = useState("user@mahacsr.gov.in");
   const [tenantFeatures, setTenantFeatures] = useState<Record<string, boolean>>({});
@@ -160,6 +161,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
     setNotificationsOpen(false);
     setUserDropdownOpen(false);
     setOpenNavGroup(null);
+    setMobileOpenNavGroup(null);
   }, [pathname]);
 
   useEffect(() => {
@@ -739,7 +741,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#f4f5f7] text-[#333333] font-sans">
+    <div className="flex flex-col min-h-screen bg-[#f4f5f7] text-[#333333] font-sans w-full max-w-full overflow-x-hidden">
 
 
       {isDashboard && <div className="fixed top-0 left-0 right-0 h-1 z-[60] bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600"></div>}
@@ -1100,54 +1102,150 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                     <span className="font-heading font-bold text-[#14274e] text-sm">Navigation</span>
                     <button onClick={() => setMobileMenuOpen(false)} className="text-[#6b7280] hover:text-[#14274e]"><X size={18} /></button>
                   </div>
-                  <div className="flex flex-col gap-0.5 overflow-y-auto max-h-[calc(100vh-160px)]">
-                    {(isDashboard ? dashboardNavigationItems : [
-                      { label: "Home", href: "/", icon: Layers },
-                      { label: "Partner with Maharashtra", href: "/partner-with-maharashtra", icon: Handshake },
-                      { label: "Pitch a Development Need", href: "/pitch-development-need", icon: Sparkles },
-                      ...publicNavGroups.flatMap((group) => group.links.map((link) => ({
-                        label: link.label,
-                        href: link.href,
-                        icon: group.label === "About" ? HelpCircle : group.label === "Projects" ? Compass : group.label === "Documents" ? BookOpen : group.label === "Updates" ? FileText : Phone,
-                      }))),
-                    ]).map((item) => {
-                      const isExact = pathname === item.href ||
-                                      (item.href.endsWith("/overview") && pathname === item.href.replace("/overview", "")) ||
-                                      (item.href.endsWith("/statewide") && pathname === item.href.replace("/statewide", "")) ||
-                                      (item.href.endsWith("/dashboard") && pathname === item.href.replace("/dashboard", ""));
-                      const navigationList = isDashboard ? dashboardNavigationItems : [
-                        { label: "Home", href: "/", icon: Layers },
-                        { label: "Partner with Maharashtra", href: "/partner-with-maharashtra", icon: Handshake },
-                        { label: "Pitch a Development Need", href: "/pitch-development-need", icon: Sparkles },
-                        ...publicNavGroups.flatMap((group) => group.links.map((link) => ({
-                          label: link.label,
-                          href: link.href,
-                          icon: group.label === "About" ? HelpCircle : group.label === "Projects" ? Compass : group.label === "Documents" ? BookOpen : group.label === "Updates" ? FileText : Phone,
-                        }))),
-                      ];
-                      const hasExactMatch = navigationList.some((it) => 
-                        pathname === it.href ||
-                        (it.href.endsWith("/overview") && pathname === it.href.replace("/overview", "")) ||
-                        (it.href.endsWith("/statewide") && pathname === it.href.replace("/statewide", "")) ||
-                        (it.href.endsWith("/dashboard") && pathname === it.href.replace("/dashboard", ""))
-                      );
-                      const isActive = hasExactMatch ? isExact : (item.href !== "/" && pathname.startsWith(item.href));
-                      return (
+                  <div className="flex flex-col gap-1 overflow-y-auto max-h-[calc(100vh-180px)]">
+                    {isDashboard ? (
+                      dashboardNavigationItems.map((item) => {
+                        const isExact = pathname === item.href ||
+                                        (item.href.endsWith("/overview") && pathname === item.href.replace("/overview", "")) ||
+                                        (item.href.endsWith("/statewide") && pathname === item.href.replace("/statewide", "")) ||
+                                        (item.href.endsWith("/dashboard") && pathname === item.href.replace("/dashboard", ""));
+                        const hasExactMatch = dashboardNavigationItems.some((it) => 
+                          pathname === it.href ||
+                          (it.href.endsWith("/overview") && pathname === it.href.replace("/overview", "")) ||
+                          (it.href.endsWith("/statewide") && pathname === it.href.replace("/statewide", "")) ||
+                          (it.href.endsWith("/dashboard") && pathname === it.href.replace("/dashboard", ""))
+                        );
+                        const isActive = hasExactMatch ? isExact : (item.href !== "/" && pathname.startsWith(item.href));
+                        return (
+                          <Link
+                            key={item.label}
+                            href={item.href}
+                            onClick={() => setMobileMenuOpen(false)}
+                            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${
+                              isActive
+                                ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/10"
+                                : "text-[#4b5563] hover:text-[#14274e] hover:bg-[#f4f5f7]"
+                            }`}
+                          >
+                            <item.icon size={16} className={isActive ? "text-white" : "text-[#97a0ac]"} />
+                            <span>{item.label}</span>
+                          </Link>
+                        );
+                      })
+                    ) : (
+                      <>
+                        {/* Home Link */}
                         <Link
-                          key={item.label}
-                          href={item.href}
+                          href="/"
                           onClick={() => setMobileMenuOpen(false)}
                           className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${
-                            isActive
+                            pathname === "/"
                               ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/10"
                               : "text-[#4b5563] hover:text-[#14274e] hover:bg-[#f4f5f7]"
                           }`}
                         >
-                          <item.icon size={16} className={isActive ? "text-white" : "text-[#97a0ac]"} />
-                          <span>{item.label}</span>
+                          <Layers size={16} className={pathname === "/" ? "text-white" : "text-[#97a0ac]"} />
+                          <span>Home</span>
                         </Link>
-                      );
-                    })}
+
+                        {/* Partner with Maharashtra */}
+                        <Link
+                          href="/partner-with-maharashtra"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${
+                            pathname.startsWith("/partner-with-maharashtra")
+                              ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/10"
+                              : "text-[#4b5563] hover:text-[#14274e] hover:bg-[#f4f5f7]"
+                          }`}
+                        >
+                          <Handshake size={16} className={pathname.startsWith("/partner-with-maharashtra") ? "text-white" : "text-[#97a0ac]"} />
+                          <span>Partner with Maharashtra</span>
+                        </Link>
+
+                        {/* Pitch a Development Need */}
+                        <Link
+                          href="/pitch-development-need"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${
+                            pathname.startsWith("/pitch-development-need")
+                              ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/10"
+                              : "text-[#4b5563] hover:text-[#14274e] hover:bg-[#f4f5f7]"
+                          }`}
+                        >
+                          <Sparkles size={16} className={pathname.startsWith("/pitch-development-need") ? "text-white" : "text-[#97a0ac]"} />
+                          <span>Pitch a Development Need</span>
+                        </Link>
+
+                        {/* Divider */}
+                        <div className="h-[1px] bg-slate-200/60 my-2" />
+
+                        {/* Collapsible Public Nav Groups */}
+                        {publicNavGroups.map((group) => {
+                          const isGroupExpanded = mobileOpenNavGroup === group.label;
+                          const isGroupActive = pathname === group.href || group.links.some((link) => pathname === link.href || pathname.startsWith(link.href + "/"));
+                          
+                          return (
+                            <div key={group.label} className="flex flex-col">
+                              {/* Group Header Button */}
+                              <button
+                                onClick={() => setMobileOpenNavGroup(isGroupExpanded ? null : group.label)}
+                                className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold transition-all ${
+                                  isGroupActive 
+                                    ? "bg-blue-50/50 text-blue-700" 
+                                    : "text-[#4b5563] hover:text-[#14274e] hover:bg-[#f4f5f7]"
+                                }`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  {group.label === "About" ? <HelpCircle size={16} className="text-[#97a0ac]" /> :
+                                   group.label === "Projects" ? <Compass size={16} className="text-[#97a0ac]" /> :
+                                   group.label === "Documents" ? <BookOpen size={16} className="text-[#97a0ac]" /> :
+                                   group.label === "Updates" ? <FileText size={16} className="text-[#97a0ac]" /> :
+                                   <Phone size={16} className="text-[#97a0ac]" />}
+                                  <span>{group.label}</span>
+                                </div>
+                                <ChevronDown
+                                  size={14}
+                                  className={`transition-transform duration-200 text-slate-400 ${
+                                    isGroupExpanded ? "rotate-180" : ""
+                                  }`}
+                                />
+                              </button>
+
+                              {/* Group Sub-links (Collapsible) */}
+                              <AnimatePresence initial={false}>
+                                {isGroupExpanded && (
+                                  <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: "auto", opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                                    className="overflow-hidden flex flex-col gap-0.5 ml-4 pl-3 border-l border-slate-100 mt-1 mb-2"
+                                  >
+                                    {group.links.map((link) => {
+                                      const isLinkActive = pathname === link.href || pathname.startsWith(link.href + "/");
+                                      return (
+                                        <Link
+                                          key={link.href}
+                                          href={link.href}
+                                          onClick={() => setMobileMenuOpen(false)}
+                                          className={`flex items-center px-3 py-2 rounded-lg text-[11px] font-medium transition-all ${
+                                            isLinkActive
+                                              ? "bg-blue-50 text-blue-600 font-bold"
+                                              : "text-slate-500 hover:text-slate-800 hover:bg-[#f4f5f7]"
+                                          }`}
+                                        >
+                                          {link.label}
+                                        </Link>
+                                      );
+                                    })}
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          );
+                        })}
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="flex flex-col gap-2 pt-3 border-t border-[#e0e4ea]">

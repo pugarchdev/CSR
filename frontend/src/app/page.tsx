@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
 import {
@@ -135,11 +135,21 @@ function Parallax3DSection({ children, className }: { children: React.ReactNode;
   });
   const y = useTransform(scrollYProgress, [0, 1], [60, -60]);
   const rotateX = useTransform(scrollYProgress, [0, 0.5, 1], [4, 0, -4]);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   return (
     <motion.div
       ref={ref}
-      style={{ y, rotateX, transformPerspective: 1200 }}
+      style={isMobile ? {} : { y, rotateX, transformPerspective: 1200 }}
       className={className}
     >
       {children}
@@ -448,7 +458,7 @@ export default function LandingPage() {
                   <span className="px-3 py-1.5 text-slate-500 hover:text-slate-800 cursor-pointer transition-colors">Government Resolutions</span>
                   <span className="px-3 py-1.5 text-slate-500 hover:text-slate-800 cursor-pointer transition-colors">Circulars</span>
                 </div>
-                <div className="mt-4 overflow-x-auto rounded-xl border border-slate-100 overflow-hidden">
+                <div className="mt-4 overflow-x-auto rounded-xl border border-slate-100">
                   <table className="w-full min-w-[500px] border-collapse text-left text-xs">
                     <thead>
                       <tr className="bg-slate-50/50 text-slate-900 border-b border-slate-100">

@@ -77,15 +77,15 @@ export default function HomeStatsStrip() {
           variants={cardItem}
           whileHover={{ y: -4, boxShadow: "0 8px 20px rgba(0,0,0,0.04)", borderColor: "#cbd5e1" }}
           key={c.label} 
-          className="rounded-xl border border-slate-150 bg-white p-5 transition-all"
+          className="rounded-xl border border-slate-150 bg-white p-4 sm:p-5 transition-all"
         >
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 sm:gap-3">
             <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg ${c.accent ? "bg-amber-50 text-amber-700" : "bg-blue-50 text-blue-900"}`}>
               <c.icon size={20} />
             </div>
             <div className="min-w-0">
-              <div className="text-lg font-bold text-slate-800 truncate leading-none mb-1.5">{c.value}</div>
-              <div className="text-[11px] font-semibold text-slate-400 leading-tight">{c.label}</div>
+              <div className="text-base sm:text-lg font-bold text-slate-800 leading-none mb-1 sm:mb-1.5">{c.value}</div>
+              <div className="text-[10px] sm:text-[11px] font-semibold text-slate-400 leading-tight">{c.label}</div>
             </div>
           </div>
         </motion.div>

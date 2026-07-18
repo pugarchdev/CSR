@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "../styles/gov-theme.css";
 import { QueryProvider } from "@/lib/queryProvider";
+import { SmoothScrollProvider } from "@/hooks/useSmoothScroll";
 import SaaSLayout from "@/components/SaaSLayout";
 import SessionExpiredModal from "@/components/auth/SessionExpiredModal";
 
@@ -28,8 +29,10 @@ export default function RootLayout({
       </head>
       <body className="antialiased min-h-screen bg-slate-50 text-slate-900 selection:bg-blue-100 selection:text-blue-900">
         <QueryProvider>
-          <SaaSLayout>{children}</SaaSLayout>
-          <SessionExpiredModal />
+          <SmoothScrollProvider>
+            <SaaSLayout>{children}</SaaSLayout>
+            <SessionExpiredModal />
+          </SmoothScrollProvider>
         </QueryProvider>
       </body>
     </html>

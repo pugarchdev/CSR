@@ -16,7 +16,7 @@ const DEFAULT_SLIDES = [
   {
     id: "2",
     image: "/hero_slide_2.png",
-    title: "Transforming Rural Maharashtra",
+    title: "Transforming Maharashtra",
     highlight: "Through Convergence.",
     subtitle: "CSR investments aligned with district development priorities, driving sustainable infrastructure, education and healthcare across every taluka.",
     active: true,
