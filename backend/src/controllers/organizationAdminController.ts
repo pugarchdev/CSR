@@ -83,11 +83,11 @@ const getOwnedOrganization = async (req: TenantAwareRequest, expectedType?: Orga
 // Onboarding details are locked once submitted; editing is only allowed again
 // when the reviewer returns the application (CLARIFICATION_REQUIRED / REJECTED).
 const EDITABLE_ONBOARDING_STATUSES = new Set<OrganizationOnboardingStatus>([
-  OrganizationOnboardingStatus.REGISTERED,
-  OrganizationOnboardingStatus.PROFILE_INCOMPLETE,
-  OrganizationOnboardingStatus.DOCUMENTS_PENDING,
-  OrganizationOnboardingStatus.CLARIFICATION_REQUIRED,
-  OrganizationOnboardingStatus.REJECTED
+  (OrganizationOnboardingStatus?.REGISTERED || "REGISTERED") as OrganizationOnboardingStatus,
+  (OrganizationOnboardingStatus?.PROFILE_INCOMPLETE || "PROFILE_INCOMPLETE") as OrganizationOnboardingStatus,
+  (OrganizationOnboardingStatus?.DOCUMENTS_PENDING || "DOCUMENTS_PENDING") as OrganizationOnboardingStatus,
+  (OrganizationOnboardingStatus?.CLARIFICATION_REQUIRED || "CLARIFICATION_REQUIRED") as OrganizationOnboardingStatus,
+  (OrganizationOnboardingStatus?.REJECTED || "REJECTED") as OrganizationOnboardingStatus
 ]);
 
 const assertOnboardingEditable = (organization: { onboardingStatus: OrganizationOnboardingStatus }) => {

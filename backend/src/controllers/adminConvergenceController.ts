@@ -4,16 +4,16 @@ import prisma from "../config/db";
 import { AuthenticatedRequest } from "../middlewares/authMiddleware";
 
 const PENDING_ONBOARDING_STATUSES = [
-  OrganizationOnboardingStatus.SUBMITTED_FOR_REVIEW,
-  OrganizationOnboardingStatus.UNDER_VERIFICATION,
-  OrganizationOnboardingStatus.CLARIFICATION_REQUIRED
+  (OrganizationOnboardingStatus?.SUBMITTED_FOR_REVIEW || "SUBMITTED_FOR_REVIEW") as OrganizationOnboardingStatus,
+  (OrganizationOnboardingStatus?.UNDER_VERIFICATION || "UNDER_VERIFICATION") as OrganizationOnboardingStatus,
+  (OrganizationOnboardingStatus?.CLARIFICATION_REQUIRED || "CLARIFICATION_REQUIRED") as OrganizationOnboardingStatus
 ];
 const OPEN_GRIEVANCE_STATUSES = [
-  GrievanceStatus.RAISED,
-  GrievanceStatus.ACKNOWLEDGED,
-  GrievanceStatus.LEVEL_1_REVIEW,
-  GrievanceStatus.ESCALATED_TO_STATE_CELL,
-  GrievanceStatus.ESCALATED_TO_JS_SECRETARY
+  (GrievanceStatus?.RAISED || "RAISED") as GrievanceStatus,
+  (GrievanceStatus?.ACKNOWLEDGED || "ACKNOWLEDGED") as GrievanceStatus,
+  (GrievanceStatus?.LEVEL_1_REVIEW || "LEVEL_1_REVIEW") as GrievanceStatus,
+  (GrievanceStatus?.ESCALATED_TO_STATE_CELL || "ESCALATED_TO_STATE_CELL") as GrievanceStatus,
+  (GrievanceStatus?.ESCALATED_TO_JS_SECRETARY || "ESCALATED_TO_JS_SECRETARY") as GrievanceStatus
 ];
 
 // Admin-wide list of corporate interests expressed against government pitches

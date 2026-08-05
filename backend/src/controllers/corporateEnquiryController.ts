@@ -14,8 +14,9 @@ import {
 } from "../utils/apiResponse";
 import { generateCorporateEnquiryTrackingId } from "../services/trackingIdService";
 import { assertOtpVerified } from "../services/otpService";
-import { sendTrackingIdNotification } from "../services/notificationService";
+import { sendTrackingIdNotification, notify } from "../services/notificationService";
 import { SLAEscalationService, calculateDueDate } from "../services/slaEscalationService";
+import { getLeastLoadedRM } from "../services/rmAssignmentService";
 
 // ─── Types ─────────────────────────────────────────────────────────
 interface SubmitEnquiryBody {
@@ -190,6 +191,9 @@ export const submitEnquiry = async (
       tenantId = tenant?.id || null;
     }
 
+    // Auto-assign RM randomly based on workload
+    const assignedRm = await getLeastLoadedRM(tenantId);
+
     // Create enquiry
     const enquiry = await prisma.corporateEnquiry.create({
       data: {
@@ -206,12 +210,21 @@ export const submitEnquiry = async (
         emailVerified: false,
         mca21Cin: body.mca21Cin.toUpperCase(),
         proposedCsrWork: body.proposedCsrWork.trim(),
-        status: CorporateEnquiryStatus.TRACKING_ID_GENERATED,
+        assignedRelationshipManagerId: assignedRm ? assignedRm.id : null,
+        status: assignedRm ? CorporateEnquiryStatus.RM_ASSIGNED : CorporateEnquiryStatus.SUBMITTED,
         tenantId,
         submittedAt: new Date(),
         firstResponseDueAt: calculateDueDate("RM_RESPONSE"),
       },
     });
+
+    if (assignedRm) {
+      await notify(
+        assignedRm.id,
+        "New Corporate Enquiry Assigned",
+        `New enquiry ${trackingId} for ${body.companyName} has been assigned to you based on workload balancing.`
+      );
+    }
 
     // Create audit log
     await prisma.auditLog.create({

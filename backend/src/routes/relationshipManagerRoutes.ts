@@ -10,6 +10,8 @@ import {
   getAssessmentById,
   getRMEnquiryById,
   addRMEnquiryInteraction,
+  sendEnquiryEmail,
+  scheduleEnquiryMeeting,
   getRMEscalations,
   getCorporateInterests,
   updateCorporateInterest,
@@ -49,6 +51,22 @@ router.post(
   authenticateToken,
   authorizeRoles([Role.CSR_RELATIONSHIP_MANAGER, Role.SUPER_ADMIN, Role.PORTAL_ADMIN]),
   asyncHandler(addRMEnquiryInteraction)
+);
+
+// Send Email to Corporate
+router.post(
+  "/enquiries/:id/send-email",
+  authenticateToken,
+  authorizeRoles([Role.CSR_RELATIONSHIP_MANAGER, Role.SUPER_ADMIN, Role.PORTAL_ADMIN]),
+  asyncHandler(sendEnquiryEmail)
+);
+
+// Schedule Meeting with Corporate
+router.post(
+  "/enquiries/:id/schedule-meeting",
+  authenticateToken,
+  authorizeRoles([Role.CSR_RELATIONSHIP_MANAGER, Role.SUPER_ADMIN, Role.PORTAL_ADMIN]),
+  asyncHandler(scheduleEnquiryMeeting)
 );
 
 // Pending pitch verifications

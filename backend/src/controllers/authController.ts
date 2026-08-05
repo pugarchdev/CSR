@@ -417,7 +417,16 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 
   const user = await prisma.user.findUnique({
     where: { email },
-    include: { ngo: true, company: true, beneficiaryProfile: true }
+    include: {
+      ngo: true,
+      company: true,
+      beneficiaryProfile: true,
+      organizationRoles: {
+        include: {
+          role: true
+        }
+      }
+    }
   });
 
   if (!user) {
@@ -449,11 +458,16 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     return unauthorizedResponse(res, "Invalid email or password");
   }
 
-  if (user.role === Role.NGO_ADMIN || user.role === Role.NGO_MEMBER) {
+  let effectiveRole = user.role;
+  if (user.organizationRoles && user.organizationRoles.length > 0 && user.organizationRoles[0]?.role?.name) {
+    effectiveRole = user.organizationRoles[0].role.name as any;
+  }
+
+  if (effectiveRole === Role.NGO_ADMIN || effectiveRole === Role.NGO_MEMBER) {
     if (user.ngo && user.ngo.status === VerificationStatus.REJECTED) {
       return forbiddenResponse(res, "NGO organization verification was rejected. Access denied.");
     }
-  } else if (user.role === Role.COMPANY_ADMIN || user.role === Role.COMPANY_MEMBER) {
+  } else if (effectiveRole === Role.COMPANY_ADMIN || effectiveRole === Role.COMPANY_MEMBER) {
     if (user.company && user.company.status === VerificationStatus.REJECTED) {
       return forbiddenResponse(res, "Company organization verification was rejected. Access denied.");
     }
@@ -462,7 +476,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
   const { accessToken, refreshToken } = generateTokens({
     id: user.id,
     email: user.email,
-    role: user.role,
+    role: effectiveRole,
     tenantId: user.tenantId,
     organizationId: user.organizationId,
     accountStatus: user.accountStatus,
@@ -506,7 +520,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     user: {
       id: user.id,
       email: user.email,
-      role: user.role,
+      role: effectiveRole,
       tenantId: user.tenantId,
       organizationId: user.organizationId,
       accountStatus: user.accountStatus,

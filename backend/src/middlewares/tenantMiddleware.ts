@@ -18,7 +18,7 @@ const DEFAULT_TENANT_CODE = "MH-CSR";
 export const resolveTenantContext = async (req: TenantAwareRequest, res: Response, next: NextFunction) => {
   try {
     if (!req.user) {
-      const tenant = await prisma.tenant.findUnique({ where: { code: DEFAULT_TENANT_CODE } });
+      const tenant = await (prisma as any).tenant?.findUnique({ where: { code: DEFAULT_TENANT_CODE } });
       req.tenantContext = {
         tenantId: tenant?.id || null,
         organizationId: null,
@@ -31,7 +31,7 @@ export const resolveTenantContext = async (req: TenantAwareRequest, res: Respons
 
     let tenantId = req.user.tenantId || null;
     if (!tenantId) {
-      const tenant = await prisma.tenant.findUnique({ where: { code: DEFAULT_TENANT_CODE } });
+      const tenant = await (prisma as any).tenant?.findUnique({ where: { code: DEFAULT_TENANT_CODE } });
       tenantId = tenant?.id || null;
     }
 
@@ -53,7 +53,7 @@ export const checkTenantActive = async (req: TenantAwareRequest, res: Response, 
     const tenantId = req.tenantContext?.tenantId;
     if (!tenantId) return res.status(403).json({ error: "Portal instance is not assigned to this account." });
 
-    const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+    const tenant = await (prisma as any).tenant?.findUnique({ where: { id: tenantId } });
     if (!tenant || tenant.status !== TenantStatus.ACTIVE || tenant.isHidden) {
       return res.status(403).json({ error: "This portal instance is not active." });
     }
@@ -87,7 +87,7 @@ export const checkFeatureEnabled = (featureKey: string, sensitive = true) => {
       const tenantId = req.tenantContext?.tenantId;
       if (!tenantId) return res.status(403).json({ error: "Portal instance is not assigned to this account." });
 
-      const feature = await prisma.tenantFeature.findUnique({
+      const feature = await (prisma as any).tenantFeature?.findUnique({
         where: { tenantId_featureKey: { tenantId, featureKey } }
       });
 
@@ -108,9 +108,9 @@ export const checkFeatureEnabled = (featureKey: string, sensitive = true) => {
 export const checkPublicFeatureEnabled = (featureKey: string) => {
   return async (_req: TenantAwareRequest, res: Response, next: NextFunction) => {
     try {
-      const tenant = await prisma.tenant.findUnique({ where: { code: DEFAULT_TENANT_CODE } });
+      const tenant = await (prisma as any).tenant?.findUnique({ where: { code: DEFAULT_TENANT_CODE } });
       if (!tenant) return next();
-      const feature = await prisma.tenantFeature.findUnique({
+      const feature = await (prisma as any).tenantFeature?.findUnique({
         where: { tenantId_featureKey: { tenantId: tenant.id, featureKey } }
       });
       if (feature && !feature.isEnabled) {

@@ -269,3 +269,143 @@ export const sendNgoInvitationEmail = async (toEmail: string, ngoName: string, i
     html: htmlContent,
   });
 };
+
+export const sendCorporateEnquiryRMEmail = async (params: {
+  toEmail: string;
+  rmEmail: string;
+  companyName: string;
+  trackingId: string;
+  subject: string;
+  message: string;
+}) => {
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>MahaCSR Enquiry Communication</title>
+      <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border: 1px solid #e5e7eb; }
+        .header { background-color: #1e3a8a; padding: 30px; text-align: center; border-bottom: 4px solid #f97316; }
+        .header h1 { color: #ffffff; margin: 0; font-size: 24px; font-weight: 700; }
+        .header p { color: #eff6ff; margin: 5px 0 0 0; font-size: 13px; text-transform: uppercase; font-weight: 600; }
+        .content { padding: 30px; color: #1f2937; line-height: 1.6; }
+        .info-box { background: #f8fafc; border-left: 4px solid #1e3a8a; padding: 12px 16px; margin-bottom: 20px; font-size: 13px; }
+        .body-box { white-space: pre-wrap; font-size: 14px; color: #374151; background: #ffffff; padding: 16px; border: 1px solid #e2e8f0; border-radius: 8px; }
+        .footer { background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>MahaCSR Portal</h1>
+          <p>Corporate CSR Enquiry Communication</p>
+        </div>
+        <div class="content">
+          <div class="info-box">
+            <strong>Enquiry Tracking ID:</strong> ${params.trackingId}<br>
+            <strong>Organization:</strong> ${params.companyName}<br>
+            <strong>Relationship Manager:</strong> ${params.rmEmail}
+          </div>
+          <h3 style="margin-top:0; color:#1e3a8a;">${params.subject}</h3>
+          <div class="body-box">${params.message}</div>
+          <p style="margin-top:24px;">Best regards,<br><strong>Relationship Management Cell</strong><br>MahaCSR, Government of Maharashtra<br><a href="mailto:${params.rmEmail}">${params.rmEmail}</a></p>
+        </div>
+        <div class="footer">
+          <p>Official communication regarding corporate enquiry ID: ${params.trackingId}</p>
+          <p>&copy; 2026 Government of Maharashtra. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: `"MahaCSR Relationship Manager" <${smtpUser}>`,
+      to: params.toEmail,
+      replyTo: params.rmEmail,
+      subject: `[MahaCSR] ${params.subject} (Ref: ${params.trackingId})`,
+      html: htmlContent,
+    });
+  } catch (err) {
+    console.error("Failed to send RM enquiry email:", err);
+  }
+};
+
+export const sendMeetingScheduleEmail = async (params: {
+  toEmail: string;
+  rmEmail: string;
+  companyName: string;
+  trackingId: string;
+  meetingDate: string;
+  meetingTime: string;
+  meetingDay: string;
+  meetingType: string;
+  purpose: string;
+}) => {
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>MahaCSR Meeting Scheduled</title>
+      <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border: 1px solid #e5e7eb; }
+        .header { background-color: #1e3a8a; padding: 30px; text-align: center; border-bottom: 4px solid #f97316; }
+        .header h1 { color: #ffffff; margin: 0; font-size: 24px; font-weight: 700; }
+        .header p { color: #eff6ff; margin: 5px 0 0 0; font-size: 13px; text-transform: uppercase; font-weight: 600; }
+        .content { padding: 30px; color: #1f2937; line-height: 1.6; }
+        .meeting-card { background: #eff6ff; border: 2px dashed #3b82f6; border-radius: 12px; padding: 20px; margin: 20px 0; }
+        .meeting-title { font-size: 18px; font-weight: 700; color: #1e3a8a; margin: 0 0 10px 0; }
+        .meeting-detail { font-size: 14px; margin-bottom: 6px; }
+        .footer { background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>MahaCSR Portal</h1>
+          <p>CSR Project Meeting Notice</p>
+        </div>
+        <div class="content">
+          <p>Dear Corporate Team at <strong>${params.companyName}</strong>,</p>
+          <p>A CSR coordination meeting has been scheduled by your assigned Relationship Manager regarding Enquiry Reference <strong>${params.trackingId}</strong>.</p>
+          
+          <div class="meeting-card">
+            <div class="meeting-title">📅 Meeting Details</div>
+            <div class="meeting-detail"><strong>Date:</strong> ${params.meetingDate} (${params.meetingDay})</div>
+            <div class="meeting-detail"><strong>Time:</strong> ${params.meetingTime}</div>
+            <div class="meeting-detail"><strong>Type:</strong> ${params.meetingType}</div>
+            <div class="meeting-detail"><strong>Purpose / Agenda:</strong> ${params.purpose}</div>
+            <div class="meeting-detail"><strong>RM Contact:</strong> ${params.rmEmail}</div>
+          </div>
+
+          <p>Please confirm your availability by replying directly to this email.</p>
+          <p>Best regards,<br><strong>Relationship Management Cell</strong><br>MahaCSR, Government of Maharashtra</p>
+        </div>
+        <div class="footer">
+          <p>Automated meeting invitation for tracking ID: ${params.trackingId}</p>
+          <p>&copy; 2026 Government of Maharashtra. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: `"MahaCSR Portal" <${smtpUser}>`,
+      to: params.toEmail,
+      cc: params.rmEmail,
+      replyTo: params.rmEmail,
+      subject: `[MahaCSR Meeting Notice] ${params.companyName} - ${params.meetingDate} (${params.trackingId})`,
+      html: htmlContent,
+    });
+  } catch (err) {
+    console.error("Failed to send RM meeting email:", err);
+  }
+};
+

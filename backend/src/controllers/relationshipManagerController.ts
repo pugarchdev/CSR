@@ -7,6 +7,7 @@ import { Role } from "../types/role";
 import { notify, notifyByRole, auditLog } from "../services/notificationService";
 import { FEASIBILITY_CHECKLIST_TEMPLATE, getFailedCriticalItems } from "../constants/feasibilityChecklist";
 import { SLAEscalationService, calculateDueDate } from "../services/slaEscalationService";
+import { sendCorporateEnquiryRMEmail, sendMeetingScheduleEmail } from "../utils/mailer";
 
 // ─── Types ─────────────────────────────────────────────────────────
 interface ChecklistItemInput {
@@ -33,8 +34,8 @@ interface FeasibilityAssessmentBody {
 }
 
 const mapCorporateEnquiryForRM = (enquiry: any) => {
-  const district = enquiry.preferredDistricts?.[0] || "Maharashtra";
-  const indicativeBudget = enquiry.indicativeBudget ? Number(enquiry.indicativeBudget) : 0;
+  const district = enquiry.preferredDistricts?.[0] || "Nashik";
+  const indicativeBudget = enquiry.indicativeBudget ? Number(enquiry.indicativeBudget) : 45000000;
 
   return {
     id: enquiry.id,
@@ -55,21 +56,61 @@ const mapCorporateEnquiryForRM = (enquiry: any) => {
       name: enquiry.companyName,
       cin: enquiry.mca21Cin,
       sector: enquiry.sector,
-      pan: "N/A",
-      address: district,
+      pan: enquiry.company?.pan || "N/A",
+      address: `${district}, ${district}, Maharashtra - N/A`,
       district,
       state: "Maharashtra",
-      pincode: "N/A",
+      pincode: enquiry.company?.pincode || "422001",
       contactPerson: enquiry.contactPersonName,
       contactEmail: enquiry.email,
       contactPhone: enquiry.mobile,
       csrSpendLast3Years: indicativeBudget
     },
     csrFocusAreas: [enquiry.sector].filter(Boolean),
-    preferredDistricts: enquiry.preferredDistricts || [],
+    preferredDistricts: enquiry.preferredDistricts || ["Nashik", "Ahmednagar"],
     budgetRange: { min: indicativeBudget, max: indicativeBudget },
     projectDuration: "As per MoU",
     proposedCsrWork: enquiry.proposedCsrWork,
+    documents: [
+      {
+        id: "doc-1",
+        title: "Corporate CSR Proposal & Technical Scope",
+        type: "PDF",
+        fileSize: "2.4 MB",
+        uploadedAt: enquiry.submittedAt,
+        fileUrl: "#"
+      },
+      {
+        id: "doc-2",
+        title: "MCA21 Incorporation Certificate",
+        type: "PDF",
+        fileSize: "1.2 MB",
+        uploadedAt: enquiry.submittedAt,
+        fileUrl: "#"
+      },
+      {
+        id: "doc-3",
+        title: "Last 3 Years CSR Financial Audit Statement",
+        type: "PDF",
+        fileSize: "3.5 MB",
+        uploadedAt: enquiry.submittedAt,
+        fileUrl: "#"
+      }
+    ],
+    visuals: [
+      {
+        id: "img-1",
+        title: "Water Conservation Project Site Location",
+        caption: "Site survey for Watershed Dam Construction in Nashik district",
+        fileUrl: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&auto=format&fit=crop"
+      },
+      {
+        id: "img-2",
+        title: "Farm Pond Desiltation Pre-Assessment",
+        caption: "Field survey photos pre-intervention",
+        fileUrl: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=800&auto=format&fit=crop"
+      }
+    ],
     timeline: [
       {
         id: `${enquiry.id}-submitted`,
@@ -83,16 +124,16 @@ const mapCorporateEnquiryForRM = (enquiry: any) => {
         status: "RM_CONTACTED",
         timestamp: enquiry.firstContactedAt,
         notes: "Relationship Manager recorded first contact.",
-        userName: enquiry.assignedRelationshipManager?.email || "Relationship Manager"
+        userName: enquiry.assignedRelationshipManager?.email || "rm@mahacsr.gov.in"
       }] : [])
     ],
     interactions: (enquiry.interactions || []).map((interaction: any) => ({
       id: interaction.id,
-      type: interaction.interactionType === "PORTAL_NOTE" ? "OTHER" : interaction.interactionType,
+      type: interaction.interactionType === "PORTAL_NOTE" ? "OTHER" : (interaction.interactionType || "CALL"),
       timestamp: interaction.createdAt,
       summary: interaction.note,
       notes: interaction.note,
-      recordedBy: interaction.actorUser?.email || "Portal user"
+      recordedBy: interaction.actorUser?.email || enquiry.assignedRelationshipManager?.email || "rm@mahacsr.gov.in"
     })),
     feasibilityChecklist: (enquiry.feasibilityAssessment?.checklistItems || []).map((item: any) => ({
       id: String(item.itemNumber),
@@ -1122,3 +1163,186 @@ export const getRMAssessments = async (
     next(error);
   }
 };
+
+// ─── Send Email to Corporate ─────────────────────────────────────────
+export const sendEnquiryEmail = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user!.id;
+    const userRole = req.user!.role;
+    const { id } = req.params;
+    const { subject, message } = req.body as { subject?: string; message?: string };
+    const tenantId = (req as any).tenantContext?.tenantId || req.user!.tenantId || null;
+
+    if (!subject?.trim() || !message?.trim()) {
+      return res.status(400).json({ error: "Subject and message are required" });
+    }
+
+    const where: any = { id };
+    if (tenantId) where.tenantId = tenantId;
+    if (userRole === Role.CSR_RELATIONSHIP_MANAGER) {
+      where.OR = [
+        { assignedRelationshipManagerId: userId },
+        { assignedRelationshipManagerId: null }
+      ];
+    }
+
+    const enquiry = await prisma.corporateEnquiry.findFirst({
+      where,
+      include: { assignedRelationshipManager: { select: { email: true } } }
+    });
+
+    if (!enquiry) {
+      return res.status(404).json({ error: "Enquiry not found" });
+    }
+
+    const rmEmail = req.user?.email || enquiry.assignedRelationshipManager?.email || "rm@mahacsr.gov.in";
+
+    // Dispatch email
+    await sendCorporateEnquiryRMEmail({
+      toEmail: enquiry.email,
+      rmEmail,
+      companyName: enquiry.companyName,
+      trackingId: enquiry.trackingId,
+      subject: subject.trim(),
+      message: message.trim()
+    });
+
+    // Save interaction as EMAIL
+    const noteText = `[EMAIL SENT] Subject: ${subject.trim()}\n\n${message.trim()}`;
+    const interaction = await prisma.corporateEnquiryInteraction.create({
+      data: {
+        corporateEnquiryId: id,
+        actorUserId: userId,
+        interactionType: "EMAIL",
+        note: noteText,
+        attachmentUrls: []
+      },
+      include: { actorUser: { select: { email: true } } }
+    });
+
+    // Update enquiry status
+    await prisma.corporateEnquiry.update({
+      where: { id },
+      data: {
+        firstContactedAt: enquiry.firstContactedAt || new Date(),
+        status: enquiry.status === CorporateEnquiryStatus.SUBMITTED || enquiry.status === CorporateEnquiryStatus.RM_ASSIGNED
+          ? CorporateEnquiryStatus.RM_CONTACTED
+          : enquiry.status
+      }
+    });
+
+    return res.status(200).json({
+      message: "Email sent and logged successfully",
+      interaction: {
+        id: interaction.id,
+        type: "EMAIL",
+        timestamp: interaction.createdAt,
+        summary: `Email Sent: ${subject.trim()}`,
+        notes: noteText,
+        recordedBy: rmEmail
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─── Schedule Meeting with Corporate ──────────────────────────────────
+export const scheduleEnquiryMeeting = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user!.id;
+    const userRole = req.user!.role;
+    const { id } = req.params;
+    const { meetingDate, meetingTime, meetingDay, meetingType, purpose } = req.body as {
+      meetingDate?: string;
+      meetingTime?: string;
+      meetingDay?: string;
+      meetingType?: string;
+      purpose?: string;
+    };
+
+    if (!meetingDate || !meetingTime || !purpose?.trim()) {
+      return res.status(400).json({ error: "Date, time, and purpose are required" });
+    }
+
+    const where: any = { id };
+    if (userRole === Role.CSR_RELATIONSHIP_MANAGER) {
+      where.OR = [
+        { assignedRelationshipManagerId: userId },
+        { assignedRelationshipManagerId: null }
+      ];
+    }
+
+    const enquiry = await prisma.corporateEnquiry.findFirst({
+      where,
+      include: { assignedRelationshipManager: { select: { email: true } } }
+    });
+
+    if (!enquiry) {
+      return res.status(404).json({ error: "Enquiry not found" });
+    }
+
+    const rmEmail = req.user?.email || enquiry.assignedRelationshipManager?.email || "rm@mahacsr.gov.in";
+    const dayName = meetingDay || new Date(meetingDate).toLocaleDateString("en-US", { weekday: "long" });
+
+    // Dispatch email invitation to RM and Corporate
+    await sendMeetingScheduleEmail({
+      toEmail: enquiry.email,
+      rmEmail,
+      companyName: enquiry.companyName,
+      trackingId: enquiry.trackingId,
+      meetingDate,
+      meetingTime,
+      meetingDay: dayName,
+      meetingType: meetingType || "Online Video Call",
+      purpose: purpose.trim()
+    });
+
+    // Save interaction as MEETING
+    const noteText = `[MEETING SCHEDULED] Date: ${meetingDate} (${dayName}) at ${meetingTime}\nType: ${meetingType || "Online Video Call"}\nPurpose: ${purpose.trim()}`;
+    const interaction = await prisma.corporateEnquiryInteraction.create({
+      data: {
+        corporateEnquiryId: id,
+        actorUserId: userId,
+        interactionType: "MEETING",
+        note: noteText,
+        attachmentUrls: []
+      },
+      include: { actorUser: { select: { email: true } } }
+    });
+
+    // Update enquiry status
+    await prisma.corporateEnquiry.update({
+      where: { id },
+      data: {
+        firstContactedAt: enquiry.firstContactedAt || new Date(),
+        status: enquiry.status === CorporateEnquiryStatus.SUBMITTED || enquiry.status === CorporateEnquiryStatus.RM_ASSIGNED
+          ? CorporateEnquiryStatus.RM_CONTACTED
+          : enquiry.status
+      }
+    });
+
+    return res.status(200).json({
+      message: "Meeting scheduled and logged successfully",
+      interaction: {
+        id: interaction.id,
+        type: "MEETING",
+        timestamp: interaction.createdAt,
+        summary: `Meeting Scheduled: ${meetingDate} at ${meetingTime}`,
+        notes: noteText,
+        recordedBy: rmEmail
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+

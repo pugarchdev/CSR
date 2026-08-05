@@ -9,6 +9,7 @@ import { assertOtpVerified } from "../services/otpService";
 import { SLAEscalationService, calculateDueDate } from "../services/slaEscalationService";
 import { onboardApprovedAssessmentToProject } from "../services/convergenceOnboardingService";
 import { FEASIBILITY_CHECKLIST_SEED } from "../constants/mahacsr-framework";
+import { getLeastLoadedRM } from "../services/rmAssignmentService";
 
 // ─── Types ─────────────────────────────────────────────────────────
 interface PhotoInput {
@@ -272,13 +273,8 @@ export const submitPitch = async (
       }
     });
 
-    // Auto-assign to RM based on district
-    const rm = await prisma.user.findFirst({
-      where: {
-        role: Role.CSR_RELATIONSHIP_MANAGER,
-        assignedDistrict: body.district
-      }
-    });
+    // Auto-assign to RM based on workload balancing
+    const rm = await getLeastLoadedRM(tenantId);
 
     if (rm) {
       await prisma.governmentPitch.update({
