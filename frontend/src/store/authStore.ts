@@ -26,7 +26,9 @@ export interface UserProfile {
   designation?: string | null;
   mobile?: string | null;
   roleNumericId?: number | null;
+  roleId?: string | number | null;
   roleSlug?: string | null;
+  orgKind?: string | null;
   dynamicRole?: string | null;
   ngoId?: string | null;
   companyId?: string | null;

@@ -1,12 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CheckCircle2, Clock3, Loader2, Mail, UserPlus } from "lucide-react";
+import { AlertCircle, Building2, CheckCircle2, Clock3, Loader2, Mail, UserPlus } from "lucide-react";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import { GovPageHeader } from "@/components/layout/GovPageHeader";
 import { useApiQuery } from "@/lib/apiHooks";
 import { apiFetch } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
+import { AccessRestricted } from "@/components/auth/AccessRestricted";
 
 const labelStatus = (status?: string) => (status || "UNKNOWN").replace(/_/g, " ");
 
@@ -14,9 +15,10 @@ export default function AgencySubLoginsPage() {
   const user = useAuthStore((state) => state.user);
   const roles = useAuthStore((state) => state.roles);
   const roleNames = roles?.length ? roles : user?.role ? [user.role] : [];
-  const isNgoAdmin = roleNames.some((role) => /NGO.*ADMIN|IMPLEMENTING.*AGENCY/i.test(role));
-  const { data: rowsResponse, isLoading, refetch } = useApiQuery<any>(["agency-sub-logins"], "/implementing-agency/sub-logins");
-  const { data: projectResponse } = useApiQuery<any>(["agency-projects"], "/convergence-projects", { enabled: !isNgoAdmin });
+  const isCompany = roleNames.some((role) => /COMPANY|CORPORATE|ROLE_8/i.test(String(role))) || user?.organization?.kind === "CSR_COMPANY";
+
+  const { data: rowsResponse, isLoading, refetch } = useApiQuery<any>(["agency-sub-logins"], "/implementing-agency/sub-logins", { enabled: isCompany });
+  const { data: projectResponse } = useApiQuery<any>(["agency-projects"], "/convergence-projects", { enabled: isCompany });
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState("");
   const [ngoName, setNgoName] = useState("");
@@ -44,9 +46,9 @@ export default function AgencySubLoginsPage() {
     setSaving(true);
     setMessage("");
     try {
-      const body = isNgoAdmin ? { email } : { email, ngoName, darpanId, contactPerson, phone };
+      const body = { email, ngoName, darpanId, contactPerson, phone };
       const result = await apiFetch<any>("/implementing-agency/sub-logins", { method: "POST", body: JSON.stringify(body) });
-      setMessage(result?.message || "Invitation created.");
+      setMessage(result?.message || "NGO invitation created.");
       setEmail("");
       setNgoName("");
       setDarpanId("");
@@ -80,20 +82,29 @@ export default function AgencySubLoginsPage() {
     }
   };
 
+  if (!isCompany) {
+    return (
+      <GovPortalLayout>
+        <main className="mx-auto min-h-screen max-w-screen-xl px-4 py-4 md:px-6">
+          <AccessRestricted
+            requiredPermission="ngo_login:create"
+            reason="Sub-logins for NGOs and Implementing Agencies are restricted strictly to authorized Company / Corporate Dashboard accounts."
+          />
+        </main>
+      </GovPortalLayout>
+    );
+  }
+
   return (
     <GovPortalLayout>
       <main className="mx-auto min-h-screen max-w-screen-xl space-y-4 px-4 py-4 md:px-6">
         <GovPageHeader
-          eyebrow={isNgoAdmin ? "NGO Admin" : "Company Admin"}
-          title={isNgoAdmin ? "Internal NGO Staff Access" : "NGO & Implementing Agency Onboarding"}
-          description={
-            isNgoAdmin
-              ? "Invite internal staff after your NGO has been approved."
-              : "Invite an NGO, monitor onboarding and approval, then assign a project only after Super Admin approval."
-          }
+          eyebrow="Company / Corporate Dashboard"
+          title="NGO & Implementing Agency Sub-Logins"
+          description="Invite an NGO/Implementing Agency, monitor onboarding and approval status, and assign projects after Super Admin verification."
           actions={
             <button onClick={() => setShowForm(true)} className="inline-flex items-center gap-2 rounded-xl bg-blue-900 px-4 py-2 text-xs font-bold text-white">
-              <UserPlus size={15} /> {isNgoAdmin ? "Invite staff" : "Invite NGO / agency"}
+              <UserPlus size={15} /> Invite NGO / Agency
             </button>
           }
         />
@@ -116,7 +127,7 @@ export default function AgencySubLoginsPage() {
           ) : (
             <div className="divide-y divide-slate-100">
               {rows.map((row: any) => {
-                const onboardingStatus = row.agencyOrganization?.status || (isNgoAdmin ? "INTERNAL_STAFF" : "INVITATION_PENDING");
+                const onboardingStatus = row.agencyOrganization?.status || "INVITATION_PENDING";
                 const approved = onboardingStatus === "ACTIVE";
                 return (
                   <div key={row.id} className="space-y-3 px-5 py-4">
@@ -134,33 +145,31 @@ export default function AgencySubLoginsPage() {
                         {approved ? "ELIGIBLE FOR ASSIGNMENT" : "ASSIGNMENT LOCKED"}
                       </span>
                     </div>
-                    {!isNgoAdmin && (
-                      <div className="flex flex-col gap-2 rounded-xl bg-slate-50 p-3 sm:flex-row sm:items-center">
-                        {row.assignedProject ? (
-                          <p className="text-xs font-bold text-emerald-800">Assigned project: {row.assignedProject.title}</p>
-                        ) : (
-                          <>
-                            <select
-                              disabled={!approved}
-                              value={projectSelections[row.id] || ""}
-                              onChange={(event) => setProjectSelections((current) => ({ ...current, [row.id]: event.target.value }))}
-                              className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white p-2 text-xs disabled:cursor-not-allowed disabled:bg-slate-100"
-                            >
-                              <option value="">{approved ? "Select a company project" : "Available after Super Admin approval"}</option>
-                              {projects.map((project: any) => <option key={project.id} value={project.id}>{project.projectCode ? `${project.projectCode} — ` : ""}{project.title}</option>)}
-                            </select>
-                            <button
-                              type="button"
-                              disabled={!approved || assigningId === row.id}
-                              onClick={() => assignProject(row.id)}
-                              className="rounded-lg bg-blue-900 px-4 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
-                            >
-                              {assigningId === row.id ? "Assigning…" : "Assign project"}
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    )}
+                    <div className="flex flex-col gap-2 rounded-xl bg-slate-50 p-3 sm:flex-row sm:items-center">
+                      {row.assignedProject ? (
+                        <p className="text-xs font-bold text-emerald-800">Assigned project: {row.assignedProject.title}</p>
+                      ) : (
+                        <>
+                          <select
+                            disabled={!approved}
+                            value={projectSelections[row.id] || ""}
+                            onChange={(event) => setProjectSelections((current) => ({ ...current, [row.id]: event.target.value }))}
+                            className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white p-2 text-xs disabled:cursor-not-allowed disabled:bg-slate-100"
+                          >
+                            <option value="">{approved ? "Select a company project" : "Available after Super Admin approval"}</option>
+                            {projects.map((project: any) => <option key={project.id} value={project.id}>{project.projectCode ? `${project.projectCode} — ` : ""}{project.title}</option>)}
+                          </select>
+                          <button
+                            type="button"
+                            disabled={!approved || assigningId === row.id}
+                            onClick={() => assignProject(row.id)}
+                            className="rounded-lg bg-blue-900 px-4 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                          >
+                            {assigningId === row.id ? "Assigning…" : "Assign project"}
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -174,24 +183,18 @@ export default function AgencySubLoginsPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4">
             <form onSubmit={submit} className="w-full max-w-lg space-y-4 rounded-2xl bg-white p-6 shadow-2xl">
               <div>
-                <h2 className="text-base font-extrabold text-slate-900">{isNgoAdmin ? "Invite internal NGO staff" : "Invite NGO / implementing agency"}</h2>
+                <h2 className="text-base font-extrabold text-slate-900">Invite NGO / Implementing Agency</h2>
                 <p className="mt-1 text-xs text-slate-500">
-                  {isNgoAdmin ? "Staff inherit your approved NGO organization context." : "An activation link will be emailed. No project can be assigned until onboarding is approved by Super Admin."}
+                  An activation link will be emailed to the agency. No project can be assigned until onboarding is approved by Super Admin.
                 </p>
               </div>
-              {!isNgoAdmin && (
-                <>
-                  <label className="block text-xs font-bold text-slate-700">NGO / agency name<input required value={ngoName} onChange={(event) => setNgoName(event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-200 p-2.5" /></label>
-                  <label className="block text-xs font-bold text-slate-700">NGO Darpan ID (if available)<input value={darpanId} onChange={(event) => setDarpanId(event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-200 p-2.5" /></label>
-                </>
-              )}
+              <label className="block text-xs font-bold text-slate-700">NGO / agency name<input required value={ngoName} onChange={(event) => setNgoName(event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-200 p-2.5" /></label>
+              <label className="block text-xs font-bold text-slate-700">NGO Darpan ID (if available)<input value={darpanId} onChange={(event) => setDarpanId(event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-200 p-2.5" /></label>
               <label className="block text-xs font-bold text-slate-700">Official email<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-200 p-2.5" /></label>
-              {!isNgoAdmin && (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="block text-xs font-bold text-slate-700">Contact person<input value={contactPerson} onChange={(event) => setContactPerson(event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-200 p-2.5" /></label>
-                  <label className="block text-xs font-bold text-slate-700">Phone<input value={phone} onChange={(event) => setPhone(event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-200 p-2.5" /></label>
-                </div>
-              )}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block text-xs font-bold text-slate-700">Contact person<input value={contactPerson} onChange={(event) => setContactPerson(event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-200 p-2.5" /></label>
+                <label className="block text-xs font-bold text-slate-700">Phone<input value={phone} onChange={(event) => setPhone(event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-200 p-2.5" /></label>
+              </div>
               <div className="flex justify-end gap-2">
                 <button type="button" onClick={() => setShowForm(false)} className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700">Cancel</button>
                 <button disabled={saving} className="rounded-xl bg-blue-900 px-4 py-2 text-xs font-bold text-white">{saving ? "Creating…" : "Send invitation"}</button>

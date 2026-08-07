@@ -10,8 +10,12 @@ import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import { Loader } from "@/components/ui/Loader";
 import { ViewToggle, ViewMode } from "@/components/ui/ViewToggle";
 import { useResponsiveViewMode } from "@/hooks/useResponsiveViewMode";
+import { useRouter } from "next/navigation";
+import { Modal } from "@/components/ui/Modal";
+import { Button } from "@/components/ui/Button";
+import { apiFetch } from "@/lib/api";
 import {
-  Compass, Plus, Search, Filter, MapPin, Coins, ArrowUpRight, CheckCircle2, Clock, FileText
+  Compass, Plus, Search, Filter, MapPin, Coins, ArrowUpRight, CheckCircle2, Clock, FileText, AlertCircle, Loader2
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 
@@ -27,10 +31,14 @@ interface Pitch {
 }
 
 export default function PitchesPage() {
+  const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const roles = useAuthStore((s) => s.roles);
   const storeIsAdmin = useAuthStore((s) => s.isAdmin);
   const activeRoles = (roles || []).length > 0 ? roles : (user?.role ? [user.role] : []);
+
+  const [modalState, setModalState] = useState<"NONE" | "ONBOARDING_INCOMPLETE" | "APPROVAL_PENDING">("NONE");
+  const [checkingStatus, setCheckingStatus] = useState(false);
 
   const isRM = activeRoles.some(r => {
     const s = String(r).toUpperCase();
@@ -39,7 +47,7 @@ export default function PitchesPage() {
 
   const isJS = activeRoles.some(r => {
     const s = String(r).toUpperCase();
-    return s.includes("JOINT_SECRETARY") || s.includes("JOINT SECRETARY") || s === "3" || (user as any)?.roleId === 3;
+    return s.includes("JOINT_SECRETARY") || s.includes("JOINT SECRETARY") || s === "3" || user?.roleId === 3;
   });
 
   const isSuperAdmin = storeIsAdmin || activeRoles.some(r => {
@@ -61,6 +69,46 @@ export default function PitchesPage() {
   // Pitch creation is reserved for Government Department Officers submitting proposals.
   // Superadmin and Relationship Managers oversee/manage the platform and do not submit pitches.
   const canCreatePitch = isGovOfficer && !isSuperAdmin && !isRM;
+
+  const handleCreatePitchClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    setCheckingStatus(true);
+
+    try {
+      let org = (user as any)?.organization;
+
+      if (user?.organizationId) {
+        try {
+          const profileRes = await apiFetch<any>("/onboarding/profile");
+          org = profileRes?.organization || profileRes?.data?.organization || profileRes?.data || profileRes || org;
+        } catch {}
+      }
+
+      if (!user?.organizationId || !org) {
+        setModalState("ONBOARDING_INCOMPLETE");
+        return;
+      }
+
+      const statusUpper = (org.status || org.onboardingStatus || "").toUpperCase();
+      const PENDING_APPROVAL_STATUSES = ["SUBMITTED_FOR_REVIEW", "UNDER_VERIFICATION", "CLARIFICATION_REQUIRED", "PENDING_APPROVAL", "DOCUMENTS_SUBMITTED"];
+
+      if (statusUpper === "ACTIVE" || statusUpper === "APPROVED" || Number(user?.roleId || user?.role) === 1) {
+        router.push("/pitches/create");
+        return;
+      } else if (PENDING_APPROVAL_STATUSES.includes(statusUpper)) {
+        setModalState("APPROVAL_PENDING");
+        return;
+      } else {
+        // REGISTERED, PROFILE_INCOMPLETE, DOCUMENTS_PENDING, or un-submitted onboarding
+        setModalState("ONBOARDING_INCOMPLETE");
+        return;
+      }
+    } catch {
+      setModalState("ONBOARDING_INCOMPLETE");
+    } finally {
+      setCheckingStatus(false);
+    }
+  };
 
   const { data: envelope, isLoading, error: fetchError } = useApiQuery<any>(
     [isRM ? "rm-pitches" : "government-pitches"],
@@ -110,15 +158,79 @@ export default function PitchesPage() {
           description="Statewide directory of departmental proposals seeking corporate partner empanelement and CSR funding."
           actions={
             canCreatePitch && (
-              <Link
-                href="/pitches/create"
-                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 px-4 py-2 text-xs font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105"
+              <button
+                onClick={handleCreatePitchClick}
+                disabled={checkingStatus}
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 px-4 py-2 text-xs font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105 disabled:opacity-50"
               >
-                <Plus size={16} /> Create Pitch Proposal
-              </Link>
+                {checkingStatus ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                Create Pitch Proposal
+              </button>
             )
           }
         />
+
+        {/* Onboarding Incomplete Modal */}
+        <Modal
+          isOpen={modalState === "ONBOARDING_INCOMPLETE"}
+          onClose={() => setModalState("NONE")}
+          title="Onboarding Needs to Be Completed"
+        >
+          <div className="flex flex-col gap-4 p-2">
+            <div className="flex items-center gap-3 text-amber-600 bg-amber-50 p-3 rounded-xl border border-amber-200">
+              <AlertCircle size={24} className="shrink-0" />
+              <p className="text-xs font-semibold">
+                Your government department onboarding needs to be completed before submitting a government pitch. Please complete your department onboarding first.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setModalState("NONE")}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                className="bg-blue-900 hover:bg-blue-950 text-white"
+                onClick={() => {
+                  setModalState("NONE");
+                  router.push("/organization/onboarding/department");
+                }}
+              >
+                Complete Onboarding
+              </Button>
+            </div>
+          </div>
+        </Modal>
+
+        {/* Superadmin Approval Pending Modal */}
+        <Modal
+          isOpen={modalState === "APPROVAL_PENDING"}
+          onClose={() => setModalState("NONE")}
+          title="Approval Pending"
+        >
+          <div className="flex flex-col gap-4 p-2">
+            <div className="flex items-center gap-3 text-blue-900 bg-blue-50 p-3 rounded-xl border border-blue-200">
+              <Clock size={24} className="shrink-0 text-blue-700" />
+              <p className="text-xs font-semibold">
+                Your government department onboarding approval is pending from Superadmin. Till then explore the marketplace.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setModalState("NONE")}>
+                Close
+              </Button>
+              <Button
+                variant="primary"
+                className="bg-blue-900 hover:bg-blue-950 text-white"
+                onClick={() => {
+                  setModalState("NONE");
+                  router.push("/marketplace");
+                }}
+              >
+                Explore Marketplace
+              </Button>
+            </div>
+          </div>
+        </Modal>
 
         {/* Metrics Grid */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

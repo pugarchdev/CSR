@@ -405,44 +405,78 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
     const loadDirectories = async () => {
       setLoading(true);
       try {
-        const [projectRows, ngoRows, companyRows] = await Promise.all([
-          apiFetch<any[]>("/projects"),
-          apiFetch<any[]>("/ngos"),
-          apiFetch<any[]>("/companies")
+        const [projectRows, pitchRows, ngoRows, companyRows] = await Promise.all([
+          apiFetch<any[]>("/projects").catch(() => []),
+          apiFetch<any[]>("/government-pitches/public").catch(() => []),
+          apiFetch<any[]>("/ngos").catch(() => []),
+          apiFetch<any[]>("/companies").catch(() => [])
         ]);
 
-        if (Array.isArray(projectRows) && projectRows.length > 0) {
-          setProjects(projectRows.map((project) => ({
-            id: project.id,
-            title: project.title,
-            description: project.description,
-            focusArea: project.focusArea || "Education",
-            sdgGoal: project.sdgGoal || "SDG Goal",
-            beneficiaryCount: project.beneficiaryCount || 1500,
-            budgetRequested: Number(project.budgetRequested || project.budget || 0),
-            district: project.district || "Maharashtra",
-            taluka: project.taluka || "Statewide",
-            ngoName: project.ngo?.name || project.ngoName || "Empaneled Partner",
-            ngoRating: project.ngoRating || 4.5,
-            ngoDarpanId: project.ngo?.darpanNumber || project.ngoDarpanId || "MH/2026/REG",
-            matchScore: project.matchScore || 90,
-            status: project.status || "PUBLISHED",
-            duration: project.duration || "12 Months",
-            impactGoals: project.impactGoals || "Improve community indicators and sustainable outcome metrics.",
-            deliverables: project.deliverables || [
-              "Equipment procurement & installation",
-              "Community stakeholder orientation",
-              "Milestone execution & geotagged audit"
-            ],
-            budgetBreakdown: project.budgetBreakdown || [
-              { category: "Equipment & Hardware", amount: Number(project.budgetRequested || 0) * 0.5, percentage: 50 },
-              { category: "Implementation & Operations", amount: Number(project.budgetRequested || 0) * 0.3, percentage: 30 },
-              { category: "Capacity Building & Orientation", amount: Number(project.budgetRequested || 0) * 0.15, percentage: 15 },
-              { category: "Audit & Administration", amount: Number(project.budgetRequested || 0) * 0.05, percentage: 5 }
-            ],
-            contactEmail: project.contactEmail || "proposals@mahacsr.gov.in",
-            contactPhone: project.contactPhone || "+91 22 2202 5500"
-          })));
+        const mappedPitches = Array.isArray(pitchRows) ? pitchRows.map((pitch: any) => ({
+          id: pitch.id || pitch.pitchReferenceId,
+          title: pitch.title || pitch.csrRequirement?.slice(0, 100) || "Live Government Development Need",
+          description: pitch.csrRequirement || pitch.title || "Government department requirement open for CSR partnership.",
+          focusArea: pitch.sector || pitch.department || "Government Development Need",
+          sdgGoal: "SDG Goal",
+          beneficiaryCount: pitch.beneficiaryCount || 2500,
+          budgetRequested: Number(pitch.estimatedCost || pitch.budget || 0),
+          district: Array.isArray(pitch.districts) && pitch.districts.length > 0 ? pitch.districts[0] : (pitch.district || "Maharashtra"),
+          taluka: Array.isArray(pitch.talukas) && pitch.talukas.length > 0 ? pitch.talukas[0] : "Statewide",
+          ngoName: pitch.department || pitch.officeName || "Government Department Need",
+          ngoRating: 5.0,
+          ngoDarpanId: pitch.pitchReferenceId || "GOV-MH-NEED",
+          matchScore: 95,
+          status: "PUBLIC_LISTED",
+          duration: "12 Months",
+          impactGoals: "Direct community infrastructure and public development impact.",
+          deliverables: [
+            "Government Department Requirement",
+            "Verified Site Geotagging & Approval",
+            "Joint Secretariat MoU Alignment"
+          ],
+          budgetBreakdown: [
+            { category: "Capital Outlay & Works", amount: Number(pitch.estimatedCost || 0) * 0.8, percentage: 80 },
+            { category: "Supervision & Quality Inspection", amount: Number(pitch.estimatedCost || 0) * 0.2, percentage: 20 }
+          ],
+          contactEmail: pitch.email || "partner@mahacsr.gov.in",
+          contactPhone: pitch.mobile || "+91 22 2202 5500"
+        })) : [];
+
+        const mappedProjects = Array.isArray(projectRows) ? projectRows.map((project) => ({
+          id: project.id,
+          title: project.title,
+          description: project.description,
+          focusArea: project.focusArea || "Education",
+          sdgGoal: project.sdgGoal || "SDG Goal",
+          beneficiaryCount: project.beneficiaryCount || 1500,
+          budgetRequested: Number(project.budgetRequested || project.budget || 0),
+          district: project.district || "Maharashtra",
+          taluka: project.taluka || "Statewide",
+          ngoName: project.ngo?.name || project.ngoName || "Empaneled Partner",
+          ngoRating: project.ngoRating || 4.5,
+          ngoDarpanId: project.ngo?.darpanNumber || project.ngoDarpanId || "MH/2026/REG",
+          matchScore: project.matchScore || 90,
+          status: project.status || "PUBLISHED",
+          duration: project.duration || "12 Months",
+          impactGoals: project.impactGoals || "Improve community indicators and sustainable outcome metrics.",
+          deliverables: project.deliverables || [
+            "Equipment procurement & installation",
+            "Community stakeholder orientation",
+            "Milestone execution & geotagged audit"
+          ],
+          budgetBreakdown: project.budgetBreakdown || [
+            { category: "Equipment & Hardware", amount: Number(project.budgetRequested || 0) * 0.5, percentage: 50 },
+            { category: "Implementation & Operations", amount: Number(project.budgetRequested || 0) * 0.3, percentage: 30 },
+            { category: "Capacity Building & Orientation", amount: Number(project.budgetRequested || 0) * 0.15, percentage: 15 },
+            { category: "Audit & Administration", amount: Number(project.budgetRequested || 0) * 0.05, percentage: 5 }
+          ],
+          contactEmail: project.contactEmail || "proposals@mahacsr.gov.in",
+          contactPhone: project.contactPhone || "+91 22 2202 5500"
+        })) : [];
+
+        const combinedProjects = [...mappedPitches, ...mappedProjects];
+        if (combinedProjects.length > 0) {
+          setProjects(combinedProjects);
         } else {
           setProjects(fallbackProjects);
         }

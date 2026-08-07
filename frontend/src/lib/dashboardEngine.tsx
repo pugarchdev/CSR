@@ -112,10 +112,11 @@ export const SECTIONS: SectionDef[] = [
 
 // ── Quick-action registry ── shortcut buttons, gated by permission ──
 export const QUICK_ACTIONS: QuickActionDef[] = [
-  { key: "enquiry_create", label: "Submit Corporate Enquiry", href: "/enquiries?action=create", permission: "enquiry:create", icon: Send },
+  { key: "enquiry_create", label: "Submit Corporate Enquiry", href: "/partner/enquiries/new", permission: "enquiry:create", icon: Send },
+  { key: "pitches", label: "Submit Government Pitch", href: "/pitches/create", permission: "pitch:create", icon: Compass },
+  { key: "onboarding", label: "Organization Onboarding", href: "/organization/onboarding", permission: "dashboard:view", icon: FileCheck },
   { key: "marketplace", label: "Explore Marketplace", href: "/marketplace", permission: "marketplace:view", icon: Building2 },
   { key: "projects", label: "Funded Projects", href: "/convergence-projects", permission: "project:view", icon: ShieldCheck },
-  { key: "pitches", label: "Submit Government Pitch", href: "/pitches/create", permission: "pitch:create", icon: Compass },
   { key: "reports", label: "Reports", href: "/reports", permission: "report:view", icon: BarChart2 },
 ];
 
@@ -132,14 +133,14 @@ export function visibleByPermission<T extends { permission: string }>(
   if (store.isAdmin) return defs;
 
   return defs.filter((d) => {
-    if (summary.permissions && typeof summary.permissions[d.permission] === "boolean") {
-      if (summary.permissions[d.permission]) return true;
+    if (summary?.permissions && typeof summary.permissions[d.permission] === "boolean") {
+      return summary.permissions[d.permission];
     }
     if (store.hasPermission(d.permission)) return true;
     if (!store.permissions || store.permissions.length === 0 || store.isLoadingPermissions) {
       return true;
     }
-    return true;
+    return false;
   });
 }
 

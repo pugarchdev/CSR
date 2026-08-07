@@ -46,9 +46,11 @@ export default function ProjectsPage() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const roles = useAuthStore((s) => s.roles);
-
   const activeRoles = (roles || []).length > 0 ? roles : (user?.role ? [user.role] : []);
-  const isCompany = activeRoles.some(r => r.includes("COMPANY") || r.includes("CORPORATE"));
+  const isCompany = activeRoles.some(r => {
+    const s = String(typeof r === "object" ? (r as any)?.code || (r as any)?.name || (r as any)?.id : r).toUpperCase();
+    return s.includes("COMPANY") || s.includes("CORPORATE") || s.includes("SYSTEM_ROLE_8") || s === "8";
+  });
   const companyName = (user as any)?.organization?.name || (user as any)?.companyName || "";
 
   const { data: apiResponse, isLoading } = useApiQuery<any>(

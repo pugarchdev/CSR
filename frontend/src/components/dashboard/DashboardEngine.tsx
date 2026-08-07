@@ -2,19 +2,24 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useAuthStore } from "@/store/authStore";
 import { useApiQuery } from "@/lib/apiHooks";
+import { apiFetch } from "@/lib/api";
+import { Modal } from "@/components/ui/Modal";
+import { Button } from "@/components/ui/Button";
 import {
   DashboardSummary,
   QUICK_ACTIONS,
   visibleByPermission,
+  QuickActionDef,
 } from "@/lib/dashboardEngine";
 import {
   AlertTriangle, ArrowRight, ShieldAlert, Clock, CheckCircle2,
   FolderKanban, ShieldCheck, FileText, Compass, Building2, Users,
   HeartHandshake, TrendingUp, Sparkles, Activity, Landmark, Coins, Layers, Send, FileCheck,
-  Briefcase, BarChart2, Target, Award, Globe, ClipboardCheck
+  Briefcase, BarChart2, Target, Award, Globe, ClipboardCheck, AlertCircle
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -145,14 +150,48 @@ export interface KpiCard3D {
 }
 
 export default function DashboardEngine() {
+  const router = useRouter();
   const user = useAuthStore((s: any) => s.user);
   const roles = useAuthStore((s: any) => s.roles);
-  const activeRoles = (roles || []).length > 0 ? roles : (user?.role ? [user.role] : []);
-  const isCorporate = activeRoles.some((r: string) => r.includes("COMPANY") || r.includes("CORPORATE"));
-  const isGovernment = activeRoles.some((r: string) => r.includes("GOVERNMENT") || r.includes("DEPARTMENT"));
-  const isRM = activeRoles.some((r: string) => r.toUpperCase().includes("RELATIONSHIP_MANAGER") || r.toUpperCase().includes("RELATIONSHIP MANAGER") || user?.roleId === 6 || r === "6");
-  const isJS = activeRoles.some((r: string) => r.toUpperCase().includes("JOINT_SECRETARY") || r.toUpperCase().includes("JOINT SECRETARY") || user?.roleId === 3 || r === "3");
-  const isPS = activeRoles.some((r: string) => r.toUpperCase().includes("PLANNING_SECRETARY") || r.toUpperCase().includes("PLANNING SECRETARY") || user?.roleId === 2 || r === "2");
+  const [guardModalState, setGuardModalState] = useState<"NONE" | "ONBOARDING_INCOMPLETE_DEPT" | "ONBOARDING_INCOMPLETE_CORP" | "APPROVAL_PENDING">("NONE");
+
+  const handleQuickActionClick = async (e: React.MouseEvent, action: QuickActionDef) => {
+    if (action.href === "/pitches/create" || action.href === "/partner/enquiries/new") {
+      e.preventDefault();
+
+      try {
+        let org = (user as any)?.organization;
+
+        if (user?.organizationId) {
+          try {
+            const profileRes = await apiFetch<any>("/onboarding/profile");
+            org = profileRes?.organization || profileRes?.data?.organization || profileRes?.data || profileRes || org;
+          } catch {}
+        }
+
+        if (!user?.organizationId || !org) {
+          setGuardModalState(action.href === "/pitches/create" ? "ONBOARDING_INCOMPLETE_DEPT" : "ONBOARDING_INCOMPLETE_CORP");
+          return;
+        }
+
+        const statusUpper = (org.status || org.onboardingStatus || "").toUpperCase();
+        const PENDING_APPROVAL_STATUSES = ["SUBMITTED_FOR_REVIEW", "UNDER_VERIFICATION", "CLARIFICATION_REQUIRED", "PENDING_APPROVAL", "DOCUMENTS_SUBMITTED"];
+
+        if (statusUpper === "ACTIVE" || statusUpper === "APPROVED" || Number(user?.roleId || user?.role) === 1) {
+          router.push(action.href);
+          return;
+        } else if (PENDING_APPROVAL_STATUSES.includes(statusUpper)) {
+          setGuardModalState("APPROVAL_PENDING");
+          return;
+        } else {
+          setGuardModalState(action.href === "/pitches/create" ? "ONBOARDING_INCOMPLETE_DEPT" : "ONBOARDING_INCOMPLETE_CORP");
+          return;
+        }
+      } catch {
+        setGuardModalState(action.href === "/pitches/create" ? "ONBOARDING_INCOMPLETE_DEPT" : "ONBOARDING_INCOMPLETE_CORP");
+      }
+    }
+  };
 
   const { data: summaryEnvelope, isLoading } = useApiQuery<SummaryEnvelope>(
     ["dashboard", "summary"],
@@ -164,6 +203,65 @@ export default function DashboardEngine() {
   );
 
   const rawData: any = (summaryEnvelope as any)?.data || summaryEnvelope;
+
+  const activeRoles = (roles || []).length > 0 ? roles : (user?.role ? [user.role] : []);
+  const orgKind = user?.organization?.kind || user?.orgKind || rawData?.orgKind || "";
+  const roleIdVal = Number(user?.roleId || user?.roleNumericId || user?.role?.id || (typeof user?.role === "number" ? user?.role : 0));
+
+  const isCorporate = Boolean(
+    rawData?.isCompany ||
+    orgKind === "CSR_COMPANY" ||
+    roleIdVal === 8 ||
+    activeRoles.some((r: any) => {
+      const id = typeof r === "object" ? r?.id : r;
+      const code = typeof r === "object" ? r?.code || r?.name || "" : String(r);
+      const s = String(code).toUpperCase();
+      return (
+        s.includes("COMPANY") ||
+        s.includes("CORPORATE") ||
+        s.includes("SYSTEM_ROLE_8") ||
+        s === "8" ||
+        Number(id) === 8
+      );
+    })
+  );
+
+  const isGovernment = Boolean(
+    rawData?.isGovt ||
+    orgKind === "GOVERNMENT_DEPARTMENT" ||
+    roleIdVal === 7 || roleIdVal === 5 || roleIdVal === 4 || roleIdVal === 3 || roleIdVal === 2 ||
+    activeRoles.some((r: any) => {
+      const id = typeof r === "object" ? r?.id : r;
+      const code = typeof r === "object" ? r?.code || r?.name || "" : String(r);
+      const s = String(code).toUpperCase();
+      return (
+        s.includes("GOVERNMENT") ||
+        s.includes("DEPARTMENT") ||
+        s.includes("NODAL") ||
+        s.includes("OFFICER") ||
+        s.includes("SYSTEM_ROLE_7") ||
+        s.includes("SYSTEM_ROLE_5") ||
+        s.includes("SYSTEM_ROLE_4") ||
+        s.includes("SYSTEM_ROLE_3") ||
+        s.includes("SYSTEM_ROLE_2") ||
+        ["7", "5", "4", "3", "2"].includes(s) ||
+        [7, 5, 4, 3, 2].includes(Number(id))
+      );
+    })
+  );
+
+  const isRM = activeRoles.some((r: any) => {
+    const s = String(typeof r === "object" ? r?.code || r?.name : r).toUpperCase();
+    return s.includes("RELATIONSHIP_MANAGER") || s.includes("RELATIONSHIP MANAGER") || s.includes("SYSTEM_ROLE_6") || roleIdVal === 6 || s === "6";
+  });
+  const isJS = activeRoles.some((r: any) => {
+    const s = String(typeof r === "object" ? r?.code || r?.name : r).toUpperCase();
+    return s.includes("JOINT_SECRETARY") || s.includes("JOINT SECRETARY") || s.includes("SYSTEM_ROLE_3") || roleIdVal === 3 || s === "3";
+  });
+  const isPS = activeRoles.some((r: any) => {
+    const s = String(typeof r === "object" ? r?.code || r?.name : r).toUpperCase();
+    return s.includes("PLANNING_SECRETARY") || s.includes("PLANNING SECRETARY") || s.includes("SYSTEM_ROLE_2") || roleIdVal === 2 || s === "2";
+  });
 
   const summary: DashboardSummary = {
     generatedAt: rawData?.generatedAt || new Date().toISOString(),
@@ -181,10 +279,10 @@ export default function DashboardEngine() {
 
   const rawQuickActions = visibleByPermission(QUICK_ACTIONS, summary);
   const quickActions = rawQuickActions.filter((action) => {
+    if (action.key === "onboarding") return true;
     if (isRM && (action.key === "pitches" || action.key === "enquiry_create")) return false;
     if (isCorporate && action.key === "pitches") return false;
     if (isGovernment && action.key === "enquiry_create") return false;
-    if (!isCorporate && !isGovernment && action.key === "enquiry_create") return false;
     return true;
   });
 
@@ -609,6 +707,7 @@ export default function DashboardEngine() {
             <Link
               key={action.key}
               href={action.href}
+              onClick={(e) => handleQuickActionClick(e, action)}
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/90 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:text-blue-900 hover:border-slate-300 hover:bg-slate-50 transition-all duration-150 shadow-2xs group"
             >
               <Icon size={13} className="text-slate-500 group-hover:text-blue-600 transition-colors" />
@@ -774,6 +873,99 @@ export default function DashboardEngine() {
           </Link>
         </motion.div>
       </div>
+
+      {/* Onboarding Incomplete Department Modal */}
+      <Modal
+        isOpen={guardModalState === "ONBOARDING_INCOMPLETE_DEPT"}
+        onClose={() => setGuardModalState("NONE")}
+        title="Onboarding Needs to Be Completed"
+      >
+        <div className="flex flex-col gap-4 p-2">
+          <div className="flex items-center gap-3 text-amber-600 bg-amber-50 p-3 rounded-xl border border-amber-200">
+            <AlertCircle size={24} className="shrink-0" />
+            <p className="text-xs font-semibold">
+              Your government department onboarding needs to be completed before submitting a government pitch. Please complete your department onboarding first.
+            </p>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setGuardModalState("NONE")}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              className="bg-blue-900 hover:bg-blue-950 text-white"
+              onClick={() => {
+                setGuardModalState("NONE");
+                router.push("/organization/onboarding/department");
+              }}
+            >
+              Complete Onboarding
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Onboarding Incomplete Corporate Modal */}
+      <Modal
+        isOpen={guardModalState === "ONBOARDING_INCOMPLETE_CORP"}
+        onClose={() => setGuardModalState("NONE")}
+        title="Onboarding Needs to Be Completed"
+      >
+        <div className="flex flex-col gap-4 p-2">
+          <div className="flex items-center gap-3 text-amber-600 bg-amber-50 p-3 rounded-xl border border-amber-200">
+            <AlertCircle size={24} className="shrink-0" />
+            <p className="text-xs font-semibold">
+              Your corporate/company onboarding needs to be completed before submitting a CSR enquiry. Please complete your onboarding first.
+            </p>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setGuardModalState("NONE")}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              className="bg-blue-900 hover:bg-blue-950 text-white"
+              onClick={() => {
+                setGuardModalState("NONE");
+                router.push("/organization/onboarding/company");
+              }}
+            >
+              Complete Onboarding
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Superadmin Approval Pending Modal */}
+      <Modal
+        isOpen={guardModalState === "APPROVAL_PENDING"}
+        onClose={() => setGuardModalState("NONE")}
+        title="Approval Pending"
+      >
+        <div className="flex flex-col gap-4 p-2">
+          <div className="flex items-center gap-3 text-blue-900 bg-blue-50 p-3 rounded-xl border border-blue-200">
+            <Clock size={24} className="shrink-0 text-blue-700" />
+            <p className="text-xs font-semibold">
+              Your onboarding approval is pending from Superadmin. Till then explore the marketplace.
+            </p>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setGuardModalState("NONE")}>
+              Close
+            </Button>
+            <Button
+              variant="primary"
+              className="bg-blue-900 hover:bg-blue-950 text-white"
+              onClick={() => {
+                setGuardModalState("NONE");
+                router.push("/marketplace");
+              }}
+            >
+              Explore Marketplace
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

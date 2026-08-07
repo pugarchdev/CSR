@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState, useRef } from "react";
-import { AlertCircle, CheckCircle2, FileText, Loader2, Save, Upload, ChevronDown, X, Sparkles, Building2, ShieldCheck } from "lucide-react";
+import { AlertCircle, CheckCircle2, FileText, Loader2, Save, Upload, ChevronDown, X, Sparkles, Building2, ShieldCheck, Eye, Trash2, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { apiFetch, API_BASE_URL, getStoredUser } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
@@ -159,6 +159,42 @@ const departmentSectors = [
   "Emergency and disaster"
 ];
 
+const beneficiaryGroupOptions = [
+  "Women & Girls",
+  "Farmers & Agricultural Workers",
+  "Tribal & Marginalized Communities",
+  "Persons with Disabilities (PwD)",
+  "Children & Primary Education",
+  "Youth & Skill Seekers",
+  "Elderly & Senior Citizens",
+  "Urban Slum Dwellers",
+  "Disaster Affected Families"
+];
+
+const sdgFocusOptions = [
+  "SDG 1: No Poverty",
+  "SDG 2: Zero Hunger",
+  "SDG 3: Good Health & Well-Being",
+  "SDG 4: Quality Education",
+  "SDG 5: Gender Equality",
+  "SDG 6: Clean Water & Sanitation",
+  "SDG 7: Affordable & Clean Energy",
+  "SDG 8: Decent Work & Growth",
+  "SDG 13: Climate Action",
+  "SDG 15: Life on Land"
+];
+
+const esgFocusOptions = [
+  "Carbon Reduction & Net Zero",
+  "Water Conservation & Harvesting",
+  "Waste Management & Circular Economy",
+  "Community Health & Wellbeing",
+  "Diversity, Equity & Inclusion (DEI)",
+  "Corporate Ethics & Governance",
+  "Sustainable Agriculture",
+  "Rural Infrastructure & Energy"
+];
+
 function Badge({ children }: { children: string }) {
   const status = children || "";
   const tone = ["APPROVED", "VERIFIED", "ACTIVE"].includes(status)
@@ -226,37 +262,44 @@ function Shell({
                     key={step.key}
                     type="button"
                     onClick={() => onStepChange(step.key)}
-                    className={`group relative flex items-center gap-3.5 w-full text-left p-3 rounded-2xl transition-all duration-200 cursor-pointer ${
+                    className={`group relative flex items-center justify-between gap-3 w-full text-left p-3 rounded-2xl transition-all duration-200 cursor-pointer ${
                       isActive
-                        ? "bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 text-white shadow-md scale-[1.02]"
+                        ? "bg-gradient-to-r from-blue-950 via-blue-900 to-indigo-900 text-white shadow-lg ring-1 ring-blue-500/30 scale-[1.01]"
                         : isCompleted
-                        ? "bg-emerald-50/80 border border-emerald-100 hover:bg-emerald-100/80 text-emerald-950"
-                        : "bg-slate-50/80 border border-slate-200/60 hover:bg-slate-100 text-slate-700"
+                        ? "bg-white border border-slate-200/90 hover:border-emerald-300 hover:bg-emerald-50/30 text-slate-900 shadow-sm"
+                        : "bg-slate-50/80 border border-slate-200/60 hover:bg-slate-100/80 text-slate-700"
                     }`}
                   >
-                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-xs font-extrabold transition-transform group-hover:scale-110 ${
-                      isActive
-                        ? "bg-white text-blue-900 shadow-inner"
-                        : isCompleted
-                        ? "bg-emerald-600 text-white"
-                        : "bg-white text-slate-500 border border-slate-200"
-                    }`}>
-                      {index + 1}
-                    </span>
-                    <div className="overflow-hidden">
-                      <strong className={`block text-xs font-bold ${
-                        isActive ? "text-white" : isCompleted ? "text-emerald-900" : "text-slate-800"
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-xs font-extrabold transition-all group-hover:scale-105 ${
+                        isActive
+                          ? "bg-white/20 text-white shadow-inner border border-white/20"
+                          : isCompleted
+                          ? "bg-emerald-50 text-emerald-600 border border-emerald-200/80"
+                          : "bg-white text-slate-400 border border-slate-200"
                       }`}>
-                        {step.label}
-                      </strong>
-                      {step.description && (
-                        <small className={`block text-[10px] truncate mt-0.5 font-medium ${
-                          isActive ? "text-blue-200" : isCompleted ? "text-emerald-700" : "text-slate-400"
+                        {isCompleted ? <CheckCircle2 size={15} className="text-emerald-600" /> : index + 1}
+                      </span>
+                      <div className="overflow-hidden">
+                        <strong className={`block text-xs font-bold ${
+                          isActive ? "text-white" : isCompleted ? "text-slate-900" : "text-slate-700"
                         }`}>
-                          {step.description}
-                        </small>
-                      )}
+                          {step.label}
+                        </strong>
+                        {step.description && (
+                          <small className={`block text-[10px] truncate mt-0.5 font-medium ${
+                            isActive ? "text-blue-200" : "text-slate-400"
+                          }`}>
+                            {step.description}
+                          </small>
+                        )}
+                      </div>
                     </div>
+                    {isCompleted && !isActive && (
+                      <span className="text-[10px] font-extrabold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 shrink-0 hidden sm:inline">
+                        Done
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -360,6 +403,122 @@ function TextAreaField({ label, value, onChange, placeholder, required }: { labe
         className="w-full rounded-xl border border-slate-200/80 bg-slate-50/80 p-3.5 text-xs font-semibold text-slate-900 shadow-sm transition-all focus:bg-white focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
       />
     </label>
+  );
+}
+
+function TagSelectorField({
+  label,
+  values,
+  options,
+  onChange
+}: {
+  label: string;
+  values: string[] | string;
+  options: string[];
+  onChange: (values: string[]) => void;
+}) {
+  const allOptions = options.includes("Other") ? options : [...options, "Other"];
+
+  const selectedList = Array.isArray(values)
+    ? values
+    : typeof values === "string" && values.trim()
+    ? values.split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+
+  const existingOtherItem = selectedList.find(
+    (item) => item === "Other" || item.startsWith("Other:") || item.startsWith("Other -")
+  );
+
+  const isOtherSelected = Boolean(existingOtherItem);
+  const otherCustomText = existingOtherItem
+    ? existingOtherItem.replace(/^Other[:\s-]*/i, "").trim()
+    : "";
+
+  const [customText, setCustomText] = useState(otherCustomText);
+
+  useEffect(() => {
+    setCustomText(otherCustomText);
+  }, [otherCustomText]);
+
+  const selectedPresetSet = new Set(
+    selectedList.filter((item) => !item.startsWith("Other") && item !== "Other")
+  );
+
+  const updateAllValues = (presetSet: Set<string>, otherActive: boolean, text: string) => {
+    const nextList = Array.from(presetSet);
+    if (otherActive) {
+      const cleanText = text.trim();
+      nextList.push(cleanText ? `Other: ${cleanText}` : "Other");
+    }
+    onChange(nextList);
+  };
+
+  const toggleTag = (option: string) => {
+    if (option === "Other") {
+      const nextOtherActive = !isOtherSelected;
+      updateAllValues(selectedPresetSet, nextOtherActive, customText);
+    } else {
+      const nextPresetSet = new Set(selectedPresetSet);
+      if (nextPresetSet.has(option)) {
+        nextPresetSet.delete(option);
+      } else {
+        nextPresetSet.add(option);
+      }
+      updateAllValues(nextPresetSet, isOtherSelected, customText);
+    }
+  };
+
+  const handleCustomTextChange = (text: string) => {
+    setCustomText(text);
+    if (isOtherSelected) {
+      updateAllValues(selectedPresetSet, true, text);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-2 md:col-span-2">
+      <label className="text-xs font-bold text-slate-800 flex items-center justify-between">
+        <span>{label}</span>
+        <span className="text-[10px] text-slate-400 font-normal">Select applicable tags</span>
+      </label>
+
+      <div className="flex flex-wrap gap-2 p-3.5 bg-slate-50/60 border border-slate-200/80 rounded-2xl">
+        {allOptions.map((option) => {
+          const isSelected = option === "Other" ? isOtherSelected : selectedPresetSet.has(option);
+          return (
+            <button
+              key={option}
+              type="button"
+              onClick={() => toggleTag(option)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                isSelected
+                  ? "bg-blue-950 text-white border border-blue-900 shadow-sm scale-[1.02]"
+                  : "bg-white text-slate-700 border border-slate-200 hover:border-slate-300 hover:bg-slate-100/70"
+              }`}
+            >
+              {isSelected && <Check size={13} className="text-amber-400" />}
+              <span>{option}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {isOtherSelected && (
+        <div className="mt-1 p-3.5 rounded-2xl bg-blue-50/50 border border-blue-200/80 flex flex-col gap-1.5 transition-all">
+          <label className="text-xs font-bold text-blue-950 flex items-center gap-1.5">
+            <Sparkles size={14} className="text-blue-600" />
+            <span>Specify custom {label.toLowerCase()}:</span>
+          </label>
+          <input
+            type="text"
+            value={customText}
+            onChange={(e) => handleCustomTextChange(e.target.value)}
+            placeholder={`Type your custom ${label.toLowerCase()} here...`}
+            className="w-full rounded-xl border border-blue-200 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-900 shadow-sm transition-all focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          />
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -773,8 +932,6 @@ export function CompanyOnboardingStep() {
             <Field label="Official email domain" value={data.officialEmailDomain} onChange={(value) => setData("officialEmailDomain", value)} />
             <Field label="Company phone" format="phone" value={data.officialPhone || data.phone} onChange={(value) => setData("officialPhone", value)} />
             <Field label="Year of incorporation" type="number" value={data.yearOfIncorporation} onChange={(value) => setData("yearOfIncorporation", value)} />
-            <SelectField label="MCA verification status" value={data.mcaVerificationStatus} onChange={(value) => setData("mcaVerificationStatus", value)} options={["Not Started", "Under Verification", "Verified", "Mismatch"]} />
-            <SelectField label="Company status" value={data.companyStatus} onChange={(value) => setData("companyStatus", value)} options={["Active", "Inactive", "Under Verification", "Suspended"]} />
           </>
         )}
         {step === "compliance" && (
@@ -848,9 +1005,24 @@ export function CompanyOnboardingStep() {
             <Field label="Maximum funding amount" type="number" value={data.maxFundingAmount} onChange={(value) => setData("maxFundingAmount", value)} />
             <SelectField label="Funding preference" value={data.fundingPreference} onChange={(value) => setData("fundingPreference", value)} options={["Full funding", "Partial funding", "Co-funding"]} />
             <SelectField label="Implementation preference" value={data.implementationPreference} onChange={(value) => setData("implementationPreference", value)} options={["Direct asset delivery", "NGO implementation", "Mixed model"]} />
-            <TextAreaField label="Preferred beneficiary groups" value={data.preferredBeneficiaryGroups} onChange={(value) => setData("preferredBeneficiaryGroups", value)} />
-            <TextAreaField label="SDG focus areas" value={data.sdgFocusAreas} onChange={(value) => setData("sdgFocusAreas", value)} />
-            <TextAreaField label="ESG focus areas" value={data.esgFocusAreas} onChange={(value) => setData("esgFocusAreas", value)} />
+            <TagSelectorField
+              label="Preferred beneficiary groups"
+              values={data.preferredBeneficiaryGroups}
+              options={beneficiaryGroupOptions}
+              onChange={(values) => setData("preferredBeneficiaryGroups", values)}
+            />
+            <TagSelectorField
+              label="SDG focus areas"
+              values={data.sdgFocusAreas}
+              options={sdgFocusOptions}
+              onChange={(values) => setData("sdgFocusAreas", values)}
+            />
+            <TagSelectorField
+              label="ESG focus areas"
+              values={data.esgFocusAreas}
+              options={esgFocusOptions}
+              onChange={(values) => setData("esgFocusAreas", values)}
+            />
           </>
         )}
         </div>
@@ -887,8 +1059,11 @@ function DocumentsStep({
 }) {
   const [documents, setDocuments] = useState<OrganizationDocument[]>([]);
   const [error, setError] = useState("");
-  const [uploadingType, setUploadingType] = useState<string | null>(null);
+  const [uploadingMap, setUploadingMap] = useState<Record<string, boolean>>({});
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const activeUploadingTypes = Object.keys(uploadingMap).filter((k) => uploadingMap[k]);
+  const uploadingCount = activeUploadingTypes.length;
 
   const load = async () => {
     try {
@@ -903,8 +1078,9 @@ function DocumentsStep({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setUploadingType(type);
+    setUploadingMap((prev) => ({ ...prev, [type]: true }));
     setError("");
+
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -941,8 +1117,113 @@ function DocumentsStep({
       setError(err.message || "Failed to upload and save document");
       event.target.value = "";
     } finally {
-      setUploadingType(null);
+      setUploadingMap((prev) => {
+        const copy = { ...prev };
+        delete copy[type];
+        return copy;
+      });
     }
+  };
+
+  const matchFileType = (fileName: string, availableTypes: string[]): string | null => {
+    const upper = fileName.toUpperCase().replace(/[^A-Z0-9]/g, " ");
+    for (const type of availableTypes) {
+      const cleanType = type.toUpperCase().replace(/_/g, " ");
+      const words = type.split("_");
+      if (upper.includes(type) || words.every((w) => upper.includes(w))) {
+        return type;
+      }
+    }
+    if (upper.includes("PAN")) return availableTypes.find((t) => t.includes("PAN")) || null;
+    if (upper.includes("GST")) return availableTypes.find((t) => t.includes("GST")) || null;
+    if (upper.includes("CIN") || upper.includes("INCORPORATION")) return availableTypes.find((t) => t.includes("INCORPORATION")) || null;
+    if (upper.includes("BOARD") || upper.includes("RESOLUTION")) return availableTypes.find((t) => t.includes("BOARD")) || null;
+    if (upper.includes("POLICY")) return availableTypes.find((t) => t.includes("POLICY")) || null;
+    if (upper.includes("DECLARATION")) return availableTypes.find((t) => t.includes("DECLARATION")) || null;
+    if (upper.includes("AUTHORIZATION")) return availableTypes.find((t) => t.includes("AUTHORIZATION")) || null;
+    if (upper.includes("FINANCIAL") || upper.includes("AUDIT")) return availableTypes.find((t) => t.includes("FINANCIAL")) || null;
+    if (upper.includes("REPORT") || upper.includes("ANNUAL")) return availableTypes.find((t) => t.includes("REPORT") || t.includes("ANNUAL")) || null;
+    return null;
+  };
+
+  const handleBatchUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+
+    setError("");
+    const pendingTypes = documentTypes.filter((t) => !documents.some((d) => d.documentType === t));
+    const assignedPairs: Array<{ file: File; type: string }> = [];
+    const usedTypes = new Set<string>();
+
+    files.forEach((file) => {
+      const matched = matchFileType(file.name, documentTypes);
+      if (matched && !usedTypes.has(matched) && !documents.some((d) => d.documentType === matched)) {
+        usedTypes.add(matched);
+        assignedPairs.push({ file, type: matched });
+      }
+    });
+
+    files.forEach((file) => {
+      if (!assignedPairs.some((p) => p.file === file)) {
+        const nextAvailable = pendingTypes.find((t) => !usedTypes.has(t));
+        if (nextAvailable) {
+          usedTypes.add(nextAvailable);
+          assignedPairs.push({ file, type: nextAvailable });
+        }
+      }
+    });
+
+    if (assignedPairs.length === 0) return;
+
+    const initialMap: Record<string, boolean> = {};
+    assignedPairs.forEach((pair) => {
+      initialMap[pair.type] = true;
+    });
+    setUploadingMap((prev) => ({ ...prev, ...initialMap }));
+
+    await Promise.allSettled(
+      assignedPairs.map(async ({ file, type }) => {
+        try {
+          const formData = new FormData();
+          formData.append("file", file);
+
+          const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+          const headers: Record<string, string> = {};
+          if (token) headers["Authorization"] = `Bearer ${token}`;
+
+          const res = await fetch(`${API_BASE_URL}/upload`, {
+            method: "POST",
+            headers,
+            body: formData
+          });
+
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "File upload failed");
+
+          await apiFetch("/onboarding/documents", {
+            method: "POST",
+            body: JSON.stringify({
+              documentType: type,
+              fileUrl: data.url,
+              fileName: file.name,
+              mimeType: file.type || "application/pdf",
+              fileSize: Number(data.bytes || file.size)
+            })
+          });
+        } catch (err: any) {
+          setError((prev) => (prev ? `${prev} | ${type}: ${err.message}` : `${type}: ${err.message}`));
+        } finally {
+          setUploadingMap((prev) => {
+            const copy = { ...prev };
+            delete copy[type];
+            return copy;
+          });
+        }
+      })
+    );
+
+    event.target.value = "";
+    await load();
   };
 
   const handleDelete = async (id: string) => {
@@ -991,120 +1272,137 @@ function DocumentsStep({
     <Shell title={title} description="Upload onboarding verification documents. Each document type below has a dedicated upload slot. Mandatory documents are marked with a red star (*)." steps={steps} currentStep={currentStep} onStepChange={onStepChange} status={status}>
       <ErrorBox error={error} />
 
-      <div className="rounded-3xl border border-white/80 bg-white/90 backdrop-blur-2xl shadow-glass overflow-hidden flex flex-col">
-        <div className="border-b border-slate-100 p-6 flex justify-between items-center bg-slate-50/50">
+      <div className="rounded-3xl border border-slate-200/80 bg-white/95 backdrop-blur-2xl shadow-xl overflow-hidden flex flex-col">
+        <div className="border-b border-slate-100 p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gradient-to-r from-slate-50/80 via-white to-slate-50/80">
           <div>
-            <h3 className="text-sm font-bold text-slate-900">Required Verification Documents</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Please provide files for each document class below</p>
+            <h3 className="text-base font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+              <ShieldCheck size={18} className="text-blue-900" />
+              <span>Required Verification Documents</span>
+            </h3>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">Please provide official files for each required document type below</p>
           </div>
-<span className="text-xs font-extrabold bg-blue-50 text-blue-900 border border-blue-200 px-3.5 py-1.5 rounded-full">
-            {documents.length} of {documentTypes.length} Uploaded
-          </span>
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col items-end">
+              <span className="text-xs font-extrabold text-slate-900">
+                {documents.length} of {documentTypes.length} Uploaded
+              </span>
+              <div className="w-28 h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200 mt-1">
+                <div
+                  className="h-full bg-gradient-to-r from-blue-600 to-emerald-500 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, Math.max(0, (documents.length / documentTypes.length) * 100))}%` }}
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
-        {uploadingType && (
-          <div className="mx-6 mt-6 p-5 rounded-2xl bg-gradient-to-r from-blue-950 via-blue-900 to-indigo-950 text-white shadow-2xl flex flex-col gap-3 border border-blue-500/40 relative overflow-hidden">
-            <div className="flex items-center justify-between z-10">
-              <div className="flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-400/40 flex items-center justify-center shrink-0">
-                  <Loader2 className="w-5 h-5 animate-spin text-blue-300" />
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-white flex items-center gap-2">
-                    Uploading Document
-                    <span className="text-[10px] bg-blue-500/30 text-blue-200 border border-blue-400/40 px-2 py-0.5 rounded-md font-bold font-mono">
-                      {uploadingType.replace(/_/g, " ")}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-blue-200 font-medium mt-0.5">Encrypting document and syncing verification ledger...</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-                <span className="text-xs font-extrabold text-blue-200 tracking-wide">Processing Upload…</span>
-              </div>
-            </div>
-            {/* Animated Progress Bar */}
-            <div className="w-full bg-blue-900/60 rounded-full h-2 overflow-hidden border border-blue-700/50">
-              <div className="bg-gradient-to-r from-blue-400 via-indigo-300 to-emerald-400 h-full rounded-full animate-pulse w-full" />
-            </div>
-          </div>
-        )}
+       
 
-        <div className="divide-y divide-slate-100 bg-white">
+        <div className="p-5 sm:p-6 flex flex-col gap-3 bg-slate-50/30">
           {documentTypes.map((type) => {
             const uploadedDoc = documents.find((doc) => doc.documentType === type);
-            const isUploading = uploadingType === type;
+            const isUploading = Boolean(uploadingMap[type]);
+            const isMandatory = isMandatoryDoc(type);
+
             return (
               <div
                 key={type}
-                className={`flex flex-col md:flex-row md:items-center md:justify-between p-4 md:p-5 gap-4 transition-colors ${
-                  isUploading ? "bg-blue-50/60 border-l-4 border-l-blue-600" : "hover:bg-slate-50/50"
+                className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-4.5 rounded-2xl border transition-all duration-200 gap-4 ${
+                  isUploading
+                    ? "bg-blue-50/70 border-blue-400/80 ring-2 ring-blue-500/20 shadow-md"
+                    : uploadedDoc
+                    ? "bg-white border-slate-200/80 hover:border-emerald-300 hover:shadow-sm"
+                    : "bg-white border-slate-200/80 hover:border-slate-300 hover:shadow-sm"
                 }`}
               >
-                <div className="flex items-start gap-3.5">
+                <div className="flex items-center gap-3.5">
                   <div className={`w-10 h-10 flex items-center justify-center shrink-0 rounded-2xl border transition-colors ${
-                    isUploading ? "bg-blue-100 border-blue-300 text-blue-700" : "bg-blue-50 border-blue-100 text-blue-600"
+                    isUploading
+                      ? "bg-blue-100 border-blue-300 text-blue-700"
+                      : uploadedDoc
+                      ? "bg-emerald-50 border-emerald-200 text-emerald-600"
+                      : "bg-slate-100 border-slate-200 text-slate-500"
                   }`}>
-                    {isUploading ? <Loader2 className="w-5 h-5 animate-spin text-blue-600" /> : <FileText className="w-5 h-5" />}
+                    {isUploading ? (
+                      <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                    ) : uploadedDoc ? (
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                    ) : (
+                      <FileText className="w-5 h-5" />
+                    )}
                   </div>
+
                   <div className="flex flex-col">
-                    <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                      {type.replace(/_/g, " ")}
-                      {isMandatoryDoc(type) && <span className="text-red-500 font-bold">*</span>}
+                    <div className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
+                      <span>{type.replace(/_/g, " ")}</span>
+                      {isMandatory && <span className="text-red-500 font-bold text-sm" title="Mandatory document">*</span>}
                     </div>
+
                     {isUploading ? (
                       <span className="text-[11px] text-blue-700 font-bold flex items-center gap-1.5 mt-0.5">
-                        <Loader2 size={12} className="animate-spin text-blue-600" /> Uploading & Encrypting...
+                        <Loader2 size={12} className="animate-spin text-blue-600" /> Encrypting & Uploading...
                       </span>
                     ) : uploadedDoc ? (
-                      <span className="text-[11px] text-blue-700 font-semibold max-w-[320px] truncate mt-0.5">
-                        {uploadedDoc.fileName || "uploaded_file.pdf"}
-                      </span>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[11px] text-slate-600 font-medium truncate max-w-[240px] sm:max-w-[320px]">
+                          {uploadedDoc.fileName || "uploaded_document.pdf"}
+                        </span>
+                        {uploadedDoc.fileSize && (
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            ({(uploadedDoc.fileSize / 1024).toFixed(0)} KB)
+                          </span>
+                        )}
+                      </div>
                     ) : (
-                      <span className="text-[10px] text-amber-600 font-bold uppercase tracking-wider mt-0.5">Pending Upload</span>
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 mt-0.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                        Pending Upload
+                      </span>
                     )}
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 self-start md:self-center">
+                <div className="flex items-center gap-2.5 self-end sm:self-center">
                   {uploadedDoc ? (
                     <>
-                      <span className="text-[10px] text-slate-400 font-semibold">
-                        {uploadedDoc.createdAt ? new Date(uploadedDoc.createdAt).toLocaleDateString("en-IN") : ""}
-                      </span>
                       <Badge>{uploadedDoc.verificationStatus}</Badge>
                       <a
                         href={uploadedDoc.fileUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex h-8 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+                        className="inline-flex h-8 items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm"
                       >
-                        View
+                        <Eye size={13} className="text-slate-500" />
+                        <span>View</span>
                       </a>
                       <button
                         type="button"
                         onClick={() => handleDelete(uploadedDoc.id)}
                         disabled={deletingId === uploadedDoc.id}
-                        className="inline-flex h-8 items-center justify-center rounded-xl border border-red-200 bg-red-50 px-3 text-xs font-bold text-red-700 hover:bg-red-100 transition-colors"
+                        className="inline-flex h-8 items-center gap-1 rounded-xl border border-red-200 bg-red-50/60 px-3 text-xs font-bold text-red-700 hover:bg-red-100 transition-all"
                       >
-                        {deletingId === uploadedDoc.id ? "Deleting..." : "Delete"}
+                        {deletingId === uploadedDoc.id ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : (
+                          <Trash2 size={13} />
+                        )}
+                        <span>{deletingId === uploadedDoc.id ? "Deleting..." : "Delete"}</span>
                       </button>
                     </>
                   ) : (
-                    <label className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-xl text-xs font-bold text-white shadow-sm transition-all px-4 ${
+                    <label className={`inline-flex h-9 items-center justify-center gap-2 rounded-xl text-xs font-bold shadow-sm transition-all px-4 ${
                       isUploading
-                        ? "bg-blue-800 cursor-wait opacity-90 shadow-inner"
-                        : "bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 hover:shadow hover:scale-105 cursor-pointer"
+                        ? "bg-slate-100 text-slate-400 border border-slate-200 cursor-wait opacity-90"
+                        : "bg-white text-blue-950 border border-slate-300 hover:border-blue-900 hover:bg-blue-50/50 hover:shadow cursor-pointer"
                     }`}>
                       {isUploading ? (
                         <>
-                          <Loader2 size={14} className="animate-spin text-blue-300" />
+                          <Loader2 size={14} className="animate-spin text-blue-600" />
                           <span>Uploading…</span>
                         </>
                       ) : (
                         <>
-                          <Upload size={14} />
+                          <Upload size={14} className="text-blue-900" />
                           <span>Upload File</span>
                         </>
                       )}
@@ -1123,13 +1421,14 @@ function DocumentsStep({
           })}
         </div>
 
-        <div className="p-5 border-t border-slate-100 bg-slate-50/50 flex justify-end">
+        <div className="p-5 border-t border-slate-100 bg-white flex justify-end">
           <button
             type="button"
             onClick={handleContinue}
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 px-6 py-2.5 text-xs font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105"
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-950 via-blue-900 to-indigo-900 px-7 py-3 text-xs font-extrabold text-white shadow-md hover:shadow-lg transition-all hover:scale-[1.01]"
           >
-            Save & Continue to Next Step
+            <span>Save & Continue to Next Step</span>
+            <ChevronDown size={16} className="-rotate-90" />
           </button>
         </div>
       </div>

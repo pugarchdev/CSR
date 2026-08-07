@@ -169,7 +169,26 @@ export const getEnquiryByTrackingId = async (req: AuthenticatedRequest, res: Res
 
 export const listCorporateEnquiries = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const where = req.user?.roleId === String(ROLE_ID.RELATIONSHIP_MANAGER) ? { assignedRelationshipManagerId: req.user.id } : {};
+    const user = req.user;
+    if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+    const roleIdNum = Number(user.roleId || user.role);
+    const isRM = roleIdNum === ROLE_ID.RELATIONSHIP_MANAGER || String(user.roleId) === String(ROLE_ID.RELATIONSHIP_MANAGER);
+    const isSuperAdmin = roleIdNum === ROLE_ID.SUPER_ADMIN || String(user.role) === "SUPER_ADMIN";
+    const isGovAdmin = ([ROLE_ID.PLANNING_SECRETARY, ROLE_ID.JOINT_SECRETARY, ROLE_ID.DISTRICT_NODAL_OFFICER, ROLE_ID.DISTRICT_NODAL_CONSULTANT, ROLE_ID.GOVERNMENT_OFFICER] as number[]).includes(roleIdNum);
+
+    let where: any = {};
+    if (isRM) {
+      where = { assignedRelationshipManagerId: user.id };
+    } else if (!isSuperAdmin && !isGovAdmin) {
+      where = {
+        OR: [
+          { submittedByUserId: user.id },
+          ...(user.organizationId ? [{ organizationId: user.organizationId }] : [])
+        ]
+      };
+    }
+
     const enquiries = await prisma.corporateEnquiry.findMany({ where, orderBy: { createdAt: "desc" } });
     return res.json(enquiries);
   } catch (error) {
@@ -251,9 +270,25 @@ export const acceptEnquiry = async (req: AuthenticatedRequest, res: Response, ne
 
 export const getEnquiryById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const enquiry = await prisma.corporateEnquiry.findFirst({
-      where: { id: req.params.id, ...(req.user?.roleId === String(ROLE_ID.RELATIONSHIP_MANAGER) ? { assignedRelationshipManagerId: req.user.id } : {}) }
-    });
+    const user = req.user;
+    if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+    const roleIdNum = Number(user.roleId || user.role);
+    const isRM = roleIdNum === ROLE_ID.RELATIONSHIP_MANAGER || String(user.roleId) === String(ROLE_ID.RELATIONSHIP_MANAGER);
+    const isSuperAdmin = roleIdNum === ROLE_ID.SUPER_ADMIN || String(user.role) === "SUPER_ADMIN";
+    const isGovAdmin = ([ROLE_ID.PLANNING_SECRETARY, ROLE_ID.JOINT_SECRETARY, ROLE_ID.DISTRICT_NODAL_OFFICER, ROLE_ID.DISTRICT_NODAL_CONSULTANT, ROLE_ID.GOVERNMENT_OFFICER] as number[]).includes(roleIdNum);
+
+    let where: any = { id: req.params.id };
+    if (isRM) {
+      where.assignedRelationshipManagerId = user.id;
+    } else if (!isSuperAdmin && !isGovAdmin) {
+      where.OR = [
+        { submittedByUserId: user.id },
+        ...(user.organizationId ? [{ organizationId: user.organizationId }] : [])
+      ];
+    }
+
+    const enquiry = await prisma.corporateEnquiry.findFirst({ where });
     if (!enquiry) return notFoundResponse(res, "Enquiry not found");
     return res.json(enquiry);
   } catch (error) {

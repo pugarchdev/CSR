@@ -34,6 +34,14 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+body.modal-open header,
+body.modal-open aside,
+body.modal-open main {
+  filter: blur(8px) brightness(0.92);
+  pointer-events: none;
+  transition: filter 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 /* Government Panel Card — flat elevation per csr design system */
 .glass-panel {
   background: rgba(255, 255, 255, 0.7);

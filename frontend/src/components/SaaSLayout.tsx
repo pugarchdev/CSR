@@ -490,7 +490,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
 
       {isDashboard ? (
         <header
-          className="fixed top-1 left-0 right-0 h-[56px] z-50 bg-white/50 backdrop-blur-md border-b border-slate-200/40 flex justify-between items-center px-4 md:px-6 shadow-glass"
+          className="fixed top-1 left-0 right-0 h-[56px] z-50 bg-white/95 border-b border-slate-200/60 flex justify-between items-center px-4 md:px-6 shadow-xs"
         >
           <div className="contents">
             {/* Brand Logo */}

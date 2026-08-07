@@ -76,7 +76,7 @@ export default function PitchDetailPage() {
     const tokens = extractRoleTokens(user, roles, roleDetails);
     return tokens.some((t) => {
       const u = String(t).toUpperCase();
-      return u.includes("JOINT_SECRETARY") || u.includes("JOINT SECRETARY") || u === "3" || (user as any)?.roleId === 3;
+      return u.includes("JOINT_SECRETARY") || u.includes("JOINT SECRETARY") || u === "3" || user?.roleId === 3;
     });
   }, [user, roles, roleDetails]);
 

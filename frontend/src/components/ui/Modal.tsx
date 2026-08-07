@@ -1,5 +1,6 @@
 // Modal Component — Premium Glassmorphic
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -13,6 +14,12 @@ interface ModalProps {
 }
 
 export function Modal({ isOpen, onClose, title, children, className }: ModalProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -20,19 +27,21 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
 
     if (isOpen) {
       document.body.style.overflow = "hidden";
+      document.body.classList.add("modal-open");
       window.addEventListener("keydown", handleKeyDown);
     }
 
     return () => {
       document.body.style.overflow = "unset";
+      document.body.classList.remove("modal-open");
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, onClose]);
 
-  return (
+  const modalContent = (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={title}>
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={title}>
 
           {/* Backdrop */}
           <motion.div
@@ -41,10 +50,10 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
-            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-slate-900/25 backdrop-blur-md"
           />
 
-          {/* Modal */}
+          {/* Modal Container */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -52,8 +61,8 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
             transition={{ type: "spring", duration: 0.35, bounce: 0.15 }}
             className={cn(
               "w-full max-w-lg z-10 flex flex-col gap-5 relative",
-              "bg-white/90 backdrop-blur-xl p-6 rounded-2xl",
-              "border border-white/30 shadow-elevation-3",
+              "bg-white/95 backdrop-blur-2xl p-6 rounded-2xl",
+              "border border-slate-200/80 shadow-2xl",
               className
             )}
           >
@@ -78,4 +87,8 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
       )}
     </AnimatePresence>
   );
+
+  if (!mounted || typeof window === "undefined") return null;
+
+  return createPortal(modalContent, document.body);
 }

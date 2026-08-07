@@ -146,188 +146,84 @@ const initialMessagesStore: Record<string, Message[]> = {
 };
 
 function getPersonaChatsAndStore(storedUser: any) {
+  const userId = storedUser?.id || storedUser?.email || "anonymous";
+  const userKeyChats = `mahacsr_chats_${userId}`;
+  const userKeyStore = `mahacsr_store_${userId}`;
+
+  if (typeof window !== "undefined") {
+    try {
+      const savedChats = localStorage.getItem(userKeyChats);
+      const savedStore = localStorage.getItem(userKeyStore);
+      if (savedChats && savedStore) {
+        const parsedChats = JSON.parse(savedChats);
+        const parsedStore = JSON.parse(savedStore);
+        if (Array.isArray(parsedChats) && parsedChats.length > 0) {
+          return { chats: parsedChats, store: parsedStore };
+        }
+      }
+    } catch {}
+  }
+
   const role = String(storedUser?.role || storedUser?.roleSlug || storedUser?.roleNumericId || "").toUpperCase();
+  const userName = storedUser?.firstName
+    ? `${storedUser.firstName} ${storedUser.lastName || ""}`.trim()
+    : storedUser?.name || storedUser?.organization?.name || "Partner";
 
   const isRM = role.includes("RM") || role.includes("RELATIONSHIP") || role === "6";
-  const isCompany = role.includes("COMPANY") || role.includes("CORPORATE") || role === "8";
+  const isGov = role.includes("GOVT") || role.includes("SECRETARY") || role.includes("NODAL") || role === "3" || role === "4";
+
+  const defaultChatId = `chat-user-${userId.slice(0, 8)}`;
+
+  let partnerName = "State CSR Facilitation Desk";
+  let partnerType: "NGO" | "COMPANY" | "GOVT" = "GOVT";
+  let initialMsg = `Welcome ${userName}! Your communication desk is active. Messages sent here are private between you and the State CSR Secretariat.`;
 
   if (isRM) {
-    const rmChats: ChatRoom[] = [
-      {
-        id: "chat-rm-1",
-        partnerName: "Tata Consultancy Services Ltd",
-        partnerType: "COMPANY",
-        phone: "+91 98200 11223",
-        lastMessage: "Enquiry CSR-MH-2026-000101 documents updated. Ready for feasibility check.",
-        updatedAt: "10:15 AM",
-        unread: true,
-        pinned: true,
-        projectTitle: "Digital Literacy & STEM Education",
-        onlineStatus: "ONLINE",
-        avatarColor: "from-blue-600 to-indigo-600",
-      },
-      {
-        id: "chat-rm-2",
-        partnerName: "Reliance Foundation",
-        partnerType: "COMPANY",
-        phone: "+91 98200 44556",
-        lastMessage: "Submitted proposal for Rural Healthcare & Water Sanitation in Solapur.",
-        updatedAt: "Yesterday",
-        unread: false,
-        pinned: true,
-        projectTitle: "Healthcare & Water Infrastructure",
-        onlineStatus: "ONLINE",
-        avatarColor: "from-purple-600 to-indigo-600",
-      },
-      {
-        id: "chat-rm-3",
-        partnerName: "State CSR Cell (Joint Secretary Desk)",
-        partnerType: "GOVT",
-        phone: "+91 94220 18392",
-        lastMessage: "Feasibility report for TCS proposal approved for district routing.",
-        updatedAt: "09:30 AM",
-        unread: false,
-        pinned: false,
-        projectTitle: "Secretariat Clearance Queue",
-        onlineStatus: "ONLINE",
-        avatarColor: "from-amber-500 to-orange-600",
-      },
-      {
-        id: "chat-rm-4",
-        partnerName: "Sahyadri Eco Foundation",
-        partnerType: "NGO",
-        phone: "+91 98230 41102",
-        lastMessage: "Site inspection report attached for Nashik watershed project.",
-        updatedAt: "Jul 30",
-        unread: false,
-        pinned: false,
-        projectTitle: "Nashik Watershed Rejuvenation",
-        onlineStatus: "OFFLINE",
-        avatarColor: "from-emerald-500 to-teal-600",
-      }
-    ];
-
-    const rmStore: Record<string, Message[]> = {
-      "chat-rm-1": [
-        {
-          id: "m-rm-1",
-          senderName: "Tata Consultancy Services Ltd",
-          senderRole: "COMPANY_ADMIN",
-          text: "Greetings Relationship Manager, we have submitted our CSR proposal for Digital Literacy labs.",
-          time: "09:00 AM",
-          reactions: ["👍"]
-        },
-        {
-          id: "m-rm-2",
-          senderName: "You (Relationship Manager)",
-          senderRole: "RELATIONSHIP_MANAGER",
-          text: "Thank you for the submission. I have initialized the 13-point feasibility assessment for Pune district.",
-          time: "09:30 AM",
-          pinned: true
-        },
-        {
-          id: "m-rm-3",
-          senderName: "Tata Consultancy Services Ltd",
-          senderRole: "COMPANY_ADMIN",
-          text: "Enquiry CSR-MH-2026-000101 documents updated. Ready for feasibility check.",
-          time: "10:15 AM",
-          attachment: { name: "TCS_CSR_Proposal_2026.pdf", size: "2.4 MB" }
-        }
-      ],
-      "chat-rm-2": [
-        {
-          id: "m-rm-4",
-          senderName: "Reliance Foundation",
-          senderRole: "COMPANY_ADMIN",
-          text: "Submitted proposal for Rural Healthcare & Water Sanitation in Solapur.",
-          time: "Yesterday"
-        }
-      ],
-      "chat-rm-3": [
-        {
-          id: "m-rm-5",
-          senderName: "State CSR Cell (Joint Secretary)",
-          senderRole: "JOINT_SECRETARY",
-          text: "Feasibility report for TCS proposal approved for district routing.",
-          time: "09:30 AM"
-        }
-      ],
-      "chat-rm-4": [
-        {
-          id: "m-rm-6",
-          senderName: "Sahyadri Eco Foundation",
-          senderRole: "NGO_ADMIN",
-          text: "Site inspection report attached for Nashik watershed project.",
-          time: "Jul 30"
-        }
-      ]
-    };
-
-    return { chats: rmChats, store: rmStore };
+    partnerName = "State Joint Secretary Desk";
+    partnerType = "GOVT";
+    initialMsg = `Welcome RM ${userName}. Use this official channel for escalation and Joint Secretary desk communication.`;
+  } else if (isGov) {
+    partnerName = "CSR Secretariat Helpdesk";
+    partnerType = "GOVT";
+    initialMsg = `Welcome Officer ${userName}. Your district coordination channel is active.`;
   }
 
-  if (isCompany) {
-    const companyChats: ChatRoom[] = [
+  const userChats: ChatRoom[] = [
+    {
+      id: defaultChatId,
+      partnerName,
+      partnerType,
+      phone: "+91 22 2202 5500",
+      lastMessage: initialMsg,
+      updatedAt: "Just now",
+      unread: true,
+      pinned: true,
+      projectTitle: "Official CSR Support & Facilitation Channel",
+      onlineStatus: "ONLINE",
+      avatarColor: "from-blue-600 to-indigo-600",
+    }
+  ];
+
+  const userStore: Record<string, Message[]> = {
+    [defaultChatId]: [
       {
-        id: "chat-c-1",
-        partnerName: "MahaCSR Relationship Manager (State Desk)",
-        partnerType: "GOVT",
-        phone: "+91 94220 18392",
-        lastMessage: "Your CSR Enquiry CSR-MH-2026-000101 is undergoing 13-point feasibility verification.",
-        updatedAt: "10:30 AM",
-        unread: true,
-        pinned: true,
-        projectTitle: "State CSR Facilitation Desk",
-        onlineStatus: "ONLINE",
-        avatarColor: "from-blue-600 to-indigo-600",
-      },
-      {
-        id: "chat-c-2",
-        partnerName: "Pune District Nodal Officer Desk",
-        partnerType: "GOVT",
-        phone: "+91 98221 04958",
-        lastMessage: "Land availability confirmed in Loni Kalbhor for smart school installation.",
-        updatedAt: "Yesterday",
-        unread: false,
-        pinned: false,
-        projectTitle: "District Land Clearance",
-        onlineStatus: "ONLINE",
-        avatarColor: "from-emerald-500 to-teal-600",
+        id: `msg-${Date.now()}`,
+        senderName: partnerName,
+        senderRole: "GOVT_ADMIN",
+        text: initialMsg,
+        time: "Just now"
       }
-    ];
+    ]
+  };
 
-    const companyStore: Record<string, Message[]> = {
-      "chat-c-1": [
-        {
-          id: "mc-1",
-          senderName: "MahaCSR Relationship Manager",
-          senderRole: "RELATIONSHIP_MANAGER",
-          text: "Welcome to MahaCSR Setu! I am your assigned Relationship Manager.",
-          time: "10:00 AM"
-        },
-        {
-          id: "mc-2",
-          senderName: "MahaCSR Relationship Manager",
-          senderRole: "RELATIONSHIP_MANAGER",
-          text: "Your CSR Enquiry CSR-MH-2026-000101 is undergoing 13-point feasibility verification.",
-          time: "10:30 AM"
-        }
-      ],
-      "chat-c-2": [
-        {
-          id: "mc-3",
-          senderName: "Pune District Nodal Officer",
-          senderRole: "GOVERNMENT_OFFICER",
-          text: "Land availability confirmed in Loni Kalbhor for smart school installation.",
-          time: "Yesterday"
-        }
-      ]
-    };
-
-    return { chats: companyChats, store: companyStore };
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(userKeyChats, JSON.stringify(userChats));
+      localStorage.setItem(userKeyStore, JSON.stringify(userStore));
+    } catch {}
   }
 
-  return { chats: initialChats, store: initialMessagesStore };
+  return { chats: userChats, store: userStore };
 }
 
 export default function ChatSystem() {
@@ -446,8 +342,19 @@ export default function ChatSystem() {
     };
 
     const updatedCurrentMessages = [...messages, newMessage];
-    setMessagesStore(prev => ({ ...prev, [activeChat.id]: updatedCurrentMessages }));
-    setChats(prev => prev.map(c => c.id === activeChat.id ? { ...c, lastMessage: newMessage.text, updatedAt: newMessage.time } : c));
+    const updatedStore = { ...messagesStore, [activeChat.id]: updatedCurrentMessages };
+    const updatedChats = chats.map(c => c.id === activeChat.id ? { ...c, lastMessage: newMessage.text, updatedAt: newMessage.time } : c);
+
+    setMessagesStore(updatedStore);
+    setChats(updatedChats);
+
+    if (typeof window !== "undefined" && user) {
+      const userId = user?.id || user?.email || "anonymous";
+      try {
+        localStorage.setItem(`mahacsr_chats_${userId}`, JSON.stringify(updatedChats));
+        localStorage.setItem(`mahacsr_store_${userId}`, JSON.stringify(updatedStore));
+      } catch {}
+    }
 
     setInputVal("");
     setSelectedFile(null);

@@ -11,9 +11,10 @@ import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/
 import GovAlert from "@/components/gov/GovAlert";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import GovPageHeader from "@/components/layout/GovPageHeader";
+import { Modal } from "@/components/ui/Modal";
 import {
   Building2, CheckCircle, Loader2, Camera, ArrowLeft, ChevronDown, X,
-  FileText, Trash2, Paperclip, Search, Landmark, MapPin, Coins, Sparkles, ShieldCheck, CheckCircle2
+  FileText, Trash2, Paperclip, Search, Landmark, MapPin, Coins, Sparkles, ShieldCheck, CheckCircle2, AlertCircle, Clock
 } from "lucide-react";
 import Link from "next/link";
 import { locationData } from "@/lib/locationData";
@@ -222,12 +223,54 @@ export default function CreatePitchDashboardPage() {
   const user = useAuthStore((s: any) => s.user);
   const roles = useAuthStore((s: any) => s.roles);
   const activeRoles = (roles || []).length > 0 ? roles : (user?.role ? [user.role] : []);
-  const isRM = activeRoles.some((r: string) => r.toUpperCase().includes("RELATIONSHIP_MANAGER") || r.toUpperCase().includes("RELATIONSHIP MANAGER"));
+  const isRM = activeRoles.some((r: any) => {
+    const s = String(typeof r === "object" ? r?.code || r?.name || r?.id : r).toUpperCase();
+    return s.includes("RELATIONSHIP_MANAGER") || s.includes("RELATIONSHIP MANAGER") || s.includes("SYSTEM_ROLE_6") || s === "6";
+  });
 
+  const [onboardingGuardModal, setOnboardingGuardModal] = useState<"NONE" | "ONBOARDING_INCOMPLETE" | "APPROVAL_PENDING">("NONE");
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [referenceId, setReferenceId] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
+
+  useEffect(() => {
+    let isMounted = true;
+    const checkOnboardingAndApproval = async () => {
+      let org = (user as any)?.organization;
+
+      if (user?.organizationId) {
+        try {
+          const res = await apiFetch<any>("/onboarding/profile");
+          org = res?.organization || res?.data?.organization || res?.data || res || org;
+        } catch {}
+      }
+
+      if (!user?.organizationId || !org) {
+        if (isMounted) setOnboardingGuardModal("ONBOARDING_INCOMPLETE");
+        return;
+      }
+
+      const statusUpper = (org.status || org.onboardingStatus || "").toUpperCase();
+      const PENDING_APPROVAL_STATUSES = ["SUBMITTED_FOR_REVIEW", "UNDER_VERIFICATION", "CLARIFICATION_REQUIRED", "PENDING_APPROVAL", "DOCUMENTS_SUBMITTED"];
+
+      if (statusUpper === "ACTIVE" || statusUpper === "APPROVED" || Number(user?.roleId || user?.role) === 1) {
+        if (isMounted) setOnboardingGuardModal("NONE");
+        return;
+      } else if (PENDING_APPROVAL_STATUSES.includes(statusUpper)) {
+        if (isMounted) setOnboardingGuardModal("APPROVAL_PENDING");
+        return;
+      } else {
+        // REGISTERED, PROFILE_INCOMPLETE, DOCUMENTS_PENDING, or un-submitted onboarding
+        if (isMounted) setOnboardingGuardModal("ONBOARDING_INCOMPLETE");
+        return;
+      }
+    };
+
+    checkOnboardingAndApproval();
+
+    return () => { isMounted = false; };
+  }, [user]);
 
   const [form, setForm] = useState<PitchForm>({
     officialName: "",
@@ -481,6 +524,64 @@ export default function CreatePitchDashboardPage() {
             </div>
           </div>
         </div>
+      </GovPortalLayout>
+    );
+  }
+
+  if (onboardingGuardModal === "ONBOARDING_INCOMPLETE") {
+    return (
+      <GovPortalLayout>
+        <Modal
+          isOpen={true}
+          onClose={() => router.push("/pitches")}
+          title="Onboarding Needs to Be Completed"
+        >
+          <div className="flex flex-col gap-4 p-2">
+            <div className="flex items-center gap-3 text-amber-600 bg-amber-50 p-3 rounded-xl border border-amber-200">
+              <AlertCircle size={24} className="shrink-0" />
+              <p className="text-xs font-semibold">
+                Your government department onboarding needs to be completed before submitting a government pitch. Please complete your department onboarding first.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <GovButton variant="secondary" onClick={() => router.push("/pitches")}>
+                Go Back
+              </GovButton>
+              <GovButton variant="primary" onClick={() => router.push("/organization/onboarding/department")}>
+                Complete Onboarding
+              </GovButton>
+            </div>
+          </div>
+        </Modal>
+      </GovPortalLayout>
+    );
+  }
+
+  if (onboardingGuardModal === "APPROVAL_PENDING") {
+    return (
+      <GovPortalLayout>
+        <Modal
+          isOpen={true}
+          onClose={() => router.push("/marketplace")}
+          title="Approval Pending"
+        >
+          <div className="flex flex-col gap-4 p-2">
+            <div className="flex items-center gap-3 text-blue-900 bg-blue-50 p-3 rounded-xl border border-blue-200">
+              <Clock size={24} className="shrink-0 text-blue-700" />
+              <p className="text-xs font-semibold">
+                Your government department onboarding approval is pending from Superadmin. Till then explore the marketplace.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <GovButton variant="secondary" onClick={() => router.push("/pitches")}>
+                Go Back
+              </GovButton>
+              <GovButton variant="primary" onClick={() => router.push("/marketplace")}>
+                Explore Marketplace
+              </GovButton>
+            </div>
+          </div>
+        </Modal>
       </GovPortalLayout>
     );
   }

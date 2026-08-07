@@ -27,15 +27,21 @@ export default function PitchDevelopmentNeedPage() {
 
     if (isLoggedIn) {
       let isRM = false;
+      let isGovtOrAdmin = false;
       try {
         const u = JSON.parse(localStorage.getItem("user") || "{}");
-        const role = (u.role || "").toUpperCase();
-        isRM = role.includes("RELATIONSHIP_MANAGER") || role.includes("RELATIONSHIP MANAGER");
+        const role = String(u.role?.code || u.role?.name || u.role || "").toUpperCase();
+        const roleId = Number(u.roleId || u.roleNumericId || u.role?.id || 0);
+        isRM = role.includes("RELATIONSHIP_MANAGER") || role.includes("RELATIONSHIP MANAGER") || roleId === 6;
+        isGovtOrAdmin = role.includes("GOVT") || role.includes("GOVERNMENT") || role.includes("ADMIN") || role.includes("SECRETARY") || [1, 2, 3, 7].includes(roleId);
       } catch {}
+
       if (isRM) {
         router.replace("/pitches");
+      } else if (isGovtOrAdmin) {
+        router.replace("/pitches");
       } else {
-        router.replace("/pitches/create");
+        router.replace("/marketplace");
       }
     } else {
       router.replace("/login?next=/pitch-development-need");

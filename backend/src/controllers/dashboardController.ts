@@ -8,11 +8,39 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
     res.setHeader("Cache-Control", "private, no-cache, no-store, must-revalidate");
     const userId = req.user?.id;
     const userRole = String(req.user?.role || req.user?.roleSlug || "");
+    const rawRole = req.user?.role || req.user?.roleSlug || req.user?.roleId || "";
+    const userRoleStr = String(rawRole).toUpperCase();
+    const roleIdVal = req.user?.roleId ? String(req.user.roleId) : "";
     const orgId = req.user?.organizationId;
 
-    const isCompany = userRole.includes("COMPANY") || userRole.includes("CORPORATE");
-    const isGovt = userRole.includes("GOVERNMENT") || userRole.includes("DEPARTMENT");
-    const isNgo = userRole.includes("NGO");
+    // Fetch Organization metadata early if orgId is present
+    const orgResult = orgId ? await prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { id: true, name: true, kind: true, status: true },
+    }).catch(() => null) : null;
+
+    const orgKind = orgResult?.kind || "";
+
+    const isCompany =
+      orgKind === "CSR_COMPANY" ||
+      userRoleStr.includes("COMPANY") ||
+      userRoleStr.includes("CORPORATE") ||
+      userRoleStr.includes("CSR") ||
+      roleIdVal === "4";
+
+    const isGovt =
+      orgKind === "GOVERNMENT_DEPARTMENT" ||
+      userRoleStr.includes("GOVERNMENT") ||
+      userRoleStr.includes("DEPARTMENT") ||
+      userRoleStr.includes("NODAL") ||
+      userRoleStr.includes("OFFICER") ||
+      roleIdVal === "5" ||
+      roleIdVal === "3" ||
+      roleIdVal === "2";
+
+    const isNgo =
+      orgKind === "NGO" ||
+      userRoleStr.includes("NGO");
 
     // 1. Resolve Permissions dynamically for user & Onboarding Org Status in parallel
     const permissions: Record<string, boolean> = {
@@ -30,7 +58,6 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
     // Parallelize all independent DB reads at once
     const [
       permResult,
-      orgResult,
       totalProjectsCount,
       totalOrgsCount,
       totalUsersCount,
@@ -52,11 +79,6 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
         organizationId: orgId,
       }).catch(() => null) : Promise.resolve(null),
 
-      orgId ? prisma.organization.findUnique({
-        where: { id: orgId },
-        select: { id: true, name: true, kind: true, status: true },
-      }).catch(() => null) : Promise.resolve(null),
-
       ((prisma as any).convergenceProject?.count() ?? (prisma as any).project?.count() ?? Promise.resolve(0)).catch(() => 0),
       prisma.organization.count().catch(() => 0),
       prisma.user.count().catch(() => 0),
@@ -69,10 +91,10 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
 
       userId ? ((prisma as any).projectAssignment?.count({ where: { assignedToId: userId } }) ?? (prisma as any).project?.count({ where: { nodalOfficerUserId: userId } }) ?? Promise.resolve(0)).catch(() => 0) : Promise.resolve(0),
 
-      (orgId && isCompany) ? ((prisma as any).corporateEnquiry?.count({ where: { companyId: orgId } }) ?? Promise.resolve(0)).catch(() => 0) : Promise.resolve(null),
-      (orgId && isCompany) ? ((prisma as any).convergenceProject?.count({ where: { companyId: orgId } }) ?? Promise.resolve(0)).catch(() => null) : Promise.resolve(null),
-      (orgId && isGovt) ? ((prisma as any).governmentPitch?.count({ where: { departmentId: orgId } }) ?? Promise.resolve(0)).catch(() => null) : Promise.resolve(null),
-      (orgId && isNgo) ? ((prisma as any).convergenceProject?.count({ where: { ngoId: orgId } }) ?? Promise.resolve(0)).catch(() => null) : Promise.resolve(null),
+      (orgId && isCompany) ? prisma.corporateEnquiry.count({ where: { organizationId: orgId } }).catch(() => 0) : Promise.resolve(null),
+      (orgId && isCompany) ? prisma.project.count({ where: { OR: [{ organizationId: orgId }, { corporatePartnerId: orgId }] } }).catch(() => 0) : Promise.resolve(null),
+      (orgId && isGovt) ? prisma.governmentPitch.count({ where: { departmentId: orgId } }).catch(() => 0) : Promise.resolve(null),
+      (orgId && isNgo) ? prisma.project.count({ where: { OR: [{ organizationId: orgId }, { ngoId: orgId }, { implementingAgencyId: orgId }] } }).catch(() => 0) : Promise.resolve(null),
 
       ((prisma as any).auditLog?.findMany({ take: 5, orderBy: { createdAt: "desc" } }) ?? Promise.resolve([])).catch(() => [])
     ]);

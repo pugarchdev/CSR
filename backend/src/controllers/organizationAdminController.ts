@@ -469,6 +469,12 @@ export const updateCompanyPreferences = async (req: AuthenticatedRequest, res: R
   try {
     const org = await getOwnedOrganization(req, "CSR_COMPANY");
     const body = req.body || {};
+    const formatStr = (val: any) => {
+      if (!val) return null;
+      if (Array.isArray(val)) return val.join(", ");
+      return String(val);
+    };
+
     const profile = await prisma.cSRCompanyProfile.upsert({
       where: { organizationId: org.id },
       create: {
@@ -483,8 +489,8 @@ export const updateCompanyPreferences = async (req: AuthenticatedRequest, res: R
         maxFundingAmount: body.maxFundingAmount ? parseFloat(body.maxFundingAmount) : null,
         fundingPreference: body.fundingPreference || null,
         implementationPreference: body.implementationPreference || null,
-        preferredBeneficiaryGroups: body.preferredBeneficiaryGroups || null,
-        sdgFocusAreas: body.sdgFocusAreas || null
+        preferredBeneficiaryGroups: formatStr(body.preferredBeneficiaryGroups),
+        sdgFocusAreas: formatStr(body.sdgFocusAreas)
       },
       update: {
         preferredDistricts: Array.isArray(body.preferredDistricts) ? body.preferredDistricts : [],
@@ -497,8 +503,8 @@ export const updateCompanyPreferences = async (req: AuthenticatedRequest, res: R
         maxFundingAmount: body.maxFundingAmount ? parseFloat(body.maxFundingAmount) : null,
         fundingPreference: body.fundingPreference || null,
         implementationPreference: body.implementationPreference || null,
-        preferredBeneficiaryGroups: body.preferredBeneficiaryGroups || null,
-        sdgFocusAreas: body.sdgFocusAreas || null
+        preferredBeneficiaryGroups: formatStr(body.preferredBeneficiaryGroups),
+        sdgFocusAreas: formatStr(body.sdgFocusAreas)
       }
     });
     return res.json(profile);

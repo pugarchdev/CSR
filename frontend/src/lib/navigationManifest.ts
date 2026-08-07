@@ -170,6 +170,32 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     breadcrumbMetadata: { title: "Corporate Enquiries", parentRoute: "/dashboard" }
   },
   {
+    id: "partner-enquiries",
+    label: "Submit Corporate Enquiry",
+    formalTitle: "Submit Corporate Enquiry",
+    route: "/partner/enquiries",
+    iconName: "FileText",
+    section: "Applications",
+    navigationLevel: "HIDDEN",
+    showInSidebar: false,
+    requiredAnyPermissions: ["enquiry:view", "enquiry:create", "enquiry:respond"],
+    ordering: 11,
+    breadcrumbMetadata: { title: "Submit Corporate Enquiry", parentRoute: "/dashboard" }
+  },
+  {
+    id: "partner-workspace",
+    label: "Partner Workspace",
+    formalTitle: "Partner Workspace",
+    route: "/partner",
+    iconName: "Handshake",
+    section: "Applications",
+    navigationLevel: "HIDDEN",
+    showInSidebar: false,
+    requiredAnyPermissions: ["enquiry:view", "enquiry:create", "enquiry:respond"],
+    ordering: 12,
+    breadcrumbMetadata: { title: "Partner Workspace", parentRoute: "/dashboard" }
+  },
+  {
     id: "pitches",
     label: "Pitches",
     formalTitle: "Government Pitches",
@@ -352,7 +378,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-organizations",
     showInSidebar: true,
-    requiredAnyPermissions: ["organization:view", "organization:update", "organization:approve"],
+    requiredAnyPermissions: ["organization:approve"],
     ordering: 10,
     breadcrumbMetadata: { title: "Organizations", parentRoute: "/dashboard" }
   },
@@ -366,7 +392,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-organizations",
     showInSidebar: true,
-    requiredAnyPermissions: ["organization:view", "company_profile:manage"],
+    requiredAnyPermissions: ["organization:approve"],
     ordering: 20,
     breadcrumbMetadata: { title: "Corporate Partners", parentRoute: "/admin/organizations" }
   },
@@ -380,7 +406,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-organizations",
     showInSidebar: true,
-    requiredAnyPermissions: ["organization:view", "ngo_login:create"],
+    requiredAnyPermissions: ["organization:approve"],
     ordering: 30,
     breadcrumbMetadata: { title: "Implementing Agencies", parentRoute: "/admin/organizations" }
   },
@@ -407,7 +433,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-organizations",
     showInSidebar: true,
-    requiredAnyPermissions: ["organization:manage-users", "user:create"],
+    requiredAnyPermissions: ["ngo_login:create", "company_profile:manage"],
     ordering: 50,
     breadcrumbMetadata: { title: "Sub-Logins", parentRoute: "/dashboard" }
   },

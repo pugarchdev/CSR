@@ -43,18 +43,21 @@ export const createSubLogin = async (req: AuthenticatedRequest, res: Response, n
     const userRoleId = req.user?.roleId ? Number(req.user.roleId) : null;
     const organizationId = req.user?.organizationId;
 
-    if (![ROLE_ID.COMPANY_ADMIN, ROLE_ID.NGO_ADMIN].includes(userRoleId as any)) {
-      return res.status(403).json({
-        error: "Only a Company Admin or NGO Admin can create a sub-login."
-      });
-    }
-
     const creatorOrganization = await prisma.organization.findUnique({
       where: { id: organizationId || "__none__" },
       select: { id: true, name: true, kind: true, status: true }
     });
+
+    const isCompanyAdmin = userRoleId === ROLE_ID.COMPANY_ADMIN || String(req.user?.role).toUpperCase().includes("COMPANY") || creatorOrganization?.kind === "CSR_COMPANY";
+
+    if (!isCompanyAdmin || creatorOrganization?.kind !== "CSR_COMPANY") {
+      return res.status(403).json({
+        error: "NGO / implementing agency sub-logins can only be created by the Company / Corporate dashboard."
+      });
+    }
+
     if (!creatorOrganization || creatorOrganization.status !== "ACTIVE") {
-      return res.status(403).json({ error: "Your organization must be Super-Admin approved before it can create sub-logins." });
+      return res.status(403).json({ error: "Your company organization must be Super-Admin approved before it can create NGO sub-logins." });
     }
 
     const { ngoName, darpanId, email, contactPerson, phone } = req.body;
@@ -66,15 +69,7 @@ export const createSubLogin = async (req: AuthenticatedRequest, res: Response, n
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
       return res.status(400).json({ error: "Enter a valid official email address." });
     }
-    if (userRoleId === ROLE_ID.NGO_ADMIN) {
-      if (creatorOrganization.kind !== "NGO") return res.status(403).json({ error: "NGO Admin can only create internal NGO staff logins." });
-      const invitation = await createInvitation({ email: normalizedEmail, roleId: ROLE_ID.NGO_ADMIN, organizationId: creatorOrganization.id, parentUserId: req.user!.id });
-      return res.status(201).json({ success: true, message: "NGO staff invitation created. The account becomes active after acceptance.", data: { invitationId: invitation.invitation.id, email: normalizedEmail, activationUrl: invitation.activationUrl } });
-    }
 
-    if (creatorOrganization.kind !== "CSR_COMPANY") {
-      return res.status(403).json({ error: "Only a Company Admin can invite a new NGO or implementing agency." });
-    }
     const cleanNgoName = String(ngoName || "").trim();
     if (cleanNgoName.length < 2) return res.status(400).json({ error: "NGO / implementing agency name is required." });
 

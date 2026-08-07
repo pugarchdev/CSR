@@ -22,7 +22,41 @@ export default function PageGuard({ children }: { children: React.ReactNode }) {
 
   const decision = useMemo(() => {
     // Universal public routes or root
-    if (pathname === "/" || pathname.startsWith("/login") || pathname.startsWith("/register") || pathname.startsWith("/public")) {
+    const publicPrefixes = [
+      "/",
+      "/login",
+      "/register",
+      "/public",
+      "/about",
+      "/partner-with-maharashtra",
+      "/pitch-development-need",
+      "/track",
+      "/standard-mou-template",
+      "/csr-impact-dashboard",
+      "/district-csr-ranking",
+      "/statistics",
+      "/downloads",
+      "/faqs",
+      "/feedback",
+      "/gallery",
+      "/stories",
+      "/events",
+      "/framework-policy",
+      "/document-library",
+      "/workflow",
+      "/success-stories",
+      "/csr-events",
+      "/directory",
+      "/completed-projects",
+      "/public-development-needs",
+      "/faq-news-recognition",
+      "/knowledge",
+      "/marketplace",
+      "/csr-marketplace",
+      "/circulars"
+    ];
+
+    if (publicPrefixes.some((prefix) => prefix === "/" ? pathname === "/" : pathname.startsWith(prefix))) {
       return { allowed: true, requiredPerm: undefined };
     }
 
