@@ -73,7 +73,7 @@ app.use((req, res, next) => {
 });
 
 // Enhanced Terminal Logger Middleware
-const SENSITIVE_PATHS = ["/api/auth/login", "/api/auth/register", "/api/auth/verify-otp"];
+const SENSITIVE_PATHS = ["/api/auth/login", "/api/auth/register", "/api/auth/verify-otp", "/api/verification"];
 app.use((req, res, next) => {
   const startTime = Date.now();
   const isSensitive = SENSITIVE_PATHS.some((path) => req.path.startsWith(path));

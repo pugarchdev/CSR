@@ -2,6 +2,7 @@ import { Response, NextFunction } from "express";
 import prisma from "../config/db";
 import { AuthenticatedRequest } from "../middlewares/authMiddleware";
 import { successResponse, notFoundResponse, unauthorizedResponse } from "../utils/apiResponse";
+import { Role } from "../types/role";
 
 export const getDashboard = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
@@ -9,8 +10,12 @@ export const getDashboard = async (req: AuthenticatedRequest, res: Response, nex
     if (!userId) return unauthorizedResponse(res, "Not authenticated");
 
     const [totalProjects, totalGrievances] = await Promise.all([
-      prisma.project.count(),
-      prisma.grievance.count()
+      prisma.project.count({
+        where: { nodalOfficerUserId: userId }
+      }),
+      prisma.grievance.count({
+        where: { project: { nodalOfficerUserId: userId } }
+      })
     ]);
 
     return successResponse(res, { totalProjects, totalGrievances }, "Dashboard loaded");
@@ -38,6 +43,22 @@ export const getProjectById = async (req: AuthenticatedRequest, res: Response, n
       include: { milestones: true, grievances: true, documents: true, utilizationCertificates: true }
     });
     if (!project) return notFoundResponse(res, "Project not found");
+
+    const isSuper = req.user?.role === 1 || req.user?.role === "SUPER_ADMIN" || req.user?.roleId === "1" || Number(req.user?.roleId) === 1;
+    if (!isSuper && project.nodalOfficerUserId !== req.user?.id) {
+      const explicitAssignment = await prisma.projectAssignment.findFirst({
+        where: {
+          entityType: "PROJECT",
+          entityId: project.id,
+          assignedToId: req.user?.id,
+          status: "ACTIVE"
+        }
+      });
+      if (!explicitAssignment) {
+        return res.status(403).json({ error: "Forbidden: You do not have assignment access to this project" });
+      }
+    }
+
     return successResponse(res, project, "Project retrieved");
   } catch (error) {
     next(error);
@@ -108,7 +129,15 @@ export const getProjectGrievances = async (req: AuthenticatedRequest, res: Respo
 
 export const getCorporateEnquiries = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const enquiries = await prisma.corporateEnquiry.findMany({ orderBy: { createdAt: "desc" } });
+    const userRole = Number(req.user?.role || req.user?.roleId);
+    const where: any = {};
+    if (userRole === Role.DISTRICT_NODAL_OFFICER && req.user?.organizationId) {
+      where.organizationId = req.user.organizationId;
+    }
+    const enquiries = await prisma.corporateEnquiry.findMany({
+      where,
+      orderBy: { createdAt: "desc" }
+    });
     return successResponse(res, enquiries, "Enquiries retrieved");
   } catch (error) {
     next(error);
@@ -117,7 +146,15 @@ export const getCorporateEnquiries = async (req: AuthenticatedRequest, res: Resp
 
 export const getGovernmentPitches = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const pitches = await prisma.governmentPitch.findMany({ orderBy: { createdAt: "desc" } });
+    const userRole = Number(req.user?.role || req.user?.roleId);
+    const where: any = {};
+    if (userRole === Role.DISTRICT_NODAL_OFFICER && req.user?.organizationId) {
+      where.departmentId = req.user.organizationId;
+    }
+    const pitches = await prisma.governmentPitch.findMany({
+      where,
+      orderBy: { createdAt: "desc" }
+    });
     return successResponse(res, pitches, "Pitches retrieved");
   } catch (error) {
     next(error);
@@ -126,7 +163,26 @@ export const getGovernmentPitches = async (req: AuthenticatedRequest, res: Respo
 
 export const getInspections = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
+    const userRole = Number(req.user?.role || req.user?.roleId);
+    const where: any = {};
+    if (userRole === Role.DISTRICT_NODAL_OFFICER && req.user?.id) {
+      where.project = {
+        OR: [
+          { nodalOfficerUserId: req.user.id },
+          {
+            projectAssignments: {
+              some: {
+                assignedToId: req.user.id,
+                status: "ACTIVE"
+              }
+            }
+          }
+        ]
+      };
+    }
     const inspections = await prisma.projectInspection.findMany({
+      where,
+      include: { project: true },
       orderBy: { createdAt: "desc" }
     });
     return successResponse(res, inspections, "Inspections retrieved");

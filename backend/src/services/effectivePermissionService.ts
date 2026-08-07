@@ -1,5 +1,6 @@
 import prisma from "../config/db";
 import { UserPermissionPayload } from "../types/role";
+import { SEED_ROLE_PERMISSIONS, resolveSeedRolePermissionKeys } from "../config/platformAccess";
 
 export interface EffectiveAccessPayload {
   userId: string;
@@ -119,6 +120,12 @@ export class EffectivePermissionService {
       user.role.rolePermissions.forEach((rp) => {
         permissionSet.add(rp.permission.key);
       });
+
+      const roleCode = user.role.name || user.role.code;
+      if (roleCode && SEED_ROLE_PERMISSIONS[roleCode]) {
+        const seedKeys = resolveSeedRolePermissionKeys(roleCode);
+        seedKeys.forEach((key) => permissionSet.add(key));
+      }
     }
 
     for (const assign of assignments) {

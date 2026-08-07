@@ -42,8 +42,15 @@ export const listUsers = async (req: AuthenticatedRequest, res: Response, next: 
     const isGlobalAdmin = ["SUPER_ADMIN", "PLANNING_SECRETARY", "JOINT_SECRETARY", "CSR_ADMIN", "PORTAL_ADMIN"].includes(userRole) || String(req.user?.roleId) === "1" || Number(req.user?.roleId) === 1;
 
     const where: any = { deletedAt: null };
-    if (!isGlobalAdmin && req.user?.organizationId) {
-      where.organizationId = req.user.organizationId;
+    if (!isGlobalAdmin) {
+      if (req.user?.organizationId) {
+        where.OR = [
+          { organizationId: req.user.organizationId },
+          { parentUserId: req.user.id }
+        ];
+      } else {
+        where.parentUserId = req.user?.id || "NO_MATCH";
+      }
     }
 
     if (search) {
@@ -141,8 +148,20 @@ export const createAdminUser = async (req: AuthenticatedRequest, res: Response, 
     }
     if (!roleId || !Number.isInteger(roleId)) return res.status(400).json({ error: "A valid platform role is required." });
 
-    const roleRecord = await prisma.role.findUnique({ where: { id: roleId }, select: { id: true, name: true } });
+    const userRole = String(req.user?.role || "").toUpperCase();
+    const isGlobalAdmin = ["SUPER_ADMIN", "PLANNING_SECRETARY", "JOINT_SECRETARY", "CSR_ADMIN", "PORTAL_ADMIN"].includes(userRole) || String(req.user?.roleId) === "1" || Number(req.user?.roleId) === 1;
+
+    const roleRecord = await prisma.role.findUnique({ where: { id: roleId }, select: { id: true, name: true, isSystemRole: true, organizationId: true } });
     if (!roleRecord) return res.status(400).json({ error: "Selected role does not exist." });
+
+    if (!isGlobalAdmin) {
+      if (roleRecord.isSystemRole || roleRecord.id <= 9) {
+        return res.status(403).json({ error: "Forbidden: Company Admins and Government Officers can only assign custom roles created for their organization." });
+      }
+      if (roleRecord.organizationId && roleRecord.organizationId !== req.user?.organizationId) {
+        return res.status(403).json({ error: "Forbidden: You cannot assign custom roles belonging to another organization." });
+      }
+    }
 
     if ((roleId === ROLE_ID.DISTRICT_NODAL_OFFICER || roleId === ROLE_ID.DISTRICT_NODAL_CONSULTANT) && !String(district || "").trim()) {
       return res.status(400).json({ error: "A district is required for district nodal officers and consultants." });
@@ -174,12 +193,15 @@ export const createAdminUser = async (req: AuthenticatedRequest, res: Response, 
 
     const passwordHash = await bcrypt.hash(finalPassword, 10);
 
+    const targetOrgId = isGlobalAdmin ? (organizationId || null) : (req.user?.organizationId || null);
+
     const user = await prisma.user.create({
       data: {
         email: normalizedEmail,
         passwordHash,
         roleId,
-        organizationId: organizationId || null,
+        organizationId: targetOrgId,
+        parentUserId: req.user?.id || null,
         firstName,
         lastName,
         mobile,
@@ -311,6 +333,20 @@ export const importAdminUsers = async (req: AuthenticatedRequest, res: Response,
 export const updateUser = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
+
+    const userRole = String(req.user?.role || "").toUpperCase();
+    const isGlobalAdmin = ["SUPER_ADMIN", "PLANNING_SECRETARY", "JOINT_SECRETARY", "CSR_ADMIN", "PORTAL_ADMIN"].includes(userRole) || String(req.user?.roleId) === "1" || Number(req.user?.roleId) === 1;
+
+    const existingUser = await prisma.user.findUnique({ where: { id } });
+    if (!existingUser) return res.status(404).json({ error: "User not found" });
+
+    if (!isGlobalAdmin) {
+      const belongsToOrg = req.user?.organizationId && existingUser.organizationId === req.user.organizationId;
+      const isSubLogin = existingUser.parentUserId === req.user?.id;
+      if (!belongsToOrg && !isSubLogin) {
+        return res.status(403).json({ error: "Forbidden: You can only manage users within your own organization." });
+      }
+    }
     const {
       email: rawEmail,
       password: rawPassword,
@@ -358,6 +394,16 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response, next:
     }
     if (requestedRole !== undefined && (!resolvedRoleId || !Number.isInteger(resolvedRoleId))) {
       return res.status(400).json({ error: "Selected role does not exist." });
+    }
+
+    if (resolvedRoleId && !isGlobalAdmin) {
+      const targetRole = await prisma.role.findUnique({ where: { id: resolvedRoleId }, select: { id: true, isSystemRole: true, organizationId: true } });
+      if (targetRole && (targetRole.isSystemRole || targetRole.id <= 9)) {
+        return res.status(403).json({ error: "Forbidden: Company Admins and Government Officers can only assign custom roles created for their organization." });
+      }
+      if (targetRole?.organizationId && targetRole.organizationId !== req.user?.organizationId) {
+        return res.status(403).json({ error: "Forbidden: You cannot assign custom roles belonging to another organization." });
+      }
     }
     if (resolvedRoleId && (resolvedRoleId === ROLE_ID.DISTRICT_NODAL_OFFICER || resolvedRoleId === ROLE_ID.DISTRICT_NODAL_CONSULTANT) && district !== undefined && !String(district).trim()) {
       return res.status(400).json({ error: "A district is required for district nodal officers and consultants." });
@@ -428,6 +474,17 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response, next:
     const { id } = req.params;
     const existing = await prisma.user.findUnique({ where: { id } });
     if (!existing) return res.status(404).json({ error: "User not found" });
+
+    const userRole = String(req.user?.role || "").toUpperCase();
+    const isGlobalAdmin = ["SUPER_ADMIN", "PLANNING_SECRETARY", "JOINT_SECRETARY", "CSR_ADMIN", "PORTAL_ADMIN"].includes(userRole) || String(req.user?.roleId) === "1" || Number(req.user?.roleId) === 1;
+
+    if (!isGlobalAdmin) {
+      const belongsToOrg = req.user?.organizationId && existing.organizationId === req.user.organizationId;
+      const isSubLogin = existing.parentUserId === req.user?.id;
+      if (!belongsToOrg && !isSubLogin) {
+        return res.status(403).json({ error: "Forbidden: You can only delete users within your own organization." });
+      }
+    }
 
     const timestamp = Date.now();
     const anonymizedEmail = existing.email.includes(".deleted.") 

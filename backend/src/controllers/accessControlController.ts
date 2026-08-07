@@ -32,7 +32,13 @@ export const getRoles = async (req: AuthenticatedRequest, res: Response, next: N
 
     const where: any = {};
     if (!isSuper) {
-      where.OR = [{ organizationId: userOrgId }, { isSystemRole: true }];
+      if (!userOrgId) {
+        where.id = -1;
+      } else {
+        where.organizationId = userOrgId;
+        where.isSystemRole = false;
+        where.id = { gt: 9 };
+      }
     } else if (req.query.organizationId) {
       where.organizationId = String(req.query.organizationId);
     }
@@ -380,9 +386,17 @@ export const deleteRole = async (req: AuthenticatedRequest, res: Response, next:
   }
 };
 
-export const getPermissions = async (_req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const getPermissions = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const perms = await prisma.permission.findMany({ orderBy: { key: "asc" } });
+    const isSuper = req.user?.role === 1 || req.user?.role === "SUPER_ADMIN" || req.user?.roleId === "1";
+    let perms = await prisma.permission.findMany({ orderBy: { key: "asc" } });
+
+    if (!isSuper && req.user?.id) {
+      const userAccess = await EffectivePermissionService.getEffectiveAccessPayload(req.user.id);
+      const userPermSet = new Set(userAccess.permissions);
+      perms = perms.filter((p) => userPermSet.has(p.key));
+    }
+
     return res.json({ data: perms });
   } catch (error) {
     next(error);
@@ -503,7 +517,12 @@ export const getAssignments = async (req: AuthenticatedRequest, res: Response, n
 
     const where: any = {};
     if (!isSuper) {
-      where.organizationId = userOrgId;
+      if (!userOrgId) {
+        where.id = "NO_MATCH";
+      } else {
+        where.organizationId = userOrgId;
+        where.role = { isSystemRole: false, id: { gt: 9 } };
+      }
     } else if (req.query.organizationId) {
       where.organizationId = String(req.query.organizationId);
     }

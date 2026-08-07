@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from "express";
 import prisma from "../config/db";
 import { AuthenticatedRequest } from "../middlewares/authMiddleware";
 import { CacheService } from "../services/cacheService";
+import { AccessControlApiService } from "../services/accessControlApiService";
+import { EffectivePermissionService } from "../services/effectivePermissionService";
 import {
   successResponse,
   errorResponse,
@@ -131,11 +133,11 @@ export const getRoles = async (
     if (!isSuper) {
       const userOrgId = req.user?.organizationId;
       if (!userOrgId) {
-        where.isSystemRole = true;
+        where.id = -1;
       } else {
-        where.AND = [
-          { OR: [{ organizationId: userOrgId }, { isSystemRole: true }] }
-        ];
+        where.organizationId = userOrgId;
+        where.isSystemRole = false;
+        where.id = { gt: 9 };
       }
     } else if (organizationId) {
       where.organizationId = String(organizationId);
@@ -238,10 +240,16 @@ export const getPermissionGroups = async (
   next: NextFunction
 ) => {
   try {
-
-    const permissions = await prisma.permission.findMany({
+    const isSuper = req.user?.role === 1 || req.user?.role === "SUPER_ADMIN" || req.user?.roleId === "1";
+    let permissions = await prisma.permission.findMany({
       orderBy: { module: "asc" }
     });
+
+    if (!isSuper && req.user?.id) {
+      const userAccess = await EffectivePermissionService.getEffectiveAccessPayload(req.user.id);
+      const userPermSet = new Set(userAccess.permissions);
+      permissions = permissions.filter(p => userPermSet.has(p.key));
+    }
 
     const groupMap = new Map<string, any[]>();
     permissions.forEach(p => {
@@ -328,6 +336,15 @@ export const createRole = async (
       return validationErrorResponse(res, "Role name already exists");
     }
 
+    if (Array.isArray(permissions) && permissions.length > 0) {
+      try {
+        await AccessControlApiService.validatePermissionKeys(permissions);
+        await AccessControlApiService.checkDelegationCeiling(req.user!.id, permissions);
+      } catch (err: any) {
+        return res.status(403).json({ error: err.message });
+      }
+    }
+
     const role = await prisma.$transaction(async (tx) => {
       const createdRole = await tx.role.create({
         data: {
@@ -406,6 +423,15 @@ export const updateRole = async (
     }
 
     const isSuperAdminRole = existingRole.name === "SUPER_ADMIN" || existingRole.id === 1;
+
+    if (Array.isArray(permissions) && permissions.length > 0) {
+      try {
+        await AccessControlApiService.validatePermissionKeys(permissions);
+        await AccessControlApiService.checkDelegationCeiling(req.user!.id, permissions);
+      } catch (err: any) {
+        return res.status(403).json({ error: err.message });
+      }
+    }
 
     const updatedRole = await prisma.$transaction(async (tx) => {
       const updated = await tx.role.update({

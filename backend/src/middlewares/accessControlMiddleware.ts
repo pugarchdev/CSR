@@ -293,7 +293,8 @@ export const requireProjectScope = async (req: AuthenticatedRequest, res: Respon
       return next();
     }
 
-    if (req.user.assignedDistrict && project.district.toLowerCase() === req.user.assignedDistrict.toLowerCase()) {
+    const isDistrictNodalOfficer = userRole === Role.DISTRICT_NODAL_OFFICER || String(req.user.roleId) === "4" || Number(req.user.roleId) === 4;
+    if (!isDistrictNodalOfficer && req.user.assignedDistrict && project.district.toLowerCase() === req.user.assignedDistrict.toLowerCase()) {
       return next();
     }
 
@@ -361,6 +362,25 @@ export const requirePermission = (permissionKey: string) => {
       if (!hasPerm) {
         await auditBlockedAccess(req, "PERMISSION_ACCESS_BLOCKED", { permissionKey, path: req.originalUrl });
         return res.status(403).json({ error: `Forbidden: missing required permission '${permissionKey}'` });
+      }
+      return next();
+    } catch (error) {
+      return next(error);
+    }
+  };
+};
+
+export const requireAnyPermission = (permissionKeys: string[]) => {
+  return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      if (!req.user) return res.status(401).json({ error: "Authentication required" });
+      const isSuperAdmin = Number(req.user.role) === Role.SUPER_ADMIN || req.user.role === "SUPER_ADMIN" || req.user.roleId === "1" || Number(req.user.roleId) === 1;
+      if (isSuperAdmin) return next();
+
+      const hasPerm = await EffectivePermissionService.hasAnyPermission(req.user.id, permissionKeys);
+      if (!hasPerm) {
+        await auditBlockedAccess(req, "PERMISSION_ACCESS_BLOCKED", { permissionKeys, path: req.originalUrl });
+        return res.status(403).json({ error: `Forbidden: missing any of required permissions [${permissionKeys.join(", ")}]` });
       }
       return next();
     } catch (error) {

@@ -304,6 +304,7 @@ export const SEED_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
   GOVERNMENT_OFFICER: [
     "dashboard:view", "dashboard:widget-kpis", "dashboard:widget-workqueue",
     "user:view", "user:create", "user:update", "user:assign-role",
+    "role:view", "role:create", "role:configure",
     "pitch:view", "pitch:create", "pitch:edit_before_approval", "photo:upload", "project:view_assigned",
     "status:track", "query:respond", "requirement:create", "requirement:view", "organization:view",
     "report:view",
@@ -314,6 +315,7 @@ export const SEED_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
   COMPANY_ADMIN: [
     "dashboard:view", "dashboard:widget-kpis", "dashboard:widget-workqueue",
     "user:view", "user:create", "user:update", "user:assign-role",
+    "role:view", "role:create", "role:configure",
     "company_profile:manage", "company_role:assign", "enquiry:create", "interest:express",
     "mou:sign", "ngo_login:create", "project:view", "project:close", "fund:view", "fund:commit",
     "report:view",
@@ -357,11 +359,11 @@ export const SEED_ROLE_PAGES: Record<string, readonly string[]> = {
     "convergence-projects", "inspections", "ngo-registry", "handover", "grievances",
   ],
   GOVERNMENT_OFFICER: [
-    "dashboard", "profile", "reports",
+    "dashboard", "profile", "reports", "admin/user-management", "admin/access-control",
     "organization/onboarding", "pitches", "requirements", "interests", "convergence-projects", "handover",
   ],
   COMPANY_ADMIN: [
-    "dashboard", "profile", "reports",
+    "dashboard", "profile", "reports", "admin/user-management", "admin/access-control",
     "organization/onboarding", "sub-logins", "enquiries", "marketplace", "interests", "agencies", "convergence-projects", "fund-releases",
   ],
   NGO_ADMIN: [

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useMemo } from "react";
-import { usePathname } from "next/navigation";
+import React, { useMemo, useState, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { getNavItemForRoute, isNavItemAllowed } from "@/lib/navigationManifest";
 import { AccessRestricted } from "./AccessRestricted";
@@ -9,6 +9,7 @@ import { Loader2, RefreshCw, AlertCircle } from "lucide-react";
 
 export default function PageGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || "";
+  const router = useRouter();
   const {
     isAuthenticated,
     isAdmin,
@@ -19,6 +20,9 @@ export default function PageGuard({ children }: { children: React.ReactNode }) {
     hasPermission,
     fetchEffectivePermissions
   } = useAuthStore();
+
+  const [lastAllowedChildren, setLastAllowedChildren] = useState<React.ReactNode>(null);
+  const [hasNavigatedBack, setHasNavigatedBack] = useState(false);
 
   const decision = useMemo(() => {
     // Universal public routes or root
@@ -88,6 +92,26 @@ export default function PageGuard({ children }: { children: React.ReactNode }) {
     return { allowed, requiredPerm };
   }, [pathname, isAuthenticated, isAdmin, permissions, hasPermission]);
 
+  useEffect(() => {
+    if (decision.allowed) {
+      setLastAllowedChildren(children);
+      setHasNavigatedBack(false);
+    }
+  }, [decision.allowed, children]);
+
+  useEffect(() => {
+    if (!decision.allowed && !hasNavigatedBack) {
+      setHasNavigatedBack(true);
+      if (typeof window !== "undefined") {
+        if (window.history.length > 1) {
+          router.back();
+        } else {
+          router.replace("/dashboard");
+        }
+      }
+    }
+  }, [decision.allowed, router, hasNavigatedBack]);
+
   // 1. Loading State
   if (isLoadingPermissions || fetchStatus === "LOADING") {
     return (
@@ -117,13 +141,16 @@ export default function PageGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // 3. Denied State -> Render 403 Access Restricted
+  // 3. Denied State -> Keep user on the last allowed page silently
   if (!decision.allowed) {
+    if (lastAllowedChildren) {
+      return <>{lastAllowedChildren}</>;
+    }
     return (
-      <AccessRestricted
-        requiredPermission={decision.requiredPerm}
-        reason={decision.reason}
-      />
+      <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 text-gray-500" role="status" aria-live="polite">
+        <Loader2 className="w-10 h-10 animate-spin text-blue-600 mb-4" />
+        <p className="text-sm font-medium text-gray-700 dark:text-black">Loading dashboard...</p>
+      </div>
     );
   }
 

@@ -11,6 +11,7 @@ import GovButton from "@/components/gov/GovButton";
 import GovInput from "@/components/gov/GovInput";
 import GovModal from "@/components/gov/GovModal";
 import GovSelect from "@/components/gov/GovSelect";
+import { useAuthStore } from "@/store/authStore";
 import "@/styles/gov-theme.css";
 
 // Base platform roles come from the Prisma enum; everything else is a dynamic
@@ -173,11 +174,12 @@ export default function AdminUserManagementPage() {
   // Delete confirmation modal
   const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null);
 
-  const activeDynamicRoles = dynamicRoles.filter((r) => r.status === "ACTIVE");
-  const systemRoles = activeDynamicRoles.filter((r) => r.isSystemRole);
-  const customRoles = activeDynamicRoles.filter((r) => !r.isSystemRole);
+  const { isAdmin } = useAuthStore();
 
-  const roleOptions = (
+  const activeDynamicRoles = dynamicRoles.filter((r) => r.status === "ACTIVE");
+  const customRoles = activeDynamicRoles.filter((r) => !r.isSystemRole && Number(r.id) > 9);
+
+  const roleOptions = isAdmin ? (
     <>
       <optgroup label="System Roles (1 to 9)">
         {SYSTEM_ROLES_LIST.map((r) => (
@@ -185,11 +187,23 @@ export default function AdminUserManagementPage() {
         ))}
       </optgroup>
       {customRoles.length > 0 && (
-        <optgroup label="Custom Roles (10+)">
+        <optgroup label="Organization Custom Roles">
           {customRoles.map((r) => (
             <option key={r.id} value={r.name}>{r.name}</option>
           ))}
         </optgroup>
+      )}
+    </>
+  ) : (
+    <>
+      {customRoles.length > 0 ? (
+        <optgroup label="Organization Custom Roles">
+          {customRoles.map((r) => (
+            <option key={r.id} value={r.name}>{r.name}</option>
+          ))}
+        </optgroup>
+      ) : (
+        <option value="" disabled>No custom roles found. Create a custom role first in Access Control.</option>
       )}
     </>
   );
@@ -346,9 +360,14 @@ export default function AdminUserManagementPage() {
         breadcrumb="Admin / Security / Users"
         description="Create platform users, manage their roles, districts and account status."
         actions={
-          <GovButton variant="primary" onClick={() => setCreateModalOpen(true)}>
-            Create User
-          </GovButton>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <GovButton variant="secondary" onClick={() => window.location.href = "/admin/access-control"}>
+              Manage Custom Roles
+            </GovButton>
+            <GovButton variant="primary" onClick={() => setCreateModalOpen(true)}>
+              Create User
+            </GovButton>
+          </div>
         }
       />
 

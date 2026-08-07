@@ -46,19 +46,8 @@ function LoginForm() {
   const [loginSuccess, setLoginSuccess] = useState(false);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/public/requirements?limit=1`).catch(() => {});
-    [
-      "/admin/dashboard",
-      "/secretary/dashboard",
-      "/js/dashboard",
-      "/nodal/dashboard",
-      "/rm/dashboard",
-      "/company/dashboard",
-      "/ngo/dashboard",
-      "/department/dashboard",
-      "/partner/dashboard"
-    ].forEach((path) => router.prefetch(path));
-  }, [router]);
+    // Keep login page lightweight - do not trigger heavy multi-route prefetching on mount
+  }, []);
 
   const handleQuickLogin = (demoEmail: string) => {
     setEmail(demoEmail);
