@@ -469,7 +469,7 @@ export default function CreateCorporateEnquiryPage() {
   const validateForm = (): boolean => {
     const errs: FormErrors = {};
     if (!form.companyName.trim()) errs.companyName = "Company name is required";
-    if (!/^[A-Z0-9]{21}$/i.test(form.mca21CIN.trim())) errs.mca21CIN = "Valid 21-character CIN is required";
+    // if (!/^[A-Z0-9]{21}$/i.test(form.mca21CIN.trim())) errs.mca21CIN = "Valid 21-character CIN is required";
     if (!form.sector) errs.sector = "Primary sector is required";
     if (form.sector === "OTHER" && !form.customSector.trim()) {
       errs.customSector = "Please specify your custom focus sector";
@@ -505,20 +505,20 @@ export default function CreateCorporateEnquiryPage() {
         documentUrls.push(await uploadPortalFile(doc));
       }
 
-      const response = await apiFetch<any>("/corporate-enquiries", {
+ const response = await apiFetch<any>("/corporate-enquiries", {
         method: "POST",
         body: JSON.stringify({
-          companyName: form.companyName,
-          mca21CIN: form.mca21CIN,
+          corporateName: form.companyName,             // CHANGED: Matches backend 'corporateName'
+          cin: form.mca21CIN,                          // CHANGED: Matches backend 'cin'
           sector: finalSector,
           indicativeBudget: form.indicativeBudget ? parseFloat(form.indicativeBudget) : undefined,
           preferredDivisions: form.preferredDivisions,
-          preferredDistricts: form.preferredDistricts,
+          district: form.preferredDistricts[0],        // CHANGED: Backend expects a single string 'district', not an array
           preferredCities: form.preferredCities,
           preferredTalukas: form.preferredTalukas,
           contactPersonName: form.contactPersonName,
           mobile: form.mobile,
-          email: form.email,
+          contactEmail: form.email,                    // CHANGED: Matches backend 'contactEmail'
           proposedCSRWork: form.proposedCSRWork,
           documents: documentUrls,
           departmentId: form.departmentId,

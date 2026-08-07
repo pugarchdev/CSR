@@ -103,16 +103,19 @@ export default function EnquiriesPage() {
     );
   }, [isAdmin, isRM, tokens]);
 
-  const canSubmitEnquiry = useMemo(() => {
-    if (isGovOrAdmin) return false;
-    return (
-      hasPermission("enquiry:create") ||
-      tokens.some((t: string) => {
-        const upper = t.toUpperCase();
-        return upper.includes("CORPORATE") || upper.includes("COMPANY");
-      })
-    );
-  }, [isGovOrAdmin, hasPermission, tokens]);
+const canSubmitEnquiry = useMemo(() => {
+  // 1. If they explicitly have the permission assigned, always show the button
+  if (hasPermission("enquiry:create")) return true;
+
+  // 2. If they don't have explicit permission and are Gov/Admin, block them
+  if (isGovOrAdmin) return false;
+
+  // 3. Fallback for Corporate/Company roles based on tokens
+  return tokens.some((t: string) => {
+    const upper = t.toUpperCase();
+    return upper.includes("CORPORATE") || upper.includes("COMPANY");
+  });
+}, [isGovOrAdmin, hasPermission, tokens]);
 
   const handleSubmitEnquiryClick = async (e: React.MouseEvent) => {
     e.preventDefault();

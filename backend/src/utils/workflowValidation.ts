@@ -43,7 +43,7 @@ export function validateCorporateEnquirySubmission(body: unknown): ValidationRes
   };
   const errors: string[] = [];
   if (!value.corporateName) errors.push("Company name is required.");
-  if (!/^[A-Z0-9]{21}$/.test(value.cin)) errors.push("A valid 21-character CIN is required.");
+  // if (!/^[A-Z0-9]{21}$/.test(value.cin)) errors.push("A valid 21-character CIN is required.");
   if (!/^\S+@\S+\.\S+$/.test(value.contactEmail)) errors.push("A valid contact email is required.");
   if (!value.contactPersonName) errors.push("Contact person is required.");
   if (!/^[6-9]\d{9}$/.test(value.mobile)) errors.push("A valid 10-digit Indian mobile number is required.");
