@@ -1,2197 +1,15 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
 generator client {
   provider = "prisma-client-js"
 }
 
-datasource db {
-  provider = "postgresql"
-}
-
-model User {
-  id                                                                           String                         @id @default(uuid())
-  organizationId                                                               String?
-  email                                                                        String                         @unique
-  passwordHash                                                                 String
-  roleEnum                                                                     Role?                          @map("role")
-  accountStatus                                                                UserAccountStatus              @default(ACTIVE)
-  isSystemSeeded                                                               Boolean                        @default(false)
-  isVerified                                                                   Boolean                        @default(false)
-  otpCodeHash                                                                  String?
-  otpExpiresAt                                                                 DateTime?
-  refreshTokenHash                                                             String?
-  createdAt                                                                    DateTime                       @default(now())
-  updatedAt                                                                    DateTime                       @updatedAt
-  ngoId                                                                        String?
-  companyId                                                                    String?
-  assignedDistrict                                                             String?
-  iaAgencyName                                                                 String?
-  iaApprovedByUserId                                                           String?
-  iaCsr1Number                                                                 String?
-  parentCorporateUserId                                                        String?
-  roleId                                                                       String?
-  AuditLog                                                                     AuditLog[]
-  BeneficiaryProfile                                                           BeneficiaryProfile?
-  ConvergenceProject_ConvergenceProject_corporateUserIdToUser                  ConvergenceProject[]           @relation("ConvergenceProject_corporateUserIdToUser")
-  ConvergenceProject_ConvergenceProject_implementingAgencyUserIdToUser         ConvergenceProject[]           @relation("ConvergenceProject_implementingAgencyUserIdToUser")
-  ConvergenceProject_ConvergenceProject_nodalOfficerUserIdToUser               ConvergenceProject[]           @relation("ConvergenceProject_nodalOfficerUserIdToUser")
-  ConvergenceProjectInspection                                                 ConvergenceProjectInspection[]
-  CorporateEnquiry_CorporateEnquiry_assignedRelationshipManagerIdToUser        CorporateEnquiry[]             @relation("CorporateEnquiry_assignedRelationshipManagerIdToUser")
-  CorporateEnquiry_CorporateEnquiry_submittedByUserIdToUser                    CorporateEnquiry[]             @relation("CorporateEnquiry_submittedByUserIdToUser")
-  CorporateEnquiryInteraction                                                  CorporateEnquiryInteraction[]
-  assignedByMappings                                                           DistrictNodalMapping[]         @relation("AssignedByNodalUser")
-  districtMappings                                                             DistrictNodalMapping[]         @relation("NodalUser")
-  FeasibilityAssessment_FeasibilityAssessment_jsDecisionByIdToUser             FeasibilityAssessment[]        @relation("FeasibilityAssessment_jsDecisionByIdToUser")
-  FeasibilityAssessment_FeasibilityAssessment_relationshipManagerIdToUser      FeasibilityAssessment[]        @relation("FeasibilityAssessment_relationshipManagerIdToUser")
-  FundRelease                                                                  FundRelease[]
-  GovernmentPitch_GovernmentPitch_assignedRelationshipManagerIdToUser          GovernmentPitch[]              @relation("GovernmentPitch_assignedRelationshipManagerIdToUser")
-  GovernmentPitch_GovernmentPitch_submittedByUserIdToUser                      GovernmentPitch[]              @relation("GovernmentPitch_submittedByUserIdToUser")
-  Grievance_Grievance_assignedNodalOfficerIdToUser                             Grievance[]                    @relation("Grievance_assignedNodalOfficerIdToUser")
-  Grievance_Grievance_assignedStateCellUserIdToUser                            Grievance[]                    @relation("Grievance_assignedStateCellUserIdToUser")
-  Grievance_Grievance_finalAuthorityUserIdToUser                               Grievance[]                    @relation("Grievance_finalAuthorityUserIdToUser")
-  grievancesRaised                                                             Grievance[]                    @relation("GrievancesRaised")
-  grievanceLogs                                                                GrievanceActionLog[]           @relation("GrievanceActor")
-  helpdeskRaised                                                               HelpdeskQuery[]                @relation("HelpdeskRaised")
-  helpdeskResolved                                                             HelpdeskQuery[]                @relation("HelpdeskResolved")
-  messages                                                                     Message[]
-  NGO_NGO_finalApprovedByIdToUser                                              NGO[]                          @relation("NGO_finalApprovedByIdToUser")
-  NgoDocument_NgoDocument_uploadedByIdToUser                                   NgoDocument[]                  @relation("NgoDocument_uploadedByIdToUser")
-  NgoDocument_NgoDocument_verifiedByIdToUser                                   NgoDocument[]                  @relation("NgoDocument_verifiedByIdToUser")
-  NodalOfficerAppointment_NodalOfficerAppointment_appointedByJsIdToUser        NodalOfficerAppointment[]      @relation("NodalOfficerAppointment_appointedByJsIdToUser")
-  NodalOfficerAppointment_NodalOfficerAppointment_nodalOfficerUserIdToUser     NodalOfficerAppointment[]      @relation("NodalOfficerAppointment_nodalOfficerUserIdToUser")
-  Notification                                                                 Notification[]
-  OnboardingApplication                                                        OnboardingApplication[]
-  OnboardingQuery                                                              OnboardingQuery[]
-  OnboardingStatusHistory                                                      OnboardingStatusHistory[]
-  PaymentOrder                                                                 PaymentOrder[]
-  givenAssignments                                                             ProjectAssignment[]            @relation("AssignedByUser")
-  assignedProjects                                                             ProjectAssignment[]            @relation("AssignedToUser")
-  ProjectDeliverableMilestone                                                  ProjectDeliverableMilestone[]
-  QueryResponse                                                                QueryResponse[]
-  Report                                                                       Report[]
-  RiskFlag                                                                     RiskFlag[]
-  RiskScore                                                                    RiskScore[]
-  SLAEscalation_SLAEscalation_escalatedToUserIdToUser                          SLAEscalation[]                @relation("SLAEscalation_escalatedToUserIdToUser")
-  SLAEscalation_SLAEscalation_responsibleUserIdToUser                          SLAEscalation[]                @relation("SLAEscalation_responsibleUserIdToUser")
-  sessions                                                                     Session[]
-  Company                                                                      Company?                       @relation(fields: [companyId], references: [id])
-  User_User_iaApprovedByUserIdToUser                                           User?                          @relation("User_iaApprovedByUserIdToUser", fields: [iaApprovedByUserId], references: [id])
-  other_User_User_iaApprovedByUserIdToUser                                     User[]                         @relation("User_iaApprovedByUserIdToUser")
-  NGO_User_ngoIdToNGO                                                          NGO?                           @relation("User_ngoIdToNGO", fields: [ngoId], references: [id])
-  User_User_parentCorporateUserIdToUser                                        User?                          @relation("User_parentCorporateUserIdToUser", fields: [parentCorporateUserId], references: [id])
-  other_User_User_parentCorporateUserIdToUser                                  User[]                         @relation("User_parentCorporateUserIdToUser")
-  role                                                                         OrganizationRole?              @relation("UserPrimaryRole", fields: [roleId], references: [id])
-  UserInvitation_UserInvitation_createdByIdToUser                              UserInvitation[]               @relation("UserInvitation_createdByIdToUser")
-  UserInvitation_UserInvitation_userIdToUser                                   UserInvitation[]               @relation("UserInvitation_userIdToUser")
-  officerProfile                                                               UserOfficerProfile?
-  userRoles                                                                    UserOrganizationRole[]
-  UtilizationCertificate_UtilizationCertificate_uploadedByUserIdToUser         UtilizationCertificate[]       @relation("UtilizationCertificate_uploadedByUserIdToUser")
-  UtilizationCertificate_UtilizationCertificate_verifiedByIdToUser             UtilizationCertificate[]       @relation("UtilizationCertificate_verifiedByIdToUser")
-  UtilizationCertificate_UtilizationCertificate_verifiedByNodalOfficerIdToUser UtilizationCertificate[]       @relation("UtilizationCertificate_verifiedByNodalOfficerIdToUser")
-  VerificationCheck                                                            VerificationCheck[]
-  verificationRecords                                                          VerificationRecord[]           @relation("InitiatedBy")
-  WorkflowHistory                                                              WorkflowHistory[]
-
-  @@index([organizationId])
-  @@index([parentCorporateUserId])
-}
-
-model Permission {
-  id                         String                       @id @default(uuid())
-  key                        String                       @unique
-  description                String?
-  module                     String
-  createdAt                  DateTime                     @default(now())
-  type                       PermissionType               @default(ACTION)
-  groupId                    String?
-  OrganizationRolePermission OrganizationRolePermission[]
-  PermissionGroup            PermissionGroup?             @relation(fields: [groupId], references: [id])
-  WorkflowAssignmentRule     WorkflowAssignmentRule[]
-  WorkflowRule               WorkflowRule[]
-  WorkflowTransition         WorkflowTransition[]
-}
-
-model RoleHierarchy {
-  id           String           @id @default(uuid())
-  parentRoleId String
-  childRoleId  String
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime
-  childRole    OrganizationRole @relation("ChildRoleHierarchy", fields: [childRoleId], references: [id], onDelete: Cascade)
-  parentRole   OrganizationRole @relation("ParentRoleHierarchy", fields: [parentRoleId], references: [id], onDelete: Cascade)
-
-  @@unique([parentRoleId, childRoleId])
-}
-
-model UserOrganizationRole {
-  id             String           @id @default(uuid())
-  userId         String
-  roleId         String
-  organizationId String?
-  createdAt      DateTime         @default(now())
-  companyId      String?
-  Company        Company?         @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  organization   Organization?    @relation(fields: [organizationId], references: [id])
-  role           OrganizationRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, roleId, organizationId])
-  @@index([organizationId])
-}
-
-model UserOfficerProfile {
-  id            String   @id @default(uuid())
-  userId        String   @unique
-  fullName      String
-  mobile        String?
-  employeeId    String?
-  designation   String?
-  department    String?
-  officeAddress String?
-  district      String?
-  taluka        String?
-  block         String?
-  office        String?
-  remarks       String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([district])
-  @@index([employeeId])
-}
-
-model Organization {
-  id                          String                       @id @default(uuid())
-  organizationType            OrganizationKind
-  name                        String
-  legalName                   String?
-  displayName                 String?
-  registrationNumber          String?
-  cin                         String?
-  llpin                       String?
-  pan                         String?
-  gst                         String?
-  gstin                       String?
-  departmentCode              String?
-  parentDepartment            String?
-  email                       String?
-  officialEmail               String?
-  phone                       String?
-  officialPhone               String?
-  website                     String?
-  address                     String?
-  stateId                     String?
-  districtId                  String?
-  talukaId                    String?
-  villageId                   String?
-  district                    String?
-  taluka                      String?
-  onboardingStatus            OrganizationOnboardingStatus @default(REGISTERED)
-  verificationStatus          DocumentVerificationStatus   @default(UPLOADED)
-  status                      OrganizationStatus           @default(ACTIVE)
-  approvedBy                  String?
-  approvedAt                  DateTime?
-  rejectedBy                  String?
-  rejectedAt                  DateTime?
-  rejectionReason             String?
-  clarificationRemarks        String?
-  sourceNgoId                 String?
-  sourceCompanyId             String?
-  sourceBeneficiaryProfileId  String?
-  createdAt                   DateTime                     @default(now())
-  updatedAt                   DateTime                     @updatedAt
-  csrCompanyProfile           CSRCompanyProfile?
-  GovernmentDepartmentProfile GovernmentDepartmentProfile?
-  OnboardingReview            OnboardingReview[]
-  OrganizationDocument        OrganizationDocument[]
-  OrganizationRole            OrganizationRole[]
-  userRoles                   UserOrganizationRole[]
-
-  @@index([status])
-  @@index([onboardingStatus])
-  @@index([organizationType])
-}
-
-model CSRCompanyProfile {
-  id                             String       @id @default(uuid())
-  organizationId                 String       @unique
-  companyType                    String?
-  yearOfIncorporation            Int?
-  mcaVerificationStatus          String?
-  companyStatus                  String?
-  registeredOfficeAddress        String?
-  corporateOfficeAddress         String?
-  officialEmailDomain            String?
-  csrApplicable                  Boolean      @default(false)
-  financialYear                  String?
-  netWorth                       Decimal?
-  turnover                       Decimal?
-  netProfit                      Decimal?
-  averageNetProfit               Decimal?
-  csrObligationAmount            Decimal?
-  twoPercentCsrObligation        Decimal?
-  currentYearCsrBudget           Decimal?
-  unspentCsrAmount               Decimal?
-  ongoingProjectAmount           Decimal?
-  csrCommitteeApplicable         Boolean      @default(false)
-  csrCommitteeDetails            Json?
-  csrCommitteeConstitutionDate   DateTime?
-  csrPolicyApprovalDate          DateTime?
-  boardApprovalStatus            String?
-  csrHeadName                    String?
-  csrHeadDesignation             String?
-  csrHeadEmail                   String?
-  csrHeadMobile                  String?
-  financeOfficerName             String?
-  financeOfficerDesignation      String?
-  financeOfficerEmail            String?
-  authorizedSignatoryName        String?
-  authorizedSignatoryDesignation String?
-  authorizedSignatoryEmail       String?
-  authorizedSignatoryMobile      String?
-  authorizationReferenceNumber   String?
-  csrPolicyDocumentId            String?
-  boardResolutionDocumentId      String?
-  preferredDistricts             String[]
-  preferredTalukas               String[]
-  preferredSectors               String[]
-  preferredProjectSize           String?
-  preferredBeneficiaryGroups     String[]
-  scheduleVIIFocusAreas          String[]
-  sdgFocusAreas                  String[]
-  esgFocusAreas                  String[]
-  minFundingAmount               Decimal?
-  maxFundingAmount               Decimal?
-  fundingPreference              String?
-  implementationPreference       String?
-  declarationAccepted            Boolean      @default(false)
-  declarationAcceptedAt          DateTime?
-  createdAt                      DateTime     @default(now())
-  updatedAt                      DateTime     @updatedAt
-  organization                   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-}
-
-model Project {
-  id               String        @id @default(uuid())
-  ngoId            String
-  title            String
-  description      String
-  focusArea        String
-  sdgGoal          String
-  beneficiaryCount Int
-  budgetRequested  Decimal
-  budgetFunded     Decimal       @default(0)
-  state            String        @default("Maharashtra")
-  district         String
-  taluka           String
-  village          String?
-  startDate        DateTime
-  endDate          DateTime
-  status           ProjectStatus @default(DRAFT)
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  Chat             Chat[]
-  documents        Document[]
-  MatchScore       MatchScore[]
-  Milestone        Milestone[]
-  NGO              NGO           @relation(fields: [ngoId], references: [id], onDelete: Cascade)
-}
-
-model Document {
-  id             String    @id @default(uuid())
-  organizationId String?
-  title          String
-  fileUrl        String
-  fileType       String
-  expiryDate     DateTime?
-  ngoId          String?
-  companyId      String?
-  projectId      String?
-  chatId         String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  Chat           Chat?     @relation(fields: [chatId], references: [id])
-  Company        Company?  @relation(fields: [companyId], references: [id])
-  NGO            NGO?      @relation(fields: [ngoId], references: [id])
-  project        Project?  @relation(fields: [projectId], references: [id])
-
-  @@index([organizationId])
-}
-
-model VerificationRecord {
-  id               String                   @id @default(uuid())
-  entityType       VerificationEntityType
-  entityId         String
-  verificationType VerificationModuleType
-  status           VerificationRecordStatus @default(IN_PROGRESS)
-  attempt          Int                      @default(1)
-  isLatest         Boolean                  @default(true)
-  maskedIdentifier String?
-  requestId        String                   @unique @default(uuid())
-  transactionId    String?
-  responseData     Json?
-  encryptedPayload String?
-  errorCode        String?
-  errorMessage     String?
-  responseTimeMs   Int?
-  source           String?
-  ipAddress        String?
-  userAgent        String?
-  initiatedById    String
-  verifiedAt       DateTime?
-  expiresAt        DateTime?
-  createdAt        DateTime                 @default(now())
-  updatedAt        DateTime
-  initiatedBy      User                     @relation("InitiatedBy", fields: [initiatedById], references: [id])
-
-  @@index([transactionId])
-  @@index([initiatedById])
-  @@index([createdAt])
-  @@index([entityType, entityId, verificationType, isLatest])
-}
-
-model RiskScore {
-  id                     String     @id @default(uuid())
-  ngoId                  String
-  overallScore           Int
-  riskLevel              RiskLevel
-  legalRegistrationScore Int        @default(0)
-  identitySignatoryScore Int        @default(0)
-  financialScore         Int        @default(0)
-  complianceScore        Int        @default(0)
-  governanceScore        Int        @default(0)
-  documentQualityScore   Int        @default(0)
-  paymentBankScore       Int        @default(0)
-  scoreBreakdown         Json?
-  calculatedAt           DateTime   @default(now())
-  calculatedById         String?
-  riskFlags              RiskFlag[]
-  User                   User?      @relation(fields: [calculatedById], references: [id])
-  NGO                    NGO        @relation(fields: [ngoId], references: [id], onDelete: Cascade)
-
-  @@index([ngoId])
-  @@index([riskLevel])
-}
-
-model RiskFlag {
-  id              String    @id @default(uuid())
-  riskScoreId     String
-  flagType        String
-  severity        String
-  description     String
-  recommendation  String?
-  isResolved      Boolean   @default(false)
-  resolvedAt      DateTime?
-  resolvedById    String?
-  resolutionNotes String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime
-  User            User?     @relation(fields: [resolvedById], references: [id])
-  riskScore       RiskScore @relation(fields: [riskScoreId], references: [id], onDelete: Cascade)
-}
-
-model BankAccount {
-  id                 String         @id @default(uuid())
-  ngoId              String
-  accountHolderName  String
-  bankName           String
-  branchName         String
-  accountNumber      String
-  ifscCode           String
-  accountType        String
-  isPrimary          Boolean        @default(false)
-  isVerified         Boolean        @default(false)
-  verificationMethod String?
-  verifiedAt         DateTime?
-  cancelledChequeUrl String?
-  bankStatementUrl   String?
-  verificationNotes  String?
-  isActive           Boolean        @default(true)
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
-  NGO                NGO            @relation(fields: [ngoId], references: [id], onDelete: Cascade)
-  FundRelease        FundRelease[]
-  paymentOrders      PaymentOrder[]
-
-  @@index([accountNumber])
-  @@index([ngoId])
-}
-
-model PaymentOrder {
-  id                 String               @id @default(uuid())
-  orderNumber        String               @unique
-  ngoId              String?
-  companyId          String?
-  projectId          String?
-  bankAccountId      String?
-  amount             Decimal
-  currency           String               @default("INR")
-  purpose            String
-  description        String?
-  status             PaymentStatus        @default(CREATED)
-  gatewayName        String?
-  gatewayOrderId     String?
-  gatewayPaymentId   String?
-  gatewaySignature   String?
-  idempotencyKey     String               @unique
-  metadata           Json?
-  createdById        String?
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
-  FundRelease        FundRelease[]
-  bankAccount        BankAccount?         @relation(fields: [bankAccountId], references: [id])
-  User               User?                @relation(fields: [createdById], references: [id])
-  PaymentTransaction PaymentTransaction[]
-  PaymentWebhookLog  PaymentWebhookLog[]
-
-  @@index([orderNumber])
-  @@index([status])
-  @@index([gatewayOrderId])
-}
-
-model UtilizationCertificate {
-  id                                                         String                       @id @default(uuid())
-  convergenceProjectId                                       String?
-  milestoneId                                                String?
-  csrFundReleaseId                                           String?
-  csrProjectId                                               String?
-  csrRequirementId                                           String?
-  ngoId                                                      String?
-  verifiedById                                               String?
-  uploadedByUserId                                           String
-  certificateDocumentUrl                                     String
-  amountUtilized                                             Decimal                      @db.Decimal(15, 2)
-  remarks                                                    String?
-  invoiceDocuments                                           String[]
-  verificationStatus                                         String                       @default("PENDING")
-  verifiedByNodalOfficerId                                   String?
-  uploadedAt                                                 DateTime                     @default(now())
-  verifiedAt                                                 DateTime?
-  ConvergenceProject                                         ConvergenceProject?          @relation(fields: [convergenceProjectId], references: [id], onDelete: Cascade)
-  CSRFundRelease                                             CSRFundRelease?              @relation(fields: [csrFundReleaseId], references: [id], onDelete: Cascade)
-  CSRProject                                                 CSRProject?                  @relation(fields: [csrProjectId], references: [id], onDelete: Cascade)
-  CSRRequirement                                             CSRRequirement?              @relation(fields: [csrRequirementId], references: [id], onDelete: Cascade)
-  milestone                                                  ProjectDeliverableMilestone? @relation(fields: [milestoneId], references: [id])
-  NGO                                                        NGO?                         @relation(fields: [ngoId], references: [id], onDelete: Cascade)
-  User_UtilizationCertificate_uploadedByUserIdToUser         User                         @relation("UtilizationCertificate_uploadedByUserIdToUser", fields: [uploadedByUserId], references: [id], onDelete: Cascade)
-  User_UtilizationCertificate_verifiedByIdToUser             User?                        @relation("UtilizationCertificate_verifiedByIdToUser", fields: [verifiedById], references: [id])
-  User_UtilizationCertificate_verifiedByNodalOfficerIdToUser User?                        @relation("UtilizationCertificate_verifiedByNodalOfficerIdToUser", fields: [verifiedByNodalOfficerId], references: [id])
-
-  @@index([milestoneId])
-  @@index([verificationStatus])
-  @@index([convergenceProjectId])
-  @@index([uploadedByUserId])
-}
-
-model Grievance {
-  id                                           String               @id @default(uuid())
-  grievanceId                                  String               @unique
-  convergenceProjectId                         String
-  raisedByUserId                               String
-  raisedByType                                 String
-  issueTitle                                   String
-  issueDescription                             String
-  status                                       GrievanceStatus      @default(RAISED)
-  level1DueAt                                  DateTime?
-  level2DueAt                                  DateTime?
-  assignedNodalOfficerId                       String?
-  assignedStateCellUserId                      String?
-  finalAuthorityUserId                         String?
-  resolutionText                               String?
-  createdAt                                    DateTime             @default(now())
-  updatedAt                                    DateTime             @updatedAt
-  User_Grievance_assignedNodalOfficerIdToUser  User?                @relation("Grievance_assignedNodalOfficerIdToUser", fields: [assignedNodalOfficerId], references: [id])
-  User_Grievance_assignedStateCellUserIdToUser User?                @relation("Grievance_assignedStateCellUserIdToUser", fields: [assignedStateCellUserId], references: [id])
-  ConvergenceProject                           ConvergenceProject   @relation(fields: [convergenceProjectId], references: [id], onDelete: Cascade)
-  User_Grievance_finalAuthorityUserIdToUser    User?                @relation("Grievance_finalAuthorityUserIdToUser", fields: [finalAuthorityUserId], references: [id])
-  raisedByUser                                 User                 @relation("GrievancesRaised", fields: [raisedByUserId], references: [id], onDelete: Cascade)
-  actionLogs                                   GrievanceActionLog[]
-
-  @@index([status])
-  @@index([raisedByUserId])
-  @@index([assignedNodalOfficerId])
-  @@index([convergenceProjectId])
-  @@index([grievanceId])
-}
-
-model GrievanceActionLog {
-  id          String    @id @default(uuid())
-  grievanceId String
-  actorUserId String
-  action      String
-  note        String
-  createdAt   DateTime  @default(now())
-  actorUser   User      @relation("GrievanceActor", fields: [actorUserId], references: [id], onDelete: Cascade)
-  grievance   Grievance @relation(fields: [grievanceId], references: [id], onDelete: Cascade)
-
-  @@index([grievanceId])
-  @@index([actorUserId])
-}
-
-model ProjectInspection {
-  id                String         @id @default(uuid())
-  csrProjectId      String?
-  csrRequirementId  String
-  districtOfficerId String?
-  visitDate         DateTime
-  latitude          Float?
-  longitude         Float?
-  geoTaggedImages   String[]
-  remarks           String?
-  issuesFound       String?
-  actionRequired    String?
-  nextVisitDate     DateTime?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime
-  CSRProject        CSRProject?    @relation(fields: [csrProjectId], references: [id], onDelete: Cascade)
-  CSRRequirement    CSRRequirement @relation(fields: [csrRequirementId], references: [id], onDelete: Cascade)
-
-  @@index([csrProjectId])
-  @@index([csrRequirementId])
-  @@index([districtOfficerId])
-  @@index([visitDate])
-}
-
-model StandardMou {
-  id                        String              @id @default(uuid())
-  mouReferenceId            String              @unique
-  corporateEnquiryId        String?             @unique
-  governmentPitchId         String?             @unique
-  projectId                 String?             @unique
-  districtDepartmentName    String
-  nodalOfficerName          String
-  corporateName             String
-  cin                       String
-  projectTitle              String
-  projectDescription        String
-  scheduleVIIClause         String
-  projectLocation           String
-  deliverables              Json
-  timelineMonths            Int
-  financialContribution     Decimal             @db.Decimal(15, 2)
-  governmentContribution    Decimal?            @db.Decimal(15, 2)
-  implementationMode        String
-  implementingAgencyName    String?
-  ownershipAfterCompletion  String
-  maintenanceResponsibility String
-  signedDocumentUrl         String?
-  status                    String              @default("DRAFT")
-  createdAt                 DateTime            @default(now())
-  updatedAt                 DateTime            @updatedAt
-  ConvergenceProject        ConvergenceProject?
-  CorporateEnquiry          CorporateEnquiry?   @relation(fields: [corporateEnquiryId], references: [id])
-  GovernmentPitch           GovernmentPitch?    @relation(fields: [governmentPitchId], references: [id])
-
-  @@index([mouReferenceId])
-  @@index([status])
-}
-
-model ProjectAssignment {
-  id             String            @id @default(uuid())
-  entityType     String
-  entityId       String
-  assignmentType String
-  assignedById   String
-  assignedToId   String
-  assignedRoleId String?
-  status         String            @default("ACTIVE")
-  remarks        String?
-  companyId      String?
-  assignedAt     DateTime          @default(now())
-  revokedAt      DateTime?
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime
-  assignedBy     User              @relation("AssignedByUser", fields: [assignedById], references: [id])
-  assignedRole   OrganizationRole? @relation(fields: [assignedRoleId], references: [id])
-  assignedTo     User              @relation("AssignedToUser", fields: [assignedToId], references: [id], onDelete: Cascade)
-
-  @@index([entityId, entityType])
-  @@index([assignedById])
-  @@index([assignedToId, status])
-}
-
-model DistrictNodalMapping {
-  id           String   @id @default(uuid())
-  district     String
-  domain       String?
-  userId       String
-  isActive     Boolean  @default(true)
-  assignedById String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime
-  assignedBy   User     @relation("AssignedByNodalUser", fields: [assignedById], references: [id])
-  user         User     @relation("NodalUser", fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([district, isActive])
-  @@index([userId])
-}
-
-model HelpdeskQuery {
-  id               String    @id @default(uuid())
-  trackingId       String    @unique
-  subject          String
-  message          String
-  name             String
-  email            String
-  mobile           String?
-  status           String    @default("OPEN")
-  resolution       String?
-  raisedByUserId   String?
-  resolvedByUserId String?
-  resolutionDueAt  DateTime
-  resolvedAt       DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  raisedByUser     User?     @relation("HelpdeskRaised", fields: [raisedByUserId], references: [id])
-  resolvedByUser   User?     @relation("HelpdeskResolved", fields: [resolvedByUserId], references: [id])
-
-  @@index([status])
-  @@index([email])
-  @@index([resolutionDueAt])
-}
-
-model AuditLog {
-  id           String   @id @default(uuid())
-  userId       String?
-  actorUserId  String?
-  actorRole    String?
-  action       String
-  entityType   String?
-  entityId     String?
-  details      Json
-  oldValueJson Json?
-  newValueJson Json?
-  ipAddress    String?
-  userAgent    String?
-  createdAt    DateTime @default(now())
-  User         User?    @relation(fields: [userId], references: [id])
-
-  @@index([actorUserId])
-  @@index([entityType, entityId])
-}
-
-model Session {
-  id               String    @id @default(uuid())
-  userId           String
-  userAgent        String?
-  ipAddress        String?
-  lastActivityIp   String?
-  device           String?
-  browser          String?
-  os               String?
-  deviceId         String?
-  loginTime        DateTime  @default(now())
-  lastActivity     DateTime  @default(now())
-  expiry           DateTime
-  isRevoked        Boolean   @default(false)
-  revokedByUserId  String?
-  revokedAt        DateTime?
-  revocationReason String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime
-  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([isRevoked])
-}
-
-model Notification {
-  id        String           @id @default(uuid())
-  userId    String
-  title     String
-  message   String
-  isRead    Boolean          @default(false)
-  type      NotificationType @default(IN_APP)
-  createdAt DateTime         @default(now())
-  User      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model NotificationLog {
-  id                String    @id @default(uuid())
-  recipientId       String
-  recipientEmail    String?
-  recipientPhone    String?
-  title             String
-  message           String
-  channel           String
-  status            String
-  retryCount        Int       @default(0)
-  lastError         String?
-  sentAt            DateTime?
-  correlationId     String?
-  smtpResponseCode  String?
-  providerMessageId String?
-  workerNodeId      String?
-  notificationType  String?
-  pushStatus        String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime
-
-  @@index([status])
-  @@index([recipientId])
-}
-
-model NotificationTemplate {
-  id           String         @id @default(uuid())
-  name         String
-  subject      String?
-  emailBody    String?
-  smsBody      String?
-  channels     String[]
-  createdAt    DateTime       @default(now())
-  WorkflowRule WorkflowRule[]
-}
-
-model OtpVerification {
-  id                String    @id @default(uuid())
-  purpose           String
-  channel           String
-  target            String
-  otpHash           String
-  verificationToken String?   @unique
-  attempts          Int       @default(0)
-  expiresAt         DateTime
-  verifiedAt        DateTime?
-  createdAt         DateTime  @default(now())
-
-  @@index([expiresAt])
-  @@index([purpose, channel, target])
-}
-
-model PlatformSetting {
-  id        String   @id @default(uuid())
-  key       String   @unique
-  value     String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model SLAEscalation {
-  id                                         String    @id @default(uuid())
-  entityType                                 String
-  entityId                                   String
-  stage                                      SLAStage
-  responsibleUserId                          String?
-  dueAt                                      DateTime
-  escalatedToUserId                          String?
-  escalatedAt                                DateTime?
-  isResolved                                 Boolean   @default(false)
-  resolvedAt                                 DateTime?
-  createdAt                                  DateTime  @default(now())
-  updatedAt                                  DateTime
-  User_SLAEscalation_escalatedToUserIdToUser User?     @relation("SLAEscalation_escalatedToUserIdToUser", fields: [escalatedToUserId], references: [id])
-  User_SLAEscalation_responsibleUserIdToUser User?     @relation("SLAEscalation_responsibleUserIdToUser", fields: [responsibleUserId], references: [id])
-
-  @@index([entityType, entityId])
-  @@index([isResolved])
-  @@index([dueAt])
-  @@index([responsibleUserId])
-  @@index([stage])
-}
-
-model WorkflowDefinition {
-  id               String             @id @default(uuid())
-  name             String
-  description      String?
-  isActive         Boolean            @default(true)
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime
-  WorkflowInstance WorkflowInstance[]
-  WorkflowStage    WorkflowStage[]
-}
-
-model WorkflowInstance {
-  id                 String             @id @default(uuid())
-  definitionId       String
-  currentStageId     String
-  entityId           String
-  entityType         String
-  status             String
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime
-  WorkflowHistory    WorkflowHistory[]
-  WorkflowStage      WorkflowStage      @relation(fields: [currentStageId], references: [id])
-  WorkflowDefinition WorkflowDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
-
-  @@index([entityId, entityType])
-}
-
-model WorkflowHistory {
-  id                                                       String           @id @default(uuid())
-  instanceId                                               String
-  fromStageId                                              String?
-  toStageId                                                String
-  actionPerformedByUserId                                  String
-  actionPerformedAt                                        DateTime         @default(now())
-  remarks                                                  String?
-  User                                                     User             @relation(fields: [actionPerformedByUserId], references: [id])
-  WorkflowStage_WorkflowHistory_fromStageIdToWorkflowStage WorkflowStage?   @relation("WorkflowHistory_fromStageIdToWorkflowStage", fields: [fromStageId], references: [id])
-  WorkflowInstance                                         WorkflowInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-  WorkflowStage_WorkflowHistory_toStageIdToWorkflowStage   WorkflowStage    @relation("WorkflowHistory_toStageIdToWorkflowStage", fields: [toStageId], references: [id])
-
-  @@index([instanceId])
-}
-
-model WorkflowTransition {
-  id                                                          String              @id @default(uuid())
-  fromStageId                                                 String
-  toStageId                                                   String
-  requiredPermissionId                                        String
-  createdAt                                                   DateTime            @default(now())
-  WorkflowCondition                                           WorkflowCondition[]
-  WorkflowStage_WorkflowTransition_fromStageIdToWorkflowStage WorkflowStage       @relation("WorkflowTransition_fromStageIdToWorkflowStage", fields: [fromStageId], references: [id], onDelete: Cascade)
-  Permission                                                  Permission          @relation(fields: [requiredPermissionId], references: [id])
-  WorkflowStage_WorkflowTransition_toStageIdToWorkflowStage   WorkflowStage       @relation("WorkflowTransition_toStageIdToWorkflowStage", fields: [toStageId], references: [id], onDelete: Cascade)
-}
-
-model WorkflowRule {
-  id                   String                @id @default(uuid())
-  stageId              String
-  actionType           String
-  requiredPermissionId String?
-  templateId           String?
-  createdAt            DateTime              @default(now())
-  Permission           Permission?           @relation(fields: [requiredPermissionId], references: [id])
-  WorkflowStage        WorkflowStage         @relation(fields: [stageId], references: [id], onDelete: Cascade)
-  NotificationTemplate NotificationTemplate? @relation(fields: [templateId], references: [id])
-}
-
-model WorkflowAssignmentRule {
-  id                   String        @id @default(uuid())
-  stageId              String
-  strategy             String
-  requiredPermissionId String
-  Permission           Permission    @relation(fields: [requiredPermissionId], references: [id])
-  WorkflowStage        WorkflowStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
-}
-
-model CorporateEnquiry {
-  id                                                        String                        @id @default(uuid())
-  trackingId                                                String                        @unique
-  companyName                                               String
-  sector                                                    String
-  preferredDistricts                                        String[]
-  indicativeBudget                                          Decimal?                      @db.Decimal(15, 2)
-  contactPersonName                                         String
-  contactPersonDesignation                                  String?
-  mobile                                                    String
-  mobileVerified                                            Boolean                       @default(false)
-  email                                                     String
-  emailVerified                                             Boolean                       @default(false)
-  mca21Cin                                                  String
-  proposedCsrWork                                           String                        @db.VarChar(2000)
-  assignedRelationshipManagerId                             String?
-  status                                                    CorporateEnquiryStatus        @default(SUBMITTED)
-  submittedAt                                               DateTime                      @default(now())
-  firstResponseDueAt                                        DateTime?
-  firstContactedAt                                          DateTime?
-  currentEscalationLevel                                    Int                           @default(0)
-  createdAt                                                 DateTime                      @default(now())
-  updatedAt                                                 DateTime                      @updatedAt
-  preferredCities                                           String[]
-  preferredDivisions                                        String[]
-  preferredTalukas                                          String[]
-  submittedByUserId                                         String?
-  ConvergenceProject                                        ConvergenceProject?
-  User_CorporateEnquiry_assignedRelationshipManagerIdToUser User?                         @relation("CorporateEnquiry_assignedRelationshipManagerIdToUser", fields: [assignedRelationshipManagerId], references: [id])
-  User_CorporateEnquiry_submittedByUserIdToUser             User?                         @relation("CorporateEnquiry_submittedByUserIdToUser", fields: [submittedByUserId], references: [id])
-  CorporateEnquiryInteraction                               CorporateEnquiryInteraction[]
-  FeasibilityAssessment                                     FeasibilityAssessment?
-  NodalOfficerAppointment                                   NodalOfficerAppointment?
-  StandardMou                                               StandardMou?
-
-  @@index([assignedRelationshipManagerId])
-  @@index([status])
-  @@index([submittedAt])
-  @@index([trackingId])
-}
-
-model GovernmentPitch {
-  id                                                       String                   @id @default(uuid())
-  pitchReferenceId                                         String                   @unique
-  officialName                                             String
-  designation                                              String
-  department                                               String
-  officeName                                               String
-  serviceClass                                             String
-  mobile                                                   String
-  mobileVerified                                           Boolean                  @default(false)
-  email                                                    String
-  emailVerified                                            Boolean                  @default(false)
-  district                                                 String
-  taluka                                                   String
-  exactLocation                                            String
-  csrRequirement                                           String                   @db.VarChar(2000)
-  estimatedCost                                            Decimal                  @db.Decimal(15, 2)
-  govtFundDeclaration                                      Boolean
-  certificationType                                        String
-  hodCertificationDocument                                 String?
-  status                                                   GovernmentPitchStatus    @default(DRAFT)
-  assignedRelationshipManagerId                            String?
-  submittedAt                                              DateTime?
-  verificationDueAt                                        DateTime?
-  jsApprovalDueAt                                          DateTime?
-  createdAt                                                DateTime                 @default(now())
-  updatedAt                                                DateTime                 @updatedAt
-  cities                                                   String[]                 @default([])
-  districts                                                String[]                 @default([])
-  divisions                                                String[]                 @default([])
-  submittedByUserId                                        String?
-  supportingDocuments                                      String[]                 @default([])
-  talukas                                                  String[]                 @default([])
-  ConvergenceProject                                       ConvergenceProject?
-  CorporatePitchInterest                                   CorporatePitchInterest[]
-  FeasibilityAssessment                                    FeasibilityAssessment?
-  User_GovernmentPitch_assignedRelationshipManagerIdToUser User?                    @relation("GovernmentPitch_assignedRelationshipManagerIdToUser", fields: [assignedRelationshipManagerId], references: [id])
-  User_GovernmentPitch_submittedByUserIdToUser             User?                    @relation("GovernmentPitch_submittedByUserIdToUser", fields: [submittedByUserId], references: [id])
-  GovernmentPitchPhoto                                     GovernmentPitchPhoto[]
-  NodalOfficerAppointment                                  NodalOfficerAppointment?
-  StandardMou                                              StandardMou?
-
-  @@index([assignedRelationshipManagerId])
-  @@index([status])
-  @@index([district])
-  @@index([pitchReferenceId])
-}
-
-model FeasibilityAssessment {
-  id                                                     String                     @id @default(uuid())
-  reportReference                                        String                     @unique
-  corporateEnquiryId                                     String?                    @unique
-  governmentPitchId                                      String?                    @unique
-  relationshipManagerId                                  String
-  companyName                                            String
-  cin                                                    String
-  sector                                                 String
-  contactSummary                                         String
-  proposedLocationDistrict                               String
-  indicativeBudget                                       Decimal                    @db.Decimal(15, 2)
-  developmentNeedAddressed                               String
-  dateOfFirstContact                                     DateTime
-  summaryOfInteraction                                   String
-  feasibilityResult                                      FeasibilityResult
-  recommendation                                         String
-  suggestedNodalOfficerDomain                            String
-  conditionText                                          String?
-  submittedToJsAt                                        DateTime?
-  jsDecisionById                                         String?
-  jsDecisionAt                                           DateTime?
-  jsDecisionRemarks                                      String?
-  createdAt                                              DateTime                   @default(now())
-  updatedAt                                              DateTime                   @updatedAt
-  CorporateEnquiry                                       CorporateEnquiry?          @relation(fields: [corporateEnquiryId], references: [id])
-  GovernmentPitch                                        GovernmentPitch?           @relation(fields: [governmentPitchId], references: [id])
-  User_FeasibilityAssessment_jsDecisionByIdToUser        User?                      @relation("FeasibilityAssessment_jsDecisionByIdToUser", fields: [jsDecisionById], references: [id])
-  User_FeasibilityAssessment_relationshipManagerIdToUser User                       @relation("FeasibilityAssessment_relationshipManagerIdToUser", fields: [relationshipManagerId], references: [id], onDelete: Cascade)
-  FeasibilityChecklistItem                               FeasibilityChecklistItem[]
-  NodalOfficerAppointment                                NodalOfficerAppointment?
-
-  @@index([corporateEnquiryId])
-  @@index([feasibilityResult])
-  @@index([governmentPitchId])
-  @@index([relationshipManagerId])
-}
-
-model CorporatePitchInterest {
-  id                       String          @id @default(uuid())
-  interestTrackingId       String          @unique
-  governmentPitchId        String
-  companyName              String
-  mca21Cin                 String
-  contactPersonName        String
-  contactPersonDesignation String
-  mobile                   String
-  mobileVerified           Boolean         @default(false)
-  email                    String
-  emailVerified            Boolean         @default(false)
-  indicativeBudget         Decimal?        @db.Decimal(15, 2)
-  preferredStartTimeline   String
-  implementationMode       String
-  messageToGovernment      String?         @db.VarChar(1000)
-  declarationAccepted      Boolean         @default(false)
-  status                   String          @default("INTERESTED")
-  createdAt                DateTime        @default(now())
-  updatedAt                DateTime
-  coordinationNotes        String?
-  dialogueInitiated        Boolean         @default(false)
-  nodalOfficerRecommended  String?
-  GovernmentPitch          GovernmentPitch @relation(fields: [governmentPitchId], references: [id], onDelete: Cascade)
-
-  @@index([governmentPitchId])
-  @@index([interestTrackingId])
-  @@index([mca21Cin])
-}
-
-model NgoInvitation {
-  id        String   @id @default(uuid())
-  companyId String
-  email     String
-  ngoName   String
-  status    String   @default("PENDING")
-  token     String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime
-  Company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-
-  @@index([companyId])
-}
-
-model UserInvitation {
-  id                                    String    @id @default(uuid())
-  userId                                String
-  email                                 String
-  mobile                                String?
-  tokenHash                             String    @unique
-  purpose                               String    @default("OFFICER_ACTIVATION")
-  status                                String    @default("PENDING")
-  expiresAt                             DateTime
-  acceptedAt                            DateTime?
-  revokedAt                             DateTime?
-  attemptCount                          Int       @default(0)
-  createdById                           String
-  companyId                             String?
-  createdAt                             DateTime  @default(now())
-  updatedAt                             DateTime
-  User_UserInvitation_createdByIdToUser User      @relation("UserInvitation_createdByIdToUser", fields: [createdById], references: [id])
-  User_UserInvitation_userIdToUser      User      @relation("UserInvitation_userIdToUser", fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([email, status])
-  @@index([userId])
-}
-
-model Agreement {
-  id                     String          @id @default(uuid())
-  csrRequirementId       String
-  companyId              String
-  ngoId                  String
-  beneficiaryProfileId   String?
-  fundingAmount          Decimal
-  milestonePlan          Json?
-  expectedStartDate      DateTime?
-  expectedCompletionDate DateTime?
-  termsAndConditions     String?
-  signedDocumentUrl      String?
-  status                 AgreementStatus @default(DRAFT_GENERATED)
-  rejectionReason        String?
-  revisionNotes          String?
-  createdAt              DateTime        @default(now())
-  updatedAt              DateTime
-  CSRRequirement         CSRRequirement  @relation(fields: [csrRequirementId], references: [id], onDelete: Cascade)
-
-  @@index([csrRequirementId])
-  @@index([status])
-}
-
-model MatchScore {
-  id        String   @id @default(uuid())
-  companyId String
-  projectId String
-  score     Int
-  factors   Json
-  createdAt DateTime @default(now())
-  updatedAt DateTime
-  Company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  Project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  @@unique([companyId, projectId])
-}
-
-model Chat {
-  id        String     @id @default(uuid())
-  projectId String?
-  ngoId     String
-  companyId String
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  Company   Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  NGO       NGO        @relation(fields: [ngoId], references: [id], onDelete: Cascade)
-  Project   Project?   @relation(fields: [projectId], references: [id])
-  Document  Document[]
-  messages  Message[]
-
-  @@unique([ngoId, companyId, projectId])
-}
-
-model Message {
-  id        String   @id @default(uuid())
-  chatId    String
-  senderId  String
-  text      String?
-  fileUrl   String?
-  fileType  String?
-  readBy    String[]
-  createdAt DateTime @default(now())
-  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  sender    User     @relation(fields: [senderId], references: [id])
-}
-
-model AssetHandover {
-  id                   String             @id
-  csrProjectId         String?
-  csrRequirementId     String
-  beneficiaryProfileId String
-  assetDescription     String
-  handoverDate         DateTime?
-  confirmationStatus   String             @default("PENDING")
-  confirmedById        String?
-  handoverCertificate  String?
-  remarks              String?
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime
-  BeneficiaryProfile   BeneficiaryProfile @relation(fields: [beneficiaryProfileId], references: [id], onDelete: Cascade)
-  CSRProject           CSRProject?        @relation(fields: [csrProjectId], references: [id], onDelete: Cascade)
-  CSRRequirement       CSRRequirement     @relation(fields: [csrRequirementId], references: [id], onDelete: Cascade)
-
-  @@index([beneficiaryProfileId])
-  @@index([confirmationStatus])
-  @@index([csrProjectId])
-  @@index([csrRequirementId])
-}
-
-model BeneficiaryProfile {
-  id             String           @id
-  organizationId String?
-  userId         String           @unique
-  agencyName     String
-  agencyType     String
-  district       String
-  taluka         String
-  village        String?
-  city           String?
-  address        String
-  pincode        String?
-  contactPerson  String
-  contactEmail   String
-  contactPhone   String
-  designation    String?
-  website        String?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime
-  AssetHandover  AssetHandover[]
-  User           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  CSRProject     CSRProject[]
-  CSRRequirement CSRRequirement[]
-
-  @@index([district])
-  @@index([organizationId])
-}
-
-model CSRFundMilestone {
-  id                  String                 @id
-  csrRequirementId    String
-  milestoneName       String
-  milestonePercentage Decimal
-  amount              Decimal
-  dueDate             DateTime?
-  releaseDate         DateTime?
-  utilizationProofUrl String?
-  invoiceUrl          String?
-  adminRemarks        String?
-  status              CSRFundMilestoneStatus @default(FM_PENDING)
-  createdAt           DateTime               @default(now())
-  updatedAt           DateTime
-  CSRRequirement      CSRRequirement         @relation(fields: [csrRequirementId], references: [id], onDelete: Cascade)
-
-  @@index([csrRequirementId])
-  @@index([status])
-}
-
-model CSRFundRelease {
-  id                       String                   @id
-  csrProjectId             String?
-  csrRequirementId         String
-  companyId                String
-  ngoId                    String?
-  trancheNumber            Int
-  trancheName              String
-  approvedAmount           Decimal
-  releasedAmount           Decimal                  @default(0)
-  releaseDate              DateTime?
-  paymentReference         String?
-  status                   CSRFundMilestoneStatus   @default(FM_PENDING)
-  utilizationCertificateId String?
-  remarks                  String?
-  createdAt                DateTime                 @default(now())
-  updatedAt                DateTime
-  Company                  Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  CSRProject               CSRProject?              @relation(fields: [csrProjectId], references: [id], onDelete: Cascade)
-  CSRRequirement           CSRRequirement           @relation(fields: [csrRequirementId], references: [id], onDelete: Cascade)
-  NGO                      NGO?                     @relation(fields: [ngoId], references: [id])
-  UtilizationCertificate   UtilizationCertificate[]
-
-  @@index([companyId])
-  @@index([csrProjectId])
-  @@index([csrRequirementId])
-  @@index([ngoId])
-  @@index([status])
-}
-
-model CSRProject {
-  id                     String                   @id
-  csrRequirementId       String
-  companyId              String
-  ngoId                  String?
-  beneficiaryProfileId   String
-  title                  String
-  approvedBudget         Decimal
-  committedAmount        Decimal                  @default(0)
-  releasedAmount         Decimal                  @default(0)
-  utilizedAmount         Decimal                  @default(0)
-  projectStatus          CSRRequirementStatus     @default(AGREEMENT_SIGNED)
-  startDate              DateTime?
-  expectedEndDate        DateTime?
-  actualEndDate          DateTime?
-  agreementDocument      String?
-  createdAt              DateTime                 @default(now())
-  updatedAt              DateTime
-  AssetHandover          AssetHandover[]
-  CSRFundRelease         CSRFundRelease[]
-  BeneficiaryProfile     BeneficiaryProfile       @relation(fields: [beneficiaryProfileId], references: [id], onDelete: Cascade)
-  Company                Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  CSRRequirement         CSRRequirement           @relation(fields: [csrRequirementId], references: [id], onDelete: Cascade)
-  NGO                    NGO?                     @relation(fields: [ngoId], references: [id])
-  ImpactMetric           ImpactMetric[]
-  ProjectInspection      ProjectInspection[]
-  UtilizationCertificate UtilizationCertificate[]
-
-  @@unique([csrRequirementId, companyId])
-  @@index([beneficiaryProfileId])
-  @@index([companyId])
-  @@index([csrRequirementId])
-  @@index([ngoId])
-  @@index([projectStatus])
-}
-
-model CSRRequirement {
-  id                     String                   @id
-  beneficiaryProfileId   String
-  title                  String
-  category               CSRCategory
-  description            String
-  district               String
-  taluka                 String
-  village                String?
-  city                   String?
-  address                String?
-  geoLatitude            Float?
-  geoLongitude           Float?
-  estimatedCost          Decimal
-  beneficiaryCount       Int
-  expectedImpact         String
-  priorityLevel          PriorityLevel            @default(MEDIUM)
-  completionTimeline     String?
-  contactPersonName      String?
-  contactPersonPhone     String?
-  contactPersonEmail     String?
-  agencyType             String?
-  sdgGoals               String[]
-  declarationAccepted    Boolean                  @default(false)
-  status                 CSRRequirementStatus     @default(DRAFT)
-  verificationRemarks    String?
-  rejectionReason        String?
-  verifiedById           String?
-  verifiedAt             DateTime?
-  fieldVerificationNotes String?
-  createdAt              DateTime                 @default(now())
-  updatedAt              DateTime
-  Agreement              Agreement[]
-  AssetHandover          AssetHandover[]
-  CSRFundMilestone       CSRFundMilestone[]
-  CSRFundRelease         CSRFundRelease[]
-  CSRProject             CSRProject[]
-  BeneficiaryProfile     BeneficiaryProfile       @relation(fields: [beneficiaryProfileId], references: [id], onDelete: Cascade)
-  CSRRequirementDocument CSRRequirementDocument[]
-  CompanyInterest        CompanyInterest[]
-  CompletionReport       CompletionReport?
-  ImpactMetric           ImpactMetric[]
-  ImpactReport           ImpactReport?
-  NGOApplication         NGOApplication[]
-  ProgressReport         ProgressReport[]
-  ProjectInspection      ProjectInspection[]
-  UtilizationCertificate UtilizationCertificate[]
-
-  @@index([beneficiaryProfileId])
-  @@index([category])
-  @@index([district])
-  @@index([status])
-}
-
-model CSRRequirementDocument {
-  id               String         @id
-  csrRequirementId String
-  title            String
-  fileUrl          String
-  fileName         String
-  fileType         String
-  fileSize         Int?
-  documentCategory String
-  uploadedById     String?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime
-  CSRRequirement   CSRRequirement @relation(fields: [csrRequirementId], references: [id], onDelete: Cascade)
-
-  @@index([csrRequirementId])
-}
-
-model Company {
-  id                   String                 @id
-  organizationId       String?
-  name                 String
-  cin                  String                 @unique
-  gst                  String                 @unique
-  pan                  String                 @unique
-  csrBudget            Decimal
-  csrRegistrationNo    String?
-  csrPolicyUrl         String?
-  registeredAddress    String?
-  csrHeadName          String?
-  csrHeadEmail         String?
-  csrHeadMobile        String?
-  annualCsrBudget      Decimal?
-  preferredDistricts   String[]
-  preferredBudgetMin   Decimal?
-  preferredBudgetMax   Decimal?
-  pastCsrWork          String?
-  companyLogoUrl       String?
-  focusAreas           String[]
-  contactInfo          Json
-  status               VerificationStatus     @default(PENDING)
-  rejectionReason      String?
-  createdAt            DateTime               @default(now())
-  updatedAt            DateTime
-  CSRFundRelease       CSRFundRelease[]
-  CSRProject           CSRProject[]
-  Chat                 Chat[]
-  CompanyInterest      CompanyInterest[]
-  Document             Document[]
-  MatchScore           MatchScore[]
-  NGO                  NGO[]
-  NgoInvitation        NgoInvitation[]
-  OrganizationRole     OrganizationRole[]
-  Report               Report[]
-  User                 User[]
-  UserOrganizationRole UserOrganizationRole[]
-
-  @@index([organizationId])
-}
-
-model CompanyInterest {
-  id                  String                @id
-  csrRequirementId    String
-  companyId           String
-  fundingAmount       Decimal
-  fundingType         String
-  preferredNgoId      String?
-  focusAlignmentNotes String?
-  discussionMessage   String?
-  expectedTimeline    String?
-  companyRemarks      String?
-  status              CompanyInterestStatus @default(INTEREST_SUBMITTED)
-  selectedNgoId       String?
-  selectedAt          DateTime?
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime
-  Company             Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  CSRRequirement      CSRRequirement        @relation(fields: [csrRequirementId], references: [id], onDelete: Cascade)
-
-  @@unique([csrRequirementId, companyId])
-  @@index([companyId])
-  @@index([csrRequirementId])
-  @@index([status])
-}
-
-model CompletionReport {
-  id                     String         @id
-  csrRequirementId       String         @unique
-  submittedByNgoId       String
-  workCompletedSummary   String
-  finalCost              Decimal
-  fundUtilizationSummary String
-  beforePhotoUrls        String[]
-  afterPhotoUrls         String[]
-  beneficiaryCount       Int
-  outcomeIndicators      Json?
-  certificateUrls        String[]
-  beneficiaryFeedback    String?
-  inspectionReportUrl    String?
-  createdAt              DateTime       @default(now())
-  updatedAt              DateTime
-  CSRRequirement         CSRRequirement @relation(fields: [csrRequirementId], references: [id], onDelete: Cascade)
-}
-
-model ConvergenceProject {
-  id                                                     String                         @id
-  projectId                                              String                         @unique
-  corporateEnquiryId                                     String?                        @unique
-  governmentPitchId                                      String?                        @unique
-  mouId                                                  String                         @unique
-  title                                                  String
-  district                                               String
-  taluka                                                 String
-  location                                               String
-  sector                                                 String
-  corporateName                                          String
-  nodalOfficerUserId                                     String
-  implementingAgencyUserId                               String?
-  approvedBudget                                         Decimal                        @db.Decimal(15, 2)
-  utilizedAmount                                         Decimal                        @default(0) @db.Decimal(15, 2)
-  physicalProgressPercent                                Int                            @default(0)
-  financialProgressPercent                               Int                            @default(0)
-  status                                                 String                         @default("MOU_PENDING")
-  createdAt                                              DateTime                       @default(now())
-  updatedAt                                              DateTime
-  completedAt                                            DateTime?
-  beneficiariesSummary                                   String?
-  impactSummary                                          String?
-  corporateUserId                                        String?
-  CorporateEnquiry                                       CorporateEnquiry?              @relation(fields: [corporateEnquiryId], references: [id])
-  User_ConvergenceProject_corporateUserIdToUser          User?                          @relation("ConvergenceProject_corporateUserIdToUser", fields: [corporateUserId], references: [id])
-  GovernmentPitch                                        GovernmentPitch?               @relation(fields: [governmentPitchId], references: [id])
-  User_ConvergenceProject_implementingAgencyUserIdToUser User?                          @relation("ConvergenceProject_implementingAgencyUserIdToUser", fields: [implementingAgencyUserId], references: [id])
-  StandardMou                                            StandardMou                    @relation(fields: [mouId], references: [id], onDelete: Cascade)
-  User_ConvergenceProject_nodalOfficerUserIdToUser       User                           @relation("ConvergenceProject_nodalOfficerUserIdToUser", fields: [nodalOfficerUserId], references: [id], onDelete: Cascade)
-  ConvergenceProjectInspection                           ConvergenceProjectInspection[]
-  Grievance                                              Grievance[]
-  ProjectDeliverableMilestone                            ProjectDeliverableMilestone[]
-  UtilizationCertificate                                 UtilizationCertificate[]
-
-  @@index([corporateUserId])
-  @@index([district])
-  @@index([implementingAgencyUserId])
-  @@index([nodalOfficerUserId])
-  @@index([projectId])
-  @@index([status])
-}
-
-model ConvergenceProjectInspection {
-  id                   String             @id
-  convergenceProjectId String
-  districtOfficerId    String
-  visitDate            DateTime           @default(now())
-  latitude             Float?
-  longitude            Float?
-  geoTaggedImages      String[]
-  remarks              String?
-  issuesFound          String?
-  actionRequired       String?
-  nextVisitDate        DateTime?
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime
-  ConvergenceProject   ConvergenceProject @relation(fields: [convergenceProjectId], references: [id], onDelete: Cascade)
-  User                 User               @relation(fields: [districtOfficerId], references: [id], onDelete: Cascade)
-
-  @@index([convergenceProjectId])
-  @@index([districtOfficerId])
-}
-
-model CorporateEnquiryInteraction {
-  id                 String           @id
-  corporateEnquiryId String
-  actorUserId        String
-  note               String
-  interactionType    String
-  attachmentUrls     String[]
-  createdAt          DateTime         @default(now())
-  User               User             @relation(fields: [actorUserId], references: [id], onDelete: Cascade)
-  CorporateEnquiry   CorporateEnquiry @relation(fields: [corporateEnquiryId], references: [id], onDelete: Cascade)
-
-  @@index([actorUserId])
-  @@index([corporateEnquiryId])
-  @@index([createdAt])
-}
-
-model FeasibilityChecklistItem {
-  id                    String                @id
-  assessmentId          String
-  itemNumber            Int
-  dimension             String
-  checkText             String
-  isCritical            Boolean
-  answer                ChecklistAnswer
-  remarks               String?
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime
-  FeasibilityAssessment FeasibilityAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-
-  @@unique([assessmentId, itemNumber])
-  @@index([assessmentId])
-}
-
-model FundRelease {
-  id              String            @id
-  paymentOrderId  String
-  ngoId           String?
-  projectId       String?
-  milestoneId     String?
-  bankAccountId   String
-  amount          Decimal
-  currency        String            @default("INR")
-  status          FundReleaseStatus @default(PENDING)
-  approvedById    String?
-  approvedAt      DateTime?
-  releasedAt      DateTime?
-  rejectionReason String?
-  notes           String?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime
-  User            User?             @relation(fields: [approvedById], references: [id])
-  BankAccount     BankAccount       @relation(fields: [bankAccountId], references: [id])
-  PaymentOrder    PaymentOrder      @relation(fields: [paymentOrderId], references: [id], onDelete: Cascade)
-
-  @@index([ngoId])
-  @@index([projectId])
-  @@index([status])
-}
-
-model GovernanceMember {
-  id              String    @id
-  ngoId           String
-  memberType      String
-  name            String
-  designation     String
-  email           String?
-  mobile          String?
-  panNumber       String?
-  aadhaarMasked   String?
-  tenureStartDate DateTime?
-  tenureEndDate   DateTime?
-  isActive        Boolean   @default(true)
-  idProofUrl      String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime
-  NGO             NGO       @relation(fields: [ngoId], references: [id], onDelete: Cascade)
-}
-
-model GovernmentDepartmentProfile {
-  id                                 String       @id
-  organizationId                     String       @unique
-  departmentType                     String?
-  parentDepartment                   String?
-  departmentCode                     String?
-  villageOrCity                      String?
-  officeWebsite                      String?
-  officialEmailDomain                String?
-  officePhone                        String?
-  governmentOfficeIdentifier         String?
-  nodalOfficerName                   String?
-  nodalOfficerDesignation            String?
-  nodalOfficerDepartment             String?
-  nodalOfficerEmail                  String?
-  nodalOfficerMobile                 String?
-  nodalOfficerOfficePhone            String?
-  nodalOfficerEmployeeId             String?
-  reportingOfficerName               String?
-  reportingOfficerDesignation        String?
-  reportingOfficerEmail              String?
-  authorizationLetterNumber          String?
-  authorizationLetterDate            DateTime?
-  issuingAuthorityName               String?
-  issuingAuthorityDesignation        String?
-  canCreateRequirements              Boolean      @default(false)
-  canConfirmHandover                 Boolean      @default(false)
-  canUploadOfficialDocuments         Boolean      @default(false)
-  departmentApprovalRequired         Boolean      @default(false)
-  internalApprovalReference          String?
-  jurisdictionType                   String?
-  allowedDistrictIds                 String[]
-  allowedTalukaIds                   String[]
-  allowedVillageIds                  String[]
-  allowedSectors                     String[]
-  canCreateStateLevelRequirement     Boolean      @default(false)
-  canCreateDistrictLevelRequirement  Boolean      @default(false)
-  canCreateLocalBodyLevelRequirement Boolean      @default(false)
-  requiresDistrictVerification       Boolean      @default(false)
-  requirementPermissionSectors       String[]
-  declarationAccepted                Boolean      @default(false)
-  declarationAcceptedAt              DateTime?
-  createdAt                          DateTime     @default(now())
-  updatedAt                          DateTime
-  Organization                       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-}
-
-model GovernmentPitchPhoto {
-  id                String          @id
-  governmentPitchId String
-  fileUrl           String
-  latitude          Decimal         @db.Decimal(10, 8)
-  longitude         Decimal         @db.Decimal(11, 8)
-  capturedAt        DateTime?
-  isGeoTagged       Boolean         @default(true)
-  createdAt         DateTime        @default(now())
-  GovernmentPitch   GovernmentPitch @relation(fields: [governmentPitchId], references: [id], onDelete: Cascade)
-
-  @@index([governmentPitchId])
-}
-
-model ImpactMetric {
-  id                  String         @id
-  csrProjectId        String?
-  csrRequirementId    String
-  studentsBenefited   Int            @default(0)
-  patientsBenefited   Int            @default(0)
-  villagesBenefited   Int            @default(0)
-  householdsBenefited Int            @default(0)
-  womenBeneficiaries  Int            @default(0)
-  farmersBenefited    Int            @default(0)
-  otherMetrics        Json?
-  sdgMapping          String[]
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime
-  CSRProject          CSRProject?    @relation(fields: [csrProjectId], references: [id], onDelete: Cascade)
-  CSRRequirement      CSRRequirement @relation(fields: [csrRequirementId], references: [id], onDelete: Cascade)
-
-  @@index([csrProjectId])
-  @@index([csrRequirementId])
-}
-
-model ImpactReport {
-  id                       String         @id
-  csrRequirementId         String         @unique
-  projectSummary           String
-  companyContribution      String
-  ngoExecutionSummary      String
-  beneficiaryReach         Int
-  beforeAfterComparison    Json?
-  fundUtilization          Json?
-  impactScore              Int            @default(0)
-  timelyCompletionScore    Int            @default(0)
-  fundUtilAccuracyScore    Int            @default(0)
-  beneficiaryFeedbackScore Int            @default(0)
-  govVerificationScore     Int            @default(0)
-  socialImpactScore        Int            @default(0)
-  documentationScore       Int            @default(0)
-  generatedAt              DateTime       @default(now())
-  updatedAt                DateTime
-  CSRRequirement           CSRRequirement @relation(fields: [csrRequirementId], references: [id], onDelete: Cascade)
-}
-
-model Milestone {
-  id                 String          @id
-  projectId          String
-  name               String
-  description        String
-  amount             Decimal
-  dueDate            DateTime
-  status             MilestoneStatus @default(PENDING)
-  completionEvidence String?
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime
-  Project            Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-}
-
-model NGO {
-  id                               String                   @id
-  organizationId                   String?
-  name                             String
-  registrationNumber               String                   @unique
-  darpanNumber                     String?
-  csr1Number                       String?
-  pan                              String                   @unique
-  certificate12AUrl                String?
-  certificate80GUrl                String?
-  fcraDetails                      String?
-  address                          String
-  state                            String                   @default("Maharashtra")
-  district                         String
-  taluka                           String
-  village                          String?
-  website                          String?
-  socialLinks                      Json?
-  impactStatistics                 Json?
-  status                           VerificationStatus       @default(PENDING)
-  empanelmentStatus                NGOEmpanelmentStatus     @default(PROFILE_INCOMPLETE)
-  empanelmentRemarks               String?
-  rejectionReason                  String?
-  createdAt                        DateTime                 @default(now())
-  updatedAt                        DateTime
-  areasOfOperation                 String[]
-  city                             String?
-  csrSectors                       String[]
-  displayName                      String?
-  officialEmail                    String?
-  officialPhone                    String?
-  organizationType                 OrganizationType?
-  pincode                          String?
-  registrationAuthority            String?
-  registrationDate                 DateTime?
-  yearEstablished                  Int?
-  finalApproved                    Boolean                  @default(false)
-  finalApprovedAt                  DateTime?
-  finalApprovedById                String?
-  invitedByCompanyId               String?
-  preliminaryApproved              Boolean                  @default(false)
-  preliminaryApprovedAt            DateTime?
-  preliminaryRemarks               String?
-  BankAccount                      BankAccount[]
-  CSRFundRelease                   CSRFundRelease[]
-  CSRProject                       CSRProject[]
-  Chat                             Chat[]
-  Document                         Document[]
-  GovernanceMember                 GovernanceMember[]
-  User_NGO_finalApprovedByIdToUser User?                    @relation("NGO_finalApprovedByIdToUser", fields: [finalApprovedById], references: [id])
-  Company                          Company?                 @relation(fields: [invitedByCompanyId], references: [id])
-  NGOApplication                   NGOApplication[]
-  NgoContact                       NgoContact[]
-  NgoDocument                      NgoDocument[]
-  OnboardingApplication            OnboardingApplication?
-  Project                          Project[]
-  Report                           Report[]
-  RiskScore                        RiskScore[]
-  User_User_ngoIdToNGO             User[]                   @relation("User_ngoIdToNGO")
-  UtilizationCertificate           UtilizationCertificate[]
-
-  @@index([organizationId])
-}
-
-model NGOApplication {
-  id                  String               @id
-  csrRequirementId    String
-  ngoId               String
-  proposedPlan        String
-  proposedTimeline    String
-  estimatedCost       Decimal
-  teamDetails         String?
-  pastExperience      String?
-  proposalDocumentUrl String?
-  remarks             String?
-  status              NGOApplicationStatus @default(NGO_APPLIED)
-  rejectionReason     String?
-  matchScore          Int?
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime
-  CSRRequirement      CSRRequirement       @relation(fields: [csrRequirementId], references: [id], onDelete: Cascade)
-  NGO                 NGO                  @relation(fields: [ngoId], references: [id], onDelete: Cascade)
-
-  @@unique([csrRequirementId, ngoId])
-  @@index([csrRequirementId])
-  @@index([ngoId])
-  @@index([status])
-}
-
-model NgoContact {
-  id          String   @id
-  ngoId       String
-  contactType String
-  name        String
-  designation String?
-  email       String
-  phone       String
-  mobile      String?
-  isPrimary   Boolean  @default(false)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime
-  NGO         NGO      @relation(fields: [ngoId], references: [id], onDelete: Cascade)
-}
-
-model NgoDocument {
-  id                                  String         @id
-  ngoId                               String
-  documentType                        DocumentType
-  title                               String
-  description                         String?
-  fileUrl                             String
-  fileName                            String
-  fileSize                            Int
-  fileType                            String
-  fileHash                            String?
-  status                              DocumentStatus @default(UPLOADED)
-  expiryDate                          DateTime?
-  issueDate                           DateTime?
-  issuingAuthority                    String?
-  documentNumber                      String?
-  verifiedById                        String?
-  verifiedAt                          DateTime?
-  verificationNotes                   String?
-  rejectionReason                     String?
-  version                             Int            @default(1)
-  parentDocumentId                    String?
-  uploadedById                        String?
-  createdAt                           DateTime       @default(now())
-  updatedAt                           DateTime
-  NGO                                 NGO            @relation(fields: [ngoId], references: [id], onDelete: Cascade)
-  NgoDocument                         NgoDocument?   @relation("NgoDocumentToNgoDocument", fields: [parentDocumentId], references: [id])
-  other_NgoDocument                   NgoDocument[]  @relation("NgoDocumentToNgoDocument")
-  User_NgoDocument_uploadedByIdToUser User?          @relation("NgoDocument_uploadedByIdToUser", fields: [uploadedById], references: [id])
-  User_NgoDocument_verifiedByIdToUser User?          @relation("NgoDocument_verifiedByIdToUser", fields: [verifiedById], references: [id])
-
-  @@index([expiryDate])
-  @@index([ngoId, documentType])
-  @@index([status])
-}
-
-model NodalOfficerAppointment {
-  id                                                    String                @id
-  corporateEnquiryId                                    String?               @unique
-  governmentPitchId                                     String?               @unique
-  assessmentId                                          String                @unique
-  district                                              String
-  domain                                                String
-  nodalOfficerUserId                                    String
-  nodalOfficerName                                      String
-  designation                                           String
-  department                                            String
-  appointmentLetterUrl                                  String?
-  appointedByJsId                                       String
-  appointedAt                                           DateTime              @default(now())
-  collectorCc                                           Boolean               @default(true)
-  zpCeoCc                                               Boolean               @default(true)
-  createdAt                                             DateTime              @default(now())
-  updatedAt                                             DateTime
-  User_NodalOfficerAppointment_appointedByJsIdToUser    User                  @relation("NodalOfficerAppointment_appointedByJsIdToUser", fields: [appointedByJsId], references: [id], onDelete: Cascade)
-  FeasibilityAssessment                                 FeasibilityAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  CorporateEnquiry                                      CorporateEnquiry?     @relation(fields: [corporateEnquiryId], references: [id])
-  GovernmentPitch                                       GovernmentPitch?      @relation(fields: [governmentPitchId], references: [id])
-  User_NodalOfficerAppointment_nodalOfficerUserIdToUser User                  @relation("NodalOfficerAppointment_nodalOfficerUserIdToUser", fields: [nodalOfficerUserId], references: [id], onDelete: Cascade)
-
-  @@index([appointedByJsId])
-  @@index([district])
-  @@index([nodalOfficerUserId])
-}
-
-model OnboardingApplication {
-  id                      String                    @id
-  ngoId                   String                    @unique
-  legalName               String
-  displayName             String?
-  organizationType        OrganizationType
-  registrationNumber      String
-  registrationDate        DateTime
-  registrationAuthority   String
-  stateOfRegistration     String
-  panNumber               String
-  ngoDarpanId             String?
-  csr1RegistrationNumber  String?
-  yearEstablished         Int
-  officialEmail           String
-  officialPhone           String
-  website                 String?
-  headOfficeAddress       String
-  state                   String
-  district                String
-  city                    String
-  pincode                 String
-  areasOfOperation        String[]
-  csrSectors              String[]
-  csr1Status              Boolean                   @default(false)
-  has12A                  Boolean                   @default(false)
-  has80G                  Boolean                   @default(false)
-  gstRegistered           Boolean                   @default(false)
-  gstin                   String?
-  fcraStatus              String?
-  fcraRegistrationNumber  String?
-  founderDetails          Json?
-  trusteesDirectors       Json?
-  authorizedSignatory     Json?
-  bankAccountHolder       String?
-  bankName                String?
-  bankBranch              String?
-  bankAccountNumber       String?
-  ifscCode                String?
-  accountType             String?
-  auditorName             String?
-  auditorFirm             String?
-  auditorContact          String?
-  annualTurnover          Json?
-  yearsOfOperation        Int?
-  previousProjects        Json?
-  beneficiaryCountLastFY  Int?
-  staffCount              Int?
-  volunteerCount          Int?
-  blacklistDeclaration    Boolean                   @default(false)
-  litigationDeclaration   Boolean                   @default(false)
-  conflictOfInterest      Boolean                   @default(false)
-  relatedPartyDeclaration Boolean                   @default(false)
-  dataPrivacyConsent      Boolean                   @default(false)
-  verificationConsent     Boolean                   @default(false)
-  status                  OnboardingStatus          @default(DRAFT)
-  completenessPercentage  Int                       @default(0)
-  submittedAt             DateTime?
-  reviewedAt              DateTime?
-  approvedAt              DateTime?
-  rejectedAt              DateTime?
-  assignedReviewerId      String?
-  createdAt               DateTime                  @default(now())
-  updatedAt               DateTime
-  User                    User?                     @relation(fields: [assignedReviewerId], references: [id])
-  NGO                     NGO                       @relation(fields: [ngoId], references: [id], onDelete: Cascade)
-  OnboardingQuery         OnboardingQuery[]
-  OnboardingStatusHistory OnboardingStatusHistory[]
-  VerificationCheck       VerificationCheck[]
-}
-
-model OnboardingQuery {
-  id                    String                @id
-  applicationId         String
-  raisedById            String
-  queryText             String
-  documentType          DocumentType?
-  fieldName             String?
-  status                QueryStatus           @default(OPEN)
-  priority              String?
-  dueDate               DateTime?
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime
-  OnboardingApplication OnboardingApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  User                  User                  @relation(fields: [raisedById], references: [id])
-  QueryResponse         QueryResponse[]
-}
-
-model OnboardingReview {
-  id             String                 @id
-  organizationId String
-  reviewedBy     String?
-  reviewAction   OnboardingReviewAction
-  remarks        String?
-  createdAt      DateTime               @default(now())
-  Organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@index([organizationId])
-  @@index([reviewAction])
-}
-
-model OnboardingStatusHistory {
-  id                    String                @id
-  applicationId         String
-  fromStatus            OnboardingStatus?
-  toStatus              OnboardingStatus
-  changedById           String?
-  reason                String?
-  notes                 String?
-  createdAt             DateTime              @default(now())
-  OnboardingApplication OnboardingApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  User                  User?                 @relation(fields: [changedById], references: [id])
-}
-
-model OrganizationDocument {
-  id                 String                     @id
-  organizationId     String
-  documentType       String
-  fileUrl            String
-  fileName           String?
-  mimeType           String?
-  fileSize           Int?
-  verificationStatus DocumentVerificationStatus @default(UPLOADED)
-  remarks            String?
-  uploadedBy         String?
-  verifiedBy         String?
-  verifiedAt         DateTime?
-  createdAt          DateTime                   @default(now())
-  updatedAt          DateTime
-  Organization       Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@index([organizationId])
-  @@index([verificationStatus])
-}
-
-model OrganizationRole {
-  id                         String                       @id
-  organizationId             String?
-  name                       String
-  description                String?
-  scope                      RoleScope
-  isSystemRole               Boolean                      @default(false)
-  createdBy                  String?
-  createdAt                  DateTime                     @default(now())
-  updatedAt                  DateTime
-  slug                       String?
-  isProtected                Boolean                      @default(false)
-  numericId                  Int                          @unique @default(autoincrement())
-  category                   String?
-  companyId                  String?
-  displayOrder               Int                          @default(0)
-  isPermanent                Boolean                      @default(false)
-  status                     String                       @default("ACTIVE")
-  Company                    Company?                     @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  Organization               Organization?                @relation(fields: [organizationId], references: [id])
-  OrganizationRolePermission OrganizationRolePermission[]
-  projectAssignments         ProjectAssignment[]
-  childRoles                 RoleHierarchy[]              @relation("ChildRoleHierarchy")
-  parentRoles                RoleHierarchy[]              @relation("ParentRoleHierarchy")
-  users                      User[]                       @relation("UserPrimaryRole")
-  userRoles                  UserOrganizationRole[]
-
-  @@unique([organizationId, name])
-  @@index([organizationId])
-  @@index([scope])
-  @@index([slug])
-}
-
-model OrganizationRolePermission {
-  roleId           String
-  permissionId     String
-  Permission       Permission       @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-  OrganizationRole OrganizationRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
-
-  @@id([roleId, permissionId])
-}
-
-model PaymentTransaction {
-  id                   String        @id
-  paymentOrderId       String
-  transactionId        String        @unique
-  gatewayTransactionId String?
-  amount               Decimal
-  currency             String        @default("INR")
-  status               PaymentStatus
-  paymentMethod        String?
-  paymentDetails       Json?
-  utrNumber            String?
-  failureReason        String?
-  failureCode          String?
-  processedAt          DateTime?
-  settledAt            DateTime?
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime
-  PaymentOrder         PaymentOrder  @relation(fields: [paymentOrderId], references: [id], onDelete: Cascade)
-
-  @@index([status])
-  @@index([transactionId])
-  @@index([utrNumber])
-}
-
-model PaymentWebhookLog {
-  id               String        @id
-  paymentOrderId   String?
-  gatewayName      String
-  eventType        String
-  webhookPayload   Json
-  webhookSignature String?
-  isSignatureValid Boolean?
-  processedAt      DateTime?
-  processingStatus String?
-  processingError  String?
-  ipAddress        String?
-  userAgent        String?
-  createdAt        DateTime      @default(now())
-  PaymentOrder     PaymentOrder? @relation(fields: [paymentOrderId], references: [id])
-
-  @@index([createdAt])
-  @@index([gatewayName, eventType])
-}
-
-model PermissionGroup {
-  id          String       @id
-  name        String       @unique
-  description String?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime
-  Permission  Permission[]
-}
-
-model ProgressReport {
-  id                      String               @id
-  csrRequirementId        String
-  submittedByNgoId        String
-  progressTitle           String
-  progressDescription     String
-  physicalProgressPercent Int                  @default(0)
-  financialUtilPercent    Int                  @default(0)
-  photoUrls               String[]
-  videoUrls               String[]
-  geoLatitude             Float?
-  geoLongitude            Float?
-  challenges              String?
-  nextSteps               String?
-  status                  ProgressReportStatus @default(PR_SUBMITTED)
-  verificationRemarks     String?
-  verifiedById            String?
-  verifiedAt              DateTime?
-  createdAt               DateTime             @default(now())
-  updatedAt               DateTime
-  CSRRequirement          CSRRequirement       @relation(fields: [csrRequirementId], references: [id], onDelete: Cascade)
-
-  @@index([csrRequirementId])
-  @@index([status])
-}
-
-model ProjectDeliverableMilestone {
-  id                       String                   @id
-  convergenceProjectId     String
-  name                     String
-  description              String?
-  workType                 String
-  status                   SimpleMilestoneStatus    @default(NOT_STARTED)
-  fundsUtilized            Decimal                  @default(0) @db.Decimal(15, 2)
-  geoTaggedPhotoUrls       String[]
-  verifiedByNodalOfficerId String?
-  verifiedAt               DateTime?
-  createdAt                DateTime                 @default(now())
-  updatedAt                DateTime
-  ConvergenceProject       ConvergenceProject       @relation(fields: [convergenceProjectId], references: [id], onDelete: Cascade)
-  User                     User?                    @relation(fields: [verifiedByNodalOfficerId], references: [id])
-  utilizationCertificates  UtilizationCertificate[]
-
-  @@index([convergenceProjectId])
-  @@index([status])
-}
-
-model QueryResponse {
-  id              String          @id
-  queryId         String
-  respondedById   String
-  responseText    String
-  attachmentUrls  String[]
-  createdAt       DateTime        @default(now())
-  OnboardingQuery OnboardingQuery @relation(fields: [queryId], references: [id], onDelete: Cascade)
-  User            User            @relation(fields: [respondedById], references: [id])
-}
-
-model Report {
-  id          String     @id
-  title       String
-  type        ReportType
-  content     Json
-  fileUrl     String?
-  createdById String
-  ngoId       String?
-  companyId   String?
-  createdAt   DateTime   @default(now())
-  Company     Company?   @relation(fields: [companyId], references: [id])
-  User        User       @relation(fields: [createdById], references: [id])
-  NGO         NGO?       @relation(fields: [ngoId], references: [id])
-}
-
-model VerificationCheck {
-  id                    String                @id
-  applicationId         String
-  checkType             String
-  checkStatus           String
-  checkResult           Json?
-  verifiedById          String?
-  verifiedAt            DateTime?
-  notes                 String?
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime
-  OnboardingApplication OnboardingApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  User                  User?                 @relation(fields: [verifiedById], references: [id])
-}
-
-model WorkflowCondition {
-  id                 String             @id
-  transitionId       String
-  field              String
-  operator           String
-  value              String
-  WorkflowTransition WorkflowTransition @relation(fields: [transitionId], references: [id], onDelete: Cascade)
-}
-
-model WorkflowStage {
-  id                                                               String                   @id
-  definitionId                                                     String
-  name                                                             String
-  displayOrder                                                     Int
-  slaHours                                                         Int                      @default(24)
-  createdAt                                                        DateTime                 @default(now())
-  updatedAt                                                        DateTime
-  WorkflowAssignmentRule                                           WorkflowAssignmentRule[]
-  WorkflowHistory_WorkflowHistory_fromStageIdToWorkflowStage       WorkflowHistory[]        @relation("WorkflowHistory_fromStageIdToWorkflowStage")
-  WorkflowHistory_WorkflowHistory_toStageIdToWorkflowStage         WorkflowHistory[]        @relation("WorkflowHistory_toStageIdToWorkflowStage")
-  WorkflowInstance                                                 WorkflowInstance[]
-  WorkflowRule                                                     WorkflowRule[]
-  WorkflowDefinition                                               WorkflowDefinition       @relation(fields: [definitionId], references: [id], onDelete: Cascade)
-  WorkflowTransition_WorkflowTransition_fromStageIdToWorkflowStage WorkflowTransition[]     @relation("WorkflowTransition_fromStageIdToWorkflowStage")
-  WorkflowTransition_WorkflowTransition_toStageIdToWorkflowStage   WorkflowTransition[]     @relation("WorkflowTransition_toStageIdToWorkflowStage")
-}
+// =============================================================================
+// ENUMS
+// =============================================================================
 
 enum UserAccountStatus {
   ACTIVE
@@ -2210,11 +28,20 @@ enum OrganizationKind {
 }
 
 enum OrganizationStatus {
+  REGISTERED
+  PROFILE_INCOMPLETE
+  DOCUMENTS_PENDING
+  UNDER_VERIFICATION
+  CLARIFICATION_REQUIRED
   ACTIVE
-  INACTIVE
-  HIDDEN
+  REJECTED
   SUSPENDED
-  DELETED
+}
+
+enum ProjectType {
+  NGO_PROPOSAL
+  MARKETPLACE_REQUIREMENT
+  CONVERGENCE_FRAMEWORK
 }
 
 enum ProjectStatus {
@@ -2222,16 +49,23 @@ enum ProjectStatus {
   SUBMITTED
   UNDER_REVIEW
   APPROVED
-  REJECTED
-  FUNDED
+  MARKETPLACE_LISTED
+  AGREEMENT_SIGNED
+  EXECUTION_STARTED
+  IN_PROGRESS
   COMPLETED
+  REJECTED
+  CANCELLED
+  FUNDED
 }
 
 enum MilestoneStatus {
-  PENDING
-  APPROVED_BY_NGO
-  APPROVED_BY_COMPANY
+  NOT_STARTED
+  IN_PROGRESS
+  SUBMITTED_FOR_VERIFICATION
+  APPROVED
   RELEASED
+  REJECTED
 }
 
 enum VerificationModuleType {
@@ -2259,8 +93,6 @@ enum PaymentStatus {
   FAILED
   CANCELLED
   REFUNDED
-  PARTIALLY_REFUNDED
-  UNDER_REVIEW
 }
 
 enum GrievanceStatus {
@@ -2287,9 +119,23 @@ enum ChecklistAnswer {
   NA
 }
 
+enum RoleType {
+  SYSTEM
+  CUSTOM
+}
+
 enum RoleScope {
   GLOBAL
   ORGANIZATION
+  DISTRICT
+  PROJECT
+  ASSIGNED_RESOURCE
+}
+
+enum RoleStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
 }
 
 enum RiskLevel {
@@ -2299,317 +145,1282 @@ enum RiskLevel {
   CRITICAL
 }
 
-enum AgreementStatus {
-  DRAFT_GENERATED
-  SENT_FOR_REVIEW
-  APPROVED_BY_GOVERNMENT
-  APPROVED_BY_COMPANY
-  APPROVED_BY_NGO
-  SIGNED
-  AGR_REJECTED
-  REVISION_REQUIRED
-}
-
-enum CSRCategory {
-  EDUCATION
-  HEALTH
-  WATER
-  SANITATION
-  SKILL_DEVELOPMENT
-  ENVIRONMENT
-  WOMEN_EMPOWERMENT
-  AGRICULTURE
-  ANIMAL_HUSBANDRY
-  RURAL_DEVELOPMENT
-  SPORTS
-  OTHER
-}
-
-enum CSRFundMilestoneStatus {
-  FM_PENDING
-  RELEASE_REQUESTED
-  FM_RELEASED
-  UTILIZATION_SUBMITTED
-  FM_VERIFIED
-  FM_REJECTED
-}
-
-enum CSRRequirementStatus {
-  DRAFT
-  PENDING_VERIFICATION
-  CLARIFICATION_REQUIRED
-  FIELD_VERIFICATION_REQUIRED
-  VERIFIED
-  MARKETPLACE_LISTED
-  NGO_APPLICATIONS_OPEN
-  COMPANY_INTEREST_RECEIVED
-  NGO_SELECTED
-  AGREEMENT_PENDING
-  AGREEMENT_SIGNED
-  EXECUTION_STARTED
-  IN_PROGRESS
-  COMPLETION_SUBMITTED
-  COMPLETED
-  IMPACT_REPORT_GENERATED
-  REJECTED
-  CANCELLED
-}
-
-enum CompanyInterestStatus {
-  INTEREST_SUBMITTED
-  UNDER_DISCUSSION
-  FUNDING_APPROVED
-  WITHDRAWN
-  NGO_SELECTED
-  CI_AGREEMENT_PENDING
-  CI_AGREEMENT_SIGNED
-  FUND_RELEASED
-  CI_PROJECT_IN_PROGRESS
-  CI_COMPLETED
-}
-
-enum CorporateEnquiryStatus {
-  SUBMITTED
-  TRACKING_ID_GENERATED
-  RM_ASSIGNED
-  RM_CONTACTED
-  ASSESSMENT_PENDING
-  ASSESSMENT_SUBMITTED_TO_JS
-  JS_APPROVED
-  JS_REJECTED
-  NODAL_OFFICER_APPOINTED
-  MOU_PENDING
-  MOU_SIGNED
-  PROJECT_ONBOARDED
-  EXECUTION_STARTED
-  COMPLETED
-  CLOSED
-}
-
-enum DocumentStatus {
-  PENDING_UPLOAD
-  UPLOADED
-  UNDER_REVIEW
-  VERIFIED
-  REJECTED
+enum AssignmentStatus {
+  ACTIVE
+  INACTIVE
   EXPIRED
-  NEEDS_CORRECTION
+  REVOKED
 }
 
-enum DocumentType {
-  REGISTRATION_CERTIFICATE
-  TRUST_DEED
-  MOA
-  AOA
-  SOCIETY_RULES
-  PAN_CARD
-  CSR1_CERTIFICATE
-  CERTIFICATE_12A
-  CERTIFICATE_80G
-  CANCELLED_CHEQUE
-  BANK_STATEMENT
-  BANK_VERIFICATION_LETTER
-  AUTHORIZED_SIGNATORY_PROOF
-  BOARD_RESOLUTION
-  AUTHORITY_LETTER
-  TRUSTEE_LIST
-  AUDITED_FINANCIAL_STATEMENT
-  ANNUAL_REPORT
-  DECLARATION_FORM
-  CONSENT_FORM
-  GST_CERTIFICATE
-  FCRA_CERTIFICATE
-  FCRA_PRIOR_PERMISSION
-  FC4_RETURN
-  FCRA_BANK_PROOF
-  ITR7_ACKNOWLEDGEMENT
-  FORM_10B
-  FORM_10BB
-  PROJECT_COMPLETION_CERTIFICATE
-  DONOR_REFERENCE_LETTER
-  LITIGATION_DOCUMENT
-  POWER_OF_ATTORNEY
-  NGO_DARPAN_CERTIFICATE
-  OTHER
+// =============================================================================
+// USER, ROLE & ACCESS CONTROL ENGINE
+// =============================================================================
+
+model User {
+  id                String            @id @default(uuid())
+  email             String            @unique
+  passwordHash      String
+  accountStatus     UserAccountStatus @default(PENDING_ACTIVATION)
+  isVerified        Boolean           @default(false)
+  tokenVersion      Int               @default(1)
+  
+  // Basic Metadata
+  firstName         String?
+  lastName          String?
+  designation       String?
+  mobile            String?           @unique
+
+  // Primary Role Reference (Strict Integer ID: 1-9 for System Roles, 10+ for Dynamic Roles)
+  roleId            Int?
+  role              Role?             @relation("UserPrimaryRole", fields: [roleId], references: [id], onDelete: SetNull)
+
+  // Organization Context
+  organizationId    String?
+  organization      Organization?     @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  // Sub-login Hierarchy
+  parentUserId      String?
+  parentUser        User?             @relation("UserHierarchy", fields: [parentUserId], references: [id], onDelete: SetNull)
+  subUsers          User[]            @relation("UserHierarchy")
+
+  // Soft Delete & Timestamps
+  deletedAt         DateTime?
+  deletedById       String?
+  deleteReason      String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  // System Relations
+  userRoles         UserOrganizationRole[]
+  roleAssignments   UserRoleAssignment[] @relation("UserRoleAssignments")
+  givenRoleAssignments UserRoleAssignment[] @relation("AssignedByRoleAssignments")
+  officerProfile    UserOfficerProfile?
+  districtMappings  DistrictNodalMapping[] @relation("NodalUser")
+  assignedByMappings DistrictNodalMapping[] @relation("AssignedByNodalUser")
+  sessions          Session[]
+  auditLogs         AuditLog[]        @relation("ActorAuditLogs")
+  
+  // Workflow Relations
+  assignedProjects  ProjectAssignment[] @relation("AssignedToUser")
+  givenAssignments  ProjectAssignment[] @relation("AssignedByUser")
+  dncDistrict       DistrictDncAssignment? @relation("DistrictDncUser")
+  assignedDncDistricts DistrictDncAssignment[] @relation("DistrictDncAssignedBy")
+  grievancesRaised  Grievance[]         @relation("GrievancesRaised")
+  grievanceLogs     GrievanceActionLog[] @relation("GrievanceActor")
+  inspections       ProjectInspection[] @relation("InspectorUser")
+  helpdeskRaised    HelpdeskQuery[]     @relation("HelpdeskRaised")
+  helpdeskResolved  HelpdeskQuery[]     @relation("HelpdeskResolved")
+  verificationRecords VerificationRecord[] @relation("InitiatedBy")
+  messages          Message[]
+
+  @@index([organizationId])
+  @@index([roleId])
+  @@index([parentUserId])
+  @@index([email, accountStatus])
+  @@index([roleId, organizationId])
+  @@index([accountStatus])
+  @@index([createdAt])
 }
 
-enum DocumentVerificationStatus {
-  UPLOADED
-  UNDER_REVIEW
-  VERIFIED
-  REJECTED
-  NEEDS_CORRECTION
-  CLARIFICATION_REQUIRED
+// Role Entity using Strict Integer IDs + Immutable Role Code
+model Role {
+  id             Int                    @id @default(autoincrement())
+  code           String?                @unique
+  name           String
+  displayName    String?
+  description    String?
+  type           RoleType               @default(CUSTOM)
+  defaultScope   RoleScope              @default(ORGANIZATION)
+  status         RoleStatus             @default(ACTIVE)
+  isSystemRole   Boolean                @default(false)
+  isProtected    Boolean                @default(false)
+  version        Int                    @default(1)
+  
+  organizationId String?
+  organization   Organization?          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Relations
+  users          User[]                 @relation("UserPrimaryRole")
+  userRoles      UserOrganizationRole[]
+  roleAssignments UserRoleAssignment[]
+  rolePermissions RolePermission[]
+  parentRoles    RoleHierarchy[]        @relation("ParentRoleHierarchy")
+  childRoles     RoleHierarchy[]        @relation("ChildRoleHierarchy")
+  projectAssignments ProjectAssignment[]
+
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@index([isSystemRole])
+  @@index([code])
 }
 
-enum FundReleaseStatus {
-  PENDING
-  APPROVED
-  RELEASED
-  REJECTED
-  ON_HOLD
+model Permission {
+  id              String           @id @default(uuid())
+  key             String           @unique
+  description     String?
+  module          String
+  riskLevel       RiskLevel        @default(LOW)
+  isDelegable     Boolean          @default(false)
+  dependencies    String[]         @default([])
+  createdAt       DateTime         @default(now())
+
+  rolePermissions RolePermission[]
 }
 
-enum GovernmentPitchStatus {
-  DRAFT
-  SUBMITTED
-  RM_VERIFICATION_PENDING
-  RM_VERIFIED
-  JS_APPROVAL_PENDING
-  JS_APPROVED
-  JS_REJECTED
-  PUBLIC_LISTED
-  CORPORATE_INTEREST_RECEIVED
-  NODAL_OFFICER_ASSIGNED
-  MOU_PENDING
-  MOU_SIGNED
-  PROJECT_ONBOARDED
-  COMPLETED
-  CLOSED
+model RolePermission {
+  roleId       Int
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
 }
 
-enum NGOApplicationStatus {
-  NGO_APPLIED
-  SHORTLISTED
-  APPLICATION_REJECTED
-  SELECTED_BY_COMPANY
-  AGREEMENT_PENDING
-  AGREEMENT_SIGNED
-  EXECUTION_STARTED
-  COMPLETED
-  NOT_SELECTED
+// RoleHierarchy model is preserved for schema compatibility but explicitly disabled in application code
+model RoleHierarchy {
+  id           String   @id @default(uuid())
+  parentRoleId Int
+  childRoleId  Int
+  parentRole   Role     @relation("ParentRoleHierarchy", fields: [parentRoleId], references: [id], onDelete: Cascade)
+  childRole    Role     @relation("ChildRoleHierarchy", fields: [childRoleId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+
+  @@unique([parentRoleId, childRoleId])
+  @@index([parentRoleId])
+  @@index([childRoleId])
 }
 
-enum NGOEmpanelmentStatus {
-  PROFILE_INCOMPLETE
-  PROFILE_SUBMITTED
-  DOCUMENT_REVIEW
-  FIELD_VERIFICATION
-  EMPANELLED
-  EMPANELMENT_REJECTED
-  SUSPENDED
-  BLACKLISTED
+model UserOrganizationRole {
+  id             String        @id @default(uuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleId         Int
+  role           Role          @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime      @default(now())
+
+  @@unique([userId, roleId, organizationId])
+  @@index([userId])
+  @@index([roleId])
+  @@index([organizationId])
 }
 
-enum NotificationType {
-  EMAIL
-  SMS
-  IN_APP
+model UserRoleAssignment {
+  id             String           @id @default(uuid())
+  userId         String
+  user           User             @relation("UserRoleAssignments", fields: [userId], references: [id], onDelete: Cascade)
+  roleId         Int
+  role           Role             @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  organizationId String?
+  organization   Organization?    @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  districtCode   String?
+  projectId      String?
+  project        Project?         @relation("ProjectRoleAssignments", fields: [projectId], references: [id], onDelete: SetNull)
+  status         AssignmentStatus @default(ACTIVE)
+  validFrom      DateTime         @default(now())
+  validUntil     DateTime?
+  assignedById   String?
+  assignedBy     User?            @relation("AssignedByRoleAssignments", fields: [assignedById], references: [id], onDelete: SetNull)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([userId, status])
+  @@index([roleId])
+  @@index([organizationId])
+  @@index([districtCode])
+  @@index([projectId])
 }
 
-enum OnboardingReviewAction {
-  APPROVED
-  REJECTED
-  CLARIFICATION_REQUIRED
-  SUSPENDED
+model UserOfficerProfile {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName       String
+  employeeId     String?  @unique
+  designation    String?
+  department     String?
+  district       String?
+  taluka         String?
+  officeAddress  String?
+  mobile         String?
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([district])
+  @@index([employeeId])
 }
 
-enum OnboardingStatus {
-  DRAFT
-  SUBMITTED
-  AUTO_CHECK_PENDING
-  AUTO_CHECK_PASSED
-  AUTO_CHECK_FAILED
-  UNDER_ANALYST_REVIEW
-  QUERY_RAISED
-  RESUBMITTED
-  UNDER_COMPLIANCE_REVIEW
-  APPROVAL_PENDING
-  APPROVED
-  CONDITIONALLY_APPROVED
-  REJECTED
-  SUSPENDED
-  EXPIRED
-  REVERIFICATION_DUE
+// =============================================================================
+// UNIFIED ORGANIZATION ENGINE
+// =============================================================================
+
+model Organization {
+  id                 String             @id @default(uuid())
+  kind               OrganizationKind
+  name               String
+  legalName          String?
+  displayName        String?
+  registrationNumber String?
+  registrationNumberHash String?        @unique
+  cin                String?
+  cinHash            String?            @unique
+  pan                String?
+  panHash            String?            @unique
+  gstin              String?
+  gstinHash          String?            @unique
+  
+  // Contact & Location
+  officialEmail      String?
+  officialPhone      String?
+  website            String?
+  address            String?
+  registeredOfficeAddress String?
+  corporateOfficeAddress String?
+  officialEmailDomain String?
+  yearOfIncorporation Int?
+  companyType        String?
+  mcaVerificationStatus String?
+  companyStatus      String?
+  state              String             @default("Maharashtra")
+  district           String?
+  taluka             String?
+  pincode            String?
+
+  status             OrganizationStatus @default(REGISTERED)
+  clarificationRemarks String?
+  rejectionReason    String?
+
+  // Specialized 1:1 Extension Profiles
+  csrCompanyProfile  CSRCompanyProfile?
+  ngoProfile         NGOProfile?
+  govDeptProfile     GovDepartmentProfile?
+
+  // System Relations
+  users              User[]
+  projects           Project[]          @relation("OrganizationProjects")
+  documents          Document[]
+  bankAccounts       BankAccount[]
+  roles              Role[]
+  userRoles          UserOrganizationRole[]
+  roleAssignments    UserRoleAssignment[]
+  agencySubLogins    AgencySubLogin[]   @relation("OrganizationSubLogins")
+
+  // Soft Delete & Timestamps
+  deletedAt          DateTime?
+  deletedById        String?
+  deleteReason       String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@index([kind])
+  @@index([status])
+  @@index([district])
+  @@index([kind, status])
+  @@index([officialEmail])
+  @@index([createdAt])
+  @@index([registrationNumberHash])
+  @@index([cinHash])
+  @@index([panHash])
+  @@index([gstinHash])
 }
 
-enum OrganizationOnboardingStatus {
-  REGISTERED
-  PROFILE_INCOMPLETE
-  DOCUMENTS_PENDING
-  SUBMITTED_FOR_REVIEW
-  UNDER_VERIFICATION
-  CLARIFICATION_REQUIRED
-  APPROVED
-  REJECTED
-  SUSPENDED
+model CSRCompanyProfile {
+  id                       String       @id @default(uuid())
+  organizationId           String       @unique
+  organization             Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  csrRegistrationNo        String?
+  annualCsrBudget          Decimal?     @db.Decimal(15, 2)
+  currentYearCsrBudget     Decimal?     @db.Decimal(15, 2)
+  netWorth                 Decimal?     @db.Decimal(15, 2)
+  turnover                 Decimal?     @db.Decimal(15, 2)
+  netProfit                Decimal?     @db.Decimal(15, 2)
+  averageNetProfit         Decimal?     @db.Decimal(15, 2)
+  csrObligationAmount      Decimal?     @db.Decimal(15, 2)
+  unspentCsrAmount         Decimal?     @db.Decimal(15, 2)
+  twoPercentCsrObligation  Decimal?     @db.Decimal(15, 2)
+  financialYear            String?
+  csrApplicable            Boolean?
+
+  preferredDistricts       String[]
+  preferredSectors         String[]
+  preferredDivisions       String[]    @default([])
+  preferredCities           String[]    @default([])
+  preferredTalukas          String[]    @default([])
+  preferredProjectSize         String?
+  minFundingAmount             Decimal?     @db.Decimal(15, 2)
+  maxFundingAmount             Decimal?     @db.Decimal(15, 2)
+  fundingPreference            String?
+  implementationPreference     String?
+  preferredBeneficiaryGroups   String?
+  sdgFocusAreas                String?
+  
+  csrHeadName              String?
+  csrHeadEmail             String?
+  csrHeadMobile            String?
+
+  createdAt                DateTime     @default(now())
+  updatedAt                DateTime     @updatedAt
 }
 
-enum OrganizationType {
-  TRUST
-  SOCIETY
-  SECTION_8_COMPANY
-  GOVERNMENT_ENTITY
-  OTHER
+model NGOProfile {
+  id                     String       @id @default(uuid())
+  organizationId         String       @unique
+  organization           Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  darpanNumber           String?
+  darpanNumberHash       String?      @unique
+  csr1Number             String?
+  csr1NumberHash         String?      @unique
+  certificate12AUrl      String?
+  certificate80GUrl      String?
+  fcraDetails            String?
+  
+  yearEstablished        Int?
+  areasOfOperation       String[]
+  csrSectors             String[]
+  impactStatistics       Json?
+
+  riskScores             RiskScore[]
+
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+
+  @@index([darpanNumberHash])
+  @@index([csr1NumberHash])
 }
 
-enum PermissionType {
-  ACTION
-  PAGE
+model GovDepartmentProfile {
+  id                      String       @id @default(uuid())
+  organizationId          String       @unique
+  organization            Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  departmentType          String?
+  parentDepartment        String?
+  departmentCode          String?
+  
+  nodalOfficerName        String?
+  nodalOfficerDesignation String?
+  nodalOfficerEmail       String?
+  nodalOfficerMobile      String?
+
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
 }
 
-enum PriorityLevel {
-  LOW
-  MEDIUM
-  HIGH
-  CRITICAL
+// =============================================================================
+// UNIFIED PROJECT ENGINE
+// =============================================================================
+
+model Project {
+  id                       String             @id @default(uuid())
+  projectCode              String             @unique
+  type                     ProjectType        @default(CONVERGENCE_FRAMEWORK)
+  
+  title                    String
+  description              String             @db.Text
+  sector                   String
+  focusArea                String?
+  sdgGoals                 String[]
+  
+  // Location
+  state                    String             @default("Maharashtra")
+  district                 String
+  taluka                   String
+  village                  String?
+  latitude                 Float?
+  longitude                Float?
+
+  // Financial Precision
+  approvedBudget           Decimal            @db.Decimal(15, 2)
+  budgetRequested          Decimal?           @db.Decimal(15, 2)
+  committedAmount          Decimal            @default(0) @db.Decimal(15, 2)
+  utilizedAmount           Decimal            @default(0) @db.Decimal(15, 2)
+  
+  // Beneficiaries
+  beneficiaryCount         Int                @default(0)
+  beneficiariesSummary     String?            @db.Text
+
+  status                   ProjectStatus      @default(DRAFT)
+  
+  // Ownership linkages
+  organizationId           String
+  organization             Organization       @relation("OrganizationProjects", fields: [organizationId], references: [id], onDelete: Restrict)
+  
+  corporatePartnerId       String?
+  implementingAgencyId     String?
+  ngoId                    String?
+  nodalOfficerUserId       String?
+  approvalSourceEnquiryId  String?            @unique
+  approvalSourcePitchId    String?            @unique
+
+  // Lifecycle Dates
+  startDate                DateTime?
+  expectedEndDate          DateTime?
+  completedAt              DateTime?
+
+  // Soft Delete & Timestamps
+  deletedAt                DateTime?
+  deletedById              String?
+  deleteReason             String?
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
+
+  // Child Relations
+  milestones               ProjectMilestone[]
+  inspections              ProjectInspection[]
+  documents                Document[]
+  utilizationCertificates UtilizationCertificate[]
+  grievances               Grievance[]
+  mou                      StandardMou?
+  agreements               Agreement[]
+  agencySubLogins          AgencySubLogin[]   @relation("ProjectAgencySubLogins")
+  districtDncAssignments   ProjectDistrictDncAssignment[]
+  roleAssignments          UserRoleAssignment[] @relation("ProjectRoleAssignments")
+
+  @@index([district, sector])
+  @@index([status])
+  @@index([organizationId])
+  @@index([type])
+  @@index([status, type])
+  @@index([nodalOfficerUserId])
+  @@index([corporatePartnerId])
+  @@index([implementingAgencyId])
+  @@index([createdAt])
 }
 
-enum ProgressReportStatus {
-  PR_SUBMITTED
-  PR_VERIFIED
-  PR_REJECTED
-  PR_REVISION_REQUIRED
+model ProjectMilestone {
+  id                   String                  @id @default(uuid())
+  projectId            String
+  project              Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  name                 String
+  description          String?                 @db.Text
+  targetAmount         Decimal                 @db.Decimal(15, 2)
+  utilizedAmount       Decimal                 @default(0) @db.Decimal(15, 2)
+  
+  dueDate              DateTime?
+  status               MilestoneStatus         @default(NOT_STARTED)
+  geoTaggedPhotoUrls   String[]
+  completionCriteria   String?                 @db.Text
+  progressRemarks      String?                 @db.Text
+  submittedAt          DateTime?
+  verifiedAt           DateTime?
+  verifiedByUserId     String?
+
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+
+  utilizationCertificates UtilizationCertificate[]
+
+  @@index([projectId])
+  @@index([status])
 }
 
-enum QueryStatus {
-  OPEN
-  RESPONDED
-  RESOLVED
-  ESCALATED
+// =============================================================================
+// UNIFIED DOCUMENT MANAGEMENT
+// =============================================================================
+
+model Document {
+  id                 String             @id @default(uuid())
+  title              String
+  documentType       String
+  fileUrl            String
+  fileName           String
+  fileSize           Int
+  fileType           String
+  fileHash           String?
+  
+  // Scoped Entity Linkages
+  organizationId     String?
+  organization       Organization?      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  projectId          String?
+  project            Project?           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // Verification Audit
+  verificationStatus String             @default("UPLOADED")
+  verifiedByUserId   String?
+  verifiedAt         DateTime?
+  rejectionReason    String?
+
+  uploadedByUserId   String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@index([organizationId])
+  @@index([projectId])
+  @@index([documentType])
+  @@index([verificationStatus])
 }
 
-enum ReportType {
-  CSR
-  IMPACT
-  BENEFICIARY
-  ANNUAL
+// =============================================================================
+// VERIFICATION, RISK & AUDIT
+// =============================================================================
+
+model VerificationRecord {
+  id               String                   @id @default(uuid())
+  entityType       String
+  entityId         String
+  verificationType VerificationModuleType
+  status           VerificationRecordStatus @default(IN_PROGRESS)
+  attempt          Int                      @default(1)
+  isLatest         Boolean                  @default(true)
+  
+  maskedIdentifier String?
+  requestId        String                   @unique @default(uuid())
+  transactionId    String?                  
+  responseData     Json?
+  encryptedPayload String?                  @db.Text
+  
+  errorCode        String?
+  errorMessage     String?
+  responseTimeMs   Int?
+  expiresAt        DateTime?
+  source           String?
+  
+  initiatedById    String?
+  initiatedBy      User?                    @relation("InitiatedBy", fields: [initiatedById], references: [id], onDelete: SetNull)
+
+  verifiedAt       DateTime?
+  createdAt        DateTime                 @default(now())
+
+  @@index([entityType, entityId, isLatest])
+  @@index([transactionId])
+  @@index([initiatedById])
 }
 
-enum Role {
-  SUPER_ADMIN
-  CORPORATE_USER
-  GOVERNMENT_OFFICER
+model RiskScore {
+  id                     String     @id @default(uuid())
+  organizationId         String
+  organization           NGOProfile @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  overallScore           Int
+  riskLevel              String
+  
+  legalRegistrationScore Int        @default(0)
+  financialScore         Int        @default(0)
+  complianceScore        Int        @default(0)
+  governanceScore        Int        @default(0)
+  
+  calculatedAt           DateTime   @default(now())
+  riskFlags              RiskFlag[]
+
+  @@index([organizationId])
 }
 
-enum SLAStage {
-  RM_RESPONSE
-  JS_DECISION
-  SECRETARY_ESCALATION
-  GOVERNMENT_PITCH_VERIFICATION
-  GRIEVANCE_LEVEL_1
-  GRIEVANCE_LEVEL_2
-  STATIC_HELPDESK
-  NODAL_ASSIGNMENT
-  FIELD_OFFICER_ASSIGNMENT
+model RiskFlag {
+  id          String    @id @default(uuid())
+  riskScoreId String
+  riskScore   RiskScore @relation(fields: [riskScoreId], references: [id], onDelete: Cascade)
+  
+  flagType    String
+  severity    String
+  description String
+  isResolved  Boolean   @default(false)
+  resolvedAt  DateTime?
+
+  createdAt   DateTime  @default(now())
+
+  @@index([riskScoreId])
 }
 
-enum SimpleMilestoneStatus {
-  NOT_STARTED
-  IN_PROGRESS
-  COMPLETED
+// =============================================================================
+// FINANCIAL TRANSACTIONS & UTILIZATION
+// =============================================================================
+
+model BankAccount {
+  id                 String       @id @default(uuid())
+  organizationId     String
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  accountHolderName  String
+  bankName           String
+  branchName         String
+  accountNumber      String
+  accountNumberHash  String?      @unique
+  ifscCode           String
+  accountType        String
+  
+  isPrimary          Boolean      @default(false)
+  isVerified         Boolean      @default(false)
+  cancelledChequeUrl String?
+
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  paymentOrders      PaymentOrder[]
+
+  @@index([organizationId])
+  @@index([accountNumberHash])
 }
 
-enum VerificationEntityType {
-  COMPANY
-  NGO
-  ORGANIZATION
-  ONBOARDING_APPLICATION
-  USER
+model PaymentOrder {
+  id               String        @id @default(uuid())
+  orderNumber      String        @unique
+  bankAccountId    String?
+  bankAccount      BankAccount?  @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+  
+  amount           Decimal       @db.Decimal(15, 2)
+  currency         String        @default("INR")
+  purpose          String
+  status           PaymentStatus @default(CREATED)
+  
+  gatewayName      String?
+  gatewayOrderId   String?
+  idempotencyKey   String        @unique
+
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([orderNumber])
+  @@index([status])
+  @@index([bankAccountId])
 }
 
-enum VerificationStatus {
-  PENDING
-  VERIFIED
-  REJECTED
+model UtilizationCertificate {
+  id                   String            @id @default(uuid())
+  projectId            String
+  project              Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  milestoneId          String?
+  milestone            ProjectMilestone? @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+
+  certificateUrl       String
+  amountUtilized       Decimal           @db.Decimal(15, 2)
+  remarks              String?           @db.Text
+  
+  verificationStatus   String            @default("PENDING")
+  verifiedByUserId     String?
+  verifiedAt           DateTime?
+
+  uploadedAt           DateTime          @default(now())
+
+  @@index([projectId])
+  @@index([milestoneId])
+  @@index([verificationStatus])
+}
+
+// =============================================================================
+// WORKFLOW, GRIEVANCE & GOVERNANCE
+// =============================================================================
+
+model Grievance {
+  id                  String               @id @default(uuid())
+  grievanceCode       String               @unique
+  projectId           String
+  project             Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  raisedByUserId      String
+  raisedByUser        User                 @relation("GrievancesRaised", fields: [raisedByUserId], references: [id], onDelete: Cascade)
+  
+  issueTitle          String
+  issueDescription    String               @db.Text
+  status              GrievanceStatus      @default(RAISED)
+  
+  resolutionText      String?              @db.Text
+  
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  actionLogs          GrievanceActionLog[]
+
+  @@index([projectId])
+  @@index([status])
+  @@index([raisedByUserId])
+}
+
+model GrievanceActionLog {
+  id           String    @id @default(uuid())
+  grievanceId  String
+  grievance    Grievance @relation(fields: [grievanceId], references: [id], onDelete: Cascade)
+
+  actorUserId  String
+  actorUser    User      @relation("GrievanceActor", fields: [actorUserId], references: [id], onDelete: Cascade)
+
+  action       String
+  note         String    @db.Text
+
+  createdAt    DateTime  @default(now())
+
+  @@index([grievanceId])
+  @@index([actorUserId])
+}
+
+model ProjectInspection {
+  id                String   @id @default(uuid())
+  projectId         String
+  project           Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  inspectorUserId   String
+  inspectorUser     User     @relation("InspectorUser", fields: [inspectorUserId], references: [id], onDelete: Cascade)
+
+  visitDate         DateTime @default(now())
+  latitude          Float?
+  longitude         Float?
+  geoTaggedImages   String[]
+  
+  remarks           String?  @db.Text
+  issuesFound       String?  @db.Text
+  actionRequired    String?  @db.Text
+
+  createdAt         DateTime @default(now())
+
+  @@index([projectId])
+  @@index([inspectorUserId])
+}
+
+model StandardMou {
+  id                          String   @id @default(uuid())
+  mouReferenceId              String   @unique
+  projectId                   String   @unique
+  project                     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  financialContribution       Decimal  @db.Decimal(15, 2)
+  governmentContribution      Decimal? @db.Decimal(15, 2)
+  signedDocumentUrl           String?
+  status                      String   @default("DRAFT")
+  
+  districtDepartmentName      String?
+  nodalOfficerName            String?
+  corporateName               String?
+  cin                         String?
+  projectTitle                String?
+  projectDescription          String?  @db.Text
+  scheduleVIIClause           String?
+  projectLocation             String?
+  timelineMonths              Int?
+  implementationMode          String?
+  ownershipAfterCompletion    String?
+  maintenanceResponsibility   String?
+  implementingAgencyName      String?
+  corporateEnquiryId          String?
+  governmentPitchId           String?
+  deliverables                Json?
+
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+}
+
+model ProjectAssignment {
+  id             String   @id @default(uuid())
+  entityType     String
+  entityId       String
+  assignmentType String
+  
+  assignedById   String
+  assignedBy     User     @relation("AssignedByUser", fields: [assignedById], references: [id], onDelete: Restrict)
+  
+  assignedToId   String
+  assignedTo     User     @relation("AssignedToUser", fields: [assignedToId], references: [id], onDelete: Cascade)
+  
+  assignedRoleId Int?
+  assignedRole   Role?    @relation(fields: [assignedRoleId], references: [id], onDelete: SetNull)
+
+  status         String   @default("ACTIVE")
+  assignedAt     DateTime @default(now())
+
+  @@index([entityId, entityType])
+  @@index([assignedToId])
+  @@index([assignedById])
+  @@index([assignedRoleId])
+}
+
+model DistrictNodalMapping {
+  id           String   @id @default(uuid())
+  district     String
+  domain       String?
+  userId       String
+  user         User     @relation("NodalUser", fields: [userId], references: [id], onDelete: Cascade)
+  
+  assignedById String
+  assignedBy   User     @relation("AssignedByNodalUser", fields: [assignedById], references: [id], onDelete: Restrict)
+
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  @@index([district, isActive])
+  @@index([userId])
+  @@index([assignedById])
+}
+
+// Exactly one active District Nodal Consultant (DNC) is configured for each
+// Maharashtra district. DNO mappings remain many-to-one in DistrictNodalMapping.
+model DistrictDncAssignment {
+  id               String   @id @default(uuid())
+  district         String   @unique
+  dncUserId        String   @unique
+  dncUser          User     @relation("DistrictDncUser", fields: [dncUserId], references: [id], onDelete: Restrict)
+  assignedById     String
+  assignedBy       User     @relation("DistrictDncAssignedBy", fields: [assignedById], references: [id], onDelete: Restrict)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([district, isActive])
+}
+
+// One project can target several districts, with the respective district DNC
+// notified and assigned for each target district after JS approval.
+model ProjectDistrictDncAssignment {
+  id               String   @id @default(uuid())
+  projectId        String
+  project          Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  district         String
+  dncUserId        String
+  assignedById     String
+  status           String   @default("ACTIVE")
+  assignedAt       DateTime @default(now())
+
+  @@unique([projectId, district])
+  @@index([dncUserId, status])
+}
+
+// Immutable workflow notes for both corporate enquiries and government pitches.
+model ApplicationInteraction {
+  id               String   @id @default(uuid())
+  entityType       String
+  entityId         String
+  actorUserId      String
+  channel          String   @default("PORTAL")
+  note             String   @db.Text
+  occurredAt       DateTime @default(now())
+  createdAt        DateTime @default(now())
+
+  @@index([entityType, entityId, occurredAt])
+  @@index([actorUserId])
+}
+
+model HelpdeskQuery {
+  id               String    @id @default(uuid())
+  trackingId       String    @unique
+  subject          String
+  message          String    @db.Text
+  name             String
+  email            String
+  mobile           String?
+
+  status           String    @default("OPEN")
+  resolution       String?   @db.Text
+
+  raisedByUserId   String?
+  raisedByUser     User?     @relation("HelpdeskRaised", fields: [raisedByUserId], references: [id], onDelete: SetNull)
+
+  resolvedByUserId String?
+  resolvedByUser   User?     @relation("HelpdeskResolved", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+
+  resolutionDueAt  DateTime
+  resolvedAt       DateTime?
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([status])
+  @@index([email])
+  @@index([raisedByUserId])
+  @@index([resolvedByUserId])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  actorUserId String?
+  userId      String?
+  actorUser   User?    @relation("ActorAuditLogs", fields: [actorUserId], references: [id], onDelete: SetNull)
+  
+  action      String
+  entityType  String?
+  entityId    String?
+  details     Json
+  ipAddress   String?
+
+  createdAt   DateTime @default(now())
+
+  @@index([actorUserId])
+  @@index([entityType, entityId])
+}
+
+model Session {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userAgent       String?
+  ipAddress       String?
+  lastActivityIp  String?
+  lastActivity    DateTime?
+  expiry          DateTime?
+  expiresAt       DateTime
+  isRevoked       Boolean   @default(false)
+  revokedByUserId String?
+
+  createdAt       DateTime  @default(now())
+
+  @@index([userId])
+  @@index([isRevoked])
+}
+
+// =============================================================================
+// SUPPLEMENTARY OPERATIONAL & MESSAGING ENGINE
+// =============================================================================
+
+model Notification {
+  id          String   @id @default(uuid())
+  recipientId String?
+  userId      String?
+  title       String
+  message     String   @db.Text
+  type        String   @default("INFO")
+  actionUrl   String?
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([recipientId])
+  @@index([userId])
+  @@index([isRead])
+}
+
+model NotificationLog {
+  id                String    @id @default(uuid())
+  notificationId    String?
+  recipientId       String?
+  channel           String
+  recipient         String
+  status            String    @default("PENDING")
+  error             String?
+  providerMessageId String?
+  retryCount        Int       @default(0)
+  sentAt            DateTime?
+  createdAt         DateTime  @default(now())
+
+  @@index([recipient])
+  @@index([status])
+}
+
+model NotificationTemplate {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  subject   String
+  body      String   @db.Text
+  emailBody String?  @db.Text
+  channels  String[]
+  createdAt DateTime @default(now())
+}
+
+model OtpVerification {
+  id         String   @id @default(uuid())
+  identifier String
+  otpHash    String
+  expiresAt  DateTime
+  verified   Boolean  @default(false)
+  attempts   Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([identifier])
+}
+
+model PlatformSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       Json
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SLAEscalation {
+  id                String    @id @default(uuid())
+  entityType        String
+  entityId          String
+  stage             String
+  status            String    @default("ACTIVE")
+  dueDate           DateTime
+  dueAt             DateTime?
+  responsibleUserId String?
+  escalatedToUserId String?
+  isResolved        Boolean   @default(false)
+  resolvedAt        DateTime?
+  createdAt         DateTime  @default(now())
+
+  @@index([entityType, entityId])
+  @@index([isResolved])
+}
+
+model WorkflowDefinition {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  stages    Json
+  createdAt DateTime @default(now())
+}
+
+model WorkflowInstance {
+  id             String   @id @default(uuid())
+  entityType     String
+  entityId       String
+  currentStage   String
+  currentStageId String?
+  definitionId   String
+  createdAt      DateTime @default(now())
+
+  @@index([entityType, entityId])
+}
+
+model WorkflowHistory {
+  id             String   @id @default(uuid())
+  instanceId     String
+  fromStage      String
+  fromStageId    String?
+  toStage        String
+  toStageId      String?
+  actionByUserId String?
+  note           String?  @db.Text
+  createdAt      DateTime @default(now())
+
+  @@index([instanceId])
+}
+
+model WorkflowTransition {
+  id                 String  @id @default(uuid())
+  definitionId       String
+  fromStage          String
+  toStage            String
+  requiredRole       String?
+  requiredPermission String?
+  conditions         Json?
+
+  @@index([definitionId])
+}
+
+model WorkflowRule {
+  id                 String  @id @default(uuid())
+  name               String
+  stageId            String?
+  actionType         String?
+  requiredPermission String?
+  template           String?
+  conditions         Json
+  actions            Json
+}
+
+model WorkflowAssignmentRule {
+  id                 String  @id @default(uuid())
+  district           String
+  role               String
+  assigneeUserId     String
+  requiredPermission String?
+  strategy           String?
+
+  @@index([district])
+}
+
+model CorporateEnquiry {
+  id                            String   @id @default(uuid())
+  trackingId                    String?  @unique
+  organizationId                String?
+  corporateName                 String
+  contactEmail                  String
+  mca21CIN                      String?
+  sector                        String?
+  indicativeBudget              Decimal? @db.Decimal(15, 2)
+  preferredDivisions            String[] @default([])
+  preferredDistricts            String[] @default([])
+  preferredCities               String[] @default([])
+  preferredTalukas              String[] @default([])
+  contactPersonName             String?
+  mobile                        String?
+  proposedCSRWork               String?  @db.Text
+  documents                     String[] @default([])
+  submittedByUserId             String?
+  status                        String   @default("PENDING")
+  assignedRelationshipManagerId String?
+  firstContactedAt              DateTime?
+  createdAt                     DateTime @default(now())
+  updatedAt                     DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([assignedRelationshipManagerId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model GovernmentPitch {
+  id                            String   @id @default(uuid())
+  pitchReferenceId              String?  @unique
+  departmentId                  String?
+  title                         String
+  budget                        Decimal  @db.Decimal(15, 2)
+  officialName                  String?
+  designation                   String?
+  department                    String?
+  officeName                    String?
+  serviceClass                  String?
+  mobile                        String?
+  email                         String?
+  divisions                     String[] @default([])
+  districts                     String[] @default([])
+  cities                        String[] @default([])
+  talukas                       String[] @default([])
+  exactLocation                 String?
+  csrRequirement                String?  @db.Text
+  estimatedCost                 Decimal? @db.Decimal(15, 2)
+  govtFundDeclaration           Boolean?
+  certificationType             String?
+  hodCertificationDocument      String?
+  supportingDocuments           String[] @default([])
+  geoTaggedPhotos               String[] @default([])
+  submittedByUserId             String?
+  status                        String   @default("PENDING")
+  assignedRelationshipManagerId String?
+  createdAt                     DateTime @default(now())
+  updatedAt                     DateTime @updatedAt
+
+  @@index([departmentId])
+  @@index([assignedRelationshipManagerId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model FeasibilityAssessment {
+  id                    String   @id @default(uuid())
+  enquiryId             String   @unique
+  checklist             Json
+  recommendation        String
+  executiveSummary      String?  @db.Text
+  targetDistricts       String[] @default([])
+  targetDepartmentId    String?
+  conditions            Json?
+  assessedByUserId      String
+  submittedAt           DateTime @default(now())
+  status                String   @default("SUBMITTED_TO_JS")
+  jsDecision            String?
+  jsDecisionReason      String?  @db.Text
+  jsDecidedByUserId     String?
+  jsDecidedAt           DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([status])
+  @@index([assessedByUserId])
+  @@index([submittedAt])
+}
+
+model CorporatePitchInterest {
+  id                  String   @id @default(uuid())
+  interestTrackingId  String?  @unique
+  pitchId             String
+  corporateId         String
+  status              String   @default("INTERESTED")
+  createdAt           DateTime @default(now())
+
+  @@index([pitchId])
+  @@index([corporateId])
+}
+
+model NgoInvitation {
+  id        String   @id @default(uuid())
+  ngoId     String?
+  email     String
+  token     String   @unique
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
+model UserInvitation {
+  id        String   @id @default(uuid())
+  email     String
+  token     String   @unique
+  status    String   @default("PENDING")
+  roleId    Int?
+  organizationId String?
+  parentUserId   String?
+  agencySubLoginId String?
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
+model Agreement {
+  id          String    @id @default(uuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  status      String    @default("DRAFT")
+  documentUrl String?
+  signedAt    DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([projectId])
+}
+
+model MatchScore {
+  id             String   @id @default(uuid())
+  organizationId String
+  projectId      String
+  score          Float
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([projectId])
+}
+
+model Chat {
+  id        String   @id @default(uuid())
+  title     String?
+  projectId String?
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  messages  Message[]
+
+  @@index([projectId])
+}
+
+model Message {
+  id           String   @id @default(uuid())
+  chatId       String
+  chat         Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  senderUserId String?
+  senderId     String?
+  sender       User?    @relation(fields: [senderId], references: [id], onDelete: SetNull)
+  content      String   @db.Text
+  readBy       String[]
+  createdAt    DateTime @default(now())
+
+  @@index([chatId])
+  @@index([senderUserId])
+}
+
+// =============================================================================
+// IMPLEMENTING AGENCY SUB-LOGIN ENGINE (Corporate Company Sub-Logins)
+// =============================================================================
+
+model AgencySubLogin {
+  id                String       @id @default(uuid())
+  organizationId    String       // Belongs exclusively to Corporate Company (Company Admin)
+  organization      Organization @relation("OrganizationSubLogins", fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  ngoName           String
+  agencyOrganizationId String?
+  userId            String?      @unique
+  createdByUserId   String?
+  darpanId          String?
+  email             String       @unique
+  contactPerson     String?
+  phone             String?
+  assignedProjectId String?
+  assignedProject   Project?     @relation("ProjectAgencySubLogins", fields: [assignedProjectId], references: [id], onDelete: SetNull)
+  
+  status            String       @default("ACTIVE") // ACTIVE, INVITE_SENT, SUSPENDED
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([organizationId])
+  @@index([email])
+  @@index([assignedProjectId])
 }
