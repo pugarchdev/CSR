@@ -127,12 +127,12 @@ export const defineMilestones = async (req: AuthenticatedRequest, res: Response,
     const normalised = milestones.map((milestone: any) => ({
       name: String(milestone.name || "").trim(),
       description: milestone.description ? String(milestone.description).trim() : null,
-      completionCriteria: String(milestone.completionCriteria || "").trim(),
-      targetAmount: Number(milestone.targetAmount),
+      completionCriteria: String(milestone.completionCriteria || "Pending completion criteria").trim(),
+      targetAmount: milestone.targetAmount !== undefined && milestone.targetAmount !== null && milestone.targetAmount !== "" ? Number(milestone.targetAmount) : 0,
       dueDate: milestone.dueDate ? new Date(milestone.dueDate) : null
     }));
-    if (normalised.some((m: any) => !m.name || !m.completionCriteria || !Number.isFinite(m.targetAmount) || m.targetAmount < 0 || (m.dueDate && Number.isNaN(m.dueDate.getTime())))) {
-      return res.status(400).json({ error: "Every milestone needs a name, completion criteria, valid target amount, and valid timeline." });
+    if (normalised.some((m: any) => !m.name || Number.isNaN(m.targetAmount) || m.targetAmount < 0 || (m.dueDate && Number.isNaN(m.dueDate.getTime())))) {
+      return res.status(400).json({ error: "Every milestone needs a valid name and valid timeline." });
     }
     const proposedTotal = normalised.reduce((sum: number, milestone: any) => sum + milestone.targetAmount, 0);
     if (proposedTotal > Number(access.project.approvedBudget)) return res.status(400).json({ error: "Milestone tranche total cannot exceed the approved project budget." });
@@ -141,6 +141,47 @@ export const defineMilestones = async (req: AuthenticatedRequest, res: Response,
       return tx.projectMilestone.createMany({ data: normalised.map((m: any) => ({ ...m, projectId: access.project.id, geoTaggedPhotoUrls: [] })) });
     });
     return res.status(201).json({ success: true, message: "Milestones drafted from the MoU schedule.", data: created });
+  } catch (error) { next(error); }
+};
+
+export const addSingleMilestone = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const access = await projectAccess(req.params.id, req.user!.id, req.user?.organizationId);
+    if (!access) return notFoundResponse(res, "Project not found");
+    const roleId = Number(req.user?.roleId);
+    const mayAdd = (access.isPartner && [ROLE_ID.COMPANY_ADMIN, ROLE_ID.NGO_ADMIN].includes(roleId as any)) || [ROLE_ID.SUPER_ADMIN, ROLE_ID.DISTRICT_NODAL_OFFICER].includes(roleId as any);
+    if (!mayAdd) return res.status(403).json({ error: "Only assigned partners, DNOs, or Super Admins can add a milestone." });
+
+    const name = String(req.body.name || "").trim();
+    const description = req.body.description ? String(req.body.description).trim() : null;
+    const completionCriteria = req.body.completionCriteria ? String(req.body.completionCriteria).trim() : "Pending completion criteria";
+    const targetAmount = req.body.targetAmount !== undefined && req.body.targetAmount !== null && req.body.targetAmount !== "" ? Number(req.body.targetAmount) : 0;
+    const dueDate = req.body.dueDate ? new Date(req.body.dueDate) : null;
+
+    if (!name) {
+      return res.status(400).json({ error: "Milestone name is required." });
+    }
+    if (Number.isNaN(targetAmount) || targetAmount < 0) {
+      return res.status(400).json({ error: "Target amount must be a valid non-negative number." });
+    }
+    if (dueDate && Number.isNaN(dueDate.getTime())) {
+      return res.status(400).json({ error: "Invalid due date provided." });
+    }
+
+    const created = await prisma.projectMilestone.create({
+      data: {
+        projectId: access.project.id,
+        name,
+        description,
+        completionCriteria,
+        targetAmount,
+        dueDate,
+        status: "NOT_STARTED",
+        geoTaggedPhotoUrls: []
+      }
+    });
+
+    return res.status(201).json({ success: true, message: "Milestone added successfully.", data: created });
   } catch (error) { next(error); }
 };
 

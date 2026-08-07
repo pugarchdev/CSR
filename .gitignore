@@ -71,5 +71,18 @@ temp.zip
 # Ignore markdown files
 *.md
 
-# Claude worktrees and metadata
+# AI and Editor Worktrees and Metadata
 .claude/
+.cursor/
+.gemini/
+.antigravity/
+.codex/
+.code-review-graph/
+.qoder/
+.mcp.json
+.opencode.json
+.windsurfrules
+.cursorrules
+
+._*
+.DS_Store

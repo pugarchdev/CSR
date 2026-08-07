@@ -14,19 +14,22 @@ import { getCurrentUser, hasPageAccess, CONVERGENCE_PROJECT_PERMS } from "@/lib/
 import {
   Building2, Coins, CheckCircle2, FileText, ArrowLeft, MapPin,
   Calendar, UserCheck, ShieldCheck, FileCheck, ExternalLink, AlertCircle,
-  UploadCloud, Save, Eye, Clock, Check, Layers
+  UploadCloud, Save, Eye, Clock, Check, Layers, Plus, X, DollarSign
 } from "lucide-react";
 
 interface Milestone {
   id: string;
   name: string;
   description: string | null;
-  workType: string;
+  workType?: string;
+  completionCriteria?: string;
+  targetAmount?: number | string;
+  dueDate?: string | null;
   status: string;
   fundsUtilized: number | string;
   geoTaggedPhotoUrls: string[];
-  verifiedByNodalOfficerId: string | null;
-  verifiedAt: string | null;
+  verifiedByNodalOfficerId?: string | null;
+  verifiedAt?: string | null;
   verifiedByNodalOfficer?: { email: string };
   createdAt: string;
   utilizationCertificates?: {
@@ -65,8 +68,46 @@ export default function ProjectTrackingPage() {
   const [ucForms, setUcForms] = useState<Record<string, { certificateDocumentUrl: string; amountUtilized: string; remarks: string; fileName?: string }>>({});
   const [actionMessage, setActionMessage] = useState("");
   const [savingId, setSavingId] = useState("");
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newMilestone, setNewMilestone] = useState({
+    name: "",
+    description: "",
+    completionCriteria: "",
+    targetAmount: "",
+    dueDate: ""
+  });
+  const [addLoading, setAddLoading] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
+
+  const handleAddMilestone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMilestone.name.trim()) return;
+    setAddLoading(true);
+    try {
+      const res = await apiFetch<{ success: boolean; message: string }>(
+        `/convergence-projects/${id}/milestones/add`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            name: newMilestone.name,
+            description: newMilestone.description || null,
+            completionCriteria: newMilestone.completionCriteria || "Pending completion criteria",
+            targetAmount: newMilestone.targetAmount ? Number(newMilestone.targetAmount) : 0,
+            dueDate: newMilestone.dueDate || null,
+          }),
+        }
+      );
+      setActionMessage(res.message || "Milestone added successfully.");
+      setShowAddModal(false);
+      setNewMilestone({ name: "", description: "", completionCriteria: "", targetAmount: "", dueDate: "" });
+      fetchProject();
+    } catch (err: unknown) {
+      setActionMessage(err instanceof Error ? err.message : "Failed to add milestone.");
+    } finally {
+      setAddLoading(false);
+    }
+  };
 
   const fetchProject = useCallback(async () => {
     if (!id) return;
@@ -335,9 +376,120 @@ export default function ProjectTrackingPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main 2-Column: Milestone Progress & Upload Forms */}
           <div className="lg:col-span-2 space-y-6">
-            <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-              <Layers size={18} className="text-blue-900" /> Milestone Management & UC Submission
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                <Layers size={18} className="text-blue-900" /> Milestone Management & UC Submission
+              </h3>
+              {canUpdateProgress && (
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(true)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
+                >
+                  <Plus size={14} /> Add Milestone
+                </button>
+              )}
+            </div>
+
+            {/* Add Milestone Modal */}
+            {showAddModal && (
+              <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h4 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                      <Plus size={18} className="text-blue-900" /> Add Project Milestone
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddModal(false)}
+                      className="text-slate-400 hover:text-slate-700 transition-colors"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleAddMilestone} className="space-y-3 text-xs">
+                    <div>
+                      <label className="text-slate-700 font-bold block mb-1">Milestone Name *</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-semibold text-slate-900 focus:border-blue-600 focus:outline-none"
+                        placeholder="e.g., Phase 1 Site Preparation & Civil Work"
+                        value={newMilestone.name}
+                        onChange={(e) => setNewMilestone({ ...newMilestone, name: e.target.value })}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-slate-700 font-bold block mb-1">Description</label>
+                      <textarea
+                        rows={2}
+                        className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-medium text-slate-900 focus:border-blue-600 focus:outline-none"
+                        placeholder="Details of deliverables..."
+                        value={newMilestone.description}
+                        onChange={(e) => setNewMilestone({ ...newMilestone, description: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-slate-700 font-bold block mb-1 flex items-center justify-between">
+                          <span>Target Cost (₹)</span>
+                          <span className="text-[10px] text-slate-400 font-semibold uppercase">Optional</span>
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-semibold text-slate-900 focus:border-blue-600 focus:outline-none"
+                          placeholder="e.g. 50000 (Defaults to ₹0)"
+                          value={newMilestone.targetAmount}
+                          onChange={(e) => setNewMilestone({ ...newMilestone, targetAmount: e.target.value })}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-slate-700 font-bold block mb-1">Target Due Date</label>
+                        <input
+                          type="date"
+                          className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-semibold text-slate-900 focus:border-blue-600 focus:outline-none"
+                          value={newMilestone.dueDate}
+                          onChange={(e) => setNewMilestone({ ...newMilestone, dueDate: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-slate-700 font-bold block mb-1">Completion Criteria</label>
+                      <input
+                        type="text"
+                        className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-medium text-slate-900 focus:border-blue-600 focus:outline-none"
+                        placeholder="e.g. Geo-tagged photos & civil completion certificate"
+                        value={newMilestone.completionCriteria}
+                        onChange={(e) => setNewMilestone({ ...newMilestone, completionCriteria: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => setShowAddModal(false)}
+                        className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={addLoading}
+                        className="px-5 py-2 rounded-xl bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs shadow-xs transition-all disabled:opacity-50"
+                      >
+                        {addLoading ? "Adding..." : "Add Milestone"}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
 
             {milestones.length === 0 ? (
               <div className="rounded-2xl border border-slate-200/90 bg-white p-8 text-center shadow-xs">
@@ -358,7 +510,7 @@ export default function ProjectTrackingPage() {
                       </div>
                       {m.description && <p className="text-xs text-slate-500 font-medium mt-1">{m.description}</p>}
                     </div>
-                    <GovStatusBadge variant={m.status === "COMPLETED" ? "success" : m.status === "IN_PROGRESS" ? "info" : "warning"}>
+                    <GovStatusBadge variant={m.status === "COMPLETED" || m.status === "APPROVED" ? "success" : m.status === "IN_PROGRESS" || m.status === "SUBMITTED_FOR_VERIFICATION" ? "info" : "warning"}>
                       {m.status.replace(/_/g, " ")}
                     </GovStatusBadge>
                   </div>
@@ -366,8 +518,8 @@ export default function ProjectTrackingPage() {
                   {/* Summary Grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50/70 p-3 rounded-xl border border-slate-200/60 text-xs">
                     <div>
-                      <span className="text-slate-400 font-medium block text-[10px] uppercase">Work Type</span>
-                      <span className="font-semibold text-slate-800">{m.workType.replace(/_/g, " ")}</span>
+                      <span className="text-slate-400 font-medium block text-[10px] uppercase">Target Cost</span>
+                      <span className="font-bold text-slate-900">{m.targetAmount ? fmtCurrency(m.targetAmount) : "₹0 (Uncosted)"}</span>
                     </div>
                     <div>
                       <span className="text-slate-400 font-medium block text-[10px] uppercase">Funds Utilised</span>
@@ -535,38 +687,95 @@ export default function ProjectTrackingPage() {
             )}
           </div>
 
-          {/* Right Column: Project Lifecycle Timeline */}
+          {/* Right Column: Project Lifecycle & Dynamic Milestone Timeline */}
           <div className="space-y-6">
             <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-              <ShieldCheck size={18} className="text-purple-600" /> Project Lifecycle Timeline
+              <ShieldCheck size={18} className="text-purple-600" /> Project Timeline
             </h3>
 
-            <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs space-y-5">
-              {lifecycleSteps.map((step, idx) => {
-                const isCompleted = step.status === "completed";
-                const isActive = step.status === "active";
+            {/* Generated Milestone Execution Timeline */}
+            <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs space-y-6">
+              <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-3">
+                <Clock size={14} className="text-blue-900" /> Dynamic Milestone Schedule
+              </h4>
 
-                return (
-                  <div key={idx} className="flex items-start gap-3.5 relative">
-                    {idx < lifecycleSteps.length - 1 && (
-                      <div className={`absolute left-3.5 top-8 bottom-0 w-0.5 ${isCompleted ? "bg-emerald-500" : "bg-slate-200"}`} />
-                    )}
-                    <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold shrink-0 z-10 ${
-                      isCompleted
-                        ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
-                        : isActive
-                        ? "bg-blue-100 text-blue-900 border border-blue-300 animate-pulse"
-                        : "bg-slate-100 text-slate-400 border border-slate-200"
-                    }`}>
-                      {isCompleted ? <Check size={14} /> : idx + 1}
+              {milestones.length === 0 ? (
+                <p className="text-xs text-slate-400 font-medium text-center py-4">No milestones scheduled yet.</p>
+              ) : (
+                <div className="space-y-4 relative">
+                  {milestones.map((m, idx) => {
+                    const isDone = m.status === "COMPLETED" || m.status === "APPROVED";
+                    const isProgress = m.status === "IN_PROGRESS" || m.status === "SUBMITTED_FOR_VERIFICATION";
+
+                    return (
+                      <div key={m.id} className="flex items-start gap-3 relative">
+                        {idx < milestones.length - 1 && (
+                          <div className={`absolute left-3.5 top-7 bottom-0 w-0.5 ${isDone ? "bg-emerald-500" : isProgress ? "bg-blue-400" : "bg-slate-200"}`} />
+                        )}
+                        <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold shrink-0 z-10 ${
+                          isDone
+                            ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
+                            : isProgress
+                            ? "bg-blue-100 text-blue-900 border border-blue-300 animate-pulse"
+                            : "bg-slate-100 text-slate-400 border border-slate-200"
+                        }`}>
+                          {isDone ? <Check size={14} /> : idx + 1}
+                        </div>
+
+                        <div className="flex-1 text-xs">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="font-bold text-slate-900">{m.name}</span>
+                            <span className="text-[10px] font-semibold text-slate-400">
+                              {m.dueDate ? new Date(m.dueDate).toLocaleDateString("en-IN", { month: "short", day: "numeric" }) : "TBD"}
+                            </span>
+                          </div>
+                          {m.description && <p className="text-[11px] text-slate-500 font-medium line-clamp-1">{m.description}</p>}
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                              isDone ? "bg-emerald-50 text-emerald-700" : isProgress ? "bg-blue-50 text-blue-800" : "bg-slate-100 text-slate-600"
+                            }`}>
+                              {m.targetAmount ? fmtCurrency(m.targetAmount) : "₹0 (Optional Cost)"}
+                            </span>
+                            {m.verifiedAt && <span className="text-[10px] text-emerald-600 font-semibold">✓ DNO Verified</span>}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Standard Project Lifecycle Status */}
+            <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs space-y-4">
+              <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">Overall Workflow Stage</h4>
+              <div className="space-y-4">
+                {lifecycleSteps.map((step, idx) => {
+                  const isCompleted = step.status === "completed";
+                  const isActive = step.status === "active";
+
+                  return (
+                    <div key={idx} className="flex items-start gap-3.5 relative">
+                      {idx < lifecycleSteps.length - 1 && (
+                        <div className={`absolute left-3.5 top-8 bottom-0 w-0.5 ${isCompleted ? "bg-emerald-500" : "bg-slate-200"}`} />
+                      )}
+                      <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold shrink-0 z-10 ${
+                        isCompleted
+                          ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
+                          : isActive
+                          ? "bg-blue-100 text-blue-900 border border-blue-300 animate-pulse"
+                          : "bg-slate-100 text-slate-400 border border-slate-200"
+                      }`}>
+                        {isCompleted ? <Check size={14} /> : idx + 1}
+                      </div>
+                      <div>
+                        <div className="font-bold text-xs text-slate-900">{step.label}</div>
+                        <div className="text-[11px] text-slate-500 font-medium mt-0.5">{step.description}</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="font-bold text-xs text-slate-900">{step.label}</div>
-                      <div className="text-[11px] text-slate-500 font-medium mt-0.5">{step.description}</div>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
