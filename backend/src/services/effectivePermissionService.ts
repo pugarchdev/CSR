@@ -100,7 +100,7 @@ export class EffectivePermissionService {
     }
 
     const activeRoles: EffectiveAccessPayload["activeRoles"] = [];
-    let isSuperAdminUser = false;
+    let isSuperAdminUser = Number(user.roleId) === 1 || String(user.roleId) === "1" || user.role?.code === "SUPER_ADMIN" || user.role?.id === 1;
 
     // Check user.role fallback if no canonical assignments exist yet
     if (assignments.length === 0 && user.role) {

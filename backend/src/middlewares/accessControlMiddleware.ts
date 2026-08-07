@@ -354,6 +354,9 @@ export const requirePermission = (permissionKey: string) => {
   return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       if (!req.user) return res.status(401).json({ error: "Authentication required" });
+      const isSuperAdmin = Number(req.user.role) === Role.SUPER_ADMIN || req.user.role === "SUPER_ADMIN" || req.user.roleId === "1" || Number(req.user.roleId) === 1;
+      if (isSuperAdmin) return next();
+
       const hasPerm = await EffectivePermissionService.hasPermission(req.user.id, permissionKey);
       if (!hasPerm) {
         await auditBlockedAccess(req, "PERMISSION_ACCESS_BLOCKED", { permissionKey, path: req.originalUrl });

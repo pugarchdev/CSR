@@ -227,8 +227,9 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                       pathname.startsWith("/pitches") ||
                       pathname.startsWith("/interests") ||
                       pathname.startsWith("/assessments") ||
-                      pathname.startsWith("/companies") ||
                       pathname.startsWith("/agencies") ||
+                      pathname.startsWith("/assignments") ||
+                      pathname.startsWith("/milestones") ||
                       pathname.startsWith("/requirements") ||
                       pathname.startsWith("/handover") ||
                       pathname.startsWith("/inspections") ||
@@ -361,8 +362,9 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
         pathname.startsWith("/pitches") ||
         pathname.startsWith("/interests") ||
         pathname.startsWith("/assessments") ||
-        pathname.startsWith("/companies") ||
         pathname.startsWith("/agencies") ||
+        pathname.startsWith("/assignments") ||
+        pathname.startsWith("/milestones") ||
         pathname.startsWith("/requirements") ||
         pathname.startsWith("/marketplace") ||
         pathname.startsWith("/escalations") ||

@@ -38,7 +38,14 @@ export const listUsers = async (req: AuthenticatedRequest, res: Response, next: 
     const search = (req.query.search as string) || "";
     const status = (req.query.status as string) || "";
 
+    const userRole = String(req.user?.role || "").toUpperCase();
+    const isGlobalAdmin = ["SUPER_ADMIN", "PLANNING_SECRETARY", "JOINT_SECRETARY", "CSR_ADMIN", "PORTAL_ADMIN"].includes(userRole) || String(req.user?.roleId) === "1" || Number(req.user?.roleId) === 1;
+
     const where: any = { deletedAt: null };
+    if (!isGlobalAdmin && req.user?.organizationId) {
+      where.organizationId = req.user.organizationId;
+    }
+
     if (search) {
       where.OR = [
         { email: { contains: search, mode: "insensitive" } },

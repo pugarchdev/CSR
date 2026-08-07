@@ -303,6 +303,7 @@ export const SEED_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
   // 7. Government Officer: Department Admin
   GOVERNMENT_OFFICER: [
     "dashboard:view", "dashboard:widget-kpis", "dashboard:widget-workqueue",
+    "user:view", "user:create", "user:update", "user:assign-role",
     "pitch:view", "pitch:create", "pitch:edit_before_approval", "photo:upload", "project:view_assigned",
     "status:track", "query:respond", "requirement:create", "requirement:view", "organization:view",
     "report:view",
@@ -312,7 +313,8 @@ export const SEED_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
   // 8. Company Admin: Corporate CSR Head
   COMPANY_ADMIN: [
     "dashboard:view", "dashboard:widget-kpis", "dashboard:widget-workqueue",
-    "company_profile:manage", "user:create", "company_role:assign", "enquiry:create", "interest:express",
+    "user:view", "user:create", "user:update", "user:assign-role",
+    "company_profile:manage", "company_role:assign", "enquiry:create", "interest:express",
     "mou:sign", "ngo_login:create", "project:view", "project:close", "fund:view", "fund:commit",
     "report:view",
     "verification:execute", "verification:reverify", "verification:view-history",
@@ -321,6 +323,7 @@ export const SEED_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
   // 9. NGO Admin: Implementing Agency
   NGO_ADMIN: [
     "dashboard:view", "dashboard:widget-kpis", "dashboard:widget-workqueue",
+    "user:view", "user:create", "user:update", "user:assign-role",
     "project:view_assigned", "milestone:update", "photo:upload_geotagged", "bill:upload", "uc:upload",
     "issue:raise", "query:respond", "fund:view", "report:view",
     "verification:execute", "verification:reverify", "verification:view-history",
