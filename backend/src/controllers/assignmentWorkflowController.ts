@@ -166,7 +166,8 @@ export const getGovAdminQueue = async (req: AuthenticatedRequest, res: Response,
     const where: any = targetOrgId ? {
       OR: [
         { organizationId: targetOrgId },
-        { departmentId: targetOrgId }
+        { corporatePartnerId: targetOrgId },
+        { implementingAgencyId: targetOrgId }
       ]
     } : {};
 

@@ -23,8 +23,8 @@ export const getProjects = async (req: AuthenticatedRequest, res: Response, next
         filter.OR = [
           { organizationId: user.organizationId },
           { implementingAgencyId: user.organizationId },
-          { corporateId: user.organizationId },
-          { departmentId: user.organizationId }
+          { corporatePartnerId: user.organizationId },
+          { ngoId: user.organizationId }
         ];
       }
     }
