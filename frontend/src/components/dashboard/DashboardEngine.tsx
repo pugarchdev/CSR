@@ -588,7 +588,34 @@ export default function DashboardEngine() {
   let leftTitle: string, leftSubtitle: string, leftIcon: LucideIcon;
   let rightTitle: string, rightSubtitle: string, rightIcon: LucideIcon;
 
-  if (isCorporate) {
+  if (isSuperAdmin) {
+    r1Left = adminRow1Left; r1Right = adminRow1Right;
+    r2Left = adminRow2Left; r2Right = adminRow2Right;
+    leftTitle = "Corporate & Company Desk";
+    leftSubtitle = "CSR enquiries, interest submissions & funding metrics";
+    leftIcon = Building2;
+    rightTitle = "Government & Department Desk";
+    rightSubtitle = "State pitches, approvals & escalations queue";
+    rightIcon = Landmark;
+  } else if (isRM) {
+    r1Left = adminRow1Left; r1Right = adminRow1Right;
+    r2Left = adminRow2Left; r2Right = adminRow2Right;
+    leftTitle = "Relationship Manager Portfolio Desk";
+    leftSubtitle = "Corporate enquiries, interest submissions & feasibility assessments";
+    leftIcon = Building2;
+    rightTitle = "Government & Department Desk";
+    rightSubtitle = "State pitches, approvals & escalations queue";
+    rightIcon = Landmark;
+  } else if (isJS || isPS) {
+    r1Left = adminRow1Right; r1Right = adminRow1Left;
+    r2Left = adminRow2Right; r2Right = adminRow2Left;
+    leftTitle = isJS ? "Joint Secretary State Secretariat Desk" : "Planning Secretary State Desk";
+    leftSubtitle = "Secretariat approvals, feasibility decision queue & SLA escalations";
+    leftIcon = ShieldCheck;
+    rightTitle = "Corporate & Industry Portfolio Desk";
+    rightSubtitle = "Corporate enquiries, funding outlays & active convergence projects";
+    rightIcon = Building2;
+  } else if (isCorporate) {
     r1Left = companyRow1Left; r1Right = companyRow1Right;
     r2Left = companyRow2Left; r2Right = companyRow2Right;
     leftTitle = `My Company \u2014 ${orgName}`;
@@ -606,24 +633,6 @@ export default function DashboardEngine() {
     rightTitle = "Platform Overview";
     rightSubtitle = "MahaCSR platform-wide statistics & approvals";
     rightIcon = Globe;
-  } else if (isJS || isPS) {
-    r1Left = adminRow1Right; r1Right = adminRow1Left;
-    r2Left = adminRow2Right; r2Right = adminRow2Left;
-    leftTitle = "Joint Secretary State Secretariat Desk";
-    leftSubtitle = "Secretariat approvals, feasibility decision queue & SLA escalations";
-    leftIcon = ShieldCheck;
-    rightTitle = "Corporate & Industry Portfolio Desk";
-    rightSubtitle = "Corporate enquiries, funding outlays & active convergence projects";
-    rightIcon = Building2;
-  } else if (isRM) {
-    r1Left = adminRow1Left; r1Right = adminRow1Right;
-    r2Left = adminRow2Left; r2Right = adminRow2Right;
-    leftTitle = "Relationship Manager Portfolio Desk";
-    leftSubtitle = "Corporate enquiries, interest submissions & feasibility assessments";
-    leftIcon = Building2;
-    rightTitle = "Government & Department Desk";
-    rightSubtitle = "State pitches, approvals & escalations queue";
-    rightIcon = Landmark;
   } else {
     r1Left = adminRow1Left; r1Right = adminRow1Right;
     r2Left = adminRow2Left; r2Right = adminRow2Right;
@@ -756,7 +765,7 @@ export default function DashboardEngine() {
       </div>
 
       {/* KPI Cards Grid */}
-      {isCorporate || isGovernment ? (
+      {(!isSuperAdmin && !isRM && !isJS && !isPS && (isCorporate || isGovernment)) ? (
         <div className="rounded-xl border border-slate-200/90 bg-slate-50/50 p-4 sm:p-5 space-y-4">
           <div className="flex items-center gap-2 border-b border-slate-200/80 pb-3">
             <span className="flex h-5 w-5 items-center justify-center rounded-md bg-slate-200/70 text-slate-700 font-bold text-xs">
