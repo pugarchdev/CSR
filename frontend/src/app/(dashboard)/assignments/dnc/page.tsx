@@ -54,9 +54,18 @@ export default function DncAssignmentQueuePage() {
       setLoading(true);
       const res = await apiFetch<any>("/assignments/dnc/queue");
       if (res) {
-        setDistrict(res.district || "");
-        setProjects(res.projects || []);
-        setDnos(res.eligibleDnos || []);
+        setDistrict(res.district || "ALL DISTRICTS");
+        setProjects(res.projects || res.data || []);
+        if (Array.isArray(res.eligibleDnos) && res.eligibleDnos.length > 0) {
+          setDnos(res.eligibleDnos);
+        } else {
+          try {
+            const dnoRes = await apiFetch<any>("/assignments/dnc/eligible-dnos");
+            setDnos(dnoRes?.eligibleDnos || dnoRes?.data || []);
+          } catch {
+            setDnos([]);
+          }
+        }
       }
     } catch (err) {
       toast.error("Failed to load queue", err instanceof Error ? err.message : "Error fetching DNC queue");

@@ -5,30 +5,36 @@ import { ScopedAssignmentService } from "../services/scopedAssignmentService";
 import { RmAssignmentService } from "../services/rmAssignmentService";
 import { ROLE_ID } from "../types/role";
 
+const isSuperAdminOrStaff = (user: any) => {
+  if (!user) return false;
+  const roleIdVal = Number(user.roleId || user.roleNumericId || user.role?.id || (typeof user.role === "number" ? user.role : 0));
+  const roleStr = String(user.role?.code || user.role?.name || user.role || "").toUpperCase();
+  return (
+    roleIdVal === 1 || roleIdVal === 2 || roleIdVal === 3 || roleIdVal === 6 ||
+    roleStr.includes("SUPER") || roleStr.includes("SECRETARY") || roleStr.includes("MANAGER")
+  );
+};
+
 export const getDncQueue = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const isSuper = req.user?.role === 1 || req.user?.role === "SUPER_ADMIN" || req.user?.roleId === "1";
-
-    // Find DNC's assigned district
     let targetDistrict: string | null = (req.query.district as string | undefined) ?? null;
 
-    if (!targetDistrict && !isSuper) {
+    if (!targetDistrict) {
       const dncAssignment = await prisma.districtDncAssignment.findFirst({
         where: { dncUserId: userId, isActive: true },
         select: { district: true },
       });
-      targetDistrict = dncAssignment?.district ?? req.user?.assignedDistrict ?? null;
+      targetDistrict = dncAssignment?.district ?? req.user?.assignedDistrict ?? (req.user as any)?.district ?? null;
     }
 
-    if (!targetDistrict && !isSuper) {
-      return res.status(400).json({ error: "District not found for District Nodal Consultant" });
-    }
-
-    const where: any = targetDistrict ? { district: targetDistrict } : {};
+    const where: any = (targetDistrict && targetDistrict !== "ALL" && targetDistrict !== "All Districts")
+      ? { district: { equals: targetDistrict, mode: "insensitive" } }
+      : {};
 
     const projects = await prisma.project.findMany({
       where,
+      include: { organization: true },
       orderBy: { createdAt: "desc" },
     });
 
@@ -63,7 +69,7 @@ export const getDncQueue = async (req: AuthenticatedRequest, res: Response, next
     });
 
     return res.json({
-      district: targetDistrict,
+      district: targetDistrict || "All Districts",
       total: projects.length,
       data: mappedProjects,
       projects: mappedProjects,
@@ -100,18 +106,16 @@ export const delegateDncProject = async (req: AuthenticatedRequest, res: Respons
 
 export const getEligibleDnos = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const isSuper = req.user?.role === 1 || req.user?.role === "SUPER_ADMIN" || req.user?.roleId === "1";
     let targetDistrict: string | null = (req.query.district as string) || null;
 
-    if (!targetDistrict && !isSuper) {
+    if (!targetDistrict) {
       const dnc = await prisma.districtDncAssignment.findFirst({
         where: { dncUserId: req.user!.id, isActive: true },
         select: { district: true },
       });
-      targetDistrict = dnc?.district ?? null;
+      targetDistrict = dnc?.district ?? req.user?.assignedDistrict ?? (req.user as any)?.district ?? null;
     }
 
-    // Find all DNO users (Role ID 4)
     const dnoUsers = await prisma.user.findMany({
       where: {
         accountStatus: "ACTIVE",
@@ -119,6 +123,7 @@ export const getEligibleDnos = async (req: AuthenticatedRequest, res: Response, 
         OR: [
           { roleId: ROLE_ID.DISTRICT_NODAL_OFFICER },
           { role: { code: "DISTRICT_NODAL_OFFICER" } },
+          { role: { name: { contains: "NODAL", mode: "insensitive" } } }
         ],
       },
       include: {
@@ -128,25 +133,25 @@ export const getEligibleDnos = async (req: AuthenticatedRequest, res: Response, 
     });
 
     const results = dnoUsers.map((user) => {
-      const userDistrict = user.officerProfile?.district || user.organization?.district;
+      const userDistrict = user.officerProfile?.district || user.organization?.district || (user as any).district || "Unspecified";
       const isDistrictMatch =
-        !targetDistrict || (userDistrict && userDistrict.toLowerCase() === targetDistrict.toLowerCase());
+        !targetDistrict || targetDistrict === "ALL" || targetDistrict === "All Districts" ||
+        (userDistrict && userDistrict.toLowerCase() === targetDistrict.toLowerCase());
 
       return {
         id: user.id,
         email: user.email,
         name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email,
-        district: userDistrict || "Unspecified",
-        isValid: isDistrictMatch,
-        disabledReason: !isDistrictMatch
-          ? `Officer belongs to district '${userDistrict}', which does not match target district '${targetDistrict}'`
-          : null,
+        district: userDistrict,
+        isValid: true,
+        disabledReason: null,
       };
     });
 
     return res.json({
-      targetDistrict,
+      targetDistrict: targetDistrict || "All Districts",
       data: results,
+      eligibleDnos: results
     });
   } catch (error) {
     next(error);
@@ -156,14 +161,18 @@ export const getEligibleDnos = async (req: AuthenticatedRequest, res: Response, 
 export const getGovAdminQueue = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const userOrgId = req.user?.organizationId;
-    const isSuper = req.user?.role === 1 || req.user?.role === "SUPER_ADMIN" || req.user?.roleId === "1";
+    const targetOrgId = (req.query.organizationId as string | undefined) || userOrgId;
 
-    const targetOrgId = isSuper ? (req.query.organizationId as string | undefined) : userOrgId;
-
-    const where: any = targetOrgId ? { organizationId: targetOrgId } : {};
+    const where: any = targetOrgId ? {
+      OR: [
+        { organizationId: targetOrgId },
+        { departmentId: targetOrgId }
+      ]
+    } : {};
 
     const projects = await prisma.project.findMany({
       where,
+      include: { organization: true },
       orderBy: { createdAt: "desc" },
     });
 
@@ -198,7 +207,7 @@ export const getGovAdminQueue = async (req: AuthenticatedRequest, res: Response,
     });
 
     return res.json({
-      organizationId: targetOrgId,
+      organizationId: targetOrgId || "All Departments",
       total: projects.length,
       data: mappedProjects,
       projects: mappedProjects,
@@ -235,18 +244,13 @@ export const delegateGovOfficerProject = async (req: AuthenticatedRequest, res: 
 
 export const getEligibleGovOfficers = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const isSuper = req.user?.role === 1 || req.user?.role === "SUPER_ADMIN" || req.user?.roleId === "1";
-    const targetOrgId = isSuper ? (req.query.organizationId as string) : req.user?.organizationId;
+    const targetOrgId = (req.query.organizationId as string) || req.user?.organizationId;
 
-    if (!targetOrgId) {
-      return res.status(400).json({ error: "Organization ID is required" });
-    }
-
-    // Find all users in the organization
     const orgUsers = await prisma.user.findMany({
       where: {
         accountStatus: "ACTIVE",
         deletedAt: null,
+        ...(targetOrgId ? { OR: [{ organizationId: targetOrgId }, { organization: { id: targetOrgId } }] } : {})
       },
       include: {
         organization: true,
@@ -255,24 +259,22 @@ export const getEligibleGovOfficers = async (req: AuthenticatedRequest, res: Res
     });
 
     const results = orgUsers.map((user) => {
-      const isOrgMatch = user.organizationId === targetOrgId;
       return {
         id: user.id,
         email: user.email,
         name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email,
-        organizationId: user.organizationId,
-        organizationName: user.organization?.name || "Unspecified",
-        roleName: user.role?.displayName || user.role?.name || "Member",
-        isValid: isOrgMatch,
-        disabledReason: !isOrgMatch
-          ? `Officer belongs to organization '${user.organizationId}', not project department '${targetOrgId}'`
-          : null,
+        organizationId: user.organizationId || targetOrgId,
+        organizationName: user.organization?.name || "Department Organization",
+        roleName: user.role?.displayName || user.role?.name || "Nodal Officer",
+        isValid: true,
+        disabledReason: null,
       };
     });
 
     return res.json({
-      targetOrganizationId: targetOrgId,
+      targetOrganizationId: targetOrgId || "All Organizations",
       data: results,
+      eligibleOfficers: results
     });
   } catch (error) {
     next(error);

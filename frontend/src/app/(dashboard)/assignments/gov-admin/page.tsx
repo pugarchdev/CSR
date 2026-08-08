@@ -57,9 +57,18 @@ export default function GovAdminAssignmentQueuePage() {
       setLoading(true);
       const res = await apiFetch<any>("/assignments/gov-admin/queue");
       if (res) {
-        setOrganizationId(res.organizationId || "");
-        setProjects(res.projects || []);
-        setOfficers(res.eligibleOfficers || []);
+        setOrganizationId(res.organizationId || "ALL DEPARTMENTS");
+        setProjects(res.projects || res.data || []);
+        if (Array.isArray(res.eligibleOfficers) && res.eligibleOfficers.length > 0) {
+          setOfficers(res.eligibleOfficers);
+        } else {
+          try {
+            const officerRes = await apiFetch<any>("/assignments/gov-admin/eligible-officers");
+            setOfficers(officerRes?.eligibleOfficers || officerRes?.data || []);
+          } catch {
+            setOfficers([]);
+          }
+        }
       }
     } catch (err) {
       toast.error("Failed to load queue", err instanceof Error ? err.message : "Error fetching Department Officer queue");
