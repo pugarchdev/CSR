@@ -2,6 +2,7 @@ import { Response, NextFunction } from "express";
 import prisma from "../config/db";
 import { AuthenticatedRequest } from "../middlewares/authMiddleware";
 import { ProjectStatus } from "@prisma/client";
+import { notifyHierarchy } from "../services/hierarchyNotificationService";
 
 export const getProjects = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
@@ -97,6 +98,24 @@ export const updateProject = async (req: AuthenticatedRequest, res: Response, ne
         ...(status ? { status: status as ProjectStatus } : {})
       }
     });
+
+    if (status) {
+      notifyHierarchy({
+        title: `Project Status Updated: ${status}`,
+        message: `Project "${project.title}" (${project.projectCode}) status has been updated to ${status}.`,
+        organizationId: project.organizationId,
+        district: project.district,
+        includeOrgUsers: true,
+        includePortalAdmins: true,
+        includeRms: true,
+        includeDistrictOfficers: true,
+        actionButtonUrl: `/projects/${project.id}`,
+        variables: {
+          currentStatus: status,
+          workflowStatus: `Project status updated to ${status}`
+        }
+      }).catch((err) => console.error("[ProjectController] Status update notification failed:", err));
+    }
 
     return res.json(project);
   } catch (error) {

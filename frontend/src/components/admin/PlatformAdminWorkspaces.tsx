@@ -2394,13 +2394,41 @@ export function OrganizationOnboardingStatusWorkspace() {
                 </p>
 
                 {isClarification && (
-                  <div className="mt-4">
-                    <Link
-                      href={editRoute}
-                      className="inline-flex items-center gap-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 text-xs font-bold shadow-sm transition-all cursor-pointer"
-                    >
-                      <FileText className="h-4 w-4" /> Respond to Clarification & Edit Details
-                    </Link>
+                  <div className="mt-4 space-y-3 bg-white/90 p-4 rounded-xl border border-amber-200">
+                    <div className="font-bold text-xs text-amber-950 flex items-center gap-1.5">
+                      <FileText className="h-4 w-4 text-amber-600" /> Admin Clarification Remarks:
+                    </div>
+                    <p className="text-xs text-amber-900 bg-amber-50 p-3 rounded-lg border border-amber-200 font-medium">
+                      {(organization as any)?.clarificationRemarks || "Please update requested statutory documents and profile details."}
+                    </p>
+                    <div className="pt-2 flex flex-wrap gap-2.5 items-center">
+                      <Link
+                        href={editRoute}
+                        className="inline-flex items-center gap-2 rounded-xl bg-amber-700 hover:bg-amber-800 text-white px-4 py-2 text-xs font-bold shadow-sm transition-all cursor-pointer"
+                      >
+                        <FileText className="h-4 w-4" /> Edit Profile & Re-upload Documents
+                      </Link>
+                      <button
+                        onClick={async () => {
+                          const notes = prompt("Enter your clarification response notes for the Admin:");
+                          if (notes !== null) {
+                            try {
+                              await apiFetch("/onboarding/submit-application", {
+                                method: "POST",
+                                body: JSON.stringify({ responseNotes: notes })
+                              });
+                              toast.success("Response Submitted", "Your clarification response has been submitted and application status is set to Under Review.");
+                              await fetchStatus();
+                            } catch (err: any) {
+                              toast.error("Submission Failed", err.message || "Unable to submit clarification response");
+                            }
+                          }
+                        }}
+                        className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 text-xs font-bold shadow-sm transition-all cursor-pointer"
+                      >
+                        <CheckCircle2 className="h-4 w-4" /> Submit Clarification Response & Re-submit
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -3385,17 +3413,15 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
                     </Button>
                   )}
 
-                  {!(org.onboardingStatus === "APPROVED" || org.status === "ACTIVE" || org.onboardingStatus === "ACTIVE") && (
-                    <Button
-                      variant="secondary"
-                      onClick={() => openActionModal("request-clarification")}
-                      loading={actionLoading && activeAction === "request-clarification"}
-                      disabled={actionLoading}
-                      className="w-full font-bold cursor-pointer"
-                    >
-                      Request Clarification
-                    </Button>
-                  )}
+                  <Button
+                    variant="secondary"
+                    onClick={() => openActionModal("request-clarification")}
+                    loading={actionLoading && activeAction === "request-clarification"}
+                    disabled={actionLoading}
+                    className="w-full font-bold cursor-pointer"
+                  >
+                    <FileText size={16} className="mr-1.5 text-amber-600" /> Request Clarification / Document Re-upload
+                  </Button>
 
                   {(org.onboardingStatus === "REJECTED" || org.status === "REJECTED") ? (
                     <div className="w-full rounded-xl bg-rose-50 border border-rose-200 p-3.5 text-center text-xs font-extrabold text-rose-800 flex items-center justify-center gap-2">

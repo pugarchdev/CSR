@@ -37,7 +37,7 @@ export async function notifyHierarchy(input: HierarchyNotifyInput): Promise<void
     }
 
     // 2. Organization Users
-    if (input.includeOrgUsers !== false && input.organizationId) {
+    if (input.includeOrgUsers !== false && input.organizationId && prisma.user?.findMany) {
       const orgUsers = await prisma.user.findMany({
         where: { organizationId: input.organizationId, deletedAt: null },
         select: { id: true }
@@ -50,18 +50,20 @@ export async function notifyHierarchy(input: HierarchyNotifyInput): Promise<void
       if (input.assignedRmId) {
         recipientIds.add(input.assignedRmId);
       }
-      const rms = await prisma.user.findMany({
-        where: {
-          roleId: ROLE_ID.RELATIONSHIP_MANAGER,
-          deletedAt: null
-        },
-        select: { id: true }
-      });
-      rms.forEach((u) => recipientIds.add(u.id));
+      if (prisma.user?.findMany) {
+        const rms = await prisma.user.findMany({
+          where: {
+            roleId: ROLE_ID.RELATIONSHIP_MANAGER,
+            deletedAt: null
+          },
+          select: { id: true }
+        });
+        rms.forEach((u) => recipientIds.add(u.id));
+      }
     }
 
     // 4. Portal Admins & Super Admins
-    if (input.includePortalAdmins !== false) {
+    if (input.includePortalAdmins !== false && prisma.user?.findMany) {
       const admins = await prisma.user.findMany({
         where: {
           OR: [
@@ -76,7 +78,7 @@ export async function notifyHierarchy(input: HierarchyNotifyInput): Promise<void
     }
 
     // 5. District Nodal Officers (if district provided)
-    if (input.includeDistrictOfficers && input.district) {
+    if (input.includeDistrictOfficers && input.district && prisma.user?.findMany) {
       const districtOfficers = await prisma.user.findMany({
         where: {
           OR: [
@@ -91,7 +93,7 @@ export async function notifyHierarchy(input: HierarchyNotifyInput): Promise<void
     }
 
     // 6. State Nodal Officers / Secretaries
-    if (input.includeStateOfficers) {
+    if (input.includeStateOfficers && prisma.user?.findMany) {
       const stateOfficers = await prisma.user.findMany({
         where: {
           roleId: { in: [ROLE_ID.PLANNING_SECRETARY, ROLE_ID.JOINT_SECRETARY] },

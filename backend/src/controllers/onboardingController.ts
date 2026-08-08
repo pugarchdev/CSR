@@ -115,30 +115,44 @@ export const submitApplication = async (req: AuthenticatedRequest, res: Response
     if (!orgId) return res.status(400).json({ error: "Organization context is required" });
 
     const existing = await prisma.organization.findUnique({ where: { id: orgId } });
+    let wasClarificationRequired = false;
     if (existing) {
-      const LOCKED_STATUSES = ["SUBMITTED_FOR_REVIEW", "UNDER_VERIFICATION", "APPROVED", "ACTIVE", "SUSPENDED"];
       const currentStatus = ((existing as any).onboardingStatus || existing.status || "").toUpperCase();
-      if (LOCKED_STATUSES.includes(currentStatus)) {
-        return res.status(400).json({ error: "Your organization onboarding application has already been submitted and cannot be edited." });
+      wasClarificationRequired = currentStatus === "CLARIFICATION_REQUIRED";
+
+      const LOCKED_STATUSES = ["SUBMITTED_FOR_REVIEW", "UNDER_VERIFICATION", "APPROVED", "ACTIVE", "SUSPENDED"];
+      if (LOCKED_STATUSES.includes(currentStatus) && !wasClarificationRequired) {
+        return res.status(400).json({ error: "Your organization onboarding application has already been submitted and is under verification." });
       }
     }
 
+    const responseNotes = typeof req.body.responseNotes === "string" ? req.body.responseNotes.trim() : "";
+
     const org = await prisma.organization.update({
       where: { id: orgId },
-      data: { status: "UNDER_VERIFICATION" }
+      data: {
+        status: "UNDER_VERIFICATION",
+        ...(responseNotes ? { clarificationRemarks: `User Response: ${responseNotes}` } : {})
+      }
     });
 
     notifyHierarchy({
-      title: "New Organization Onboarding Submitted",
-      message: `Organization "${org.name}" submitted profile for verification.`,
+      title: wasClarificationRequired ? "Organization Clarification Resubmitted" : "New Organization Onboarding Submitted",
+      message: wasClarificationRequired
+        ? `Organization "${org.name}" responded to the clarification request and resubmitted profile for review.${responseNotes ? ` Response Notes: ${responseNotes}` : ""}`
+        : `Organization "${org.name}" submitted profile for verification.`,
       organizationId: org.id,
       includePortalAdmins: true,
       includeRms: true,
       includeStateOfficers: true,
-      actionButtonUrl: `/admin/onboarding-approvals`
+      actionButtonUrl: `/admin/onboarding-approvals/${org.id}`,
+      variables: {
+        currentStatus: "UNDER_VERIFICATION",
+        workflowStatus: responseNotes || "Resubmitted for verification"
+      }
     }).catch(err => console.error("Notification dispatch failed:", err));
 
-    return res.json({ success: true, data: org });
+    return res.json({ success: true, message: wasClarificationRequired ? "Clarification response submitted successfully. Profile is under review." : "Onboarding application submitted for verification.", data: org });
   } catch (error) {
     next(error);
   }
@@ -182,7 +196,34 @@ export const getApplicationStatus = async (req: AuthenticatedRequest, res: Respo
 
 export const respondToQuery = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    return res.json({ success: true, message: "Response recorded" });
+    const orgId = req.user?.organizationId || req.user?.ngoId;
+    if (!orgId) return res.status(400).json({ error: "Organization context is required" });
+
+    const { responseNotes } = req.body;
+    const notesText = typeof responseNotes === "string" ? responseNotes.trim() : "Clarification response provided.";
+
+    const org = await prisma.organization.update({
+      where: { id: orgId },
+      data: {
+        status: "UNDER_VERIFICATION",
+        clarificationRemarks: `User Response: ${notesText}`
+      }
+    });
+
+    notifyHierarchy({
+      title: "Organization Clarification Resubmitted",
+      message: `Organization "${org.name}" responded to clarification request: ${notesText}`,
+      organizationId: org.id,
+      includePortalAdmins: true,
+      includeRms: true,
+      actionButtonUrl: `/admin/onboarding-approvals/${org.id}`,
+      variables: {
+        currentStatus: "UNDER_VERIFICATION",
+        workflowStatus: notesText
+      }
+    }).catch(err => console.error("Notification dispatch failed:", err));
+
+    return res.json({ success: true, message: "Response recorded and application resubmitted for admin approval.", data: org });
   } catch (error) {
     next(error);
   }

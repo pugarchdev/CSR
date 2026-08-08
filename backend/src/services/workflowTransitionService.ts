@@ -1,5 +1,6 @@
 import prisma from "../config/db";
 import { EffectivePermissionService } from "./effectivePermissionService";
+import { notifyHierarchy } from "./hierarchyNotificationService";
 
 export type WorkflowState =
   | "DRAFT"
@@ -76,7 +77,11 @@ export class WorkflowTransitionService {
     }
 
     // 4. Atomic Execution & Anti-Replay Guard in Prisma Transaction
-    return await prisma.$transaction(async (tx) => {
+    let targetOrgId: string | null = null;
+    let targetDistrict: string | null = null;
+    let entityTitle = `${entityType} ${entityId}`;
+
+    const result = await prisma.$transaction(async (tx) => {
       let currentEntity: any = null;
 
       if (entityType === "PITCH") {
@@ -85,6 +90,9 @@ export class WorkflowTransitionService {
         if (currentEntity.status !== fromState) {
           throw new Error(`Replay or state conflict detected: current pitch status is '${currentEntity.status}', expected '${fromState}'`);
         }
+        targetOrgId = currentEntity.departmentId || null;
+        targetDistrict = Array.isArray(currentEntity.districts) && currentEntity.districts.length > 0 ? currentEntity.districts[0] : null;
+        entityTitle = currentEntity.title || entityTitle;
 
         await tx.governmentPitch.update({
           where: { id: entityId },
@@ -100,6 +108,9 @@ export class WorkflowTransitionService {
         if (currentEntity.status !== fromState) {
           throw new Error(`Replay or state conflict detected: current requirement status is '${currentEntity.status}', expected '${fromState}'`);
         }
+        targetOrgId = currentEntity.organizationId || null;
+        targetDistrict = currentEntity.district || null;
+        entityTitle = currentEntity.title || entityTitle;
 
         await tx.project.update({
           where: { id: entityId },
@@ -114,6 +125,9 @@ export class WorkflowTransitionService {
         if (currentEntity.status !== fromState) {
           throw new Error(`Replay or state conflict detected: current project status is '${currentEntity.status}', expected '${fromState}'`);
         }
+        targetOrgId = currentEntity.organizationId || null;
+        targetDistrict = currentEntity.district || null;
+        entityTitle = currentEntity.title || entityTitle;
 
         await tx.project.update({
           where: { id: entityId },
@@ -145,5 +159,25 @@ export class WorkflowTransitionService {
 
       return { success: true, entityId, fromState, toState };
     });
+
+    // 6. Dispatch Notification & Email on status change
+    notifyHierarchy({
+      title: `Status Change: ${entityType} ${toState.replace(/_/g, " ")}`,
+      message: `${entityType} "${entityTitle}" status updated from ${fromState} to ${toState}.${reason ? ` Remarks: ${reason}` : ""}`,
+      organizationId: targetOrgId,
+      district: targetDistrict,
+      includeOrgUsers: true,
+      includePortalAdmins: true,
+      includeRms: true,
+      includeDistrictOfficers: true,
+      includeStateOfficers: true,
+      actionButtonUrl: `/${entityType.toLowerCase()}s/${entityId}`,
+      variables: {
+        currentStatus: toState,
+        workflowStatus: reason || `Status changed to ${toState}`
+      }
+    }).catch((err) => console.error("[WorkflowTransition] Notification dispatch failed:", err));
+
+    return result;
   }
 }

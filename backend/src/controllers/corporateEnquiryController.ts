@@ -29,10 +29,10 @@ export const submitCorporateEnquiry = async (req: AuthenticatedRequest, res: Res
       });
     }
 
-    // Enforce Onboarding Guard for suspended/rejected accounts only
-    if (user?.roleId !== ROLE_ID.SUPER_ADMIN && user?.organization && ["REJECTED", "SUSPENDED"].includes(user.organization.status)) {
+    // Enforce Onboarding Guard: Only ACTIVE (Approved) organizations can submit corporate enquiries
+    if (user?.roleId !== ROLE_ID.SUPER_ADMIN && user?.organization?.status !== "ACTIVE") {
       return res.status(403).json({
-        error: "Organization onboarding application is suspended or rejected."
+        error: `Organization onboarding status is '${user?.organization?.status || "INCOMPLETE"}'. Only approved organizations (status 'ACTIVE') can submit corporate enquiries.`
       });
     }
 

@@ -198,9 +198,14 @@ export const requestClarification = async (req: AuthenticatedRequest, res: Respo
       title: "Clarification Required for Onboarding",
       message: `Clarification requested for organization "${updated.name}". Remarks: ${remarks}`,
       organizationId: updated.id,
+      includeOrgUsers: true,
       includePortalAdmins: true,
       includeRms: true,
-      actionButtonUrl: `/admin/onboarding-approvals`
+      actionButtonUrl: `/organization/onboarding/status`,
+      variables: {
+        currentStatus: "CLARIFICATION_REQUIRED",
+        workflowStatus: remarks
+      }
     }).catch((err) => console.error("[NotifyHierarchy] Error sending clarification notification:", err));
     return res.json(updated);
   } catch (error) {
