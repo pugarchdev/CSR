@@ -46,8 +46,14 @@ export default function CompaniesPage() {
     { staleTime: 30 * 1000 }
   );
 
-  const rawOrgs = orgsResponse?.data || [];
-  const pagination = orgsResponse?.pagination || { total: 0, totalPages: 1 };
+  const rawOrgs = Array.isArray(orgsResponse?.data) ? orgsResponse.data : (Array.isArray(orgsResponse) ? orgsResponse : []);
+  const pagination = orgsResponse?.pagination || {
+    total: rawOrgs.length,
+    active: rawOrgs.filter((o: any) => o.status === "ACTIVE").length,
+    pending: rawOrgs.filter((o: any) => o.status !== "ACTIVE" && o.status !== "SUSPENDED").length,
+    suspended: rawOrgs.filter((o: any) => o.status === "SUSPENDED").length,
+    totalPages: 1
+  };
 
   const items = (Array.isArray(rawOrgs) ? rawOrgs : []).map((org, index) => ({
     id: org.id,

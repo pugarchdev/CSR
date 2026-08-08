@@ -80,6 +80,11 @@ export const getJwtRefreshSecret = () => {
   return secret || DEV_JWT_REFRESH_SECRET;
 };
 
+export const getPrimaryFrontendUrl = () => {
+  const rawBase = process.env.FRONTEND_URL || process.env.CLIENT_URL || process.env.PORTAL_URL || "http://localhost:3000";
+  return rawBase.split(",")[0].trim().replace(/\/+$/, "");
+};
+
 export const getAllowedOrigins = () => {
   const list: string[] = [];
 

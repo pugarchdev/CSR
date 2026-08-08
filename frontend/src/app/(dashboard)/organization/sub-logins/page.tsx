@@ -14,11 +14,13 @@ const labelStatus = (status?: string) => (status || "UNKNOWN").replace(/_/g, " "
 export default function AgencySubLoginsPage() {
   const user = useAuthStore((state) => state.user);
   const roles = useAuthStore((state) => state.roles);
+  const isAdmin = useAuthStore((state) => state.isAdmin);
   const roleNames = roles?.length ? roles : user?.role ? [user.role] : [];
   const isCompany = roleNames.some((role) => /COMPANY|CORPORATE|ROLE_8/i.test(String(role))) || user?.organization?.kind === "CSR_COMPANY";
+  const isAuthorized = isCompany || isAdmin || roleNames.some((role) => /SUPER_ADMIN/i.test(String(role)));
 
-  const { data: rowsResponse, isLoading, refetch } = useApiQuery<any>(["agency-sub-logins"], "/implementing-agency/sub-logins", { enabled: isCompany });
-  const { data: projectResponse } = useApiQuery<any>(["agency-projects"], "/convergence-projects", { enabled: isCompany });
+  const { data: rowsResponse, isLoading, refetch } = useApiQuery<any>(["agency-sub-logins"], "/implementing-agency/sub-logins", { enabled: isAuthorized });
+  const { data: projectResponse } = useApiQuery<any>(["agency-projects"], "/convergence-projects", { enabled: isAuthorized });
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState("");
   const [ngoName, setNgoName] = useState("");
@@ -82,7 +84,7 @@ export default function AgencySubLoginsPage() {
     }
   };
 
-  if (!isCompany) {
+  if (!isAuthorized) {
     return (
       <GovPortalLayout>
         <main className="mx-auto min-h-screen max-w-screen-xl px-4 py-4 md:px-6">

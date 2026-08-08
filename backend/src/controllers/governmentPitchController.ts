@@ -247,6 +247,7 @@ export const convertPitchToProject = async (req: AuthenticatedRequest, res: Resp
 export const submitInterest = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const corporateId = req.user?.organizationId;
+    const pitchId = req.params.id || req.body.pitchId;
     if (!corporateId) return res.status(403).json({ error: "An approved company organization is required." });
 
     const corporateOrg = await prisma.organization.findFirst({ where: { id: corporateId, status: "ACTIVE" } });

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertCircle, AlertTriangle, ArrowRight, Building2, Check, CheckCircle2, Clock, Coins, Compass, ExternalLink, Eye, FileText, HeartHandshake, HelpCircle, LayoutGrid, List, Loader2, Mail, MapPin, Phone, Plus, RefreshCw, Save, Search, ShieldAlert, ShieldCheck, Target, ToggleLeft, ToggleRight, Trash2, User, UserCheck, XCircle } from "lucide-react";
+import { AlertCircle, AlertTriangle, ArrowRight, Building2, Check, CheckCircle2, Clock, Coins, Compass, ExternalLink, Eye, FileText, HeartHandshake, HelpCircle, LayoutGrid, List, Loader2, Mail, MapPin, Phone, Plus, RefreshCw, Save, Search, ShieldAlert, ShieldCheck, Target, ToggleLeft, ToggleRight, Trash2, Upload, User, UserCheck, XCircle } from "lucide-react";
 import { apiFetch, API_BASE_URL } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { Pagination } from "@/components/ui/Pagination";
@@ -2246,6 +2246,9 @@ export function OrganizationOnboardingStatusWorkspace() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [reapplying, setReapplying] = useState(false);
+  const [clarificationNotes, setClarificationNotes] = useState("");
+  const [submittingClarification, setSubmittingClarification] = useState(false);
+  const [uploadingDocType, setUploadingDocType] = useState("");
 
   const fetchStatus = () => {
     setLoading(true);
@@ -2269,6 +2272,68 @@ export function OrganizationOnboardingStatusWorkspace() {
   useEffect(() => {
     fetchStatus();
   }, []);
+
+  const handleUploadDocument = async (e: React.ChangeEvent<HTMLInputElement>, docType: string) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingDocType(docType);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const uploaded = await apiFetch<any>("/upload", {
+        method: "POST",
+        body: formData
+      });
+      const fileUrl = uploaded?.data?.fileUrl || uploaded?.fileUrl || uploaded?.url;
+      await apiFetch("/onboarding/document", {
+        method: "POST",
+        body: JSON.stringify({
+          documentType: docType,
+          fileUrl,
+          fileName: file.name,
+          fileSize: file.size
+        })
+      });
+      toast.success("Document Uploaded", `${file.name} attached successfully.`);
+      fetchStatus();
+    } catch (err: any) {
+      toast.error("Upload Failed", err.message || "Unable to upload document");
+    } finally {
+      setUploadingDocType("");
+    }
+  };
+
+  const handleDeleteDocument = async (docId: string) => {
+    try {
+      await apiFetch(`/onboarding/document/${docId}`, { method: "DELETE" });
+      toast.success("Document Deleted", "Attached file removed.");
+      fetchStatus();
+    } catch (err: any) {
+      toast.error("Delete Failed", err.message || "Unable to remove document");
+    }
+  };
+
+  const handleSubmitClarification = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clarificationNotes.trim()) {
+      toast.error("Explanation Required", "Please enter your clarification response notes for the Super Admin.");
+      return;
+    }
+    setSubmittingClarification(true);
+    try {
+      await apiFetch("/onboarding/submit-application", {
+        method: "POST",
+        body: JSON.stringify({ responseNotes: clarificationNotes.trim() })
+      });
+      toast.success("Clarification Resubmitted", "Your response notes and updated profile/documents have been resubmitted. Application status is now Under Review.");
+      setClarificationNotes("");
+      fetchStatus();
+    } catch (err: any) {
+      toast.error("Submission Failed", err.message || "Unable to submit clarification response");
+    } finally {
+      setSubmittingClarification(false);
+    }
+  };
 
   const handleReapply = async () => {
     setReapplying(true);
@@ -2294,6 +2359,23 @@ export function OrganizationOnboardingStatusWorkspace() {
   const editRoute = organization?.organizationType === "GOVERNMENT_DEPARTMENT" || organization?.kind === "GOVERNMENT_DEPARTMENT"
     ? "/organization/onboarding/department"
     : "/organization/onboarding/company";
+
+  const existingDocs = organization?.documents || [];
+
+  const requiredDocTypes = organization?.kind === "GOVERNMENT_DEPARTMENT" || organization?.organizationType === "GOVERNMENT_DEPARTMENT"
+    ? [
+        { type: "OFFICE_ORDER", label: "Nodal Officer Appointment / Office Order" },
+        { type: "DEPT_AUTHORIZATION", label: "Department CSR Authorization Letter" },
+        { type: "JURISDICTION_MAP", label: "State/District Jurisdiction Order" },
+      ]
+    : [
+        { type: "INCORPORATION_CERTIFICATE", label: "Certificate of Incorporation / MCA CIN" },
+        { type: "PAN_CARD", label: "Company / NGO PAN Card" },
+        { type: "GST_CERTIFICATE", label: "GSTIN Certificate" },
+        { type: "EIGHTY_G", label: "80G Tax Exemption Certificate" },
+        { type: "TWELVE_A", label: "12A Registration Certificate" },
+        { type: "CSR_POLICY", label: "Board Approved CSR Policy Document" },
+      ];
 
   return (
     <WorkspaceShell
@@ -2386,52 +2468,176 @@ export function OrganizationOnboardingStatusWorkspace() {
                   {isApproved
                     ? "Your organization has been verified and approved by the Portal Admin. Full platform operations are active."
                     : isClarification
-                    ? (organization as any)?.clarificationRemarks ? `Remarks from Admin: ${(organization as any).clarificationRemarks}` : "The Portal Admin requested additional clarification or updated document uploads. Click below to edit details."
+                    ? (organization as any)?.clarificationRemarks ? `Remarks from Admin: ${(organization as any).clarificationRemarks}` : "The Portal Admin requested additional clarification or updated document uploads."
                     : isRejected
                     ? (organization as any)?.rejectionReason ? `Reason: ${(organization as any).rejectionReason}` : "Your onboarding application was rejected. You may review your profile details and re-apply."
                     : isSuspended
                     ? "Your organization account is currently suspended. Please contact portal support at support.csr@maharashtra.gov.in for reinstatement."
                     : "Your organization onboarding application is under review by Portal Admin."}
                 </p>
+              </div>
+            </div>
+          </div>
 
-                {isClarification && (
-                  <div className="mt-4 space-y-3 bg-white/90 p-4 rounded-xl border border-amber-200">
-                    <div className="font-bold text-xs text-amber-950 flex items-center gap-1.5">
-                      <FileText className="h-4 w-4 text-amber-600" /> Admin Clarification Remarks:
-                    </div>
-                    <p className="text-xs text-amber-900 bg-amber-50 p-3 rounded-lg border border-amber-200 font-medium">
-                      {(organization as any)?.clarificationRemarks || "Please update requested statutory documents and profile details."}
-                    </p>
-                    <div className="pt-2 flex flex-wrap gap-2.5 items-center">
-                      <Link
-                        href={editRoute}
-                        className="inline-flex items-center gap-2 rounded-xl bg-amber-700 hover:bg-amber-800 text-white px-4 py-2 text-xs font-bold shadow-sm transition-all cursor-pointer"
+          {/* DEDICATED CLARIFICATION & DOCUMENT WORKSPACE */}
+          {isClarification && (
+            <div className="rounded-3xl border border-amber-200 bg-white p-6 shadow-md space-y-6">
+              {/* Admin Remarks Callout Box */}
+              <div className="rounded-2xl border border-amber-300 bg-amber-50/90 p-5 space-y-2">
+                <div className="flex items-center gap-2 text-amber-950 font-extrabold text-xs uppercase tracking-wider">
+                  <AlertCircle className="text-amber-600 shrink-0" size={18} />
+                  <span>Super Admin Clarification Remarks</span>
+                </div>
+                <p className="text-xs text-amber-900 font-bold leading-relaxed bg-white/90 p-3.5 rounded-xl border border-amber-200 shadow-2xs">
+                  {(organization as any)?.clarificationRemarks || "Super Admin requested clarification on statutory documents and profile details."}
+                </p>
+                <div className="flex items-center justify-between text-[11px] text-amber-800 font-medium pt-1">
+                  <span>Please review requested documents below, attach updated files, provide your response explanation, and resubmit.</span>
+                  <Link href={editRoute} className="font-bold text-amber-900 underline hover:text-amber-700">
+                    Edit Full Profile →
+                  </Link>
+                </div>
+              </div>
+
+              {/* Statutory Documents Management & Re-upload Grid */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                  <FileText className="text-blue-700" size={16} />
+                  Statutory Document Re-Upload Workspace
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {requiredDocTypes.map((item) => {
+                    const attachedDoc = existingDocs.find(
+                      (d: any) => d.documentType === item.type || d.title === item.label || d.title === item.type
+                    );
+                    const isUploadingThis = uploadingDocType === item.type;
+
+                    return (
+                      <div
+                        key={item.type}
+                        className={`rounded-2xl border p-4 flex flex-col justify-between gap-3 transition-all ${
+                          attachedDoc
+                            ? "border-emerald-200 bg-emerald-50/30 hover:border-emerald-300"
+                            : "border-amber-200 bg-amber-50/30 hover:border-amber-300"
+                        }`}
                       >
-                        <FileText className="h-4 w-4" /> Edit Profile & Re-upload Documents
-                      </Link>
-                      <button
-                        onClick={async () => {
-                          const notes = prompt("Enter your clarification response notes for the Admin:");
-                          if (notes !== null) {
-                            try {
-                              await apiFetch("/onboarding/submit-application", {
-                                method: "POST",
-                                body: JSON.stringify({ responseNotes: notes })
-                              });
-                              toast.success("Response Submitted", "Your clarification response has been submitted and application status is set to Under Review.");
-                              await fetchStatus();
-                            } catch (err: any) {
-                              toast.error("Submission Failed", err.message || "Unable to submit clarification response");
-                            }
-                          }
-                        }}
-                        className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 text-xs font-bold shadow-sm transition-all cursor-pointer"
-                      >
-                        <CheckCircle2 className="h-4 w-4" /> Submit Clarification Response & Re-submit
-                      </button>
-                    </div>
-                  </div>
-                )}
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-slate-900">{item.label}</span>
+                              {attachedDoc ? (
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                  ATTACHED
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200">
+                                  RE-UPLOAD NEEDED
+                                </span>
+                              )}
+                            </div>
+                            {attachedDoc ? (
+                              <p className="text-[11px] text-slate-500 font-medium truncate mt-1">
+                                {(attachedDoc as any)?.fileName || (attachedDoc as any)?.title || "document.pdf"}
+                              </p>
+                            ) : (
+                              <p className="text-[11px] text-amber-700 font-medium mt-1">
+                                No document uploaded for this requirement yet.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                          {attachedDoc ? (
+                            <div className="flex items-center gap-2">
+                              <a
+                                href={attachedDoc.fileUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-[11px] font-bold text-blue-700 hover:underline inline-flex items-center gap-1"
+                              >
+                                View Attached File
+                              </a>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteDocument(attachedDoc.id)}
+                                className="text-[10px] font-bold text-rose-600 hover:text-rose-800 cursor-pointer"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 font-semibold">Max 10MB (PDF/JPG/PNG)</span>
+                          )}
+
+                          <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-xs cursor-pointer">
+                            {isUploadingThis ? (
+                              <>
+                                <Loader2 className="animate-spin" size={13} />
+                                <span>Uploading...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Upload size={13} />
+                                <span>{attachedDoc ? "Replace File" : "Upload File"}</span>
+                              </>
+                            )}
+                            <input
+                              type="file"
+                              accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                              disabled={isUploadingThis}
+                              onChange={(e) => handleUploadDocument(e, item.type)}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Clarification Response Form */}
+              <form onSubmit={handleSubmitClarification} className="space-y-4 pt-4 border-t border-slate-200">
+                <div className="space-y-2">
+                  <label className="block text-xs font-extrabold text-slate-900 uppercase tracking-wider">
+                    Response Explanation for Super Admin <span className="text-rose-600">*</span>
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={clarificationNotes}
+                    onChange={(e) => setClarificationNotes(e.target.value)}
+                    required
+                    placeholder="Type your explanation detailing the changes made, updated documents attached, or corrections submitted in response to the Super Admin's clarification request..."
+                    className="w-full text-xs p-3.5 rounded-2xl border border-slate-300 outline-none focus:border-blue-700 font-medium leading-relaxed shadow-2xs"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <p className="text-xs text-slate-500 font-medium">
+                    Submitting will update status back to <strong>Under Review</strong> and alert Super Admin.
+                  </p>
+                  <button
+                    type="submit"
+                    disabled={submittingClarification}
+                    className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-700 via-emerald-600 to-teal-700 hover:from-emerald-800 hover:to-teal-800 text-white px-7 py-3 text-xs font-extrabold shadow-md hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer disabled:opacity-50"
+                  >
+                    {submittingClarification ? (
+                      <>
+                        <Loader2 className="animate-spin" size={16} />
+                        <span>Submitting Clarification...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 size={16} />
+                        <span>Submit Clarification Response & Re-submit Profile</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
 
                 {isRejected && (
                   <div className="mt-4">
@@ -2444,9 +2650,6 @@ export function OrganizationOnboardingStatusWorkspace() {
                     </button>
                   </div>
                 )}
-              </div>
-            </div>
-          </div>
 
           {/* Metric Cards */}
           <section className="grid gap-4 md:grid-cols-3">

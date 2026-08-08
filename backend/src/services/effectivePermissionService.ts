@@ -77,7 +77,7 @@ export class EffectivePermissionService {
       }
     });
 
-    if (!user || user.deletedAt || !user.isVerified || user.accountStatus !== "ACTIVE") {
+    if (!user || user.deletedAt || user.accountStatus === "SUSPENDED") {
       return {
         userId,
         isSuperAdmin: false,
@@ -100,30 +100,49 @@ export class EffectivePermissionService {
       orgScopeSet.add(currentOrgIdContext);
     }
 
-    const activeRoles: EffectiveAccessPayload["activeRoles"] = [];
-    let isSuperAdminUser = Number(user.roleId) === 1 || String(user.roleId) === "1" || user.role?.code === "SUPER_ADMIN" || user.role?.id === 1;
+    const SYSTEM_ROLE_MAP: Record<number, string> = {
+      1: "SUPER_ADMIN",
+      2: "PLANNING_SECRETARY",
+      3: "JOINT_SECRETARY",
+      4: "DISTRICT_NODAL_OFFICER",
+      5: "DISTRICT_NODAL_CONSULTANT",
+      6: "RELATIONSHIP_MANAGER",
+      7: "GOVERNMENT_OFFICER",
+      8: "COMPANY_ADMIN",
+      9: "NGO_ADMIN",
+    };
 
-    // Check user.role fallback if no canonical assignments exist yet
-    if (assignments.length === 0 && user.role) {
-      if (user.role.code === "SUPER_ADMIN" || user.role.id === 1) {
+    const activeRoles: EffectiveAccessPayload["activeRoles"] = [];
+    const primaryRoleId = Number(user.roleId || user.role?.id);
+    let isSuperAdminUser = primaryRoleId === 1 || user.role?.code === "SUPER_ADMIN";
+
+    // Check user.role / roleId fallback if no canonical assignments exist yet
+    if (assignments.length === 0) {
+      const fallbackRoleCode = user.role?.code || user.role?.name || SYSTEM_ROLE_MAP[primaryRoleId];
+
+      if (fallbackRoleCode === "SUPER_ADMIN" || primaryRoleId === 1) {
         isSuperAdminUser = true;
       }
-      activeRoles.push({
-        id: user.role.id,
-        code: user.role.code || `SYSTEM_ROLE_${user.role.id}`,
-        displayName: user.role.displayName || user.role.name,
-        type: user.role.type || "SYSTEM",
-        defaultScope: user.role.defaultScope || "ORGANIZATION",
-        organizationId: user.organizationId
-      });
 
-      user.role.rolePermissions.forEach((rp) => {
-        permissionSet.add(rp.permission.key);
-      });
+      if (primaryRoleId || fallbackRoleCode) {
+        activeRoles.push({
+          id: primaryRoleId || 0,
+          code: fallbackRoleCode || `SYSTEM_ROLE_${primaryRoleId}`,
+          displayName: user.role?.displayName || user.role?.name || fallbackRoleCode || "User Role",
+          type: user.role?.type || "SYSTEM",
+          defaultScope: user.role?.defaultScope || "ORGANIZATION",
+          organizationId: user.organizationId
+        });
+      }
 
-      const roleCode = user.role.name || user.role.code;
-      if (roleCode && SEED_ROLE_PERMISSIONS[roleCode]) {
-        const seedKeys = resolveSeedRolePermissionKeys(roleCode);
+      if (user.role?.rolePermissions) {
+        user.role.rolePermissions.forEach((rp) => {
+          permissionSet.add(rp.permission.key);
+        });
+      }
+
+      if (fallbackRoleCode && SEED_ROLE_PERMISSIONS[fallbackRoleCode]) {
+        const seedKeys = resolveSeedRolePermissionKeys(fallbackRoleCode);
         seedKeys.forEach((key) => permissionSet.add(key));
       }
     }

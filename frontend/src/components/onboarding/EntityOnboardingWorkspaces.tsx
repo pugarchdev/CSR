@@ -867,14 +867,14 @@ export function CompanyOnboardingStep() {
     return (
       <Shell title="CSR Company Declaration" description="Submit the verified company onboarding application to Portal Admin." steps={companySteps} currentStep={step} onStepChange={setStep} status={organization.onboardingStatus}>
         <ErrorBox error={error} validationErrors={validationErrors} />
-        {isClarification && organization.clarificationRemarks && (
+        {isClarification && (organization as any).clarificationRemarks && (
           <div className="rounded-2xl border border-amber-300 bg-amber-50 p-5 shadow-xs space-y-2 mb-4">
             <div className="flex items-center gap-2 font-extrabold text-amber-900 text-sm">
               <AlertCircle className="text-amber-600 shrink-0" size={18} />
               <span>Admin Clarification Requested</span>
             </div>
             <p className="text-xs text-amber-900 font-bold leading-relaxed">
-              Remarks from Super Admin: <span className="font-normal text-amber-800">{organization.clarificationRemarks}</span>
+              Remarks from Super Admin: <span className="font-normal text-amber-800">{(organization as any).clarificationRemarks}</span>
             </p>
           </div>
         )}
@@ -1547,14 +1547,14 @@ export function DepartmentOnboardingStep() {
     return (
       <Shell title="Government Department Declaration" description="Submit verified department onboarding details." steps={departmentSteps} currentStep={step} onStepChange={setStep} status={organization.onboardingStatus}>
         <ErrorBox error={error} />
-        {isClarification && organization.clarificationRemarks && (
+        {isClarification && (organization as any).clarificationRemarks && (
           <div className="rounded-2xl border border-amber-300 bg-amber-50 p-5 shadow-xs space-y-2 mb-4">
             <div className="flex items-center gap-2 font-extrabold text-amber-900 text-sm">
               <AlertCircle className="text-amber-600 shrink-0" size={18} />
               <span>Admin Clarification Requested</span>
             </div>
             <p className="text-xs text-amber-900 font-bold leading-relaxed">
-              Remarks from Super Admin: <span className="font-normal text-amber-800">{organization.clarificationRemarks}</span>
+              Remarks from Super Admin: <span className="font-normal text-amber-800">{(organization as any).clarificationRemarks}</span>
             </p>
           </div>
         )}

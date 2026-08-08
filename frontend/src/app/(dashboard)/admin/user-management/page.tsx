@@ -176,6 +176,16 @@ export default function AdminUserManagementPage() {
   const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null);
   const [transferSource, setTransferSource] = useState<UserRow | null>(null);
 
+  // Custom role creation state
+  const [customRoleModalOpen, setCustomRoleModalOpen] = useState(false);
+  const [newRoleName, setNewRoleName] = useState("");
+  const [newRoleDescription, setNewRoleDescription] = useState("");
+  const [selectedRolePermissions, setSelectedRolePermissions] = useState<string[]>([
+    "user:view", "project:view", "fund:view", "report:view"
+  ]);
+  const [creatingRole, setCreatingRole] = useState(false);
+  const [roleError, setRoleError] = useState("");
+
   const { isAdmin } = useAuthStore();
 
   const activeDynamicRoles = dynamicRoles.filter((r) => r.status === "ACTIVE");
@@ -375,8 +385,8 @@ export default function AdminUserManagementPage() {
         description="Create platform users, manage their roles, districts and account status."
         actions={
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <GovButton variant="secondary" onClick={() => window.location.href = "/admin/access-control"}>
-              Manage Custom Roles
+            <GovButton variant="secondary" onClick={() => setCustomRoleModalOpen(true)}>
+              + Create Custom Role
             </GovButton>
             <GovButton variant="primary" onClick={() => setCreateModalOpen(true)}>
               Create User
@@ -922,6 +932,150 @@ export default function AdminUserManagementPage() {
             {saving ? "Deleting..." : "Delete User"}
           </GovButton>
         </div>
+      </GovModal>
+
+      {/* CREATE CUSTOM ROLE MODAL */}
+      <GovModal open={customRoleModalOpen} onClose={() => { setRoleError(""); setCustomRoleModalOpen(false); }} title="Create Custom Organization Role" width={680}>
+        <form onSubmit={async (e) => {
+          e.preventDefault();
+          if (!newRoleName.trim()) {
+            setRoleError("Role name is required.");
+            return;
+          }
+          setCreatingRole(true);
+          setRoleError("");
+          try {
+            await apiFetch("/roles", {
+              method: "POST",
+              body: JSON.stringify({
+                name: newRoleName.trim(),
+                description: newRoleDescription.trim() || undefined,
+                permissions: selectedRolePermissions,
+              }),
+            });
+            setSuccess(`Custom role "${newRoleName.trim()}" created successfully! You can now assign it to users.`);
+            setCustomRoleModalOpen(false);
+            setNewRoleName("");
+            setNewRoleDescription("");
+            setSelectedRolePermissions(["user:view", "project:view", "fund:view", "report:view"]);
+            queryClient.invalidateQueries({ queryKey: ["admin", "dynamic-roles"] });
+          } catch (err: any) {
+            setRoleError(err.message || "Failed to create custom role");
+          } finally {
+            setCreatingRole(false);
+          }
+        }}>
+          {roleError && <div className="gov-alert gov-alert-danger gov-mb-4">{roleError}</div>}
+          
+          <div className="gov-grid gov-grid-cols-2 gov-gap-4">
+            <GovInput
+              label="Role Name"
+              required
+              type="text"
+              value={newRoleName}
+              onChange={(e) => setNewRoleName(e.target.value)}
+              placeholder="e.g. CSR Finance Lead"
+            />
+            <GovInput
+              label="Description (Optional)"
+              type="text"
+              value={newRoleDescription}
+              onChange={(e) => setNewRoleDescription(e.target.value)}
+              placeholder="e.g. Responsible for reviewing CSR fund utilization and project bills."
+            />
+          </div>
+
+          <div style={{ marginTop: 16 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>
+              Select Role Permissions Matrix
+            </label>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14, maxHeight: 320, overflowY: "auto", paddingRight: 6 }}>
+              {[
+                {
+                  title: "User Management & Sub-logins",
+                  permissions: [
+                    { key: "user:view", label: "View Team Users" },
+                    { key: "user:create", label: "Create Team Users" },
+                    { key: "user:update", label: "Update User Profiles & Roles" },
+                    { key: "user:invite", label: "Send Email Invitations" },
+                    { key: "user:assign-role", label: "Assign Custom Roles to Team" },
+                    { key: "ngo_login:create", label: "Create NGO / Sub-agency Logins" },
+                  ]
+                },
+                {
+                  title: "Projects & Milestones",
+                  permissions: [
+                    { key: "project:view", label: "View Corporate & Convergence Projects" },
+                    { key: "project:create", label: "Create / Register Projects" },
+                    { key: "milestone:update", label: "Update Milestone Progress" },
+                    { key: "progress:verify", label: "Verify Project Deliverables" },
+                    { key: "photo:upload", label: "Upload Geotagged Field Photos" },
+                  ]
+                },
+                {
+                  title: "Funding & Financials",
+                  permissions: [
+                    { key: "fund:view", label: "View Fund Allocation & Financial Summaries" },
+                    { key: "fund:commit", label: "Commit CSR Funds & Sign MoUs" },
+                    { key: "bill:upload", label: "Upload Expenditure Bills & Invoices" },
+                    { key: "uc:upload", label: "Upload Utilization Certificates (UC)" },
+                  ]
+                },
+                {
+                  title: "Pitches & Corporate Enquiries",
+                  permissions: [
+                    { key: "pitch:view", label: "Browse Government Pitches & Public Needs" },
+                    { key: "pitch:create", label: "Create & Submit Government Pitches" },
+                    { key: "enquiry:create", label: "Submit Corporate Enquiries" },
+                    { key: "interest:express", label: "Express Corporate Interest in Pitches" },
+                  ]
+                },
+                {
+                  title: "Reports & Analytics",
+                  permissions: [
+                    { key: "report:view", label: "View Analytical Reports & KPIs" },
+                    { key: "report:generate", label: "Generate & Export Impact Statements" },
+                  ]
+                }
+              ].map((group) => (
+                <div key={group.title} style={{ backgroundColor: "#f8fafc", padding: 12, borderRadius: 8, border: "1px solid #e2e8f0" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#1e3a8a", marginBottom: 8, textTransform: "uppercase" }}>
+                    {group.title}
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 8 }}>
+                    {group.permissions.map((p) => {
+                      const isChecked = selectedRolePermissions.includes(p.key);
+                      return (
+                        <label key={p.key} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#334155", cursor: "pointer" }}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {
+                              setSelectedRolePermissions((prev) =>
+                                isChecked ? prev.filter((k) => k !== p.key) : [...prev, p.key]
+                              );
+                            }}
+                            style={{ accentColor: "#1e3a8a" }}
+                          />
+                          <span>{p.label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 20 }}>
+            <GovButton type="button" variant="secondary" onClick={() => setCustomRoleModalOpen(false)}>
+              Cancel
+            </GovButton>
+            <GovButton type="submit" variant="primary" disabled={creatingRole}>
+              {creatingRole ? "Creating Role..." : "Create Custom Role"}
+            </GovButton>
+          </div>
+        </form>
       </GovModal>
     </GovPortalLayout>
   );

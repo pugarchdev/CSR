@@ -142,6 +142,7 @@ export const submitApplication = async (req: AuthenticatedRequest, res: Response
         ? `Organization "${org.name}" responded to the clarification request and resubmitted profile for review.${responseNotes ? ` Response Notes: ${responseNotes}` : ""}`
         : `Organization "${org.name}" submitted profile for verification.`,
       organizationId: org.id,
+      includeOrgUsers: false,
       includePortalAdmins: true,
       includeRms: true,
       includeStateOfficers: true,
@@ -214,6 +215,7 @@ export const respondToQuery = async (req: AuthenticatedRequest, res: Response, n
       title: "Organization Clarification Resubmitted",
       message: `Organization "${org.name}" responded to clarification request: ${notesText}`,
       organizationId: org.id,
+      includeOrgUsers: false,
       includePortalAdmins: true,
       includeRms: true,
       actionButtonUrl: `/admin/onboarding-approvals/${org.id}`,

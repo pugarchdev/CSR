@@ -7,8 +7,8 @@ export const listNotifications = async (req: AuthenticatedRequest, res: Response
     const notifications = await prisma.notification.findMany({
       where: {
         OR: [
-          { userId: req.user!.id },
-          { recipientId: req.user!.id }
+          { recipientId: req.user!.id },
+          { recipientId: null, userId: req.user!.id }
         ]
       },
       orderBy: { createdAt: "desc" },
@@ -27,8 +27,8 @@ export const markNotificationRead = async (req: AuthenticatedRequest, res: Respo
       where: {
         id: req.params.id,
         OR: [
-          { userId: req.user!.id },
-          { recipientId: req.user!.id }
+          { recipientId: req.user!.id },
+          { recipientId: null, userId: req.user!.id }
         ]
       },
       data: { isRead: true }
@@ -50,8 +50,8 @@ export const markAllNotificationsRead = async (req: AuthenticatedRequest, res: R
       where: {
         isRead: false,
         OR: [
-          { userId: req.user!.id },
-          { recipientId: req.user!.id }
+          { recipientId: req.user!.id },
+          { recipientId: null, userId: req.user!.id }
         ]
       },
       data: { isRead: true }
@@ -69,8 +69,8 @@ export const deleteNotification = async (req: AuthenticatedRequest, res: Respons
       where: {
         id: req.params.id,
         OR: [
-          { userId: req.user!.id },
-          { recipientId: req.user!.id }
+          { recipientId: req.user!.id },
+          { recipientId: null, userId: req.user!.id }
         ]
       }
     });
@@ -86,8 +86,8 @@ export const clearAllNotifications = async (req: AuthenticatedRequest, res: Resp
     await prisma.notification.deleteMany({
       where: {
         OR: [
-          { userId: req.user!.id },
-          { recipientId: req.user!.id }
+          { recipientId: req.user!.id },
+          { recipientId: null, userId: req.user!.id }
         ]
       }
     });

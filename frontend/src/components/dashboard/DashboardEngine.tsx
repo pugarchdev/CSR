@@ -211,7 +211,18 @@ export default function DashboardEngine() {
   const orgKind = user?.organization?.kind || user?.orgKind || rawData?.orgKind || "";
   const roleIdVal = Number(user?.roleId || user?.roleNumericId || user?.role?.id || (typeof user?.role === "number" ? user?.role : 0));
 
-  const isCorporate = Boolean(
+  const isSuperAdmin = Boolean(
+    roleIdVal === 1 ||
+    user?.role === "SUPER_ADMIN" ||
+    activeRoles.some((r: any) => {
+      const code = typeof r === "object" ? r?.code || r?.name || "" : String(r);
+      const id = typeof r === "object" ? r?.id : r;
+      const s = String(code).toUpperCase();
+      return s.includes("SUPER_ADMIN") || s === "1" || Number(id) === 1;
+    })
+  );
+
+  const isCorporate = !isSuperAdmin && Boolean(
     rawData?.isCompany ||
     orgKind === "CSR_COMPANY" ||
     roleIdVal === 8 ||
@@ -229,7 +240,7 @@ export default function DashboardEngine() {
     })
   );
 
-  const isGovernment = Boolean(
+  const isGovernment = !isSuperAdmin && Boolean(
     rawData?.isGovt ||
     orgKind === "GOVERNMENT_DEPARTMENT" ||
     roleIdVal === 7 || roleIdVal === 5 || roleIdVal === 4 || roleIdVal === 3 || roleIdVal === 2 ||

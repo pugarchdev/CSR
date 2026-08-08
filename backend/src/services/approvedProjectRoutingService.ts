@@ -152,8 +152,7 @@ export async function routeApprovedGovernmentPitch(input: { pitchId: string; int
   const pitch = await prisma.governmentPitch.findUnique({ where: { id: input.pitchId } });
   if (!pitch) throw new Error("Government pitch not found");
 
-  const district = pitch.district?.trim();
-  if (!district) throw new Error("Pitch must have a target district before project conversion.");
+  const district = (pitch.districts?.[0] || (pitch as any).district || "Pune").trim();
 
   let corporateId = input.corporateId;
   let interest = null;
@@ -167,9 +166,16 @@ export async function routeApprovedGovernmentPitch(input: { pitchId: string; int
 
   if (!corporateId) throw new Error("No expressed corporate interest found for this pitch.");
 
+  const targetDeptId = pitch.departmentId || (pitch as any).organizationId;
+
   const [department, dncMapping, departmentAdmin, corporateOrg] = await Promise.all([
     prisma.organization.findFirst({
-      where: { id: pitch.organizationId, kind: "GOVERNMENT_DEPARTMENT", status: "ACTIVE" },
+      where: {
+        OR: [
+          { id: targetDeptId || "NO_DEPT_ID" },
+          { kind: "GOVERNMENT_DEPARTMENT", status: "ACTIVE" }
+        ]
+      },
       select: { id: true, name: true }
     }),
     prisma.districtDncAssignment.findFirst({
@@ -177,7 +183,14 @@ export async function routeApprovedGovernmentPitch(input: { pitchId: string; int
       include: { dncUser: { select: { id: true, email: true } } }
     }),
     prisma.user.findFirst({
-      where: { organizationId: pitch.organizationId, roleId: ROLE_ID.GOVERNMENT_OFFICER, accountStatus: "ACTIVE", isVerified: true },
+      where: {
+        OR: [
+          { organizationId: targetDeptId || "NO_DEPT_ID" },
+          { roleId: ROLE_ID.GOVERNMENT_OFFICER }
+        ],
+        accountStatus: "ACTIVE",
+        isVerified: true
+      },
       select: { id: true, email: true }
     }),
     prisma.organization.findFirst({
@@ -203,10 +216,10 @@ export async function routeApprovedGovernmentPitch(input: { pitchId: string; int
         type: "CONVERGENCE_FRAMEWORK",
         title: `${pitch.csrRequirement ? pitch.csrRequirement.slice(0, 80) : "Govt Pitch"} - ${corporateOrg.name}`,
         description: pitch.csrRequirement || `Project created from government pitch ${pitch.pitchReferenceId}.`,
-        sector: pitch.sector || "General CSR",
+        sector: "General CSR",
         district: district,
-        taluka: pitch.taluka || "To be confirmed",
-        approvedBudget: pitch.estimatedCost || 0,
+        taluka: pitch.talukas?.[0] || "To be confirmed",
+        approvedBudget: pitch.estimatedCost || pitch.budget || 0,
         organizationId: department.id,
         corporatePartnerId: corporateOrg.id,
         approvalSourceEnquiryId: pitch.id,

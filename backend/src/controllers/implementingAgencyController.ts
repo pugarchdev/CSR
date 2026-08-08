@@ -41,23 +41,37 @@ export const uploadUC = async (req: AuthenticatedRequest, res: Response, next: N
 export const createSubLogin = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const userRoleId = req.user?.roleId ? Number(req.user.roleId) : null;
+    const isSuperAdmin = userRoleId === ROLE_ID.SUPER_ADMIN || req.user?.role === "SUPER_ADMIN";
     const organizationId = req.user?.organizationId;
 
-    const creatorOrganization = await prisma.organization.findUnique({
-      where: { id: organizationId || "__none__" },
-      select: { id: true, name: true, kind: true, status: true }
-    });
+    let creatorOrganization = organizationId
+      ? await prisma.organization.findUnique({
+          where: { id: organizationId },
+          select: { id: true, name: true, kind: true, status: true }
+        })
+      : null;
 
-    const isCompanyAdmin = userRoleId === ROLE_ID.COMPANY_ADMIN;
-
-    if (!isCompanyAdmin || creatorOrganization?.kind !== "CSR_COMPANY") {
-      return res.status(403).json({
-        error: "NGO / implementing agency sub-logins can only be created by a Company Admin."
+    if (isSuperAdmin && !creatorOrganization) {
+      creatorOrganization = await prisma.organization.findFirst({
+        where: { kind: "CSR_COMPANY" },
+        select: { id: true, name: true, kind: true, status: true }
       });
     }
 
-    if (!creatorOrganization || creatorOrganization.status !== "ACTIVE") {
+    const isCompanyAdmin = userRoleId === ROLE_ID.COMPANY_ADMIN || isSuperAdmin;
+
+    if (!isCompanyAdmin || (!isSuperAdmin && creatorOrganization?.kind !== "CSR_COMPANY")) {
+      return res.status(403).json({
+        error: "NGO / implementing agency sub-logins can only be created by a Company Admin or Super Admin."
+      });
+    }
+
+    if (!isSuperAdmin && (!creatorOrganization || creatorOrganization.status !== "ACTIVE")) {
       return res.status(403).json({ error: "Your company organization must be Super-Admin approved before it can create NGO sub-logins." });
+    }
+
+    if (!creatorOrganization) {
+      return res.status(400).json({ error: "A valid company organization is required to create an NGO sub-login." });
     }
 
     const { ngoName, darpanId, email, contactPerson, phone } = req.body;
@@ -150,13 +164,18 @@ export const createSubLogin = async (req: AuthenticatedRequest, res: Response, n
 
 export const listMySubLogins = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
+    const userRoleId = req.user?.roleId ? Number(req.user.roleId) : null;
+    const isSuperAdmin = userRoleId === ROLE_ID.SUPER_ADMIN || req.user?.role === "SUPER_ADMIN";
     const organizationId = req.user?.organizationId;
-    if (!organizationId) {
+
+    if (!isSuperAdmin && !organizationId) {
       return res.json([]);
     }
 
+    const whereClause = isSuperAdmin ? {} : { organizationId: organizationId! };
+
     const subLogins = await prisma.agencySubLogin.findMany({
-      where: { organizationId },
+      where: whereClause,
       include: {
         assignedProject: { select: { id: true, title: true } }
       },
@@ -179,7 +198,8 @@ export const listMySubLogins = async (req: AuthenticatedRequest, res: Response, 
 export const listEligibleNgos = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const roleId = Number(req.user?.roleId);
-    if (![ROLE_ID.COMPANY_ADMIN, ROLE_ID.SUPER_ADMIN].includes(roleId as any)) return res.status(403).json({ error: "Only Company Admin can view eligible implementing NGOs." });
+    const isSuperAdmin = roleId === ROLE_ID.SUPER_ADMIN || req.user?.role === "SUPER_ADMIN";
+    if (![ROLE_ID.COMPANY_ADMIN, ROLE_ID.SUPER_ADMIN].includes(roleId as any) && !isSuperAdmin) return res.status(403).json({ error: "Only Company Admin can view eligible implementing NGOs." });
     const data = await prisma.organization.findMany({ where: { kind: "NGO", status: "ACTIVE" }, select: { id: true, name: true, ngoProfile: { select: { darpanNumber: true } } }, orderBy: { name: "asc" } });
     return res.json({ success: true, data });
   } catch (error) { next(error); }
@@ -187,14 +207,21 @@ export const listEligibleNgos = async (req: AuthenticatedRequest, res: Response,
 
 export const assignAgencyToProject = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    if (Number(req.user?.roleId) !== ROLE_ID.COMPANY_ADMIN || !req.user?.organizationId) {
-      return res.status(403).json({ error: "Only a Company Admin can assign an NGO to a project." });
+    const userRoleId = req.user?.roleId ? Number(req.user.roleId) : null;
+    const isSuperAdmin = userRoleId === ROLE_ID.SUPER_ADMIN || req.user?.role === "SUPER_ADMIN";
+
+    if (!isSuperAdmin && (userRoleId !== ROLE_ID.COMPANY_ADMIN || !req.user?.organizationId)) {
+      return res.status(403).json({ error: "Only a Company Admin or Super Admin can assign an NGO to a project." });
     }
     const { subLoginId, projectId } = req.body;
     if (!subLoginId || !projectId) return res.status(400).json({ error: "NGO invitation and project are required." });
 
+    const subLoginWhere = isSuperAdmin
+      ? { id: String(subLoginId) }
+      : { id: String(subLoginId), organizationId: req.user!.organizationId! };
+
     const subLogin = await prisma.agencySubLogin.findFirst({
-      where: { id: subLoginId, organizationId: req.user.organizationId },
+      where: subLoginWhere,
       select: { id: true, agencyOrganizationId: true, assignedProjectId: true }
     });
     if (!subLogin?.agencyOrganizationId) return res.status(404).json({ error: "Invited NGO was not found." });
@@ -202,12 +229,16 @@ export const assignAgencyToProject = async (req: AuthenticatedRequest, res: Resp
       return res.status(409).json({ error: "This NGO login is already assigned to another project." });
     }
 
+    const projectWhere = isSuperAdmin
+      ? { id: String(projectId) }
+      : { id: String(projectId), corporatePartnerId: req.user!.organizationId! };
+
     const [agency, project] = await Promise.all([
       prisma.organization.findFirst({ where: { id: subLogin.agencyOrganizationId, kind: "NGO", status: "ACTIVE" }, select: { id: true, name: true } }),
-      prisma.project.findFirst({ where: { id: projectId, corporatePartnerId: req.user.organizationId }, select: { id: true, implementingAgencyId: true, ngoId: true } })
+      prisma.project.findFirst({ where: projectWhere, select: { id: true, implementingAgencyId: true, ngoId: true } })
     ]);
     if (!agency) return res.status(400).json({ error: "Project assignment is locked until Super Admin approves the NGO onboarding application." });
-    if (!project) return res.status(403).json({ error: "The selected project is not owned by your company." });
+    if (!project) return res.status(403).json({ error: "The selected project is not available or owned by your company." });
     const currentAgency = project.implementingAgencyId || project.ngoId;
     if (currentAgency && currentAgency !== agency.id) return res.status(409).json({ error: "This project already has a different implementing agency." });
 

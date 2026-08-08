@@ -2,6 +2,7 @@ import { Response, NextFunction } from "express";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import prisma from "../config/db";
+import { getPrimaryFrontendUrl } from "../config/env";
 import { AuthenticatedRequest } from "../middlewares/authMiddleware";
 import { ROLE_ID, getRoleId } from "../types/role";
 import { createInvitation } from "../services/invitationService";
@@ -42,27 +43,38 @@ export const listUsers = async (req: AuthenticatedRequest, res: Response, next: 
     const isGlobalAdmin = ["SUPER_ADMIN", "PLANNING_SECRETARY", "JOINT_SECRETARY", "CSR_ADMIN", "PORTAL_ADMIN"].includes(userRole) || String(req.user?.roleId) === "1" || Number(req.user?.roleId) === 1;
 
     const where: any = { deletedAt: null };
+    const conditions: any[] = [];
+
     if (!isGlobalAdmin) {
       if (req.user?.organizationId) {
-        where.OR = [
-          { organizationId: req.user.organizationId },
-          { parentUserId: req.user.id }
-        ];
+        conditions.push({
+          OR: [
+            { organizationId: req.user.organizationId },
+            { parentUserId: req.user.id }
+          ]
+        });
       } else {
-        where.parentUserId = req.user?.id || "NO_MATCH";
+        conditions.push({ parentUserId: req.user?.id || "NO_MATCH" });
       }
     }
 
     if (search) {
-      where.OR = [
-        { email: { contains: search, mode: "insensitive" } },
-        { firstName: { contains: search, mode: "insensitive" } },
-        { lastName: { contains: search, mode: "insensitive" } },
-        { designation: { contains: search, mode: "insensitive" } }
-      ];
+      conditions.push({
+        OR: [
+          { email: { contains: search, mode: "insensitive" } },
+          { firstName: { contains: search, mode: "insensitive" } },
+          { lastName: { contains: search, mode: "insensitive" } },
+          { designation: { contains: search, mode: "insensitive" } }
+        ]
+      });
     }
+
     if (status) {
       where.accountStatus = status;
+    }
+
+    if (conditions.length > 0) {
+      where.AND = conditions;
     }
 
     const [users, total] = await Promise.all([
@@ -155,11 +167,12 @@ export const createAdminUser = async (req: AuthenticatedRequest, res: Response, 
     if (!roleRecord) return res.status(400).json({ error: "Selected role does not exist." });
 
     if (!isGlobalAdmin) {
-      if (roleRecord.isSystemRole || roleRecord.id <= 9) {
-        return res.status(403).json({ error: "Forbidden: Company Admins and Government Officers can only assign custom roles created for their organization." });
-      }
-      if (roleRecord.organizationId && roleRecord.organizationId !== req.user?.organizationId) {
-        return res.status(403).json({ error: "Forbidden: You cannot assign custom roles belonging to another organization." });
+      const allowedSystemRoleIds: number[] = [ROLE_ID.COMPANY_ADMIN, ROLE_ID.NGO_ADMIN, ROLE_ID.GOVERNMENT_OFFICER];
+      const isAllowedSystemRole = roleRecord.isSystemRole && allowedSystemRoleIds.includes(Number(roleRecord.id));
+      const isOwnOrgCustomRole = !roleRecord.isSystemRole && roleRecord.organizationId === req.user?.organizationId;
+
+      if (!isAllowedSystemRole && !isOwnOrgCustomRole) {
+        return res.status(403).json({ error: "Forbidden: You can only assign organization member roles or custom roles created for your organization." });
       }
     }
 
@@ -278,7 +291,7 @@ export const createAdminUser = async (req: AuthenticatedRequest, res: Response, 
         }
       }).catch(() => null);
 
-      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+      const frontendUrl = getPrimaryFrontendUrl();
       const loginUrl = `${frontendUrl}/login`;
       resetUrl = `${frontendUrl}/activate?token=${rawToken}`;
 

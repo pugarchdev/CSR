@@ -43,11 +43,130 @@ export const getOwnedOrganization = async (req: AuthenticatedRequest, kind?: str
 
 export const listOrganizations = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const orgs = await prisma.organization.findMany({
-      include: { csrCompanyProfile: true, ngoProfile: true, govDeptProfile: true },
-      orderBy: { createdAt: "desc" }
+    const { type, kind, status, search, sector, district, page = 1, limit = 10 } = req.query;
+    const targetKind = (type || kind) as string | undefined;
+
+    const whereClause: any = {};
+
+    if (targetKind && targetKind !== "ALL") {
+      if (targetKind === "CSR_COMPANY" || targetKind === "CORPORATE") {
+        whereClause.OR = [
+          { kind: "CSR_COMPANY" },
+          { kind: "CORPORATE" },
+          { csrCompanyProfile: { isNot: null } }
+        ];
+      } else if (targetKind === "NGO" || targetKind === "IMPLEMENTING_AGENCY") {
+        whereClause.OR = [
+          { kind: "NGO" },
+          { kind: "IMPLEMENTING_AGENCY" },
+          { ngoProfile: { isNot: null } }
+        ];
+      } else if (targetKind === "GOVERNMENT_DEPARTMENT" || targetKind === "GOVT_DEPT") {
+        whereClause.OR = [
+          { kind: "GOVERNMENT_DEPARTMENT" },
+          { kind: "GOVT_DEPT" },
+          { govDeptProfile: { isNot: null } }
+        ];
+      } else {
+        whereClause.kind = targetKind;
+      }
+    }
+
+    if (status && typeof status === "string" && status !== "all" && status !== "ALL") {
+      if (status === "ACTIVE" || status === "APPROVED") {
+        whereClause.status = OrganizationStatus.ACTIVE;
+      } else if (status === "PENDING" || status === "UNDER_REVIEW") {
+        whereClause.status = {
+          in: [
+            OrganizationStatus.UNDER_VERIFICATION,
+            OrganizationStatus.REGISTERED,
+            OrganizationStatus.DOCUMENTS_PENDING,
+            OrganizationStatus.CLARIFICATION_REQUIRED,
+            OrganizationStatus.PROFILE_INCOMPLETE
+          ]
+        };
+      } else {
+        whereClause.status = status as OrganizationStatus;
+      }
+    }
+
+    if (search && typeof search === "string" && search.trim() !== "") {
+      const q = search.trim();
+      whereClause.AND = [
+        ...(whereClause.AND || []),
+        {
+          OR: [
+            { name: { contains: q, mode: "insensitive" } },
+            { code: { contains: q, mode: "insensitive" } },
+            { cin: { contains: q, mode: "insensitive" } },
+            { registrationNumber: { contains: q, mode: "insensitive" } }
+          ]
+        }
+      ];
+    }
+
+    if (sector && typeof sector === "string" && sector.trim() !== "" && sector !== "all") {
+      whereClause.csrCompanyProfile = {
+        sector: { contains: sector.trim(), mode: "insensitive" }
+      };
+    }
+
+    if (district && typeof district === "string" && district.trim() !== "" && district !== "all") {
+      whereClause.district = { contains: district.trim(), mode: "insensitive" };
+    }
+
+    const totalCount = await prisma.organization.count({ where: whereClause });
+    const activeCount = await prisma.organization.count({
+      where: { ...whereClause, status: OrganizationStatus.ACTIVE }
     });
-    return res.json(orgs);
+    const pendingCount = await prisma.organization.count({
+      where: {
+        ...whereClause,
+        status: {
+          in: [
+            OrganizationStatus.UNDER_VERIFICATION,
+            OrganizationStatus.REGISTERED,
+            OrganizationStatus.DOCUMENTS_PENDING,
+            OrganizationStatus.CLARIFICATION_REQUIRED,
+            OrganizationStatus.PROFILE_INCOMPLETE
+          ]
+        }
+      }
+    });
+    const suspendedCount = await prisma.organization.count({
+      where: { ...whereClause, status: OrganizationStatus.SUSPENDED }
+    });
+
+    const pageNum = Math.max(1, Number(page) || 1);
+    const limitNum = Math.max(1, Number(limit) || 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    const orgs = await prisma.organization.findMany({
+      where: whereClause,
+      include: {
+        csrCompanyProfile: true,
+        ngoProfile: true,
+        govDeptProfile: true,
+        _count: { select: { projects: true } }
+      },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limitNum
+    });
+
+    return res.json({
+      success: true,
+      data: orgs,
+      pagination: {
+        total: totalCount,
+        active: activeCount,
+        pending: pendingCount,
+        suspended: suspendedCount,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(totalCount / limitNum) || 1
+      }
+    });
   } catch (error) {
     next(error);
   }
@@ -134,10 +253,11 @@ export const approveOrganization = async (req: AuthenticatedRequest, res: Respon
       title: "Organization Onboarding Approved",
       message: `Organization "${updated.name}" has been approved and activated.`,
       organizationId: updated.id,
-      includePortalAdmins: true,
-      includeRms: true,
-      includeStateOfficers: true,
-      actionButtonUrl: `/admin/onboarding-approvals`
+      includeOrgUsers: true,
+      includePortalAdmins: false,
+      includeRms: false,
+      includeStateOfficers: false,
+      actionButtonUrl: `/organization/onboarding/status`
     }).catch((err) => console.error("[NotifyHierarchy] Error sending approval notification:", err));
     return res.json(updated);
   } catch (error) {
@@ -156,9 +276,10 @@ export const rejectOrganization = async (req: AuthenticatedRequest, res: Respons
       title: "Organization Onboarding Rejected",
       message: `Organization "${updated.name}" onboarding request has been rejected. Reason: ${reason}`,
       organizationId: updated.id,
-      includePortalAdmins: true,
-      includeRms: true,
-      actionButtonUrl: `/admin/onboarding-approvals`
+      includeOrgUsers: true,
+      includePortalAdmins: false,
+      includeRms: false,
+      actionButtonUrl: `/organization/onboarding/status`
     }).catch((err) => console.error("[NotifyHierarchy] Error sending rejection notification:", err));
     return res.json(updated);
   } catch (error) {
@@ -177,9 +298,10 @@ export const suspendOrganization = async (req: AuthenticatedRequest, res: Respon
       title: "Organization Account Suspended",
       message: `Organization "${updated.name}" status has been updated to suspended. Reason: ${reason}`,
       organizationId: updated.id,
-      includePortalAdmins: true,
-      includeRms: true,
-      actionButtonUrl: `/admin/onboarding-approvals`
+      includeOrgUsers: true,
+      includePortalAdmins: false,
+      includeRms: false,
+      actionButtonUrl: `/organization/onboarding/status`
     }).catch((err) => console.error("[NotifyHierarchy] Error sending suspension notification:", err));
     return res.json(updated);
   } catch (error) {
@@ -199,8 +321,8 @@ export const requestClarification = async (req: AuthenticatedRequest, res: Respo
       message: `Clarification requested for organization "${updated.name}". Remarks: ${remarks}`,
       organizationId: updated.id,
       includeOrgUsers: true,
-      includePortalAdmins: true,
-      includeRms: true,
+      includePortalAdmins: false,
+      includeRms: false,
       actionButtonUrl: `/organization/onboarding/status`,
       variables: {
         currentStatus: "CLARIFICATION_REQUIRED",

@@ -2,6 +2,7 @@ import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
 import prisma from "../config/db";
+import { getPrimaryFrontendUrl } from "../config/env";
 
 const INVITATION_TTL_HOURS = parseInt(process.env.INVITATION_TTL_HOURS || "72", 10);
 
@@ -14,7 +15,7 @@ export class InvitationError extends Error {
 }
 
 export function buildActivationUrl(rawToken: string): string {
-  const base = process.env.FRONTEND_URL || "http://localhost:3000";
+  const base = getPrimaryFrontendUrl();
   return `${base}/activate?token=${rawToken}`;
 }
 

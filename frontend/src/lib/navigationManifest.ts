@@ -645,6 +645,7 @@ export function isNavItemAllowed(
   hasPermission: (perm: string) => boolean,
   isSuperAdmin: boolean
 ): boolean {
+  if (isSuperAdmin && item.id === "sub-logins") return false;
   if (isSuperAdmin) return true;
 
   if (item.requiredAllPermissions && item.requiredAllPermissions.length > 0) {

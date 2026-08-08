@@ -25,6 +25,21 @@ export const checkOrganizationApproved = async (req: AuthenticatedRequest, res: 
       req.user?.role === Role.SUPER_ADMIN ||
       req.user?.role === Role.GOVERNMENT_OFFICER
     ) return next();
+
+    const url = req.originalUrl || req.url || "";
+    // Allow access to essential onboarding, document upload, notification, and user/role management endpoints even if organization is pending or in clarification
+    const isExemptPath =
+      url.includes("/onboarding") ||
+      url.includes("/notifications") ||
+      url.includes("/admin/users") ||
+      url.includes("/org") ||
+      url.includes("/roles") ||
+      url.includes("/documents") ||
+      url.includes("/upload") ||
+      url.includes("/auth");
+
+    if (isExemptPath) return next();
+
     const organizationId = req.user?.organizationId;
 
     if (!organizationId) {
