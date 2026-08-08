@@ -762,6 +762,7 @@ export function CompanyOnboardingStep() {
   const { organization, profile, setOrganization, setProfile, error, setError, load } = useEntityProfile("company");
   const [saving, setSaving] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [clarificationResponseNotes, setClarificationResponseNotes] = useState("");
 
   useEffect(() => {
     const currentStatus = (organization?.onboardingStatus || organization?.status || "").toUpperCase();
@@ -841,12 +842,19 @@ export function CompanyOnboardingStep() {
   if (step === "documents") return <DocumentsStep title="CSR Company Documents" steps={companySteps} currentStep={step} onStepChange={setStep} documentTypes={companyDocumentTypes} status={organization.onboardingStatus} />;
 
   if (step === "declaration") {
+    const isClarification = (organization.onboardingStatus || organization.status || "").toUpperCase() === "CLARIFICATION_REQUIRED";
     const submit = async () => {
       setSaving(true);
       setError("");
       setValidationErrors([]);
       try {
-        await apiFetch("/onboarding/company/submit", { method: "POST", body: JSON.stringify({ declarationAccepted: true }) });
+        await apiFetch("/onboarding/company/submit", {
+          method: "POST",
+          body: JSON.stringify({
+            declarationAccepted: true,
+            responseNotes: clarificationResponseNotes || undefined
+          })
+        });
         await load();
         router.push("/organization/onboarding/status");
       } catch (err: any) {
@@ -859,7 +867,32 @@ export function CompanyOnboardingStep() {
     return (
       <Shell title="CSR Company Declaration" description="Submit the verified company onboarding application to Portal Admin." steps={companySteps} currentStep={step} onStepChange={setStep} status={organization.onboardingStatus}>
         <ErrorBox error={error} validationErrors={validationErrors} />
+        {isClarification && organization.clarificationRemarks && (
+          <div className="rounded-2xl border border-amber-300 bg-amber-50 p-5 shadow-xs space-y-2 mb-4">
+            <div className="flex items-center gap-2 font-extrabold text-amber-900 text-sm">
+              <AlertCircle className="text-amber-600 shrink-0" size={18} />
+              <span>Admin Clarification Requested</span>
+            </div>
+            <p className="text-xs text-amber-900 font-bold leading-relaxed">
+              Remarks from Super Admin: <span className="font-normal text-amber-800">{organization.clarificationRemarks}</span>
+            </p>
+          </div>
+        )}
         <section className="rounded-3xl border border-white/80 bg-white/90 backdrop-blur-2xl p-6 md:p-8 shadow-glass space-y-5">
+          {isClarification && (
+            <div className="space-y-2 pb-4 border-b border-slate-100">
+              <label className="block text-xs font-bold text-slate-900">
+                Clarification Response Explanation for Super Admin
+              </label>
+              <textarea
+                rows={3}
+                value={clarificationResponseNotes}
+                onChange={(e) => setClarificationResponseNotes(e.target.value)}
+                placeholder="Explain the changes, corrections, or document re-uploads completed in response to the clarification request..."
+                className="w-full text-xs p-3 rounded-xl border border-slate-300 outline-none focus:border-blue-700 font-medium"
+              />
+            </div>
+          )}
           <div className="space-y-3.5 text-xs md:text-sm font-semibold text-slate-800">
             <p className="flex items-center gap-2"><CheckCircle2 className="text-emerald-600 shrink-0" size={18} /> Information submitted is true and accurate.</p>
             <p className="flex items-center gap-2"><CheckCircle2 className="text-emerald-600 shrink-0" size={18} /> Company is authorized to participate in CSR project discovery and funding.</p>
@@ -870,10 +903,10 @@ export function CompanyOnboardingStep() {
             <button
               onClick={submit}
               disabled={saving}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 px-6 py-3 text-xs font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 px-6 py-3 text-xs font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105 disabled:opacity-50 cursor-pointer"
             >
               <ShieldCheck size={16} />
-              {saving ? "Submitting Application..." : "Accept Declaration and Submit"}
+              {saving ? "Submitting Application..." : isClarification ? "Submit Clarification Response & Re-submit Profile" : "Accept Declaration and Submit"}
             </button>
           </div>
         </section>
@@ -1441,6 +1474,7 @@ export function DepartmentOnboardingStep() {
   const [step, setStep] = useState<"profile" | "nodal-officer" | "authorization" | "jurisdiction" | "documents" | "declaration">("profile");
   const { organization, profile, setOrganization, setProfile, error, setError, load } = useEntityProfile("department");
   const [saving, setSaving] = useState(false);
+  const [clarificationResponseNotes, setClarificationResponseNotes] = useState("");
 
   useEffect(() => {
     const currentStatus = (organization?.onboardingStatus || organization?.status || "").toUpperCase();
@@ -1490,11 +1524,18 @@ export function DepartmentOnboardingStep() {
   if (step === "documents") return <DocumentsStep title="Government Department Documents" steps={departmentSteps} currentStep={step} onStepChange={setStep} documentTypes={departmentDocumentTypes} status={organization.onboardingStatus} />;
 
   if (step === "declaration") {
+    const isClarification = (organization.onboardingStatus || organization.status || "").toUpperCase() === "CLARIFICATION_REQUIRED";
     const submit = async () => {
       setSaving(true);
       setError("");
       try {
-        await apiFetch("/onboarding/department/submit", { method: "POST", body: JSON.stringify({ declarationAccepted: true }) });
+        await apiFetch("/onboarding/department/submit", {
+          method: "POST",
+          body: JSON.stringify({
+            declarationAccepted: true,
+            responseNotes: clarificationResponseNotes || undefined
+          })
+        });
         await load();
         router.push("/organization/onboarding/status");
       } catch (err: any) {
@@ -1506,7 +1547,32 @@ export function DepartmentOnboardingStep() {
     return (
       <Shell title="Government Department Declaration" description="Submit verified department onboarding details." steps={departmentSteps} currentStep={step} onStepChange={setStep} status={organization.onboardingStatus}>
         <ErrorBox error={error} />
+        {isClarification && organization.clarificationRemarks && (
+          <div className="rounded-2xl border border-amber-300 bg-amber-50 p-5 shadow-xs space-y-2 mb-4">
+            <div className="flex items-center gap-2 font-extrabold text-amber-900 text-sm">
+              <AlertCircle className="text-amber-600 shrink-0" size={18} />
+              <span>Admin Clarification Requested</span>
+            </div>
+            <p className="text-xs text-amber-900 font-bold leading-relaxed">
+              Remarks from Super Admin: <span className="font-normal text-amber-800">{organization.clarificationRemarks}</span>
+            </p>
+          </div>
+        )}
         <section className="rounded-3xl border border-white/80 bg-white/90 backdrop-blur-2xl p-6 md:p-8 shadow-glass space-y-5">
+          {isClarification && (
+            <div className="space-y-2 pb-4 border-b border-slate-100">
+              <label className="block text-xs font-bold text-slate-900">
+                Clarification Response Explanation for Super Admin
+              </label>
+              <textarea
+                rows={3}
+                value={clarificationResponseNotes}
+                onChange={(e) => setClarificationResponseNotes(e.target.value)}
+                placeholder="Explain the changes, corrections, or document re-uploads completed in response to the clarification request..."
+                className="w-full text-xs p-3 rounded-xl border border-slate-300 outline-none focus:border-blue-700 font-medium"
+              />
+            </div>
+          )}
           <div className="space-y-3.5 text-xs md:text-sm font-semibold text-slate-800">
             <p className="flex items-center gap-2"><CheckCircle2 className="text-emerald-600 shrink-0" size={18} /> Department details and office orders are official government records.</p>
             <p className="flex items-center gap-2"><CheckCircle2 className="text-emerald-600 shrink-0" size={18} /> Designated Nodal Officer holds authorization to submit CSR pitches.</p>
@@ -1515,10 +1581,10 @@ export function DepartmentOnboardingStep() {
             <button
               onClick={submit}
               disabled={saving}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 px-6 py-3 text-xs font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 px-6 py-3 text-xs font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105 disabled:opacity-50 cursor-pointer"
             >
               <ShieldCheck size={16} />
-              {saving ? "Submitting Application..." : "Accept Declaration and Submit"}
+              {saving ? "Submitting Application..." : isClarification ? "Submit Clarification Response & Re-submit Profile" : "Accept Declaration and Submit"}
             </button>
           </div>
         </section>

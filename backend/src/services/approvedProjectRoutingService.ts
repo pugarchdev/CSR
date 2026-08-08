@@ -147,3 +147,142 @@ export async function routeApprovedCorporateEnquiry(input: ApprovedProjectInput)
 
   return { project, created: true, dncAssignments: dncMappings.map(({ district, dncUserId }) => ({ district, dncUserId })), departmentAdminId: departmentAdmin.id };
 }
+
+export async function routeApprovedGovernmentPitch(input: { pitchId: string; interestId?: string; corporateId?: string; actorUserId: string }) {
+  const pitch = await prisma.governmentPitch.findUnique({ where: { id: input.pitchId } });
+  if (!pitch) throw new Error("Government pitch not found");
+
+  const district = pitch.district?.trim();
+  if (!district) throw new Error("Pitch must have a target district before project conversion.");
+
+  let corporateId = input.corporateId;
+  let interest = null;
+  if (input.interestId) {
+    interest = await prisma.corporatePitchInterest.findUnique({ where: { id: input.interestId } });
+    if (interest) corporateId = interest.corporateId;
+  } else if (!corporateId) {
+    interest = await prisma.corporatePitchInterest.findFirst({ where: { pitchId: pitch.id, status: "INTERESTED" }, orderBy: { createdAt: "asc" } });
+    if (interest) corporateId = interest.corporateId;
+  }
+
+  if (!corporateId) throw new Error("No expressed corporate interest found for this pitch.");
+
+  const [department, dncMapping, departmentAdmin, corporateOrg] = await Promise.all([
+    prisma.organization.findFirst({
+      where: { id: pitch.organizationId, kind: "GOVERNMENT_DEPARTMENT", status: "ACTIVE" },
+      select: { id: true, name: true }
+    }),
+    prisma.districtDncAssignment.findFirst({
+      where: { district: { equals: district, mode: "insensitive" }, isActive: true, dncUser: { roleId: ROLE_ID.DISTRICT_NODAL_CONSULTANT, accountStatus: "ACTIVE", isVerified: true } },
+      include: { dncUser: { select: { id: true, email: true } } }
+    }),
+    prisma.user.findFirst({
+      where: { organizationId: pitch.organizationId, roleId: ROLE_ID.GOVERNMENT_OFFICER, accountStatus: "ACTIVE", isVerified: true },
+      select: { id: true, email: true }
+    }),
+    prisma.organization.findFirst({
+      where: { id: corporateId, status: "ACTIVE" },
+      select: { id: true, name: true }
+    })
+  ]);
+
+  if (!department) throw new Error("The government department associated with this pitch is not active.");
+  if (!dncMapping) throw new Error(`No active DNC is configured for district '${district}'. Please configure the district DNC first.`);
+  if (!departmentAdmin) throw new Error("The target government department has no active Department Admin.");
+  if (!corporateOrg) throw new Error("The expressing corporate partner is not Super-Admin approved (ACTIVE status required).");
+
+  const existingProject = await prisma.project.findFirst({
+    where: { OR: [{ approvalSourceEnquiryId: pitch.id }, { title: { contains: pitch.pitchReferenceId || pitch.id } }] }
+  });
+  if (existingProject) return { project: existingProject, created: false };
+
+  const project = await prisma.$transaction(async (tx) => {
+    const created = await tx.project.create({
+      data: {
+        projectCode: projectCode(),
+        type: "CONVERGENCE_FRAMEWORK",
+        title: `${pitch.csrRequirement ? pitch.csrRequirement.slice(0, 80) : "Govt Pitch"} - ${corporateOrg.name}`,
+        description: pitch.csrRequirement || `Project created from government pitch ${pitch.pitchReferenceId}.`,
+        sector: pitch.sector || "General CSR",
+        district: district,
+        taluka: pitch.taluka || "To be confirmed",
+        approvedBudget: pitch.estimatedCost || 0,
+        organizationId: department.id,
+        corporatePartnerId: corporateOrg.id,
+        approvalSourceEnquiryId: pitch.id,
+        status: "APPROVED"
+      }
+    });
+
+    await tx.projectDistrictDncAssignment.create({
+      data: {
+        projectId: created.id,
+        district: district,
+        dncUserId: dncMapping.dncUserId,
+        assignedById: input.actorUserId,
+        status: "ACTIVE"
+      }
+    });
+
+    await tx.projectAssignment.createMany({
+      data: [
+        {
+          entityType: "PROJECT",
+          entityId: created.id,
+          assignmentType: "DISTRICT_NODAL_CONSULTANT",
+          assignedById: input.actorUserId,
+          assignedToId: dncMapping.dncUserId,
+          assignedRoleId: ROLE_ID.DISTRICT_NODAL_CONSULTANT,
+          status: "ACTIVE"
+        },
+        {
+          entityType: "PROJECT",
+          entityId: created.id,
+          assignmentType: "GOVERNMENT_DEPARTMENT_ADMIN",
+          assignedById: input.actorUserId,
+          assignedToId: departmentAdmin.id,
+          assignedRoleId: ROLE_ID.GOVERNMENT_OFFICER,
+          status: "ACTIVE"
+        }
+      ]
+    });
+
+    await tx.governmentPitch.update({
+      where: { id: pitch.id },
+      data: { status: "ALLOCATED" }
+    });
+
+    if (interest) {
+      await tx.corporatePitchInterest.update({
+        where: { id: interest.id },
+        data: { status: "APPROVED" }
+      });
+    }
+
+    return created;
+  });
+
+  await Promise.all([
+    dispatchNotification({
+      recipientId: dncMapping.dncUserId,
+      templateName: "PROJECT_DNC_ASSIGNED",
+      channels: ["IN_APP", "SOCKET", "EMAIL", "SMS"],
+      variables: { title: "Pitch Project assigned", message: `Project ${project.projectCode} from pitch ${pitch.pitchReferenceId} is assigned to your district.`, currentStatus: project.status },
+      actionButtonUrl: `/projects/${project.id}`,
+      correlationId: project.id,
+      notificationType: "PROJECT_DNC_ASSIGNED"
+    }),
+    dispatchNotification({
+      recipientId: departmentAdmin.id,
+      templateName: "PROJECT_DEPARTMENT_ADMIN_ASSIGNED",
+      channels: ["IN_APP", "SOCKET", "EMAIL", "SMS"],
+      variables: { title: "Assign DNOs for Pitch Project", message: `Pitch project ${project.projectCode} assigned to your department. Assign DNO for execution.`, currentStatus: project.status },
+      actionButtonUrl: `/projects/${project.id}`,
+      correlationId: project.id,
+      notificationType: "PROJECT_DEPARTMENT_ADMIN_ASSIGNED"
+    })
+  ]);
+
+  return { project, created: true, dncUserId: dncMapping.dncUserId, departmentAdminId: departmentAdmin.id };
+}
+

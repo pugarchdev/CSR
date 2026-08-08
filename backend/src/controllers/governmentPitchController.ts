@@ -10,6 +10,7 @@ import { calculateSlaDueDate } from "../services/slaConfigService";
 import { dispatchNotification, dispatchToContact } from "../services/notificationOrchestrator";
 import { PUBLIC_PITCH_SELECT, validateGovernmentPitchSubmission } from "../utils/workflowValidation";
 import { generateInterestTrackingId } from "../services/trackingIdService";
+import { routeApprovedGovernmentPitch } from "../services/approvedProjectRoutingService";
 
 export const submitGovernmentPitch = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
@@ -221,9 +222,23 @@ export const recordPitchRmContact = async (req: AuthenticatedRequest, res: Respo
 
 export const convertPitchToProject = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const pitch = await prisma.governmentPitch.findUnique({ where: { id: req.params.id } });
-    if (!pitch) return res.status(404).json({ error: "Pitch not found" });
-    return res.json({ success: true, message: "Converted to project" });
+    const pitchId = req.params.id;
+    const { interestId, corporateId } = req.body || {};
+    const actorUserId = req.user?.id;
+    if (!actorUserId) return res.status(401).json({ error: "Unauthorized" });
+
+    const result = await routeApprovedGovernmentPitch({
+      pitchId,
+      interestId,
+      corporateId,
+      actorUserId
+    });
+
+    return res.json({
+      success: true,
+      message: "Government pitch successfully converted to project and assigned to District DNC and Department Admin.",
+      data: result.project
+    });
   } catch (error) {
     next(error);
   }
@@ -231,9 +246,12 @@ export const convertPitchToProject = async (req: AuthenticatedRequest, res: Resp
 
 export const submitInterest = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const pitchId = req.params.id;
     const corporateId = req.user?.organizationId;
     if (!corporateId) return res.status(403).json({ error: "An approved company organization is required." });
+
+    const corporateOrg = await prisma.organization.findFirst({ where: { id: corporateId, status: "ACTIVE" } });
+    if (!corporateOrg) return res.status(403).json({ error: "Your organization onboarding must be Super-Admin approved (status 'ACTIVE') before expressing interest in public government pitches." });
+
     const pitch = await prisma.governmentPitch.findFirst({ where: { id: pitchId, status: "PUBLIC_LISTED" }, select: { id: true, pitchReferenceId: true } });
     if (!pitch) return res.status(404).json({ error: "This public pitch is not available for expressions of interest." });
     const existing = await prisma.corporatePitchInterest.findFirst({ where: { pitchId, corporateId } });

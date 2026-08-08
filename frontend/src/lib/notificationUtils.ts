@@ -62,13 +62,22 @@ export function resolveNotificationUrl(
     return "/convergence-projects";
   }
 
-  // 8. If rawUrl is provided, starts with '/', and is valid, use it
+  // 8. Handle rawUrl while guarding non-admin users from admin routes
   if (rawUrl && rawUrl.startsWith("/")) {
+    if (!isAdmin && (rawUrl.startsWith("/admin") || rawUrl.includes("/admin/"))) {
+      if (rawUrl.includes("onboarding") || rawUrl.includes("organization")) {
+        return "/organization/onboarding/status";
+      }
+      if (rawUrl.includes("enquiry")) return "/enquiries";
+      if (rawUrl.includes("pitch")) return "/pitches";
+      if (rawUrl.includes("project")) return "/convergence-projects";
+      return "/organization/onboarding/status";
+    }
     if (isAdmin && rawUrl === "/organization/onboarding") {
       return "/admin/onboarding-approvals";
     }
     return rawUrl;
   }
 
-  return isAdmin ? "/admin/onboarding-approvals" : "/notifications";
+  return isAdmin ? "/admin/onboarding-approvals" : "/organization/onboarding/status";
 }

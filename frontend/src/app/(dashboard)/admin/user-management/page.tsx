@@ -11,6 +11,7 @@ import GovButton from "@/components/gov/GovButton";
 import GovInput from "@/components/gov/GovInput";
 import GovModal from "@/components/gov/GovModal";
 import GovSelect from "@/components/gov/GovSelect";
+import TransferPortfolioModal, { PortfolioTransferResult } from "@/components/rm/TransferPortfolioModal";
 import { useAuthStore } from "@/store/authStore";
 import "@/styles/gov-theme.css";
 
@@ -45,7 +46,7 @@ type UserRow = {
   mobile?: string | null;
   designation?: string | null;
   role: string | null;
-  roleId?: string | null;
+  roleId?: string | number | null;
   roleRelation?: { id: string; name: string } | null;
   accountStatus?: string;
   assignedDistrict?: string | null;
@@ -173,6 +174,7 @@ export default function AdminUserManagementPage() {
 
   // Delete confirmation modal
   const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null);
+  const [transferSource, setTransferSource] = useState<UserRow | null>(null);
 
   const { isAdmin } = useAuthStore();
 
@@ -353,6 +355,18 @@ export default function AdminUserManagementPage() {
 
   const filteredUsers = users;
 
+  const isRelationshipManager = (candidate: UserRow) => {
+    const roleName = effectiveRole(candidate).toUpperCase().replace(/\s+/g, "_");
+    return Number(candidate.roleId) === 6 || roleName === "RELATIONSHIP_MANAGER" || roleName === "CSR_RELATIONSHIP_MANAGER";
+  };
+
+  const handlePortfolioTransferred = (result: PortfolioTransferResult) => {
+    setSuccess(
+      `Portfolio transferred successfully: ${result.enquiryCount} enquiries and ${result.pitchCount} pitches moved to ${result.targetRmName || "the selected RM"}.`
+    );
+    setTransferSource(null);
+  };
+
   return (
     <GovPortalLayout>
       <GovPageHeader
@@ -372,7 +386,7 @@ export default function AdminUserManagementPage() {
       />
 
       <div className="gov-container">
-        {!createModalOpen && !editModalOpen && !deleteTarget && error && (
+        {!createModalOpen && !editModalOpen && !deleteTarget && !transferSource && error && (
           <div className="gov-alert gov-alert-danger gov-mb-4">{error}</div>
         )}
         {success && <div className="gov-alert gov-alert-success gov-mb-4">{success}</div>}
@@ -508,6 +522,11 @@ export default function AdminUserManagementPage() {
                           </td>
                           <td className="gov-text-right" style={{ verticalAlign: "middle" }}>
                             <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 10 }}>
+                              {isAdmin && isRelationshipManager(u) && (
+                                <GovButton variant="secondary" onClick={() => setTransferSource(u)}>
+                                  Transfer Portfolio
+                                </GovButton>
+                              )}
                               <GovButton variant="secondary" onClick={() => openEditModal(u)}>
                                 Edit
                               </GovButton>
@@ -870,6 +889,20 @@ export default function AdminUserManagementPage() {
           </div>
         </form>
       </GovModal>
+
+      <TransferPortfolioModal
+        open={!!transferSource}
+        onClose={() => setTransferSource(null)}
+        sourceRmId={transferSource?.id || ""}
+        sourceRmLabel={
+          transferSource
+            ? ([transferSource.firstName, transferSource.lastName].filter(Boolean).join(" ") || transferSource.email)
+            : "Relationship Manager"
+        }
+        endpoint="/admin/rm/transfer-portfolio"
+        includeSourceRmId
+        onTransferred={handlePortfolioTransferred}
+      />
 
       {/* DELETE CONFIRMATION MODAL */}
       <GovModal open={!!deleteTarget} onClose={() => { setError(""); setDeleteTarget(null); }} title="Delete User" width={460}>

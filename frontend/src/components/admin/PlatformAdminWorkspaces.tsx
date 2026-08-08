@@ -2241,6 +2241,7 @@ export function OrganizationOnboardingWorkspace() {
 
 export function OrganizationOnboardingStatusWorkspace() {
   const router = useRouter();
+  const toast = useToastActions();
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);

@@ -9,6 +9,7 @@ import { useApiQuery } from "@/lib/apiHooks";
 import { apiFetch } from "@/lib/api";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
+import TransferPortfolioModal, { PortfolioTransferResult } from "@/components/rm/TransferPortfolioModal";
 import {
   DashboardSummary,
   QUICK_ACTIONS,
@@ -19,7 +20,7 @@ import {
   AlertTriangle, ArrowRight, ShieldAlert, Clock, CheckCircle2,
   FolderKanban, ShieldCheck, FileText, Compass, Building2, Users,
   HeartHandshake, TrendingUp, Sparkles, Activity, Landmark, Coins, Layers, Send, FileCheck,
-  Briefcase, BarChart2, Target, Award, Globe, ClipboardCheck, AlertCircle
+  Briefcase, BarChart2, Target, Award, Globe, ClipboardCheck, AlertCircle, ArrowRightLeft
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -154,6 +155,8 @@ export default function DashboardEngine() {
   const user = useAuthStore((s: any) => s.user);
   const roles = useAuthStore((s: any) => s.roles);
   const [guardModalState, setGuardModalState] = useState<"NONE" | "ONBOARDING_INCOMPLETE_DEPT" | "ONBOARDING_INCOMPLETE_CORP" | "APPROVAL_PENDING">("NONE");
+  const [transferModalOpen, setTransferModalOpen] = useState(false);
+  const [transferSuccess, setTransferSuccess] = useState("");
 
   const handleQuickActionClick = async (e: React.MouseEvent, action: QuickActionDef) => {
     if (action.href === "/pitches/create" || action.href === "/partner/enquiries/new") {
@@ -287,6 +290,12 @@ export default function DashboardEngine() {
   });
 
   const onboarding = summary.onboardingStatus;
+
+  const handlePortfolioTransferred = (result: PortfolioTransferResult) => {
+    setTransferSuccess(
+      `Handover complete: ${result.enquiryCount} enquiries and ${result.pitchCount} pitches were transferred to ${result.targetRmName || "the selected RM"}.`
+    );
+  };
 
   const getKpiValue = (keys: string[], defaultVal: number | string): number | string => {
     for (const key of keys) {
@@ -697,6 +706,11 @@ export default function DashboardEngine() {
       )}
 
       {/* Quick Action Shortcuts */}
+      {transferSuccess && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold text-emerald-900">
+          {transferSuccess}
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 mr-1">
           <Sparkles size={13} className="text-blue-600" /> Quick Actions:
@@ -715,6 +729,19 @@ export default function DashboardEngine() {
             </Link>
           );
         })}
+        {isRM && (
+          <button
+            type="button"
+            onClick={() => {
+              setTransferSuccess("");
+              setTransferModalOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-900 hover:border-blue-300 hover:bg-blue-100 transition-all duration-150 shadow-2xs"
+          >
+            <ArrowRightLeft size={13} />
+            <span>Transfer Portfolio</span>
+          </button>
+        )}
       </div>
 
       {/* KPI Cards Grid */}
@@ -875,6 +902,17 @@ export default function DashboardEngine() {
       </div>
 
       {/* Onboarding Incomplete Department Modal */}
+      <TransferPortfolioModal
+        open={transferModalOpen}
+        onClose={() => setTransferModalOpen(false)}
+        sourceRmId={user?.id || ""}
+        sourceRmLabel={
+          [user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.email || "your account"
+        }
+        endpoint="/rm/transfer-portfolio"
+        onTransferred={handlePortfolioTransferred}
+      />
+
       <Modal
         isOpen={guardModalState === "ONBOARDING_INCOMPLETE_DEPT"}
         onClose={() => setGuardModalState("NONE")}

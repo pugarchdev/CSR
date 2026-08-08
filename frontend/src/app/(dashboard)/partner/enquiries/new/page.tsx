@@ -198,7 +198,6 @@ interface EnquiryForm {
   preferredDivisions: string[];
   preferredDistricts: string[];
   preferredCities: string[];
-  preferredTalukas: string[];
   contactPersonName: string;
   mobile: string;
   email: string;
@@ -277,7 +276,6 @@ export default function CreateCorporateEnquiryPage() {
     preferredDivisions: [],
     preferredDistricts: [],
     preferredCities: [],
-    preferredTalukas: [],
     contactPersonName: "",
     mobile: "",
     email: "",
@@ -404,15 +402,11 @@ export default function CreateCorporateEnquiryPage() {
     const validCities = districtsList.filter(d => nextDistricts.includes(d.name)).flatMap(d => d.cities || []);
     const nextCities = form.preferredCities.filter(c => validCities.includes(c));
 
-    const validTalukas = districtsList.filter(d => nextDistricts.includes(d.name)).flatMap(d => d.talukas || []);
-    const nextTalukas = form.preferredTalukas.filter(t => validTalukas.includes(t));
-
     setForm(prev => ({
       ...prev,
       preferredDivisions: nextDivisions,
       preferredDistricts: nextDistricts,
       preferredCities: nextCities,
-      preferredTalukas: nextTalukas
     }));
 
     if (errors.preferredDivisions && nextDivisions.length > 0) {
@@ -423,19 +417,15 @@ export default function CreateCorporateEnquiryPage() {
     }
   };
 
-  const handleDistrictsChange = (nextDistricts: string[]) => {
-    nextDistricts = nextDistricts.slice(-1);
+  const handleDistrictChange = (district: string) => {
+    const nextDistricts = district ? [district] : [];
     const validCities = districtsList.filter(d => nextDistricts.includes(d.name)).flatMap(d => d.cities || []);
     const nextCities = form.preferredCities.filter(c => validCities.includes(c));
-
-    const validTalukas = districtsList.filter(d => nextDistricts.includes(d.name)).flatMap(d => d.talukas || []);
-    const nextTalukas = form.preferredTalukas.filter(t => validTalukas.includes(t));
 
     setForm(prev => ({
       ...prev,
       preferredDistricts: nextDistricts,
       preferredCities: nextCities,
-      preferredTalukas: nextTalukas
     }));
 
     if (errors.preferredDistricts && nextDistricts.length > 0) {
@@ -515,7 +505,6 @@ export default function CreateCorporateEnquiryPage() {
           preferredDivisions: form.preferredDivisions,
           district: form.preferredDistricts[0],        // CHANGED: Backend expects a single string 'district', not an array
           preferredCities: form.preferredCities,
-          preferredTalukas: form.preferredTalukas,
           contactPersonName: form.contactPersonName,
           mobile: form.mobile,
           contactEmail: form.email,                    // CHANGED: Matches backend 'contactEmail'
@@ -790,7 +779,6 @@ export default function CreateCorporateEnquiryPage() {
             </GovCardHeader>
             <GovCardBody className="p-6 md:p-8 overflow-visible">
               {errors.preferredDivisions && <GovAlert variant="danger" className="mb-4">{errors.preferredDivisions}</GovAlert>}
-              {errors.preferredDistricts && <GovAlert variant="danger" className="mb-4">{errors.preferredDistricts}</GovAlert>}
 
               <div className="gov-form-grid">
                 <div className="gov-field">
@@ -805,14 +793,21 @@ export default function CreateCorporateEnquiryPage() {
                 </div>
 
                 <div className="gov-field">
-                  <MultiSelectField
+                  <GovSelect
                     label="Project District"
                     required
-                    values={form.preferredDistricts}
-                    options={form.preferredDivisions.flatMap(div => DIVISION_TO_DISTRICTS[div] || [])}
-                    onChange={handleDistrictsChange}
-                    placeholder={form.preferredDivisions.length === 0 ? "Select division first..." : "Select one district..."}
-                  />
+                    value={form.preferredDistricts[0] || ""}
+                    error={errors.preferredDistricts}
+                    disabled={form.preferredDivisions.length === 0}
+                    onChange={(event) => handleDistrictChange(event.target.value)}
+                  >
+                    <option value="">
+                      {form.preferredDivisions.length === 0 ? "Select division first" : "Select one district"}
+                    </option>
+                    {Array.from(new Set(form.preferredDivisions.flatMap(div => DIVISION_TO_DISTRICTS[div] || [])))
+                      .sort()
+                      .map((district) => <option key={district} value={district}>{district}</option>)}
+                  </GovSelect>
                 </div>
 
                 <div className="gov-field">
@@ -842,20 +837,6 @@ export default function CreateCorporateEnquiryPage() {
                     }
                     onChange={(values) => setForm(prev => ({ ...prev, preferredCities: values }))}
                     placeholder={form.preferredDistricts.length === 0 ? "Select district first..." : "Select city/cities..."}
-                  />
-                </div>
-
-                <div className="gov-field">
-                  <MultiSelectField
-                    label="Preferred Taluka(s) (Optional)"
-                    values={form.preferredTalukas}
-                    options={
-                      districtsList
-                        .filter(d => form.preferredDistricts.includes(d.name))
-                        .flatMap(d => d.talukas || [])
-                    }
-                    onChange={(values) => setForm(prev => ({ ...prev, preferredTalukas: values }))}
-                    placeholder={form.preferredDistricts.length === 0 ? "Select district first..." : "Select taluka(s)..."}
                   />
                 </div>
               </div>

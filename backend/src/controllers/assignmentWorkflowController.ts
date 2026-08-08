@@ -48,22 +48,25 @@ export const getDncQueue = async (req: AuthenticatedRequest, res: Response, next
       assignmentMap.set(a.entityId, list);
     });
 
+    const mappedProjects = projects.map((p) => {
+      const pAssignments = assignmentMap.get(p.id) || [];
+      const activeDnoDelegation = pAssignments.find(
+        (a) => a.assignmentType === "DISTRICT_DNO_DELEGATION" && a.status === "ACTIVE"
+      );
+      return {
+        ...p,
+        currentOwner: activeDnoDelegation ? activeDnoDelegation.assignedToId : p.nodalOfficerUserId,
+        delegationStatus: activeDnoDelegation ? "DELEGATED" : "PENDING_DELEGATION",
+        activeDnoAssignment: activeDnoDelegation || null,
+        history: pAssignments,
+      };
+    });
+
     return res.json({
       district: targetDistrict,
       total: projects.length,
-      data: projects.map((p) => {
-        const pAssignments = assignmentMap.get(p.id) || [];
-        const activeDnoDelegation = pAssignments.find(
-          (a) => a.assignmentType === "DISTRICT_DNO_DELEGATION" && a.status === "ACTIVE"
-        );
-        return {
-          ...p,
-          currentOwner: activeDnoDelegation ? activeDnoDelegation.assignedToId : p.nodalOfficerUserId,
-          delegationStatus: activeDnoDelegation ? "DELEGATED" : "PENDING_DELEGATION",
-          activeDnoAssignment: activeDnoDelegation || null,
-          history: pAssignments,
-        };
-      }),
+      data: mappedProjects,
+      projects: mappedProjects,
     });
   } catch (error) {
     next(error);
@@ -72,7 +75,9 @@ export const getDncQueue = async (req: AuthenticatedRequest, res: Response, next
 
 export const delegateDncProject = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const { projectId, dnoUserId, reason } = req.body;
+    const projectId = req.params.id || req.body.projectId;
+    const dnoUserId = req.body.dnoUserId || req.body.officerUserId;
+    const reason = req.body.reason;
     if (!projectId || !dnoUserId) {
       return res.status(400).json({ error: "projectId and dnoUserId are required" });
     }
@@ -178,22 +183,25 @@ export const getGovAdminQueue = async (req: AuthenticatedRequest, res: Response,
       assignmentMap.set(a.entityId, list);
     });
 
+    const mappedProjects = projects.map((p) => {
+      const pAssignments = assignmentMap.get(p.id) || [];
+      const activeOfficerDelegation = pAssignments.find(
+        (a) => a.assignmentType === "GOV_DEPT_OFFICER_DELEGATION" && a.status === "ACTIVE"
+      );
+      return {
+        ...p,
+        currentOwner: activeOfficerDelegation ? activeOfficerDelegation.assignedToId : null,
+        delegationStatus: activeOfficerDelegation ? "DELEGATED" : "PENDING_DELEGATION",
+        activeOfficerAssignment: activeOfficerDelegation || null,
+        history: pAssignments,
+      };
+    });
+
     return res.json({
       organizationId: targetOrgId,
       total: projects.length,
-      data: projects.map((p) => {
-        const pAssignments = assignmentMap.get(p.id) || [];
-        const activeOfficerDelegation = pAssignments.find(
-          (a) => a.assignmentType === "GOV_DEPT_OFFICER_DELEGATION" && a.status === "ACTIVE"
-        );
-        return {
-          ...p,
-          currentOwner: activeOfficerDelegation ? activeOfficerDelegation.assignedToId : null,
-          delegationStatus: activeOfficerDelegation ? "DELEGATED" : "PENDING_DELEGATION",
-          activeOfficerAssignment: activeOfficerDelegation || null,
-          history: pAssignments,
-        };
-      }),
+      data: mappedProjects,
+      projects: mappedProjects,
     });
   } catch (error) {
     next(error);
@@ -202,7 +210,9 @@ export const getGovAdminQueue = async (req: AuthenticatedRequest, res: Response,
 
 export const delegateGovOfficerProject = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const { projectId, officerUserId, reason } = req.body;
+    const projectId = req.params.id || req.body.projectId;
+    const officerUserId = req.body.officerUserId || req.body.dnoUserId;
+    const reason = req.body.reason;
     if (!projectId || !officerUserId) {
       return res.status(400).json({ error: "projectId and officerUserId are required" });
     }

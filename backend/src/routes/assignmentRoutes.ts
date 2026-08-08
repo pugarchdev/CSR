@@ -44,10 +44,12 @@ router.post("/projects/:projectId/dnos", asyncHandler(assignDnosToProject));
 // Scoped Assignment Workflows
 router.get("/dnc/queue", checkPermission("project:view"), asyncHandler(getDncQueue));
 router.post("/dnc/delegate", checkPermission("project:assign"), asyncHandler(delegateDncProject));
+router.post("/dnc/projects/:id/delegate", checkPermission("project:assign"), asyncHandler(delegateDncProject));
 router.get("/dnc/eligible-dnos", checkPermission("project:view"), asyncHandler(getEligibleDnos));
 
 router.get("/gov-admin/queue", checkPermission("project:view"), asyncHandler(getGovAdminQueue));
 router.post("/gov-admin/delegate", checkPermission("project:assign"), asyncHandler(delegateGovOfficerProject));
+router.post("/gov-admin/projects/:id/delegate", checkPermission("project:assign"), asyncHandler(delegateGovOfficerProject));
 router.get("/gov-admin/eligible-officers", checkPermission("project:view"), asyncHandler(getEligibleGovOfficers));
 
 router.post("/js-approve/:projectId", checkPermission("project:approve"), asyncHandler(executeJsApproval));

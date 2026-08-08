@@ -19,10 +19,28 @@ import {
   logPitchInteraction,
   listRMPitchInteractions
 } from "../controllers/relationshipManagerController";
+import {
+  listAvailableRelationshipManagers,
+  transferRmPortfolio,
+} from "../controllers/rmPortfolioController";
 
 const router = Router();
 
 router.use(authenticateToken);
+
+// Shared handover endpoints. Super Admins may provide sourceRmId; an RM can
+// only transfer their own portfolio because the controller derives it from JWT.
+router.get(
+  "/available",
+  authorizeRoles([ROLE_ID.SUPER_ADMIN, ROLE_ID.RELATIONSHIP_MANAGER]),
+  listAvailableRelationshipManagers
+);
+router.post(
+  "/transfer-portfolio",
+  authorizeRoles([ROLE_ID.SUPER_ADMIN, ROLE_ID.RELATIONSHIP_MANAGER]),
+  transferRmPortfolio
+);
+
 router.use(authorizeRoles([ROLE_ID.RELATIONSHIP_MANAGER]));
 
 router.get("/overview", getRMOverview);

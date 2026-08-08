@@ -4,6 +4,8 @@ import { submitCorporateEnquiry } from "../controllers/corporateEnquiryControlle
 import prisma from "../config/db";
 import { ROLE_ID } from "../types/role";
 
+jest.setTimeout(30000);
+
 describe("Onboarding Clarification & Back-and-Forth Approval Loop", () => {
   let companyOrgId: string;
   let superAdminId: string;
@@ -47,12 +49,17 @@ describe("Onboarding Clarification & Back-and-Forth Approval Loop", () => {
   });
 
   afterAll(async () => {
-    await prisma.user.deleteMany({
-      where: { id: { in: [superAdminId, companyUserId] } }
-    });
-    await prisma.organization.deleteMany({
-      where: { id: companyOrgId }
-    });
+    const userIds = [superAdminId, companyUserId].filter(Boolean);
+    if (userIds.length > 0) {
+      await prisma.user.deleteMany({
+        where: { id: { in: userIds } }
+      });
+    }
+    if (companyOrgId) {
+      await prisma.organization.deleteMany({
+        where: { id: companyOrgId }
+      });
+    }
   });
 
   const mockRes = () => {

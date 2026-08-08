@@ -282,7 +282,7 @@ export default function NotificationsPage() {
                           {new Date(n.createdAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })} at {new Date(n.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                      <p className="text-xs text-slate-600 font-medium leading-relaxed break-words whitespace-pre-wrap mt-1">
                         {n.message}
                       </p>
                     </div>
@@ -290,11 +290,15 @@ export default function NotificationsPage() {
 
                   {/* Actions Right */}
                   <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                    {(n.actionUrl || n.title.toLowerCase().includes("onboarding")) && (
-                      <span className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 group-hover:text-blue-900 group-hover:underline">
-                        View Details <ArrowRight size={13} />
-                      </span>
-                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCardClick(n);
+                      }}
+                      className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 hover:text-blue-900 hover:underline cursor-pointer bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-200/80 transition-all"
+                    >
+                      View Details <ArrowRight size={13} />
+                    </button>
                     <button
                       onClick={(e) => deleteSingle(n.id, e)}
                       title="Delete notification"

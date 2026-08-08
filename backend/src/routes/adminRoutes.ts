@@ -15,6 +15,7 @@ import {
 } from "../controllers/organizationAdminController";
 import { Role } from "../types/role";
 import { getSlaConfiguration, saveSlaConfiguration } from "../controllers/slaAdminController";
+import { transferRmPortfolio } from "../controllers/rmPortfolioController";
 
 const router = Router();
 
@@ -28,6 +29,7 @@ router.post("/users", requirePermission("user:create"), createAdminUser);
 router.post("/users/import", requirePermission("user:create"), importAdminUsers);
 router.patch("/users/:id", requirePermission("user:update"), updateUser);
 router.delete("/users/:id", requirePermission("user:suspend"), deleteUser);
+router.post("/rm/transfer-portfolio", authorizeRoles([Role.SUPER_ADMIN]), transferRmPortfolio);
 router.get("/sla/config", authorizeRoles([Role.SUPER_ADMIN]), getSlaConfiguration);
 router.put("/sla/config", authorizeRoles([Role.SUPER_ADMIN]), saveSlaConfiguration);
 

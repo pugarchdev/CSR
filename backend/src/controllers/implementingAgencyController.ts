@@ -48,11 +48,11 @@ export const createSubLogin = async (req: AuthenticatedRequest, res: Response, n
       select: { id: true, name: true, kind: true, status: true }
     });
 
-    const isCompanyAdmin = userRoleId === ROLE_ID.COMPANY_ADMIN || String(req.user?.role).toUpperCase().includes("COMPANY") || creatorOrganization?.kind === "CSR_COMPANY";
+    const isCompanyAdmin = userRoleId === ROLE_ID.COMPANY_ADMIN;
 
     if (!isCompanyAdmin || creatorOrganization?.kind !== "CSR_COMPANY") {
       return res.status(403).json({
-        error: "NGO / implementing agency sub-logins can only be created by the Company / Corporate dashboard."
+        error: "NGO / implementing agency sub-logins can only be created by a Company Admin."
       });
     }
 
