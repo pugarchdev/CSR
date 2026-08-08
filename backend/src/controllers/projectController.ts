@@ -7,11 +7,27 @@ import { notifyHierarchy } from "../services/hierarchyNotificationService";
 export const getProjects = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { sector, district, status } = req.query;
+    const user = req.user;
 
     let filter: any = {};
     if (sector) filter.sector = String(sector);
     if (district) filter.district = String(district);
     if (status) filter.status = status as ProjectStatus;
+
+    if (user) {
+      const roleIdNum = Number(user.roleId || user.role);
+      const isSuperAdmin = roleIdNum === 1 || String(user.role) === "SUPER_ADMIN";
+      const isStateAdmin = [2, 3, 4, 5, 6].includes(roleIdNum) || ["PLANNING_SECRETARY", "JOINT_SECRETARY", "RELATIONSHIP_MANAGER", "DISTRICT_NODAL_OFFICER", "DISTRICT_NODAL_CONSULTANT"].includes(String(user.role).toUpperCase());
+
+      if (!isSuperAdmin && !isStateAdmin && user.organizationId) {
+        filter.OR = [
+          { organizationId: user.organizationId },
+          { implementingAgencyId: user.organizationId },
+          { corporateId: user.organizationId },
+          { departmentId: user.organizationId }
+        ];
+      }
+    }
 
     const projects = await prisma.project.findMany({
       where: filter,

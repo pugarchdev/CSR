@@ -158,7 +158,30 @@ export const getPitchByTrackingId = async (req: AuthenticatedRequest, res: Respo
 
 export const listGovernmentPitches = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const pitches = await prisma.governmentPitch.findMany({ orderBy: { createdAt: "desc" } });
+    const user = req.user;
+    if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+    const roleIdNum = Number(user.roleId || user.role);
+    const isRM = roleIdNum === ROLE_ID.RELATIONSHIP_MANAGER || String(user.roleId) === String(ROLE_ID.RELATIONSHIP_MANAGER);
+    const isSuperAdmin = roleIdNum === ROLE_ID.SUPER_ADMIN || String(user.role) === "SUPER_ADMIN";
+    const isStateAdmin = ([ROLE_ID.PLANNING_SECRETARY, ROLE_ID.JOINT_SECRETARY] as number[]).includes(roleIdNum);
+    const isDeptOfficer = roleIdNum === ROLE_ID.GOVERNMENT_OFFICER || user.organization?.kind === "GOVERNMENT_DEPARTMENT";
+
+    let where: any = {};
+    if (isRM) {
+      where = { assignedRelationshipManagerId: user.id };
+    } else if (isDeptOfficer && !isSuperAdmin && !isStateAdmin) {
+      where = {
+        OR: [
+          { submittedByUserId: user.id },
+          ...(user.organizationId ? [{ departmentId: user.organizationId }] : [])
+        ]
+      };
+    } else if (!isSuperAdmin && !isStateAdmin) {
+      where = { status: "PUBLIC_LISTED" };
+    }
+
+    const pitches = await prisma.governmentPitch.findMany({ where, orderBy: { createdAt: "desc" } });
     return res.json(pitches);
   } catch (error) {
     next(error);
