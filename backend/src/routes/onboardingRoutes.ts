@@ -26,7 +26,11 @@ import {
   updateDepartmentOnboardingProfile,
   updateDepartmentPermissions,
   updateOnboardingProfile,
-  uploadOnboardingDocument
+  uploadOnboardingDocument,
+  listSubDepartments,
+  createSubDepartment,
+  updateSubDepartment,
+  deleteSubDepartment
 } from "../controllers/organizationAdminController";
 
 const router = Router();
@@ -60,6 +64,11 @@ router.patch("/department/authorization", updateDepartmentAuthorization);
 router.patch("/department/jurisdiction", updateDepartmentJurisdiction);
 router.patch("/department/permissions", updateDepartmentPermissions);
 router.post("/department/submit", submitDepartmentOnboarding);
+
+router.get("/sub-departments", listSubDepartments);
+router.post("/sub-departments", createSubDepartment);
+router.put("/sub-departments/:id", updateSubDepartment);
+router.delete("/sub-departments/:id", deleteSubDepartment);
 
 router.get("/documents", listOnboardingDocuments);
 router.post("/documents", uploadOnboardingDocument);

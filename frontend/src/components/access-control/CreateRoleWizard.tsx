@@ -21,10 +21,15 @@ interface CreateRoleWizardProps {
 const STEPS = ["Metadata", "Scope", "Permissions", "Members", "Review"];
 
 const SCOPE_OPTIONS: { value: DefaultScope; label: string; description: string }[] = [
-  { value: "GLOBAL", label: "Global", description: "Applies across the entire platform." },
-  { value: "ORGANIZATION", label: "Organization", description: "Scoped to a specific organization." },
-  { value: "DISTRICT", label: "District", description: "Scoped to a specific district." },
-  { value: "PROJECT", label: "Project", description: "Scoped to a specific project." },
+  { value: "GLOBAL", label: "Global", description: "Applies across the entire Maharashtra CSR platform." },
+  { value: "ORGANIZATION", label: "Organization", description: "Scoped to the specific registered organization." },
+  { value: "ORGANIZATION_AND_CHILDREN", label: "Organization + Children", description: "Scoped to top-level organization and all verified child departments/branches." },
+  { value: "DEPARTMENT", label: "Department", description: "Scoped strictly to the user's assigned department." },
+  { value: "DISTRICT", label: "District", description: "Scoped to the officer's assigned district." },
+  { value: "DIVISION", label: "Division", description: "Scoped to an administrative division." },
+  { value: "ASSIGNED", label: "Assigned", description: "Scoped strictly to assigned enquiries, pitches, and projects." },
+  { value: "OWN", label: "Own Records", description: "Scoped to records created directly by the user." },
+  { value: "MULTI_ORGANIZATION", label: "Multi-Organization", description: "Cross-organization operational access." },
 ];
 
 export function CreateRoleWizard({ isOpen, onClose, onCreated }: CreateRoleWizardProps) {

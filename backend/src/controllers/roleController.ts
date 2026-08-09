@@ -313,7 +313,7 @@ export const createRole = async (
   next: NextFunction
 ) => {
   try {
-    const { name, description, organizationId, permissions = [] } = req.body;
+    const { name, displayName, description, defaultScope, organizationId, permissions = [] } = req.body;
     if (!name) {
       return validationErrorResponse(res, "Role name is required");
     }
@@ -348,9 +348,12 @@ export const createRole = async (
     const role = await prisma.$transaction(async (tx) => {
       const createdRole = await tx.role.create({
         data: {
+          code: name.toUpperCase().replace(/[^A-Z0-9_]/g, "_"),
           name,
+          displayName: displayName || name,
           description: description || null,
-          organizationId: organizationId || null,
+          defaultScope: (defaultScope as any) || "ORGANIZATION",
+          organizationId: targetOrgId,
           isSystemRole: false,
           isProtected: false
         }

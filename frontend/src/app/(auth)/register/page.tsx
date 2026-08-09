@@ -64,17 +64,31 @@ export default function RegisterPage() {
 
   const [formData, setFormData] = useState({
     name: "",
+    registrationCategory: "GOVT_PARENT_ORG" as "GOVT_PARENT_ORG" | "GOVT_DEPARTMENT",
+    parentOrganizationId: "",
+    parentRegistrationCode: "",
+    orgType: "Municipal Corporation",
+    adminLevel: "Local Body",
+    parentOrganization: "None / Not Applicable",
+    officialRegNo: "",
+    deptOfficeCode: "",
+    website: "",
+    addressLine1: "",
+    addressLine2: "",
+    city: "Nagpur City",
+    taluka: "Nagpur Urban",
+    district: "Nagpur",
+    state: "Maharashtra",
+    pincode: "",
     firstName: "",
     lastName: "",
     designation: "",
+    employeeId: "",
+    mobile: "",
     email: "",
     password: "",
     pan: "",
     address: "",
-    state: "Maharashtra",
-    district: "Pune",
-    city: "Pune City",
-    taluka: "Haveli",
     registrationNumber: "",
     darpanNumber: "",
     csr1Number: "",
@@ -82,6 +96,11 @@ export default function RegisterPage() {
     gst: "",
     csrBudget: ""
   });
+
+  const [parentSearchQuery, setParentSearchQuery] = useState("");
+  const [parentSearchResults, setParentSearchResults] = useState<any[]>([]);
+  const [searchingParents, setSearchingParents] = useState(false);
+  const [selectedParentOrgName, setSelectedParentOrgName] = useState("");
 
   const [customState, setCustomState] = useState("");
   const [customDistrict, setCustomDistrict] = useState("");
@@ -107,6 +126,24 @@ export default function RegisterPage() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (formData.registrationCategory !== "GOVT_DEPARTMENT") return;
+    const fetchParents = async () => {
+      setSearchingParents(true);
+      try {
+        const res = await fetch(`${API_BASE_URL}/auth/parent-organizations?q=${encodeURIComponent(parentSearchQuery)}`);
+        const data = await res.json();
+        if (res.ok) setParentSearchResults(data.data || []);
+      } catch (err) {
+        console.error("Failed to search parent organizations", err);
+      } finally {
+        setSearchingParents(false);
+      }
+    };
+    const timerId = setTimeout(fetchParents, 300);
+    return () => clearTimeout(timerId);
+  }, [parentSearchQuery, formData.registrationCategory]);
 
   // Timer countdown effect for Step 3
   useEffect(() => {
@@ -201,15 +238,15 @@ export default function RegisterPage() {
     const errors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      errors.name = role === "GOV_ENTITY" ? "Department / Local Body Name is required" : "Organization Name is required";
+      errors.name = role === "GOV_ENTITY" ? "Government Organization / Local Body Name is required" : "Organization Name is required";
     }
 
     if (!formData.firstName.trim()) {
-      errors.firstName = "First name is required";
+      errors.firstName = "Representative First Name is required";
     }
 
     if (!formData.lastName.trim()) {
-      errors.lastName = "Last name is required";
+      errors.lastName = "Representative Last Name is required";
     }
 
     if (!formData.designation.trim()) {
@@ -217,7 +254,7 @@ export default function RegisterPage() {
     }
 
     if (!formData.email.trim()) {
-      errors.email = "Email address is required";
+      errors.email = "Official email address is required";
     } else {
       const emailErr = validateField("email", formData.email);
       if (emailErr) errors.email = emailErr;
@@ -229,24 +266,29 @@ export default function RegisterPage() {
       errors.password = "Password must be at least 6 characters";
     }
 
-    if (!formData.pan.trim()) {
-      errors.pan = "PAN Card number is required";
-    } else {
-      const panErr = validateField("pan", formData.pan);
-      if (panErr) errors.pan = panErr;
-    }
-
-    if (!formData.address.trim()) {
-      errors.address = "Registered address is required";
-    } else if (formData.address.trim().length < 5) {
-      errors.address = "Address must be at least 5 characters";
-    }
-
     if (role === "GOV_ENTITY") {
-      if (!formData.registrationNumber.trim()) {
-        errors.registrationNumber = "Department code is required";
+      if (!formData.officialRegNo.trim() && !formData.registrationNumber.trim()) {
+        errors.officialRegNo = "Official registration / identification number is required";
+      }
+      if (!formData.website.trim()) {
+        errors.website = "Official website URL is required";
+      }
+      if (!formData.addressLine1.trim() && !formData.address.trim()) {
+        errors.addressLine1 = "Address Line 1 is required";
+      }
+      if (!formData.pincode.trim()) {
+        errors.pincode = "PIN Code is required";
+      }
+      if (!formData.mobile.trim()) {
+        errors.mobile = "Official mobile number is required";
       }
     } else {
+      if (!formData.pan.trim()) {
+        errors.pan = "PAN Card number is required";
+      } else {
+        const panErr = validateField("pan", formData.pan);
+        if (panErr) errors.pan = panErr;
+      }
       if (!formData.cin.trim()) {
         errors.cin = "MCA21 CIN number is required";
       } else {
@@ -281,18 +323,41 @@ export default function RegisterPage() {
         accountType: isGovEntity ? "GOVERNMENT_DEPARTMENT" : "CSR_COMPANY",
         profile: {
           name: dataToSubmit.name,
+          registrationCategory: dataToSubmit.registrationCategory,
+          parentOrganizationId: dataToSubmit.parentOrganizationId || undefined,
+          parentRegistrationCode: dataToSubmit.parentRegistrationCode || undefined,
           firstName: dataToSubmit.firstName,
           lastName: dataToSubmit.lastName,
           designation: dataToSubmit.designation,
-          pan: dataToSubmit.pan.toUpperCase(),
-          address: dataToSubmit.address,
+          pan: dataToSubmit.pan ? dataToSubmit.pan.toUpperCase() : "",
+          address: [
+            dataToSubmit.addressLine1,
+            dataToSubmit.addressLine2,
+            cityVal,
+            talukaVal,
+            districtVal,
+            stateVal,
+            dataToSubmit.pincode
+          ].filter(Boolean).join(", ") || dataToSubmit.address,
           state: stateVal,
           district: districtVal,
           city: cityVal,
           taluka: talukaVal,
           ...(isGovEntity
             ? {
-                registrationNumber: dataToSubmit.registrationNumber,
+                orgType: dataToSubmit.orgType,
+                adminLevel: dataToSubmit.adminLevel,
+                parentOrganization: dataToSubmit.parentOrganization,
+                officialRegNo: dataToSubmit.officialRegNo || dataToSubmit.registrationNumber,
+                deptOfficeCode: dataToSubmit.deptOfficeCode,
+                website: dataToSubmit.website,
+                addressLine1: dataToSubmit.addressLine1,
+                addressLine2: dataToSubmit.addressLine2,
+                pincode: dataToSubmit.pincode,
+                employeeId: dataToSubmit.employeeId,
+                mobile: dataToSubmit.mobile,
+                representativeMobile: dataToSubmit.mobile,
+                registrationNumber: dataToSubmit.officialRegNo || dataToSubmit.registrationNumber,
                 contactInfo: { entityType: "GOVERNMENT_ENTITY" }
               }
             : {
@@ -717,167 +782,573 @@ export default function RegisterPage() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   onSubmit={handleStep2Submit}
-                  className="flex flex-col gap-4"
+                  className="flex flex-col gap-6"
                 >
                   <div className="text-center mb-1">
                     <h2 className="font-heading font-extrabold text-xl text-slate-900">
-                      Organization & Credentials
+                      {role === "GOV_ENTITY" ? "Government Entity Registration" : "Corporate Partner Registration"}
                     </h2>
                     <p className="text-xs text-slate-500 font-semibold mt-0.5">
-                      Provide official registration credentials for automated verification
+                      {role === "GOV_ENTITY"
+                        ? "Provide official government entity credentials and authorized representative details"
+                        : "Provide official registration credentials for automated verification"}
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-1 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-800">
-                        {role === "GOV_ENTITY" ? "Department / Local Body Name *" : "Organization Name *"}
-                      </label>
-                      <input
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                        placeholder="e.g. Pune Municipal Corporation"
-                        className={getInputClassName("name")}
-                      />
-                      {renderFieldError("name")}
-                    </div>
+                  {role === "GOV_ENTITY" ? (
+                    <div className="flex flex-col gap-6">
+                      {/* SECTION A — Government Organization Category & Details */}
+                      <div className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/80 flex flex-col gap-4">
+                        <div className="flex items-center justify-between border-b border-slate-200/60 pb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-extrabold uppercase tracking-wider bg-blue-950 text-white px-2.5 py-0.5 rounded-md">
+                              SECTION A
+                            </span>
+                            <h3 className="font-heading font-extrabold text-sm text-slate-900">
+                              Government Entity Category & Details
+                            </h3>
+                          </div>
+                        </div>
 
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-bold text-slate-800">
-                        {role === "GOV_ENTITY" ? "Nodal Officer First Name *" : "Authorized Person First Name *"}
-                      </label>
-                      <input
-                        name="firstName"
-                        value={formData.firstName}
-                        onChange={handleChange}
-                        placeholder="e.g. Anand"
-                        className={getInputClassName("firstName")}
-                      />
-                      {renderFieldError("firstName")}
-                    </div>
+                        {/* Category Selector */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div
+                            onClick={() => setFormData({ ...formData, registrationCategory: "GOVT_PARENT_ORG", parentOrganizationId: "", parentRegistrationCode: "" })}
+                            className={`p-3.5 rounded-xl border-2 cursor-pointer flex items-start gap-3 transition-all ${
+                              formData.registrationCategory === "GOVT_PARENT_ORG"
+                                ? "border-blue-900 bg-blue-50/80 shadow-sm"
+                                : "border-slate-200 bg-white hover:border-slate-300"
+                            }`}
+                          >
+                            <div className="w-4 h-4 rounded-full border-2 border-blue-900 mt-0.5 flex items-center justify-center shrink-0">
+                              {formData.registrationCategory === "GOVT_PARENT_ORG" && (
+                                <div className="w-2 h-2 rounded-full bg-blue-900" />
+                              )}
+                            </div>
+                            <div>
+                              <div className="font-extrabold text-xs text-slate-900">Government Organization / Local Body</div>
+                              <div className="text-[11px] text-slate-500 font-medium">Top-level entity (e.g. NMC Nagpur, Collectorate, Zilla Parishad)</div>
+                            </div>
+                          </div>
 
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-bold text-slate-800">
-                        {role === "GOV_ENTITY" ? "Nodal Officer Last Name *" : "Authorized Person Last Name *"}
-                      </label>
-                      <input
-                        name="lastName"
-                        value={formData.lastName}
-                        onChange={handleChange}
-                        placeholder="e.g. Gadge"
-                        className={getInputClassName("lastName")}
-                      />
-                      {renderFieldError("lastName")}
-                    </div>
+                          <div
+                            onClick={() => setFormData({ ...formData, registrationCategory: "GOVT_DEPARTMENT" })}
+                            className={`p-3.5 rounded-xl border-2 cursor-pointer flex items-start gap-3 transition-all ${
+                              formData.registrationCategory === "GOVT_DEPARTMENT"
+                                ? "border-blue-900 bg-blue-50/80 shadow-sm"
+                                : "border-slate-200 bg-white hover:border-slate-300"
+                            }`}
+                          >
+                            <div className="w-4 h-4 rounded-full border-2 border-blue-900 mt-0.5 flex items-center justify-center shrink-0">
+                              {formData.registrationCategory === "GOVT_DEPARTMENT" && (
+                                <div className="w-2 h-2 rounded-full bg-blue-900" />
+                              )}
+                            </div>
+                            <div>
+                              <div className="font-extrabold text-xs text-slate-900">Government Department / Administrative Unit</div>
+                              <div className="text-[11px] text-slate-500 font-medium">Independent child dept (e.g. Health Dept, Electrical Dept)</div>
+                            </div>
+                          </div>
+                        </div>
 
-                    <div className="flex flex-col gap-1 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-800">
-                        Official Designation / Title *
-                      </label>
-                      <input
-                        name="designation"
-                        value={formData.designation}
-                        onChange={handleChange}
-                        placeholder="e.g. Executive Engineer / Head of CSR / District Nodal Officer"
-                        className={getInputClassName("designation")}
-                      />
-                      {renderFieldError("designation")}
-                    </div>
+                        {/* If Child Department: Parent Organization Live Search */}
+                        {formData.registrationCategory === "GOVT_DEPARTMENT" && (
+                          <div className="p-4 rounded-xl bg-blue-50/60 border border-blue-200 flex flex-col gap-3">
+                            <div className="font-bold text-xs text-blue-950 flex items-center gap-1.5">
+                              <Landmark size={15} className="text-blue-900" />
+                              <span>Select Parent Organization *</span>
+                            </div>
 
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-bold text-slate-800">
-                        {role === "GOV_ENTITY" ? "Official Department Email *" : "Corporate Email *"}
-                      </label>
-                      <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        onBlur={handleBlurValidate}
-                        placeholder="e.g. nodal.pune@mahacsr.gov.in"
-                        className={getInputClassName("email")}
-                      />
-                      {renderFieldError("email")}
-                    </div>
+                            {selectedParentOrgName ? (
+                              <div className="flex items-center justify-between p-2.5 bg-white rounded-lg border border-blue-300">
+                                <div>
+                                  <div className="font-bold text-xs text-slate-900">{selectedParentOrgName}</div>
+                                  <div className="text-[11px] text-slate-500 font-medium">
+                                    Parent Code: {formData.parentRegistrationCode || "N/A"}
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedParentOrgName("");
+                                    setFormData({ ...formData, parentOrganizationId: "", parentRegistrationCode: "" });
+                                  }}
+                                  className="text-xs text-red-600 font-bold hover:underline"
+                                >
+                                  Change Parent
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col gap-2">
+                                <input
+                                  type="text"
+                                  placeholder="Search Parent Organization by Name or Parent Registration Code (e.g. NMC Nagpur)..."
+                                  value={parentSearchQuery}
+                                  onChange={(e) => setParentSearchQuery(e.target.value)}
+                                  className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                />
 
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-bold text-slate-800">Password *</label>
-                      <div className="relative">
-                        <input
-                          type={showPassword ? "text" : "password"}
-                          name="password"
-                          value={formData.password}
-                          onChange={handleChange}
-                          minLength={6}
-                          placeholder="Min 6 characters"
-                          className={getInputClassName("password", "pr-10")}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
-                        >
-                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                        </button>
+                                {parentSearchResults.length > 0 && (
+                                  <div className="max-h-40 overflow-y-auto bg-white border border-slate-200 rounded-xl divide-y divide-slate-100 shadow-md">
+                                    {parentSearchResults.map((org) => (
+                                      <div
+                                        key={org.id}
+                                        onClick={() => {
+                                          setFormData({
+                                            ...formData,
+                                            parentOrganizationId: org.id,
+                                            parentRegistrationCode: org.parentRegistrationCode || ""
+                                          });
+                                          setSelectedParentOrgName(`${org.name} (${org.district || "MH"})`);
+                                        }}
+                                        className="p-2.5 hover:bg-blue-50 cursor-pointer text-xs flex items-center justify-between"
+                                      >
+                                        <div>
+                                          <div className="font-bold text-slate-900">{org.name}</div>
+                                          <div className="text-[10px] text-slate-500">District: {org.district || "Maharashtra"}</div>
+                                        </div>
+                                        {org.parentRegistrationCode && (
+                                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                                            {org.parentRegistrationCode}
+                                          </span>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                <div className="text-[11px] text-slate-500 font-medium">
+                                  Alternatively, enter Parent Reference Code directly:
+                                </div>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. NMC-NAGPUR-001"
+                                  value={formData.parentRegistrationCode}
+                                  onChange={(e) => setFormData({ ...formData, parentRegistrationCode: e.target.value.toUpperCase() })}
+                                  className="w-full px-3 py-1.5 border border-slate-200 rounded-lg bg-white text-xs font-mono font-semibold uppercase"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-bold text-slate-800">Organization Type *</label>
+                            <select
+                              name="orgType"
+                              value={formData.orgType}
+                              onChange={handleChange}
+                              className={getInputClassName("orgType")}
+                            >
+                              <option value="Municipal Corporation">Municipal Corporation</option>
+                              <option value="Municipal Council">Municipal Council</option>
+                              <option value="Nagar Panchayat">Nagar Panchayat</option>
+                              <option value="Collectorate / District Administration">Collectorate / District Administration</option>
+                              <option value="Zilla Parishad">Zilla Parishad</option>
+                              <option value="Panchayat Samiti">Panchayat Samiti</option>
+                              <option value="Government Department">Government Department</option>
+                              <option value="Government Authority / Board">Government Authority / Board</option>
+                              <option value="Development Authority">Development Authority</option>
+                              <option value="Other">Other</option>
+                            </select>
+                            {renderFieldError("orgType")}
+                          </div>
+
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-bold text-slate-800">Administrative Level *</label>
+                            <select
+                              name="adminLevel"
+                              value={formData.adminLevel}
+                              onChange={handleChange}
+                              className={getInputClassName("adminLevel")}
+                            >
+                              <option value="Local Body">Local Body</option>
+                              <option value="District">District</option>
+                              <option value="Division">Division</option>
+                              <option value="State">State</option>
+                              <option value="Department">Department</option>
+                              <option value="Authority">Authority</option>
+                            </select>
+                            {renderFieldError("adminLevel")}
+                          </div>
+
+                          <div className="flex flex-col gap-1 md:col-span-2">
+                            <label className="text-xs font-bold text-slate-800">
+                              {formData.registrationCategory === "GOVT_DEPARTMENT" ? "Government Department Name *" : "Government Organization / Local Body Name *"}
+                            </label>
+                            <input
+                              name="name"
+                              value={formData.name}
+                              onChange={handleChange}
+                              placeholder={formData.registrationCategory === "GOVT_DEPARTMENT" ? "e.g. Health Department (NMC Nagpur)" : "e.g. Nagpur Municipal Corporation"}
+                              className={getInputClassName("name")}
+                            />
+                            {renderFieldError("name")}
+                          </div>
+                        </div>
                       </div>
-                      {renderFieldError("password")}
-                    </div>
 
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-bold text-slate-800">PAN Card Number *</label>
-                      <input
-                        name="pan"
-                        value={formData.pan}
-                        onChange={handleChange}
-                        onBlur={handleBlurValidate}
-                        maxLength={10}
-                        minLength={10}
-                        placeholder="ABCDE1234F"
-                        className={getInputClassName("pan", "uppercase")}
-                      />
-                      {renderFieldError("pan")}
-                    </div>
-
-                    <div className="flex flex-col gap-1 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-800">Registered Address *</label>
-                      <input
-                        name="address"
-                        value={formData.address}
-                        onChange={handleChange}
-                        minLength={5}
-                        placeholder="Official registered office address"
-                        className={getInputClassName("address")}
-                      />
-                      {renderFieldError("address")}
-                    </div>
-
-                    {role === "GOV_ENTITY" ? (
-                      <>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs font-bold text-slate-800">Department Code *</label>
-                          <input
-                            name="registrationNumber"
-                            value={formData.registrationNumber}
-                            onChange={handleChange}
-                            placeholder="e.g. ZP-PUNE-CSR"
-                            className={getInputClassName("registrationNumber")}
-                          />
-                          {renderFieldError("registrationNumber")}
+                      {/* SECTION B — Government Organization Identification & Location */}
+                      <div className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/80 flex flex-col gap-4">
+                        <div className="flex items-center gap-2 border-b border-slate-200/60 pb-3">
+                          <span className="text-[11px] font-extrabold uppercase tracking-wider bg-blue-950 text-white px-2.5 py-0.5 rounded-md">
+                            SECTION B
+                          </span>
+                          <h3 className="font-heading font-extrabold text-sm text-slate-900">
+                            Government Organization Identification & Location
+                          </h3>
                         </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs font-bold text-slate-800">Nodal Designation *</label>
-                          <input
-                            name="cin"
-                            value={formData.cin}
-                            onChange={handleChange}
-                            placeholder="e.g. District Nodal Officer"
-                            className={getInputClassName("cin")}
-                          />
-                          {renderFieldError("cin")}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-bold text-slate-800">
+                              Official Registration / Identification Number *
+                            </label>
+                            <input
+                              name="officialRegNo"
+                              value={formData.officialRegNo}
+                              onChange={handleChange}
+                              placeholder="e.g. ULB Code / Local Body Code / DDO Code"
+                              className={getInputClassName("officialRegNo")}
+                            />
+                            {renderFieldError("officialRegNo")}
+                          </div>
+
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-bold text-slate-800">Official Department / Office Code</label>
+                            <input
+                              name="deptOfficeCode"
+                              value={formData.deptOfficeCode}
+                              onChange={handleChange}
+                              placeholder="e.g. NMC-NGP-HQ"
+                              className={getInputClassName("deptOfficeCode")}
+                            />
+                            {renderFieldError("deptOfficeCode")}
+                          </div>
+
+                          <div className="flex flex-col gap-1 md:col-span-2">
+                            <label className="text-xs font-bold text-slate-800">Official Website *</label>
+                            <input
+                              type="url"
+                              name="website"
+                              value={formData.website}
+                              onChange={handleChange}
+                              placeholder="e.g. https://nmcnagpur.gov.in"
+                              className={getInputClassName("website")}
+                            />
+                            {renderFieldError("website")}
+                          </div>
+
+                          <div className="flex flex-col gap-1 md:col-span-2">
+                            <label className="text-xs font-bold text-slate-800">Address Line 1 *</label>
+                            <input
+                              name="addressLine1"
+                              value={formData.addressLine1}
+                              onChange={handleChange}
+                              placeholder="Official office building / street address"
+                              className={getInputClassName("addressLine1")}
+                            />
+                            {renderFieldError("addressLine1")}
+                          </div>
+
+                          <div className="flex flex-col gap-1 md:col-span-2">
+                            <label className="text-xs font-bold text-slate-800">Address Line 2</label>
+                            <input
+                              name="addressLine2"
+                              value={formData.addressLine2}
+                              onChange={handleChange}
+                              placeholder="Landmark / Area / Locality"
+                              className={getInputClassName("addressLine2")}
+                            />
+                          </div>
+
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-bold text-slate-800">City / Town *</label>
+                            <input
+                              name="city"
+                              value={formData.city}
+                              onChange={handleChange}
+                              placeholder="e.g. Nagpur"
+                              className={getInputClassName("city")}
+                            />
+                          </div>
+
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-bold text-slate-800">Taluka</label>
+                            <input
+                              name="taluka"
+                              value={formData.taluka}
+                              onChange={handleChange}
+                              placeholder="e.g. Nagpur Urban"
+                              className={getInputClassName("taluka")}
+                            />
+                          </div>
+
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-bold text-slate-800">District *</label>
+                            <select
+                              name="district"
+                              value={formData.district}
+                              onChange={(e) => handleDistrictChange(e.target.value)}
+                              className={getInputClassName("district")}
+                            >
+                              {availableDistricts.map((d) => (
+                                <option key={d.name} value={d.name}>{d.name}</option>
+                              ))}
+                              <option value="Other">Other</option>
+                            </select>
+                            {renderFieldError("district")}
+                          </div>
+
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-bold text-slate-800">State *</label>
+                            <select
+                              name="state"
+                              value={formData.state}
+                              onChange={(e) => handleStateChange(e.target.value)}
+                              className={getInputClassName("state")}
+                            >
+                              {allStatesList.map((st) => (
+                                <option key={st} value={st}>{st}</option>
+                              ))}
+                              <option value="Other">Other</option>
+                            </select>
+                            {renderFieldError("state")}
+                          </div>
+
+                          <div className="flex flex-col gap-1 md:col-span-2">
+                            <label className="text-xs font-bold text-slate-800">PIN Code *</label>
+                            <input
+                              name="pincode"
+                              value={formData.pincode}
+                              onChange={handleChange}
+                              maxLength={6}
+                              placeholder="e.g. 440001"
+                              className={getInputClassName("pincode")}
+                            />
+                            {renderFieldError("pincode")}
+                          </div>
                         </div>
-                      </>
-                    ) : (
+                      </div>
+
+                      {/* SECTION C — Department Information Preview Notice */}
+                      <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col gap-2 text-xs">
+                        <div className="flex items-center gap-2 font-bold text-amber-950">
+                          <Sparkles size={16} className="text-amber-600 shrink-0" />
+                          <span>SECTION C — Sub-Department Hierarchy Architecture</span>
+                        </div>
+                        <p className="text-slate-700 font-medium leading-relaxed">
+                          Top-level organizations (e.g., <strong>{formData.name || "Nagpur Municipal Corporation"}</strong>) will be able to create and manage operational sub-departments (Health, Electrical, Education, Solid Waste Management) and assign respective DNOs after account approval.
+                        </p>
+                      </div>
+
+                      {/* SECTION D — Primary Government Contact */}
+                      <div className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/80 flex flex-col gap-4">
+                        <div className="flex items-center justify-between border-b border-slate-200/60 pb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-extrabold uppercase tracking-wider bg-blue-950 text-white px-2.5 py-0.5 rounded-md">
+                              SECTION D
+                            </span>
+                            <h3 className="font-heading font-extrabold text-sm text-slate-900">
+                              Authorized Organization Representative
+                            </h3>
+                          </div>
+                        </div>
+
+                        <p className="text-[11px] text-slate-600 font-medium bg-blue-50 p-2.5 rounded-xl border border-blue-100 flex items-center gap-2">
+                          <AlertCircle size={14} className="text-blue-900 shrink-0" />
+                          <span>This person registers and represents the organization and does not automatically become the District Nodal Officer (DNO).</span>
+                        </p>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-bold text-slate-800">Representative First Name *</label>
+                            <input
+                              name="firstName"
+                              value={formData.firstName}
+                              onChange={handleChange}
+                              placeholder="e.g. Rajesh"
+                              className={getInputClassName("firstName")}
+                            />
+                            {renderFieldError("firstName")}
+                          </div>
+
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-bold text-slate-800">Representative Last Name *</label>
+                            <input
+                              name="lastName"
+                              value={formData.lastName}
+                              onChange={handleChange}
+                              placeholder="e.g. Sharma"
+                              className={getInputClassName("lastName")}
+                            />
+                            {renderFieldError("lastName")}
+                          </div>
+
+                          <div className="flex flex-col gap-1 md:col-span-2">
+                            <label className="text-xs font-bold text-slate-800">Official Designation *</label>
+                            <input
+                              name="designation"
+                              value={formData.designation}
+                              onChange={handleChange}
+                              placeholder="e.g. Assistant Municipal Commissioner"
+                              className={getInputClassName("designation")}
+                            />
+                            {renderFieldError("designation")}
+                          </div>
+
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-bold text-slate-800">Official Email *</label>
+                            <input
+                              type="email"
+                              name="email"
+                              value={formData.email}
+                              onChange={handleChange}
+                              onBlur={handleBlurValidate}
+                              placeholder="e.g. official@nmcnagpur.gov.in"
+                              className={getInputClassName("email")}
+                            />
+                            {renderFieldError("email")}
+                          </div>
+
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-bold text-slate-800">Official Mobile Number *</label>
+                            <input
+                              name="mobile"
+                              value={formData.mobile}
+                              onChange={handleChange}
+                              maxLength={10}
+                              placeholder="10-digit mobile number"
+                              className={getInputClassName("mobile")}
+                            />
+                            {renderFieldError("mobile")}
+                          </div>
+
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-bold text-slate-800">Employee / Officer ID</label>
+                            <input
+                              name="employeeId"
+                              value={formData.employeeId}
+                              onChange={handleChange}
+                              placeholder="e.g. EMP-98765"
+                              className={getInputClassName("employeeId")}
+                            />
+                          </div>
+
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-bold text-slate-800">Account Password *</label>
+                            <div className="relative">
+                              <input
+                                type={showPassword ? "text" : "password"}
+                                name="password"
+                                value={formData.password}
+                                onChange={handleChange}
+                                minLength={6}
+                                placeholder="Min 6 characters"
+                                className={getInputClassName("password", "pr-10")}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                              >
+                                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                              </button>
+                            </div>
+                            {renderFieldError("password")}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* CORPORATE REGISTRATION FORM */
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1 md:col-span-2">
+                        <label className="text-xs font-bold text-slate-800">Organization Name *</label>
+                        <input
+                          name="name"
+                          value={formData.name}
+                          onChange={handleChange}
+                          placeholder="e.g. Acme Corporation Pvt Ltd"
+                          className={getInputClassName("name")}
+                        />
+                        {renderFieldError("name")}
+                      </div>
+
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-bold text-slate-800">Authorized Person First Name *</label>
+                        <input
+                          name="firstName"
+                          value={formData.firstName}
+                          onChange={handleChange}
+                          placeholder="e.g. Anand"
+                          className={getInputClassName("firstName")}
+                        />
+                        {renderFieldError("firstName")}
+                      </div>
+
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-bold text-slate-800">Authorized Person Last Name *</label>
+                        <input
+                          name="lastName"
+                          value={formData.lastName}
+                          onChange={handleChange}
+                          placeholder="e.g. Gadge"
+                          className={getInputClassName("lastName")}
+                        />
+                        {renderFieldError("lastName")}
+                      </div>
+
+                      <div className="flex flex-col gap-1 md:col-span-2">
+                        <label className="text-xs font-bold text-slate-800">Official Designation *</label>
+                        <input
+                          name="designation"
+                          value={formData.designation}
+                          onChange={handleChange}
+                          placeholder="e.g. Head of CSR / Vice President"
+                          className={getInputClassName("designation")}
+                        />
+                        {renderFieldError("designation")}
+                      </div>
+
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-bold text-slate-800">Corporate Email *</label>
+                        <input
+                          type="email"
+                          name="email"
+                          value={formData.email}
+                          onChange={handleChange}
+                          onBlur={handleBlurValidate}
+                          placeholder="e.g. csr@company.com"
+                          className={getInputClassName("email")}
+                        />
+                        {renderFieldError("email")}
+                      </div>
+
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-bold text-slate-800">Password *</label>
+                        <div className="relative">
+                          <input
+                            type={showPassword ? "text" : "password"}
+                            name="password"
+                            value={formData.password}
+                            onChange={handleChange}
+                            minLength={6}
+                            placeholder="Min 6 characters"
+                            className={getInputClassName("password", "pr-10")}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                          >
+                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
+                        {renderFieldError("password")}
+                      </div>
+
                       <div className="flex flex-col gap-1 md:col-span-2">
                         <label className="text-xs font-bold text-slate-800">MCA21 CIN Number *</label>
                         <input
@@ -891,41 +1362,55 @@ export default function RegisterPage() {
                         />
                         {renderFieldError("cin")}
                       </div>
-                    )}
 
-                    {/* State/District Dropdowns */}
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-bold text-slate-800">State *</label>
-                      <select
-                        name="state"
-                        value={formData.state}
-                        onChange={(e) => handleStateChange(e.target.value)}
-                        className={getInputClassName("state")}
-                      >
-                        {allStatesList.map((st) => (
-                          <option key={st} value={st}>{st}</option>
-                        ))}
-                        <option value="Other">Other</option>
-                      </select>
-                      {renderFieldError("state")}
-                    </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-bold text-slate-800">PAN Card Number *</label>
+                        <input
+                          name="pan"
+                          value={formData.pan}
+                          onChange={handleChange}
+                          onBlur={handleBlurValidate}
+                          maxLength={10}
+                          minLength={10}
+                          placeholder="ABCDE1234F"
+                          className={getInputClassName("pan", "uppercase")}
+                        />
+                        {renderFieldError("pan")}
+                      </div>
 
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-bold text-slate-800">District *</label>
-                      <select
-                        name="district"
-                        value={formData.district}
-                        onChange={(e) => handleDistrictChange(e.target.value)}
-                        className={getInputClassName("district")}
-                      >
-                        {availableDistricts.map((d) => (
-                          <option key={d.name} value={d.name}>{d.name}</option>
-                        ))}
-                        <option value="Other">Other</option>
-                      </select>
-                      {renderFieldError("district")}
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-bold text-slate-800">State *</label>
+                        <select
+                          name="state"
+                          value={formData.state}
+                          onChange={(e) => handleStateChange(e.target.value)}
+                          className={getInputClassName("state")}
+                        >
+                          {allStatesList.map((st) => (
+                            <option key={st} value={st}>{st}</option>
+                          ))}
+                          <option value="Other">Other</option>
+                        </select>
+                        {renderFieldError("state")}
+                      </div>
+
+                      <div className="flex flex-col gap-1 md:col-span-2">
+                        <label className="text-xs font-bold text-slate-800">District *</label>
+                        <select
+                          name="district"
+                          value={formData.district}
+                          onChange={(e) => handleDistrictChange(e.target.value)}
+                          className={getInputClassName("district")}
+                        >
+                          {availableDistricts.map((d) => (
+                            <option key={d.name} value={d.name}>{d.name}</option>
+                          ))}
+                          <option value="Other">Other</option>
+                        </select>
+                        {renderFieldError("district")}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <div className="flex items-center gap-3 mt-4">
                     <button
@@ -940,7 +1425,7 @@ export default function RegisterPage() {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-2/3 py-3 px-4 rounded-xl bg-gradient-to-r from-blue-950 via-blue-900 to-indigo-900 text-white font-extrabold text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 hover:scale-[1.01]"
+                      className="w-2/3 py-3.5 px-4 rounded-xl bg-gradient-to-r from-blue-950 via-blue-900 to-indigo-900 text-white font-extrabold text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 hover:scale-[1.01]"
                     >
                       <span>Submit & Send OTP</span>
                       <ArrowRight size={16} />

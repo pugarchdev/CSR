@@ -8,7 +8,13 @@ const PROTECTED_SYSTEM_CODES = new Set(
 export const RoleScopeEnum = z.enum([
   "GLOBAL",
   "ORGANIZATION",
+  "ORGANIZATION_AND_CHILDREN",
+  "DEPARTMENT",
   "DISTRICT",
+  "DIVISION",
+  "ASSIGNED",
+  "OWN",
+  "MULTI_ORGANIZATION",
   "PROJECT",
   "ASSIGNED_RESOURCE"
 ]);
@@ -20,7 +26,7 @@ export const CreateRoleSchema = z.object({
     .string()
     .min(3)
     .max(50)
-    .regex(/^[A-Z0-9_]+$/, "Role code must contain only uppercase letters, numbers, and underscores")
+    .regex(/^[A-Za-z0-9_]+$/, "Role code must contain letters, numbers, and underscores")
     .refine((code) => !PROTECTED_SYSTEM_CODES.has(code.toUpperCase()), {
       message: "System role codes are reserved and cannot be used for custom roles"
     }),
@@ -30,7 +36,7 @@ export const CreateRoleSchema = z.object({
   defaultScope: RoleScopeEnum.default("ORGANIZATION"),
   organizationId: z.string().uuid().optional().nullable(),
   permissions: z
-    .array(z.string().regex(/^[a-z0-9-]+:[a-z0-9-]+$/))
+    .array(z.string())
     .refine((perms) => new Set(perms).size === perms.length, {
       message: "Duplicate permission keys are not allowed"
     })
@@ -49,7 +55,7 @@ export const PatchRoleSchema = z.object({
 export const UpdatePermissionsSchema = z.object({
   version: z.number().int().positive({ message: "Role version is required for optimistic locking" }),
   permissions: z
-    .array(z.string().regex(/^[a-z0-9-]+:[a-z0-9-]+$/))
+    .array(z.string())
     .refine((perms) => new Set(perms).size === perms.length, {
       message: "Duplicate permission keys are not allowed"
     }),
@@ -61,7 +67,7 @@ export const CloneRoleSchema = z.object({
     .string()
     .min(3)
     .max(50)
-    .regex(/^[A-Z0-9_]+$/)
+    .regex(/^[A-Za-z0-9_]+$/)
     .refine((code) => !PROTECTED_SYSTEM_CODES.has(code.toUpperCase()), {
       message: "System role codes are reserved"
     }),
@@ -78,7 +84,10 @@ export const CreateAssignmentSchema = z.object({
   userId: z.string().uuid("Invalid User ID format"),
   roleId: z.number().int().positive(),
   organizationId: z.string().uuid().optional().nullable(),
+  scopeType: RoleScopeEnum.optional().nullable(),
   districtCode: z.string().max(50).optional().nullable(),
+  divisionCode: z.string().max(50).optional().nullable(),
+  departmentId: z.string().optional().nullable(),
   projectId: z.string().uuid().optional().nullable(),
   validFrom: z.string().datetime().optional().nullable(),
   validUntil: z.string().datetime().optional().nullable()

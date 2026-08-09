@@ -11,7 +11,8 @@ import {
   listPermissions,
   updateOrgRole,
   updateOrgUserRole,
-  updateOrgUserStatus
+  updateOrgUserStatus,
+  listChildOrganizations
 } from "../controllers/organizationAdminController";
 
 const router = Router();
@@ -20,6 +21,7 @@ const orgAdmin = [
   authorizeRoles([Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN, Role.BENEFICIARY_AGENCY, Role.COMPANY_ADMIN, Role.NGO_ADMIN])
 ];
 
+router.get("/children", ...orgAdmin, listChildOrganizations);
 router.get("/roles", ...orgAdmin, checkPermission("organization:view"), listOrgRoles);
 router.post("/roles", ...orgAdmin, checkPermission("role:create"), createOrgRole);
 router.put("/roles/:id", ...orgAdmin, checkPermission("role:update"), updateOrgRole);

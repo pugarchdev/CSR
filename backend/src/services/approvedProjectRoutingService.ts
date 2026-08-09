@@ -210,6 +210,24 @@ export async function routeApprovedGovernmentPitch(input: { pitchId: string; int
   if (existingProject) return { project: existingProject, created: false };
 
   const project = await prisma.$transaction(async (tx) => {
+    // Resolve parent organization and active DNO for department
+    const targetDeptOrg = await tx.organization.findUnique({
+      where: { id: department.id },
+      select: { id: true, parentOrganizationId: true, dnoAuthority: true }
+    });
+    const parentOrgId = targetDeptOrg?.parentOrganizationId || department.id;
+
+    const activeDno = await tx.dnoNomination.findFirst({
+      where: {
+        OR: [
+          { departmentOrganizationId: department.id },
+          { organizationId: department.id }
+        ],
+        status: "ACTIVE"
+      },
+      select: { id: true, userId: true }
+    });
+
     const created = await tx.project.create({
       data: {
         projectCode: projectCode(),
@@ -221,6 +239,11 @@ export async function routeApprovedGovernmentPitch(input: { pitchId: string; int
         taluka: pitch.talukas?.[0] || "To be confirmed",
         approvedBudget: pitch.estimatedCost || pitch.budget || 0,
         organizationId: department.id,
+        parentOrganizationId: parentOrgId,
+        departmentOrganizationId: department.id,
+        dncUserId: dncMapping.dncUserId,
+        nodalOfficerUserId: activeDno?.userId || null,
+        departmentAssignmentStatus: "CONFIRMED",
         corporatePartnerId: corporateOrg.id,
         approvalSourceEnquiryId: pitch.id,
         status: "APPROVED"
@@ -256,7 +279,16 @@ export async function routeApprovedGovernmentPitch(input: { pitchId: string; int
           assignedToId: departmentAdmin.id,
           assignedRoleId: ROLE_ID.GOVERNMENT_OFFICER,
           status: "ACTIVE"
-        }
+        },
+        ...(activeDno && activeDno.userId ? [{
+          entityType: "PROJECT",
+          entityId: created.id,
+          assignmentType: "DISTRICT_NODAL_OFFICER",
+          assignedById: input.actorUserId,
+          assignedToId: activeDno.userId,
+          assignedRoleId: ROLE_ID.DISTRICT_NODAL_OFFICER,
+          status: "ACTIVE"
+        }] : [])
       ]
     });
 

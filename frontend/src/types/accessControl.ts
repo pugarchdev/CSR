@@ -7,7 +7,18 @@
 
 export type RoleStatus = "ACTIVE" | "INACTIVE" | "ARCHIVED";
 export type RoleType = "SYSTEM" | "CUSTOM";
-export type DefaultScope = "GLOBAL" | "ORGANIZATION" | "DISTRICT" | "PROJECT" | "ASSIGNED_RESOURCE";
+export type DefaultScope =
+  | "GLOBAL"
+  | "ORGANIZATION"
+  | "ORGANIZATION_AND_CHILDREN"
+  | "DEPARTMENT"
+  | "DISTRICT"
+  | "DIVISION"
+  | "ASSIGNED"
+  | "OWN"
+  | "MULTI_ORGANIZATION"
+  | "PROJECT"
+  | "ASSIGNED_RESOURCE";
 export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 export type AssignmentStatus = "ACTIVE" | "INACTIVE" | "EXPIRED" | "REVOKED";
 

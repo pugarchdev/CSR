@@ -47,10 +47,15 @@ const FILTER_CHIPS: { key: keyof FilterState; label: string; options: { value: s
     label: "Scope",
     options: [
       { value: "ALL", label: "All Scopes" },
-      { value: "GLOBAL", label: "Global" },
+      { value: "GLOBAL", label: "Global (Statewide)" },
       { value: "ORGANIZATION", label: "Organization" },
+      { value: "ORGANIZATION_AND_CHILDREN", label: "Org + Children" },
+      { value: "DEPARTMENT", label: "Department" },
       { value: "DISTRICT", label: "District" },
-      { value: "PROJECT", label: "Project" },
+      { value: "DIVISION", label: "Division" },
+      { value: "ASSIGNED", label: "Assigned" },
+      { value: "OWN", label: "Own Records" },
+      { value: "MULTI_ORGANIZATION", label: "Multi-Org" },
     ],
   },
 ];

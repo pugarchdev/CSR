@@ -549,7 +549,7 @@ export const createAssignment = async (req: AuthenticatedRequest, res: Response,
       return res.status(400).json({ error: "Validation error", details: parseResult.error.format() });
     }
 
-    const { userId, roleId, organizationId, districtCode, projectId, validFrom, validUntil } = parseResult.data;
+    const { userId, roleId, organizationId, scopeType, districtCode, divisionCode, departmentId, projectId, validFrom, validUntil } = parseResult.data;
     const role = await prisma.role.findUnique({ where: { id: roleId } });
     if (!role) return res.status(404).json({ error: "Target role not found" });
 
@@ -563,7 +563,10 @@ export const createAssignment = async (req: AuthenticatedRequest, res: Response,
           userId,
           roleId,
           organizationId: organizationId || role.organizationId || null,
+          scopeType: (scopeType as any) || role.defaultScope || "ORGANIZATION",
           districtCode: districtCode || null,
+          divisionCode: divisionCode || null,
+          departmentId: departmentId || null,
           projectId: projectId || null,
           status: "ACTIVE",
           validFrom: validFrom ? new Date(validFrom) : new Date(),

@@ -102,6 +102,60 @@ export const checkPermission = (permissionKey: string) => {
 };
 
 /**
+ * Unified Authorization Middleware evaluating:
+ * ACCESS = Permission AND Scope AND Resource Relationship AND Object Status
+ */
+export const authorize = (
+  permissionKey: string,
+  resourceExtractor?: (req: AuthenticatedRequest) => {
+    organizationId?: string | null;
+    departmentId?: string | null;
+    district?: string | null;
+    division?: string | null;
+    assignedUserId?: string | null;
+    createdById?: string | null;
+  }
+) => {
+  return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      if (!req.user) return res.status(401).json({ error: "Unauthorized access" });
+
+      const isSuperAdmin = Number(req.user.role) === Role.SUPER_ADMIN || req.user.role === "SUPER_ADMIN" || String(req.user.roleId) === "1";
+      if (isSuperAdmin) return next();
+
+      const resource = resourceExtractor
+        ? resourceExtractor(req)
+        : {
+            organizationId: (req.params.organizationId || req.body.organizationId || req.query.organizationId) as string,
+            district: (req.params.district || req.body.district || req.query.district) as string,
+            departmentId: (req.params.departmentId || req.body.departmentId || req.query.departmentId) as string
+          };
+
+      const isAuthorized = await EffectivePermissionService.authorizeAccess(
+        req.user.id,
+        permissionKey,
+        resource
+      );
+
+      if (!isAuthorized) {
+        await auditBlockedAccess(req, "AUTHORIZATION_BLOCKED", {
+          permissionKey,
+          resource,
+          path: req.originalUrl
+        });
+        return res.status(403).json({
+          error: `Forbidden: missing permission '${permissionKey}' or resource outside assigned scope`
+        });
+      }
+
+      return next();
+    } catch (error) {
+      return next(error);
+    }
+  };
+};
+
+/**
  * Submission gate: the authenticated user's OWN organization must be of the
  * required kind AND fully onboarded (status ACTIVE + onboardingStatus APPROVED).
  *

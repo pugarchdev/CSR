@@ -211,37 +211,161 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
     // 5. Execute User & Organization creation / update inside atomic Prisma Transaction
     const user = await prisma.$transaction(async (tx) => {
       let organizationId: string | null = null;
+      const fullAddress = [
+        profile?.addressLine1,
+        profile?.addressLine2,
+        profile?.city,
+        profile?.taluka,
+        profile?.district,
+        profile?.state,
+        profile?.pincode
+      ].filter(Boolean).join(", ") || profile?.address || null;
 
       if (profile?.name) {
+        let resolvedParentOrgId: string | null = profile.parentOrganizationId || null;
+        if (!resolvedParentOrgId && profile.parentRegistrationCode) {
+          const matchedParent = await tx.organization.findUnique({
+            where: { parentRegistrationCode: profile.parentRegistrationCode.trim().toUpperCase() }
+          });
+          if (matchedParent) resolvedParentOrgId = matchedParent.id;
+        }
+
+        const isChildDept = orgKind === "GOVERNMENT_DEPARTMENT" && profile.registrationCategory === "GOVT_DEPARTMENT" && Boolean(resolvedParentOrgId);
+        const generatedParentCode = (orgKind === "GOVERNMENT_DEPARTMENT" && !isChildDept)
+          ? `${(profile.officialCode || profile.name).replace(/[^a-zA-Z0-9]/g, "").slice(0, 8).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`
+          : null;
+
+        const orgData = {
+          name: profile.name,
+          kind: orgKind,
+          cin: cleanCin,
+          pan: cleanPan,
+          officialIdentifierType: profile.officialIdentifierType || (orgKind === "GOVERNMENT_DEPARTMENT" ? "GOVT_LOCAL_BODY_CODE" : cleanCin ? "CIN" : cleanPan ? "PAN" : null),
+          officialIdentifierNumber: profile.officialIdentifierNumber || profile.officialRegNo || profile.registrationNumber || profile.officialCode || cleanCin || cleanPan || null,
+          registrationNumber: profile.officialRegNo || profile.registrationNumber || profile.officialCode || null,
+          parentOrganizationId: resolvedParentOrgId,
+          parentRegistrationCode: generatedParentCode,
+          parentRelationshipStatus: resolvedParentOrgId ? "PENDING_VERIFICATION" : "NONE",
+          officialEmail: normalizedEmail,
+          officialOfficeEmail: profile.officialOfficeEmail || normalizedEmail,
+          officialPhone: profile.mobile || profile.representativeMobile || null,
+          officialOfficePhone: profile.officialOfficePhone || profile.officePhone || profile.mobile || null,
+          website: profile.website || null,
+          address: fullAddress,
+          addressLine1: profile.addressLine1 || null,
+          addressLine2: profile.addressLine2 || null,
+          city: profile.city || null,
+          taluka: profile.taluka || null,
+          district: profile.district || null,
+          state: profile.state || "Maharashtra",
+          pincode: profile.pincode || null,
+        };
+
         if (existingUser && existingUser.organizationId) {
           // Update existing pending organization
           const updatedOrg = await tx.organization.update({
             where: { id: existingUser.organizationId },
-            data: {
-              name: profile.name,
-              kind: orgKind,
-              cin: cleanCin,
-              pan: cleanPan,
-              officialEmail: normalizedEmail,
-              address: profile.address || null,
-              district: profile.district || null,
-            }
+            data: orgData
           });
           organizationId = updatedOrg.id;
         } else {
           // Create new organization
           const newOrg = await tx.organization.create({
-            data: {
-              name: profile.name,
-              kind: orgKind,
-              cin: cleanCin,
-              pan: cleanPan,
-              officialEmail: normalizedEmail,
-              address: profile.address || null,
-              district: profile.district || null,
-            }
+            data: orgData
           });
           organizationId = newOrg.id;
+        }
+
+        // Create pending OrganizationRelationship record if registering under a parent
+        if (organizationId && resolvedParentOrgId) {
+          await tx.organizationRelationship.upsert({
+            where: {
+              childOrganizationId_parentOrganizationId: {
+                childOrganizationId: organizationId,
+                parentOrganizationId: resolvedParentOrgId
+              }
+            },
+            create: {
+              childOrganizationId: organizationId,
+              parentOrganizationId: resolvedParentOrgId,
+              status: "PENDING"
+            },
+            update: {
+              status: "PENDING"
+            }
+          });
+        }
+
+        // Save uploaded organization documents if provided
+        if (organizationId) {
+          const docsToCreate = [];
+          if (profile.govtDocUrl) {
+            docsToCreate.push({
+              title: "Government Registration / Authorization Document",
+              documentType: "GOVT_AUTHORIZATION_DOC",
+              fileUrl: profile.govtDocUrl,
+              fileName: profile.govtDocName || "govt_authorization_doc.pdf",
+              fileSize: profile.govtDocSize || 0,
+              fileType: "application/pdf",
+              organizationId
+            });
+          }
+          if (profile.proofDocUrl) {
+            docsToCreate.push({
+              title: "Official Organization Proof",
+              documentType: "OFFICIAL_ORG_PROOF",
+              fileUrl: profile.proofDocUrl,
+              fileName: profile.proofDocName || "official_org_proof.pdf",
+              fileSize: profile.proofDocSize || 0,
+              fileType: "application/pdf",
+              organizationId
+            });
+          }
+          if (profile.otherDocUrl) {
+            docsToCreate.push({
+              title: "Other Supporting Document",
+              documentType: "SUPPORTING_DOC",
+              fileUrl: profile.otherDocUrl,
+              fileName: profile.otherDocName || "supporting_doc.pdf",
+              fileSize: profile.otherDocSize || 0,
+              fileType: "application/pdf",
+              organizationId
+            });
+          }
+          if (docsToCreate.length > 0) {
+            await tx.document.createMany({ data: docsToCreate });
+          }
+        }
+
+        // Upsert GovDepartmentProfile for government entities (capturing Authorized Representative info, NOT auto-DNO)
+        if (orgKind === "GOVERNMENT_DEPARTMENT" && organizationId) {
+          const fullName = [userFirstName, userLastName].filter(Boolean).join(" ") || profile?.name || "Authorized Representative";
+          await tx.govDepartmentProfile.upsert({
+            where: { organizationId },
+            create: {
+              organizationId,
+              orgType: profile.orgType || null,
+              adminLevel: profile.adminLevel || null,
+              parentOrganization: profile.parentOrganization || null,
+              officialRegNo: profile.officialIdentifierNumber || profile.officialRegNo || profile.registrationNumber || profile.officialCode || null,
+              deptOfficeCode: profile.deptOfficeCode || profile.officialCode || null,
+              departmentType: profile.orgType || null,
+              departmentCode: profile.deptOfficeCode || profile.officialCode || null,
+              employeeId: profile.employeeId || null,
+              representativeMobile: profile.mobile || profile.representativeMobile || null,
+            },
+            update: {
+              orgType: profile.orgType || null,
+              adminLevel: profile.adminLevel || null,
+              parentOrganization: profile.parentOrganization || null,
+              officialRegNo: profile.officialIdentifierNumber || profile.officialRegNo || profile.registrationNumber || profile.officialCode || null,
+              deptOfficeCode: profile.deptOfficeCode || profile.officialCode || null,
+              departmentType: profile.orgType || null,
+              departmentCode: profile.deptOfficeCode || profile.officialCode || null,
+              employeeId: profile.employeeId || null,
+              representativeMobile: profile.mobile || profile.representativeMobile || null,
+            }
+          });
         }
       }
 
@@ -255,6 +379,7 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
             firstName: userFirstName,
             lastName: userLastName,
             designation: userDesignation,
+            mobile: profile?.mobile || profile?.representativeMobile || null,
             roleId: effectiveRoleId,
             organizationId: organizationId || existingUser.organizationId,
             isVerified: false,
@@ -270,6 +395,7 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
             firstName: userFirstName,
             lastName: userLastName,
             designation: userDesignation,
+            mobile: profile?.mobile || profile?.representativeMobile || null,
             roleId: effectiveRoleId,
             organizationId,
             isVerified: false,
@@ -285,17 +411,23 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
         create: {
           userId: createdOrUpdatedUser.id,
           fullName,
+          employeeId: profile?.employeeId || null,
           designation: userDesignation,
           department: profile?.name || null,
           district: profile?.district || null,
-          officeAddress: profile?.address || null,
+          taluka: profile?.taluka || null,
+          officeAddress: fullAddress,
+          mobile: profile?.mobile || profile?.representativeMobile || null,
         },
         update: {
           fullName,
+          employeeId: profile?.employeeId || null,
           designation: userDesignation,
           department: profile?.name || null,
           district: profile?.district || null,
-          officeAddress: profile?.address || null,
+          taluka: profile?.taluka || null,
+          officeAddress: fullAddress,
+          mobile: profile?.mobile || profile?.representativeMobile || null,
         }
       });
 
@@ -381,9 +513,45 @@ export const resendOtp = async (req: Request, res: Response, next: NextFunction)
     const normalizedEmail = email.trim().toLowerCase();
     await createAndSendOtp(normalizedEmail);
 
-    return res.json({ message: "A new OTP has been sent to your email." });
+    return res.json({ success: true, message: "Logged out successfully" });
   } catch (error) {
     next(error);
+  }
+};
+
+export const searchParentOrganizations = async (req: Request, res: Response) => {
+  try {
+    const q = (req.query.q as string || "").trim();
+    const parentOrgs = await prisma.organization.findMany({
+      where: {
+        kind: "GOVERNMENT_DEPARTMENT",
+        parentOrganizationId: null,
+        status: "ACTIVE",
+        ...(q
+          ? {
+              OR: [
+                { name: { contains: q, mode: "insensitive" } },
+                { parentRegistrationCode: { contains: q, mode: "insensitive" } },
+                { officialIdentifierNumber: { contains: q, mode: "insensitive" } },
+                { district: { contains: q, mode: "insensitive" } }
+              ]
+            }
+          : {})
+      },
+      select: {
+        id: true,
+        name: true,
+        parentRegistrationCode: true,
+        officialIdentifierNumber: true,
+        district: true,
+        state: true
+      },
+      take: 20
+    });
+
+    return res.json({ success: true, data: parentOrgs });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message || "Failed to search parent organizations" });
   }
 };
 

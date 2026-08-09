@@ -904,3 +904,135 @@ export const createAdminOrganization = async (req: AuthenticatedRequest, res: Re
     next(error);
   }
 };
+
+export const listSubDepartments = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const orgId = req.params.organizationId || req.user?.organizationId;
+    if (!orgId) return res.status(400).json({ error: "Organization ID required" });
+
+    const departments = await prisma.subDepartment.findMany({
+      where: { organizationId: orgId },
+      orderBy: { createdAt: "asc" }
+    });
+    return res.json(departments);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createSubDepartment = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const orgId = req.params.organizationId || req.user?.organizationId;
+    if (!orgId) return res.status(400).json({ error: "Organization ID required" });
+
+    const { name, code, type, description, officeAddress, officialEmail, officialPhone, departmentHead, dnoName, status } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: "Department Name is required" });
+
+    const dept = await prisma.subDepartment.create({
+      data: {
+        organizationId: orgId,
+        name: name.trim(),
+        code: code?.trim() || null,
+        type: type?.trim() || null,
+        description: description?.trim() || null,
+        officeAddress: officeAddress?.trim() || null,
+        officialEmail: officialEmail?.trim() || null,
+        officialPhone: officialPhone?.trim() || null,
+        departmentHead: departmentHead?.trim() || null,
+        dnoName: dnoName?.trim() || null,
+        status: status || "ACTIVE"
+      }
+    });
+
+    return res.status(201).json(dept);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateSubDepartment = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { name, code, type, description, officeAddress, officialEmail, officialPhone, departmentHead, dnoName, status } = req.body;
+
+    const dept = await prisma.subDepartment.update({
+      where: { id },
+      data: {
+        ...(name ? { name: name.trim() } : {}),
+        ...(code !== undefined ? { code: code?.trim() || null } : {}),
+        ...(type !== undefined ? { type: type?.trim() || null } : {}),
+        ...(description !== undefined ? { description: description?.trim() || null } : {}),
+        ...(officeAddress !== undefined ? { officeAddress: officeAddress?.trim() || null } : {}),
+        ...(officialEmail !== undefined ? { officialEmail: officialEmail?.trim() || null } : {}),
+        ...(officialPhone !== undefined ? { officialPhone: officialPhone?.trim() || null } : {}),
+        ...(departmentHead !== undefined ? { departmentHead: departmentHead?.trim() || null } : {}),
+        ...(dnoName !== undefined ? { dnoName: dnoName?.trim() || null } : {}),
+        ...(status ? { status } : {})
+      }
+    });
+
+    return res.json(dept);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteSubDepartment = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    await prisma.subDepartment.delete({ where: { id } });
+    return res.json({ success: true, message: "Department deleted successfully" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const listChildOrganizations = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const parentOrgId = req.user?.organizationId;
+    if (!parentOrgId) {
+      return res.status(403).json({ error: "Access denied. Parent organization context is required." });
+    }
+
+    const parentOrg = await prisma.organization.findUnique({
+      where: { id: parentOrgId },
+      select: { id: true, name: true, parentRegistrationCode: true }
+    });
+
+    const childOrgs = await prisma.organization.findMany({
+      where: {
+        parentOrganizationId: parentOrgId
+      },
+      include: {
+        govDeptProfile: true,
+        departmentDnoNominations: {
+          where: { status: "ACTIVE" },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            officialDesignation: true,
+            officialEmail: true,
+            officialMobile: true,
+            status: true
+          }
+        },
+        requestedRelationships: {
+          where: { parentOrganizationId: parentOrgId },
+          select: { status: true, requestedAt: true, verifiedAt: true, rejectionReason: true }
+        }
+      },
+      orderBy: { createdAt: "desc" }
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        parentOrganization: parentOrg,
+        childOrganizations: childOrgs
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};

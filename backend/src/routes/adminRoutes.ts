@@ -16,6 +16,7 @@ import {
 import { Role } from "../types/role";
 import { getSlaConfiguration, saveSlaConfiguration } from "../controllers/slaAdminController";
 import { transferRmPortfolio } from "../controllers/rmPortfolioController";
+import { listPendingRelationships, verifyRelationship } from "../controllers/relationshipController";
 
 const router = Router();
 
@@ -42,5 +43,16 @@ router.post("/organizations/:id/approve", requirePermission("organization:approv
 router.post("/organizations/:id/reject", requirePermission("organization:reject"), rejectOrganization);
 router.post("/organizations/:id/suspend", requirePermission("organization:suspend"), suspendOrganization);
 router.post("/organizations/:id/request-clarification", requirePermission("organization:update"), requestClarification);
+
+import { getRecommendedDepartments, routeEnquiryToDepartment, confirmDepartmentRouting } from "../controllers/enquiryRoutingController";
+
+// Parent-Child relationship verification endpoints
+router.get("/relationships/pending", authorizeRoles([Role.SUPER_ADMIN, Role.PORTAL_ADMIN]), listPendingRelationships);
+router.post("/relationships/:id/verify", authorizeRoles([Role.SUPER_ADMIN, Role.PORTAL_ADMIN]), verifyRelationship);
+
+// Corporate Enquiry Department Routing endpoints
+router.get("/enquiries/:enquiryId/routing-recommendations", authorizeRoles([Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN]), getRecommendedDepartments);
+router.post("/enquiries/:enquiryId/route-department", authorizeRoles([Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN]), routeEnquiryToDepartment);
+router.post("/enquiries/:enquiryId/confirm-department", authorizeRoles([Role.SUPER_ADMIN, Role.PORTAL_ADMIN, Role.CSR_ADMIN]), confirmDepartmentRouting);
 
 export default router;

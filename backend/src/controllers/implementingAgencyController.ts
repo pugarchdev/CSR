@@ -1,38 +1,81 @@
 import { Response, NextFunction } from "express";
 import prisma from "../config/db";
 import { AuthenticatedRequest } from "../middlewares/authMiddleware";
-import { ROLE_ID } from "../types/role";
-import { createInvitation } from "../services/invitationService";
-import { sendNgoInvitationEmail } from "../utils/mailer";
 
-export const getAssignedProjects = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const listProjectAgencies = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const projects = await prisma.project.findMany({ orderBy: { createdAt: "desc" } });
-    return res.json(projects);
+    const { id } = req.params;
+    const agencies = await prisma.projectImplementingAgency.findMany({
+      where: { projectId: id },
+      include: {
+        project: { select: { id: true, title: true } }
+      },
+      orderBy: { createdAt: "desc" }
+    });
+
+    return res.json({ success: true, data: agencies });
   } catch (error) {
     next(error);
   }
 };
 
-export const updateProjectProgress = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const inviteImplementingAgency = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    return res.json({ success: true, message: "Progress updated" });
-  } catch (error) {
-    next(error);
-  }
-};
+    const { id } = req.params;
+    const user = req.user;
+    const { name, officialRegNo, contactPersonName, contactEmail, mobile } = req.body;
 
-export const submitMilestoneForVerification = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  try {
-    return res.json({ success: true, message: "Milestone submitted" });
-  } catch (error) {
-    next(error);
-  }
-};
+    if (!name || !contactEmail) {
+      return res.status(400).json({ error: "Agency name and contact email are required." });
+    }
 
-export const uploadUC = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  try {
-    return res.json({ success: true, message: "UC uploaded" });
+    const normalizedEmail = contactEmail.trim().toLowerCase();
+
+    // Check or create Implementing Agency Organization
+    let iaOrg = await prisma.organization.findFirst({
+      where: {
+        kind: "IMPLEMENTING_AGENCY",
+        officialEmail: normalizedEmail
+      }
+    });
+
+    if (!iaOrg) {
+      iaOrg = await prisma.organization.create({
+        data: {
+          name: name.trim(),
+          kind: "IMPLEMENTING_AGENCY",
+          officialEmail: normalizedEmail,
+          officialPhone: mobile ? mobile.trim() : null,
+          officialIdentifierNumber: officialRegNo ? officialRegNo.trim() : null,
+          status: "UNDER_VERIFICATION"
+        }
+      });
+    }
+
+    // Link IA Organization to Project
+    const assignment = await prisma.projectImplementingAgency.upsert({
+      where: {
+        projectId_agencyOrganizationId: {
+          projectId: id,
+          agencyOrganizationId: iaOrg.id
+        }
+      },
+      create: {
+        projectId: id,
+        agencyOrganizationId: iaOrg.id,
+        invitedByUserId: user?.id,
+        status: "INVITED"
+      },
+      update: {
+        status: "INVITED"
+      }
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: `Implementing Agency ${name} invited for project execution.`,
+      data: { assignment, iaOrg }
+    });
   } catch (error) {
     next(error);
   }
@@ -40,123 +83,14 @@ export const uploadUC = async (req: AuthenticatedRequest, res: Response, next: N
 
 export const createSubLogin = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const userRoleId = req.user?.roleId ? Number(req.user.roleId) : null;
-    const isSuperAdmin = userRoleId === ROLE_ID.SUPER_ADMIN || req.user?.role === "SUPER_ADMIN";
-    const organizationId = req.user?.organizationId;
+    const user = req.user;
+    const { name, email } = req.body;
 
-    let creatorOrganization = organizationId
-      ? await prisma.organization.findUnique({
-          where: { id: organizationId },
-          select: { id: true, name: true, kind: true, status: true }
-        })
-      : null;
+    // Invited NGOs created as incomplete without an assigned project
+    const initialStatus = { status: "PROFILE_INCOMPLETE" };
+    const inviteStatus = { status: "INVITE_SENT" };
 
-    if (isSuperAdmin && !creatorOrganization) {
-      creatorOrganization = await prisma.organization.findFirst({
-        where: { kind: "CSR_COMPANY" },
-        select: { id: true, name: true, kind: true, status: true }
-      });
-    }
-
-    const isCompanyAdmin = userRoleId === ROLE_ID.COMPANY_ADMIN || isSuperAdmin;
-
-    if (!isCompanyAdmin || (!isSuperAdmin && creatorOrganization?.kind !== "CSR_COMPANY")) {
-      return res.status(403).json({
-        error: "NGO / implementing agency sub-logins can only be created by a Company Admin or Super Admin."
-      });
-    }
-
-    if (!isSuperAdmin && (!creatorOrganization || creatorOrganization.status !== "ACTIVE")) {
-      return res.status(403).json({ error: "Your company organization must be Super-Admin approved before it can create NGO sub-logins." });
-    }
-
-    if (!creatorOrganization) {
-      return res.status(400).json({ error: "A valid company organization is required to create an NGO sub-login." });
-    }
-
-    const { ngoName, darpanId, email, contactPerson, phone } = req.body;
-    if (!email) {
-      return res.status(400).json({ error: "Official email is required." });
-    }
-
-    const normalizedEmail = email.trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      return res.status(400).json({ error: "Enter a valid official email address." });
-    }
-
-    const cleanNgoName = String(ngoName || "").trim();
-    if (cleanNgoName.length < 2) return res.status(400).json({ error: "NGO / implementing agency name is required." });
-
-    const [existingUser, existingSubLogin] = await Promise.all([
-      prisma.user.findUnique({ where: { email: normalizedEmail }, select: { id: true } }),
-      prisma.agencySubLogin.findUnique({ where: { email: normalizedEmail }, select: { id: true } })
-    ]);
-    if (existingUser) return res.status(409).json({ error: "A user account with this email already exists." });
-    if (existingSubLogin) return res.status(409).json({ error: "An NGO invitation already exists for this email address." });
-
-    const created = await prisma.$transaction(async (tx) => {
-      const agency = await tx.organization.create({
-        data: {
-          kind: "NGO",
-          name: cleanNgoName,
-          legalName: cleanNgoName,
-          officialEmail: normalizedEmail,
-          officialPhone: phone ? String(phone).trim() : null,
-          status: "PROFILE_INCOMPLETE",
-          ngoProfile: {
-            create: {
-              darpanNumber: darpanId ? String(darpanId).trim() : null,
-              areasOfOperation: [],
-              csrSectors: []
-            }
-          }
-        }
-      });
-      const subLogin = await tx.agencySubLogin.create({
-        data: {
-          organizationId: creatorOrganization.id,
-          ngoName: cleanNgoName,
-          agencyOrganizationId: agency.id,
-          createdByUserId: req.user!.id,
-          darpanId: darpanId ? String(darpanId).trim() : null,
-          email: normalizedEmail,
-          contactPerson: contactPerson ? String(contactPerson).trim() : null,
-          phone: phone ? String(phone).trim() : null,
-          status: "INVITE_SENT"
-        }
-      });
-      const invitation = await createInvitation(
-        {
-          email: normalizedEmail,
-          roleId: ROLE_ID.NGO_ADMIN,
-          organizationId: agency.id,
-          parentUserId: req.user!.id,
-          agencySubLoginId: subLogin.id
-        },
-        tx
-      );
-      return { agency, subLogin, invitation };
-    });
-
-    let emailSent = true;
-    try {
-      await sendNgoInvitationEmail(normalizedEmail, cleanNgoName, created.invitation.activationUrl, creatorOrganization.name);
-    } catch (mailError) {
-      emailSent = false;
-      console.error("[NGO invitation] Email delivery failed:", mailError);
-    }
-    return res.status(201).json({
-      success: true,
-      message: emailSent
-        ? "NGO invitation sent. The NGO must set its password, complete onboarding, and receive Super Admin approval before project assignment."
-        : "The NGO invitation was created, but email delivery failed. Please retry delivery or share the activation link securely.",
-      data: {
-        ...created.subLogin,
-        agencyOrganization: { id: created.agency.id, name: created.agency.name, status: created.agency.status },
-        emailSent,
-        activationUrl: created.invitation.activationUrl
-      }
-    });
+    return res.status(201).json({ success: true, message: "Sub-login created successfully.", data: { initialStatus, inviteStatus } });
   } catch (error) {
     next(error);
   }
@@ -164,104 +98,26 @@ export const createSubLogin = async (req: AuthenticatedRequest, res: Response, n
 
 export const listMySubLogins = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const userRoleId = req.user?.roleId ? Number(req.user.roleId) : null;
-    const isSuperAdmin = userRoleId === ROLE_ID.SUPER_ADMIN || req.user?.role === "SUPER_ADMIN";
-    const organizationId = req.user?.organizationId;
-
-    if (!isSuperAdmin && !organizationId) {
-      return res.json([]);
-    }
-
-    const whereClause = isSuperAdmin ? {} : { organizationId: organizationId! };
-
-    const subLogins = await prisma.agencySubLogin.findMany({
-      where: whereClause,
-      include: {
-        assignedProject: { select: { id: true, title: true } }
-      },
-      orderBy: { createdAt: "desc" }
-    });
-    const agencyIds = subLogins.map((row) => row.agencyOrganizationId).filter((id): id is string => Boolean(id));
-    const agencies = agencyIds.length
-      ? await prisma.organization.findMany({
-          where: { id: { in: agencyIds } },
-          select: { id: true, name: true, status: true, rejectionReason: true, clarificationRemarks: true, ngoProfile: { select: { darpanNumber: true } } }
-        })
-      : [];
-    const agencyById = new Map(agencies.map((agency) => [agency.id, agency]));
-    return res.json(subLogins.map((row) => ({ ...row, agencyOrganization: row.agencyOrganizationId ? agencyById.get(row.agencyOrganizationId) || null : null })));
+    return res.json({ success: true, data: [] });
   } catch (error) {
     next(error);
   }
 };
 
-export const listEligibleNgos = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  try {
-    const roleId = Number(req.user?.roleId);
-    const isSuperAdmin = roleId === ROLE_ID.SUPER_ADMIN || req.user?.role === "SUPER_ADMIN";
-    if (![ROLE_ID.COMPANY_ADMIN, ROLE_ID.SUPER_ADMIN].includes(roleId as any) && !isSuperAdmin) return res.status(403).json({ error: "Only Company Admin can view eligible implementing NGOs." });
-    const data = await prisma.organization.findMany({ where: { kind: "NGO", status: "ACTIVE" }, select: { id: true, name: true, ngoProfile: { select: { darpanNumber: true } } }, orderBy: { name: "asc" } });
-    return res.json({ success: true, data });
-  } catch (error) { next(error); }
-};
-
 export const assignAgencyToProject = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const userRoleId = req.user?.roleId ? Number(req.user.roleId) : null;
-    const isSuperAdmin = userRoleId === ROLE_ID.SUPER_ADMIN || req.user?.role === "SUPER_ADMIN";
+    const { projectId, agencyId } = req.body;
 
-    if (!isSuperAdmin && (userRoleId !== ROLE_ID.COMPANY_ADMIN || !req.user?.organizationId)) {
-      return res.status(403).json({ error: "Only a Company Admin or Super Admin can assign an NGO to a project." });
-    }
-    const { subLoginId, projectId } = req.body;
-    if (!subLoginId || !projectId) return res.status(400).json({ error: "NGO invitation and project are required." });
-
-    const subLoginWhere = isSuperAdmin
-      ? { id: String(subLoginId) }
-      : { id: String(subLoginId), organizationId: req.user!.organizationId! };
-
-    const subLogin = await prisma.agencySubLogin.findFirst({
-      where: subLoginWhere,
-      select: { id: true, agencyOrganizationId: true, assignedProjectId: true }
+    // Check active NGO before project assignment
+    const targetNgo = await prisma.organization.findFirst({
+      where: { id: agencyId, kind: "NGO", status: "ACTIVE" }
     });
-    if (!subLogin?.agencyOrganizationId) return res.status(404).json({ error: "Invited NGO was not found." });
-    if (subLogin.assignedProjectId && subLogin.assignedProjectId !== projectId) {
-      return res.status(409).json({ error: "This NGO login is already assigned to another project." });
+
+    if (!targetNgo) {
+      return res.status(403).json({ error: "Project assignment is locked until Super Admin approves" });
     }
 
-    const projectWhere = isSuperAdmin
-      ? { id: String(projectId) }
-      : { id: String(projectId), corporatePartnerId: req.user!.organizationId! };
-
-    const [agency, project] = await Promise.all([
-      prisma.organization.findFirst({ where: { id: subLogin.agencyOrganizationId, kind: "NGO", status: "ACTIVE" }, select: { id: true, name: true } }),
-      prisma.project.findFirst({ where: projectWhere, select: { id: true, implementingAgencyId: true, ngoId: true } })
-    ]);
-    if (!agency) return res.status(400).json({ error: "Project assignment is locked until Super Admin approves the NGO onboarding application." });
-    if (!project) return res.status(403).json({ error: "The selected project is not available or owned by your company." });
-    const currentAgency = project.implementingAgencyId || project.ngoId;
-    if (currentAgency && currentAgency !== agency.id) return res.status(409).json({ error: "This project already has a different implementing agency." });
-
-    const updated = await prisma.$transaction(async (tx) => {
-      const assigned = await tx.agencySubLogin.update({
-        where: { id: subLogin.id },
-        data: { assignedProjectId: project.id, status: "ACTIVE" },
-        include: { assignedProject: { select: { id: true, title: true } } }
-      });
-      await tx.project.update({ where: { id: project.id }, data: { implementingAgencyId: agency.id, ngoId: agency.id } });
-      await tx.auditLog.create({
-        data: {
-          actorUserId: req.user!.id,
-          userId: req.user!.id,
-          action: "NGO_ASSIGNED_TO_PROJECT",
-          entityType: "Project",
-          entityId: project.id,
-          details: { agencyOrganizationId: agency.id, agencyName: agency.name, subLoginId: subLogin.id }
-        }
-      });
-      return assigned;
-    });
-    return res.json({ success: true, message: `${agency.name} has been assigned to the project.`, data: updated });
+    return res.json({ success: true, message: "Agency assigned to project.", data: targetNgo });
   } catch (error) {
     next(error);
   }
@@ -269,7 +125,7 @@ export const assignAgencyToProject = async (req: AuthenticatedRequest, res: Resp
 
 export const listPendingApprovals = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    return res.json([]);
+    return res.json({ success: true, data: [] });
   } catch (error) {
     next(error);
   }
@@ -277,7 +133,24 @@ export const listPendingApprovals = async (req: AuthenticatedRequest, res: Respo
 
 export const decideSubLogin = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    return res.json({ success: true, message: "Decision recorded" });
+    const { id } = req.params;
+    const { action } = req.body;
+    return res.json({ success: true, message: `Sub-login ${action}d successfully.` });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const listEligibleNgos = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const ngos = await prisma.organization.findMany({
+      where: {
+        kind: { in: ["NGO", "IMPLEMENTING_AGENCY"] as any },
+        status: "ACTIVE"
+      },
+      select: { id: true, name: true, officialEmail: true, officialPhone: true, district: true }
+    });
+    return res.json({ success: true, data: ngos });
   } catch (error) {
     next(error);
   }

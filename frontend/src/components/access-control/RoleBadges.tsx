@@ -23,7 +23,7 @@ export function StatusBadge({ status }: { status: RoleStatus }) {
 }
 
 export function ScopeBadge({ scope }: { scope: DefaultScope }) {
-  const scopeColors: Record<DefaultScope, "info" | "primary" | "muted" | "warning" | "glass"> = {
+  const scopeColors: Partial<Record<DefaultScope, "info" | "primary" | "muted" | "warning" | "glass">> = {
     GLOBAL: "info",
     ORGANIZATION: "primary",
     DISTRICT: "warning",
@@ -32,7 +32,7 @@ export function ScopeBadge({ scope }: { scope: DefaultScope }) {
   };
   return (
     <Badge variant={scopeColors[scope] ?? "muted"} size="sm">
-      {scope.replace(/_/g, " ")}
+      {String(scope || "").replace(/_/g, " ")}
     </Badge>
   );
 }

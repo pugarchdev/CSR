@@ -24,6 +24,7 @@ enum OrganizationKind {
   NGO
   CSR_COMPANY
   GOVERNMENT_DEPARTMENT
+  IMPLEMENTING_AGENCY
   PORTAL_ADMIN_ORG
 }
 
@@ -60,12 +61,41 @@ enum ProjectStatus {
 }
 
 enum MilestoneStatus {
-  NOT_STARTED
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
   IN_PROGRESS
   SUBMITTED_FOR_VERIFICATION
-  APPROVED
-  RELEASED
+  VERIFIED
   REJECTED
+  CHANGES_REQUIRED
+  COMPLETED
+}
+
+enum MilestoneCreatorType {
+  IMPLEMENTING_AGENCY
+  CORPORATE
+  GOVERNMENT_DEPARTMENT
+}
+
+enum MouStatus {
+  NOT_INITIATED
+  DRAFT
+  CORPORATE_REVIEW
+  GOVT_REVIEW
+  LEGAL_REVIEW
+  REVISION_REQUESTED
+  APPROVED
+  SIGNING_IN_PROGRESS
+  SIGNED
+  EXPIRED
+  TERMINATED
+}
+
+enum MouSigningType {
+  DIGITAL
+  PHYSICAL
 }
 
 enum VerificationModuleType {
@@ -127,7 +157,13 @@ enum RoleType {
 enum RoleScope {
   GLOBAL
   ORGANIZATION
+  ORGANIZATION_AND_CHILDREN
+  DEPARTMENT
   DISTRICT
+  DIVISION
+  ASSIGNED
+  OWN
+  MULTI_ORGANIZATION
   PROJECT
   ASSIGNED_RESOURCE
 }
@@ -212,6 +248,9 @@ model User {
   helpdeskResolved  HelpdeskQuery[]     @relation("HelpdeskResolved")
   verificationRecords VerificationRecord[] @relation("InitiatedBy")
   messages          Message[]
+  dnoNominations    DnoNomination[]     @relation("DnoNominatedUser")
+  verifiedDnoNominations DnoNomination[] @relation("DnoVerifiedBy")
+  departmentHeadedOrgs Organization[]   @relation("OrgDepartmentHead")
 
   @@index([organizationId])
   @@index([roleId])
@@ -320,7 +359,10 @@ model UserRoleAssignment {
   role           Role             @relation(fields: [roleId], references: [id], onDelete: Cascade)
   organizationId String?
   organization   Organization?    @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  scopeType      RoleScope?       @default(ORGANIZATION)
   districtCode   String?
+  divisionCode   String?
+  departmentId   String?
   projectId      String?
   project        Project?         @relation("ProjectRoleAssignments", fields: [projectId], references: [id], onDelete: SetNull)
   status         AssignmentStatus @default(ACTIVE)
@@ -377,11 +419,30 @@ model Organization {
   gstin              String?
   gstinHash          String?            @unique
   
+  officialIdentifierType String?
+  officialIdentifierNumber String?
+
+  parentOrganizationId String?
+  parentOrganization   Organization?       @relation("OrgHierarchy", fields: [parentOrganizationId], references: [id], onDelete: SetNull)
+  childOrganizations   Organization[]       @relation("OrgHierarchy")
+  parentRegistrationCode String?          @unique
+  parentRelationshipStatus String         @default("NONE") // NONE | PENDING_VERIFICATION | VERIFIED | REJECTED | CHANGE_REQUESTED
+
+  departmentHeadUserId String?
+  departmentHeadUser   User?               @relation("OrgDepartmentHead", fields: [departmentHeadUserId], references: [id], onDelete: SetNull)
+
+  dnoAuthority         String              @default("DEPARTMENT") // DEPARTMENT | PARENT_ORGANIZATION | SUPER_ADMIN
+
   // Contact & Location
   officialEmail      String?
+  officialOfficeEmail String?
   officialPhone      String?
+  officialOfficePhone String?
   website            String?
   address            String?
+  addressLine1       String?
+  addressLine2       String?
+  city               String?
   registeredOfficeAddress String?
   corporateOfficeAddress String?
   officialEmailDomain String?
@@ -406,12 +467,19 @@ model Organization {
   // System Relations
   users              User[]
   projects           Project[]          @relation("OrganizationProjects")
+  parentOrgProjects  Project[]          @relation("ParentOrgProjects")
+  deptOrgProjects    Project[]          @relation("DeptOrgProjects")
   documents          Document[]
   bankAccounts       BankAccount[]
   roles              Role[]
   userRoles          UserOrganizationRole[]
   roleAssignments    UserRoleAssignment[]
   agencySubLogins    AgencySubLogin[]   @relation("OrganizationSubLogins")
+  subDepartments     SubDepartment[]
+  dnoNominations     DnoNomination[]
+  departmentDnoNominations DnoNomination[] @relation("DnoDeptOrg")
+  requestedRelationships OrganizationRelationship[] @relation("ChildOrgRel")
+  childRelationships OrganizationRelationship[] @relation("ParentOrgRel")
 
   // Soft Delete & Timestamps
   deletedAt          DateTime?
@@ -503,6 +571,11 @@ model GovDepartmentProfile {
   organizationId          String       @unique
   organization            Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   
+  orgType                 String?
+  adminLevel              String?
+  parentOrganization      String?
+  officialRegNo           String?
+  deptOfficeCode          String?
   departmentType          String?
   parentDepartment        String?
   departmentCode          String?
@@ -511,9 +584,103 @@ model GovDepartmentProfile {
   nodalOfficerDesignation String?
   nodalOfficerEmail       String?
   nodalOfficerMobile      String?
+  employeeId              String?
+  representativeMobile    String?
 
   createdAt               DateTime     @default(now())
   updatedAt               DateTime     @updatedAt
+}
+
+model SubDepartment {
+  id              String          @id @default(uuid())
+  organizationId  String
+  organization    Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  name            String
+  code            String?
+  type            String?
+  description     String?
+  officeAddress   String?
+  officialEmail   String?
+  officialPhone   String?
+  departmentHead  String?
+  departmentHeadEmail String?
+  departmentHeadMobile String?
+  dnoName         String?
+  status          String          @default("ACTIVE")
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  dnoNominations  DnoNomination[]
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+model OrganizationRelationship {
+  id                    String        @id @default(uuid())
+  childOrganizationId   String
+  childOrganization     Organization  @relation("ChildOrgRel", fields: [childOrganizationId], references: [id], onDelete: Cascade)
+  parentOrganizationId  String
+  parentOrganization    Organization  @relation("ParentOrgRel", fields: [parentOrganizationId], references: [id], onDelete: Cascade)
+
+  status                String        @default("PENDING") // PENDING | VERIFIED | REJECTED | CHANGE_REQUESTED
+  requestedAt           DateTime      @default(now())
+  verifiedAt            DateTime?
+  verifiedById          String?
+  rejectionReason       String?
+
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@unique([childOrganizationId, parentOrganizationId])
+  @@index([childOrganizationId])
+  @@index([parentOrganizationId])
+  @@index([status])
+}
+
+model DnoNomination {
+  id                       String        @id @default(uuid())
+  organizationId           String
+  organization             Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  departmentOrganizationId String?
+  departmentOrganization   Organization? @relation("DnoDeptOrg", fields: [departmentOrganizationId], references: [id], onDelete: SetNull)
+
+  departmentId             String?
+  department               SubDepartment? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  userId                   String?
+  user                     User?          @relation("DnoNominatedUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  firstName                String
+  lastName                 String
+  officialDesignation      String
+  officialEmail            String
+  officialMobile           String
+  employeeId               String?
+  
+  scope                    String         @default("ORGANIZATION_WIDE") // ORGANIZATION_WIDE | DEPARTMENT_SPECIFIC
+  appointmentOrderUrl      String
+  
+  effectiveFrom            DateTime?
+  effectiveTo              DateTime?
+  status                   String         @default("PENDING_VERIFICATION") // PENDING_VERIFICATION | ACTIVE | INACTIVE | REJECTED | EXPIRED | REVOKED
+  rejectionReason          String?
+
+  verifiedById             String?
+  verifiedBy               User?          @relation("DnoVerifiedBy", fields: [verifiedById], references: [id], onDelete: SetNull)
+  verifiedAt               DateTime?
+
+  createdAt                DateTime       @default(now())
+  updatedAt                DateTime       @updatedAt
+
+  @@index([organizationId])
+  @@index([departmentOrganizationId])
+  @@index([departmentId])
+  @@index([status])
+  @@index([officialEmail])
 }
 
 // =============================================================================
@@ -555,12 +722,43 @@ model Project {
   organizationId           String
   organization             Organization       @relation("OrganizationProjects", fields: [organizationId], references: [id], onDelete: Restrict)
   
+  parentOrganizationId     String?
+  parentOrganization       Organization?      @relation("ParentOrgProjects", fields: [parentOrganizationId], references: [id], onDelete: SetNull)
+
+  departmentOrganizationId String?
+  departmentOrganization   Organization?      @relation("DeptOrgProjects", fields: [departmentOrganizationId], references: [id], onDelete: SetNull)
+
   corporatePartnerId       String?
   implementingAgencyId     String?
   ngoId                    String?
   nodalOfficerUserId       String?
+  dncUserId                String?
+  departmentAssignmentStatus String @default("CONFIRMED") // PENDING | IDENTIFIED | CONFIRMED | REJECTED | REASSIGNMENT_REQUIRED
   approvalSourceEnquiryId  String?            @unique
   approvalSourcePitchId    String?            @unique
+
+  // MoU & Governance Flags
+  mouRequired                  Boolean            @default(true)
+  mouStatus                    MouStatus          @default(NOT_INITIATED)
+  
+  // 23-Step Execution & Governance Engine Fields
+  dnoAssignmentStatus          String             @default("NONE") // NONE | PENDING_ACCEPTANCE | ACCEPTED | REASSIGNMENT_REQUESTED
+  dnoAcceptedAt                DateTime?
+  dnoAcceptedById              String?
+  dnoReassignmentReason        String?
+  kickoffStatus                String             @default("PENDING") // PENDING | COMPLETED
+  kickoffCompletedAt           DateTime?
+  kickoffChecklist             Json?
+  siteVerificationStatus       String             @default("PENDING") // PENDING | VERIFIED | PARTIALLY_VERIFIED | NOT_AVAILABLE
+  siteInspectionReport         Json?
+  implementationPlanStatus     String             @default("PENDING") // PENDING | SUBMITTED | APPROVED | REJECTED
+  implementationPlanData       Json?
+  finalDepartmentAcceptanceAt  DateTime?
+  finalDepartmentAcceptedById  String?
+  dncFinalReviewAt             DateTime?
+  postCompletionPeriodMonths   Int?               @default(6)
+  impactReportData             Json?
+  archivedAt                   DateTime?
 
   // Lifecycle Dates
   startDate                DateTime?
@@ -576,6 +774,11 @@ model Project {
 
   // Child Relations
   milestones               ProjectMilestone[]
+  milestoneEvidences       MilestoneEvidence[]
+  mouRecord                Mou?
+  issues                   ProjectIssue[]
+  communications           ProjectCommunicationLog[]
+  implementingAgencies     ProjectImplementingAgency[]
   inspections              ProjectInspection[]
   documents                Document[]
   utilizationCertificates UtilizationCertificate[]
@@ -604,11 +807,20 @@ model ProjectMilestone {
   
   name                 String
   description          String?                 @db.Text
+  sequenceOrder        Int                     @default(1)
   targetAmount         Decimal                 @db.Decimal(15, 2)
   utilizedAmount       Decimal                 @default(0) @db.Decimal(15, 2)
   
   dueDate              DateTime?
-  status               MilestoneStatus         @default(NOT_STARTED)
+  status               MilestoneStatus         @default(DRAFT)
+  createdByType        MilestoneCreatorType    @default(IMPLEMENTING_AGENCY)
+  createdById          String?
+  approvedById         String?
+  approvedAt           DateTime?
+  
+  verificationStatus   String                  @default("NONE") // NONE | PENDING_VERIFICATION | VERIFIED | REJECTED | CHANGES_REQUIRED
+  verificationRemarks  String?                 @db.Text
+  evidenceUrls         String[]                @default([])
   geoTaggedPhotoUrls   String[]
   completionCriteria   String?                 @db.Text
   progressRemarks      String?                 @db.Text
@@ -620,9 +832,142 @@ model ProjectMilestone {
   updatedAt            DateTime                @updatedAt
 
   utilizationCertificates UtilizationCertificate[]
+  evidences            MilestoneEvidence[]
 
   @@index([projectId])
   @@index([status])
+  @@index([verificationStatus])
+}
+
+model MilestoneEvidence {
+  id                   String                  @id @default(uuid())
+  milestoneId          String
+  milestone            ProjectMilestone        @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  projectId            String?
+  project              Project?                @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  
+  fileUrl              String
+  title                String
+  description          String?                 @db.Text
+  isGeoTagged          Boolean                 @default(false)
+  latitude             Float?
+  longitude            Float?
+  uploadedById         String?
+  createdAt            DateTime                @default(now())
+
+  @@index([milestoneId])
+  @@index([projectId])
+}
+
+model Mou {
+  id                   String                  @id @default(uuid())
+  projectId            String                  @unique
+  project              Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  mouNumber            String                  @unique
+  title                String
+  templateType         String?                 @default("STANDARD_GOVT_CORPORATE")
+  status               MouStatus               @default(DRAFT)
+  signingType          MouSigningType?         @default(DIGITAL)
+  mouRequired          Boolean                 @default(true)
+  
+  corporateSignatoryId String?
+  govtSignatoryId      String?
+  iaSignatoryId        String?
+  
+  pdfDocumentUrl       String?
+  signedPdfUrl         String?
+  
+  effectiveFrom        DateTime?
+  effectiveTo          DateTime?
+  currentVersion       Int                     @default(1)
+  
+  initiatedById        String?
+  signedAt             DateTime?
+  
+  versions             MouVersion[]
+  
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+
+  @@index([projectId])
+  @@index([status])
+  @@index([mouNumber])
+}
+
+model MouVersion {
+  id                   String                  @id @default(uuid())
+  mouId                String
+  mou                  Mou                     @relation(fields: [mouId], references: [id], onDelete: Cascade)
+  
+  versionNumber        Int
+  documentUrl          String
+  changesSummary       String?                 @db.Text
+  status               MouStatus               @default(DRAFT)
+  createdById          String?
+  createdAt            DateTime                @default(now())
+
+  @@unique([mouId, versionNumber])
+  @@index([mouId])
+}
+
+model ProjectIssue {
+  id                   String                  @id @default(uuid())
+  projectId            String
+  project              Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  title                String
+  description          String                  @db.Text
+  severity             String                  @default("MEDIUM") // LOW | MEDIUM | HIGH | CRITICAL
+  status               String                  @default("OPEN") // OPEN | ASSIGNED | IN_PROGRESS | RESOLVED | VERIFIED | CLOSED
+  responsibleParty     String                  @default("GOVERNMENT_DEPARTMENT")
+  assignedToUserId     String?
+  dueDate              DateTime?
+  resolvedAt           DateTime?
+  resolvedById         String?
+  verificationRemarks  String?                 @db.Text
+
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+
+  @@index([projectId])
+  @@index([status])
+  @@index([severity])
+}
+
+model ProjectCommunicationLog {
+  id                   String                  @id @default(uuid())
+  projectId            String
+  project              Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  senderUserId         String
+  senderRole           String
+  message              String                  @db.Text
+  attachmentUrls       String[]                @default([])
+
+  createdAt            DateTime                @default(now())
+
+  @@index([projectId])
+  @@index([createdAt])
+}
+
+model ProjectImplementingAgency {
+  id                   String                  @id @default(uuid())
+  projectId            String
+  project              Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  agencyOrganizationId String
+  invitedByUserId      String?
+  status               String                  @default("INVITED") // INVITED | ACTIVE | REVOKED
+  invitedAt            DateTime                @default(now())
+  acceptedAt           DateTime?
+
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+
+  @@unique([projectId, agencyOrganizationId])
+  @@index([projectId])
+  @@index([agencyOrganizationId])
 }
 
 // =============================================================================
@@ -1237,6 +1582,14 @@ model CorporateEnquiry {
   proposedCSRWork               String?  @db.Text
   documents                     String[] @default([])
   submittedByUserId             String?
+  hasMatchingPitch              Boolean  @default(false)
+  matchedPitchId                String?
+  parentOrganizationId          String?
+  departmentOrganizationId      String?
+  departmentAssignmentStatus    String   @default("PENDING") // PENDING | IDENTIFIED | CONFIRMED | REJECTED | REASSIGNMENT_REQUIRED
+  district                      String?
+  dncUserId                     String?
+  dnoId                         String?
   status                        String   @default("PENDING")
   assignedRelationshipManagerId String?
   firstContactedAt              DateTime?
@@ -1252,7 +1605,13 @@ model CorporateEnquiry {
 model GovernmentPitch {
   id                            String   @id @default(uuid())
   pitchReferenceId              String?  @unique
+  organizationId                String?
+  parentOrganizationId          String?
+  departmentOrganizationId      String?
   departmentId                  String?
+  district                      String?
+  dncUserId                     String?
+  dnoId                         String?
   title                         String
   budget                        Decimal  @db.Decimal(15, 2)
   officialName                  String?

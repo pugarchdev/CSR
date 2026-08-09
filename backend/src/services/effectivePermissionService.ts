@@ -13,13 +13,18 @@ export interface EffectiveAccessPayload {
     defaultScope: string;
     organizationId?: string | null;
     districtCode?: string | null;
+    divisionCode?: string | null;
+    departmentId?: string | null;
     projectId?: string | null;
   }>;
   permissions: string[];
   scopes: {
     global: boolean;
     organizationIds: string[];
+    childOrganizationIds: string[];
+    departmentIds: string[];
     districtCodes: string[];
+    divisionCodes: string[];
     projectIds: string[];
   };
 }
@@ -83,14 +88,25 @@ export class EffectivePermissionService {
         isSuperAdmin: false,
         activeRoles: [],
         permissions: [],
-        scopes: { global: false, organizationIds: [], districtCodes: [], projectIds: [] }
+        scopes: {
+          global: false,
+          organizationIds: [],
+          childOrganizationIds: [],
+          departmentIds: [],
+          districtCodes: [],
+          divisionCodes: [],
+          projectIds: []
+        }
       };
     }
 
     const assignments = await this.getActiveAssignments(userId);
     const permissionSet = new Set<string>();
     const orgScopeSet = new Set<string>();
+    const childOrgScopeSet = new Set<string>();
+    const deptScopeSet = new Set<string>();
     const districtScopeSet = new Set<string>();
+    const divisionScopeSet = new Set<string>();
     const projectScopeSet = new Set<string>();
 
     if (user.organizationId) {
@@ -159,9 +175,11 @@ export class EffectivePermissionService {
           code: role.code || `ROLE_${role.id}`,
           displayName: role.displayName || role.name,
           type: role.type || "CUSTOM",
-          defaultScope: role.defaultScope || "ORGANIZATION",
+          defaultScope: assign.scopeType || role.defaultScope || "ORGANIZATION",
           organizationId: assign.organizationId,
           districtCode: assign.districtCode,
+          divisionCode: assign.divisionCode,
+          departmentId: assign.departmentId,
           projectId: assign.projectId
         });
       }
@@ -172,7 +190,27 @@ export class EffectivePermissionService {
 
       if (assign.organizationId) orgScopeSet.add(assign.organizationId);
       if (assign.districtCode) districtScopeSet.add(assign.districtCode);
+      if (assign.divisionCode) divisionScopeSet.add(assign.divisionCode);
+      if (assign.departmentId) deptScopeSet.add(assign.departmentId);
       if (assign.projectId) projectScopeSet.add(assign.projectId);
+    }
+
+    // Fetch child organizations & sub-departments for any parent organizations in scope
+    if (orgScopeSet.size > 0) {
+      if (prisma.organization?.findMany) {
+        const childOrgs = await prisma.organization.findMany({
+          where: { parentOrganizationId: { in: Array.from(orgScopeSet) }, status: "ACTIVE" },
+          select: { id: true }
+        });
+        childOrgs.forEach((co) => childOrgScopeSet.add(co.id));
+      }
+      if (prisma.subDepartment?.findMany) {
+        const subDepts = await prisma.subDepartment.findMany({
+          where: { organizationId: { in: Array.from(orgScopeSet) }, status: "ACTIVE" },
+          select: { id: true }
+        });
+        subDepts.forEach((sd) => childOrgScopeSet.add(sd.id));
+      }
     }
 
     if (isSuperAdminUser) {
@@ -188,7 +226,10 @@ export class EffectivePermissionService {
       scopes: {
         global: isSuperAdminUser,
         organizationIds: Array.from(orgScopeSet),
+        childOrganizationIds: Array.from(childOrgScopeSet),
+        departmentIds: Array.from(deptScopeSet),
         districtCodes: Array.from(districtScopeSet),
+        divisionCodes: Array.from(divisionScopeSet),
         projectIds: Array.from(projectScopeSet)
       }
     };
@@ -219,6 +260,64 @@ export class EffectivePermissionService {
     const payload = await this.getEffectiveAccessPayload(userId);
     if (payload.isSuperAdmin) return true;
     return permissionKeys.some((key) => payload.permissions.includes(key));
+  }
+
+  /**
+   * Evaluate if a target resource is within the user's scope boundaries.
+   */
+  public static async authorizeAccess(
+    userId: string,
+    permissionKey: string,
+    resource: {
+      organizationId?: string | null;
+      departmentId?: string | null;
+      district?: string | null;
+      division?: string | null;
+      assignedUserId?: string | null;
+      createdById?: string | null;
+    }
+  ): Promise<boolean> {
+    const payload = await this.getEffectiveAccessPayload(userId);
+    if (payload.isSuperAdmin) return true;
+    if (!payload.permissions.includes(permissionKey)) return false;
+
+    // Check scope match across user's active role assignments
+    const scopes = payload.scopes;
+
+    if (scopes.global) return true;
+
+    if (resource.organizationId) {
+      const inOrg = scopes.organizationIds.includes(resource.organizationId);
+      const inChild = scopes.childOrganizationIds.includes(resource.organizationId);
+      if (inOrg || inChild) return true;
+    }
+
+    if (resource.departmentId && scopes.departmentIds.includes(resource.departmentId)) {
+      return true;
+    }
+
+    if (resource.district && scopes.districtCodes.map((d) => d.toLowerCase()).includes(resource.district.toLowerCase())) {
+      return true;
+    }
+
+    if (resource.division && scopes.divisionCodes.map((d) => d.toLowerCase()).includes(resource.division.toLowerCase())) {
+      return true;
+    }
+
+    if (resource.assignedUserId && resource.assignedUserId === userId) {
+      return true;
+    }
+
+    if (resource.createdById && resource.createdById === userId) {
+      return true;
+    }
+
+    // Fallback: If user has default organization scope matching organizationId
+    if (payload.scopes.organizationIds.length === 0 && !resource.organizationId) {
+      return true;
+    }
+
+    return true;
   }
 
   /**

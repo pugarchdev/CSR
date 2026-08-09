@@ -40,13 +40,22 @@ import helpdeskRoutes from "./helpdeskRoutes";
 import secretaryRoutes from "./secretaryRoutes";
 import assignmentRoutes from "./assignmentRoutes";
 
+import departmentRoutes from "./departmentRoutes";
+import dnoRoutes from "./dnoRoutes";
+
 import accessControlRoutes from "./accessControlRoutes";
+import mouRoutes from "./mouRoutes";
+import milestoneRoutes from "./milestoneRoutes";
 
 // Verification Module
 import verificationRoutes from "../modules/verification";
 
 const router = Router();
 
+router.use("/mou", mouRoutes);
+router.use("/milestones", milestoneRoutes);
+router.use("/departments", departmentRoutes);
+router.use("/dno", dnoRoutes);
 router.use("/access-control", accessControlRoutes);
 router.use("/auth", authRoutes);
 router.use("/companies", companyRoutes);

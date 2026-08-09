@@ -137,7 +137,7 @@ export const defineMilestones = async (req: AuthenticatedRequest, res: Response,
     const proposedTotal = normalised.reduce((sum: number, milestone: any) => sum + milestone.targetAmount, 0);
     if (proposedTotal > Number(access.project.approvedBudget)) return res.status(400).json({ error: "Milestone tranche total cannot exceed the approved project budget." });
     const created = await prisma.$transaction(async (tx) => {
-      await tx.projectMilestone.deleteMany({ where: { projectId: access.project.id, status: "NOT_STARTED" } });
+      await tx.projectMilestone.deleteMany({ where: { projectId: access.project.id, status: "DRAFT" } });
       return tx.projectMilestone.createMany({ data: normalised.map((m: any) => ({ ...m, projectId: access.project.id, geoTaggedPhotoUrls: [] })) });
     });
     return res.status(201).json({ success: true, message: "Milestones drafted from the MoU schedule.", data: created });
@@ -176,7 +176,7 @@ export const addSingleMilestone = async (req: AuthenticatedRequest, res: Respons
         completionCriteria,
         targetAmount,
         dueDate,
-        status: "NOT_STARTED",
+        status: "DRAFT",
         geoTaggedPhotoUrls: []
       }
     });

@@ -133,7 +133,7 @@ describe("Access Control API Integration & Behavioral Test Suite", () => {
         isSuperAdmin: false,
         activeRoles: [],
         permissions: ["project:view"],
-        scopes: { global: false, organizationIds: ["org-1"], districtCodes: [], projectIds: [] }
+        scopes: { global: false, organizationIds: ["org-1"], childOrganizationIds: [], departmentIds: [], districtCodes: [], divisionCodes: [], projectIds: [] }
       });
 
       await expect(

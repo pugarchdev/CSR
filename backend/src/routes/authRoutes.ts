@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { register, login, verifyOtp, resendOtp, refreshToken, logout, me } from "../controllers/authController";
+import { register, login, verifyOtp, resendOtp, refreshToken, logout, me, searchParentOrganizations } from "../controllers/authController";
 import { getInvitation, acceptInvitation } from "../controllers/invitationController";
 import { getCurrentUserPermissions, getModulePermissions, checkUserPermission } from "../controllers/permissionController";
 import { validateRequest } from "../middlewares/validationMiddleware";
@@ -55,6 +55,7 @@ const resendOtpSchema = z.object({
 const authRateLimit = authRateLimiter;
 const otpRateLimit = strictRateLimiter;
 
+router.get("/parent-organizations", asyncHandler(searchParentOrganizations));
 router.post("/register", authRateLimit, validateRequest(registerSchema), asyncHandler(register));
 router.post("/verify-otp", otpRateLimit, validateRequest(verifyOtpSchema), asyncHandler(verifyOtp));
 router.post("/resend-otp", otpRateLimit, validateRequest(resendOtpSchema), asyncHandler(resendOtp));
