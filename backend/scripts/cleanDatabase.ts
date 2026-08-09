@@ -4,122 +4,84 @@ async function cleanDatabase() {
   console.log("🧹 Starting database cleanup...");
 
   try {
-    // 1. Project & Milestone & MoU related
+    const p = prisma as any;
+
+    // 1. Milestone & MoU & Execution
     console.log("Deleting MilestoneEvidences...");
-    await prisma.milestoneEvidence.deleteMany({});
+    if (p.milestoneEvidence) await p.milestoneEvidence.deleteMany({});
 
     console.log("Deleting ProjectMilestones...");
-    await prisma.projectMilestone.deleteMany({});
+    if (p.projectMilestone) await p.projectMilestone.deleteMany({});
 
     console.log("Deleting MouVersions...");
-    await prisma.mouVersion.deleteMany({});
+    if (p.mouVersion) await p.mouVersion.deleteMany({});
 
     console.log("Deleting Mous...");
-    await prisma.mou.deleteMany({});
+    if (p.mou) await p.mou.deleteMany({});
 
     console.log("Deleting ProjectAssignments...");
-    await prisma.projectAssignment.deleteMany({});
+    if (p.projectAssignment) await p.projectAssignment.deleteMany({});
 
     console.log("Deleting ProjectInspections...");
-    await prisma.projectInspection.deleteMany({});
+    if (p.projectInspection) await p.projectInspection.deleteMany({});
 
     console.log("Deleting ProjectImplementingAgencies...");
-    await prisma.projectImplementingAgency.deleteMany({});
+    if (p.projectImplementingAgency) await p.projectImplementingAgency.deleteMany({});
 
     console.log("Deleting ProjectIssues...");
-    await prisma.projectIssue.deleteMany({});
+    if (p.projectIssue) await p.projectIssue.deleteMany({});
 
     console.log("Deleting ProjectCommunicationLogs...");
-    await prisma.projectCommunicationLog.deleteMany({});
+    if (p.projectCommunicationLog) await p.projectCommunicationLog.deleteMany({});
 
     console.log("Deleting Projects...");
-    await prisma.project.deleteMany({});
+    if (p.project) await p.project.deleteMany({});
 
-    // 2. Enquiries, Pitches, Feasibility, Interests
-    console.log("Deleting FeasibilityAssessments...");
-    await prisma.feasibilityAssessment.deleteMany({}).catch(() => {});
-
-    console.log("Deleting CompanyInterests...");
-    await prisma.companyInterest.deleteMany({}).catch(() => {});
-
-    console.log("Deleting CorporateEnquiries...");
-    await prisma.corporateEnquiry.deleteMany({}).catch(() => {});
-
-    console.log("Deleting GovernmentPitches...");
-    await prisma.governmentPitch.deleteMany({}).catch(() => {});
+    // 2. Enquiries, Pitches, Feasibility
+    if (p.feasibilityAssessment) await p.feasibilityAssessment.deleteMany({});
+    if (p.corporateEnquiry) await p.corporateEnquiry.deleteMany({});
+    if (p.governmentPitch) await p.governmentPitch.deleteMany({});
 
     // 3. Grievances & Helpdesk
-    console.log("Deleting GrievanceActionLogs...");
-    await prisma.grievanceActionLog.deleteMany({}).catch(() => {});
-
-    console.log("Deleting Grievances...");
-    await prisma.grievance.deleteMany({}).catch(() => {});
-
-    console.log("Deleting HelpdeskQueries...");
-    await prisma.helpdeskQuery.deleteMany({}).catch(() => {});
+    if (p.grievanceActionLog) await p.grievanceActionLog.deleteMany({});
+    if (p.grievance) await p.grievance.deleteMany({});
+    if (p.helpdeskQuery) await p.helpdeskQuery.deleteMany({});
 
     // 4. Documents, Logs, Sessions, Verifications
-    console.log("Deleting Documents...");
-    await prisma.document.deleteMany({});
-
-    console.log("Deleting AuditLogs...");
-    await prisma.auditLog.deleteMany({});
-
-    console.log("Deleting Sessions...");
-    await prisma.session.deleteMany({});
-
-    console.log("Deleting VerificationRecords...");
-    await prisma.verificationRecord.deleteMany({});
+    if (p.document) await p.document.deleteMany({});
+    if (p.auditLog) await p.auditLog.deleteMany({});
+    if (p.session) await p.session.deleteMany({});
+    if (p.verificationRecord) await p.verificationRecord.deleteMany({});
 
     // 5. Role Assignments & Nominations
-    console.log("Deleting UserRoleAssignments...");
-    await prisma.userRoleAssignment.deleteMany({});
-
-    console.log("Deleting UserOrganizationRoles...");
-    await prisma.userOrganizationRole.deleteMany({});
-
-    console.log("Deleting DnoNominations...");
-    await prisma.dnoNomination.deleteMany({});
-
-    console.log("Deleting DistrictDncAssignments...");
-    await prisma.districtDncAssignment.deleteMany({}).catch(() => {});
-
-    console.log("Deleting DistrictNodalMappings...");
-    await prisma.districtNodalMapping.deleteMany({}).catch(() => {});
+    if (p.userRoleAssignment) await p.userRoleAssignment.deleteMany({});
+    if (p.userOrganizationRole) await p.userOrganizationRole.deleteMany({});
+    if (p.dnoNomination) await p.dnoNomination.deleteMany({});
 
     // 6. Profiles & Department structures
-    console.log("Deleting UserOfficerProfiles...");
-    await prisma.userOfficerProfile.deleteMany({});
-
-    console.log("Deleting GovDepartmentProfiles...");
-    await prisma.govDepartmentProfile.deleteMany({});
-
-    console.log("Deleting NGOProfiles...");
-    await prisma.nGOProfile.deleteMany({});
-
-    console.log("Deleting CompanyProfiles...");
-    await prisma.companyProfile.deleteMany({});
-
-    console.log("Deleting SubDepartments...");
-    await prisma.subDepartment.deleteMany({});
-
-    console.log("Deleting OrganizationRelationships...");
-    await prisma.organizationRelationship.deleteMany({});
+    if (p.userOfficerProfile) await p.userOfficerProfile.deleteMany({});
+    if (p.govDepartmentProfile) await p.govDepartmentProfile.deleteMany({});
+    if (p.nGOProfile) await p.nGOProfile.deleteMany({});
+    if (p.cSRCompanyProfile) await p.cSRCompanyProfile.deleteMany({});
+    if (p.subDepartment) await p.subDepartment.deleteMany({});
+    if (p.organizationRelationship) await p.organizationRelationship.deleteMany({});
 
     // 7. Users & Custom Roles & Organizations
     console.log("Deleting Users...");
-    await prisma.user.deleteMany({});
+    await p.user.deleteMany({});
 
     console.log("Deleting Custom Roles...");
-    await prisma.role.deleteMany({
-      where: {
-        isSystemRole: false,
-        id: { gt: 9 }
-      }
-    }).catch(() => {});
+    if (p.role) {
+      await p.role.deleteMany({
+        where: {
+          isSystemRole: false,
+          id: { gt: 9 }
+        }
+      });
+    }
 
     console.log("Deleting Organizations...");
-    await prisma.organization.deleteMany({});
+    await p.organization.deleteMany({});
 
     console.log("✨ Database cleaned successfully! All organizations and users have been deleted.");
   } catch (error) {

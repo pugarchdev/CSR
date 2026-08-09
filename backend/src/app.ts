@@ -20,11 +20,13 @@ import { startSlaScheduler } from "./services/slaSchedulerService";
 import { generalRateLimiter } from "./middlewares/rateLimitMiddleware";
 
 import { runStartupSecurityCheck } from "./utils/securityCheck";
+import { ensurePermissionsSeeded } from "./controllers/roleController";
 
 // Configurations
 dotenv.config();
 assertProductionEnv();
 runStartupSecurityCheck();
+ensurePermissionsSeeded();
 
 const app = express();
 const server = http.createServer(app);

@@ -38,6 +38,7 @@ export default function GovModal({ open, onClose, title, children, width = 600 }
         alignItems: "center",
         justifyContent: "center",
         padding: 16,
+        overflowY: "auto",
       }}
     >
       {/* Backdrop */}
@@ -47,6 +48,7 @@ export default function GovModal({ open, onClose, title, children, width = 600 }
           position: "absolute",
           inset: 0,
           background: "rgba(0, 0, 0, 0.45)",
+          zIndex: 1,
         }}
       />
 
@@ -55,17 +57,25 @@ export default function GovModal({ open, onClose, title, children, width = 600 }
         className="gov-card"
         style={{
           position: "relative",
+          zIndex: 2,
           width: "100%",
           maxWidth: width,
-          maxHeight: "90vh",
-          overflow: "auto",
+          maxHeight: "85vh",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
           animation: "govFadeInUp 0.25s ease forwards",
         }}
       >
         {/* Header */}
         <div
           className="gov-card-header"
-          style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexShrink: 0,
+          }}
         >
           <h3 className="gov-card-title">{title}</h3>
           <button
@@ -87,7 +97,18 @@ export default function GovModal({ open, onClose, title, children, width = 600 }
         </div>
 
         {/* Body */}
-        <div className="gov-card-body">{children}</div>
+        <div
+          className="gov-card-body gov-modal-scroll"
+          style={{
+            flex: "1 1 auto",
+            minHeight: 0,
+            overflowY: "auto",
+            WebkitOverflowScrolling: "touch",
+            overscrollBehavior: "contain",
+          }}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );

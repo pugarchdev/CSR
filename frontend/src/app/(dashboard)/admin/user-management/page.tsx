@@ -838,11 +838,11 @@ export default function AdminUserManagementPage() {
             />
           </div>
 
-          <div style={{ marginTop: 20 }}>
-            <div style={{ fontWeight: 600, fontSize: 14, color: "#1e3a8a", borderBottom: "1px solid #e2e8f0", paddingBottom: 6, marginBottom: 10 }}>
+          <div style={{ marginTop: 18 }}>
+            <div style={{ fontWeight: 600, fontSize: 13, color: "#1e3a8a", borderBottom: "1px solid #e2e8f0", paddingBottom: 6, marginBottom: 10 }}>
               Additional Dynamic Role Assignments
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 220, overflowY: "auto", padding: 4 }}>
+            <div className="gov-modal-scroll" style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 180, overflowY: "auto", padding: 8, border: "1px solid #cbd5e1", borderRadius: 8, backgroundColor: "#f8fafc", overscrollBehavior: "contain" }}>
               {activeDynamicRoles.map((role) => {
                 const isChecked = editForm.dynamicRoleIds.includes(role.id);
                 return (
@@ -856,7 +856,7 @@ export default function AdminUserManagementPage() {
                       borderRadius: 6,
                       border: "1px solid #e2e8f0",
                       cursor: "pointer",
-                      backgroundColor: isChecked ? "#f8fafc" : "transparent",
+                      backgroundColor: isChecked ? "#eff6ff" : "#ffffff",
                     }}
                   >
                     <input
@@ -889,7 +889,18 @@ export default function AdminUserManagementPage() {
             </div>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 24 }}>
+          <div style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: 10,
+            marginTop: 18,
+            paddingTop: 12,
+            borderTop: "1px solid #e2e8f0",
+            backgroundColor: "#ffffff",
+            position: "sticky",
+            bottom: 0,
+            zIndex: 10,
+          }}>
             <GovButton type="button" variant="secondary" onClick={() => setEditModalOpen(false)}>
               Cancel
             </GovButton>
@@ -985,11 +996,29 @@ export default function AdminUserManagementPage() {
             />
           </div>
 
-          <div style={{ marginTop: 16 }}>
-            <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>
-              Select Role Permissions Matrix
-            </label>
-            <div style={{ display: "flex", flexDirection: "column", gap: 14, maxHeight: 320, overflowY: "auto", paddingRight: 6 }}>
+          <div style={{ marginTop: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <label style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
+                Select Role Permissions Matrix
+              </label>
+              <span style={{ fontSize: 11, fontWeight: 600, color: "#1e3a8a", backgroundColor: "#eff6ff", padding: "2px 8px", borderRadius: 12, border: "1px solid #bfdbfe" }}>
+                {selectedRolePermissions.length} selected
+              </span>
+            </div>
+            
+            <div className="gov-modal-scroll" style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+              maxHeight: 280,
+              overflowY: "auto",
+              paddingRight: 6,
+              padding: 10,
+              borderRadius: 10,
+              border: "1px solid #cbd5e1",
+              backgroundColor: "#f8fafc",
+              overscrollBehavior: "contain",
+            }}>
               {[
                 {
                   title: "User Management & Sub-logins",
@@ -1038,15 +1067,15 @@ export default function AdminUserManagementPage() {
                   ]
                 }
               ].map((group) => (
-                <div key={group.title} style={{ backgroundColor: "#f8fafc", padding: 12, borderRadius: 8, border: "1px solid #e2e8f0" }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#1e3a8a", marginBottom: 8, textTransform: "uppercase" }}>
+                <div key={group.title} style={{ backgroundColor: "#ffffff", padding: 12, borderRadius: 8, border: "1px solid #cbd5e1" }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#1e3a8a", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>
                     {group.title}
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 8 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))", gap: 8 }}>
                     {group.permissions.map((p) => {
                       const isChecked = selectedRolePermissions.includes(p.key);
                       return (
-                        <label key={p.key} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#334155", cursor: "pointer" }}>
+                        <label key={p.key} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#334155", cursor: "pointer", padding: "2px 0" }}>
                           <input
                             type="checkbox"
                             checked={isChecked}
@@ -1055,7 +1084,7 @@ export default function AdminUserManagementPage() {
                                 isChecked ? prev.filter((k) => k !== p.key) : [...prev, p.key]
                               );
                             }}
-                            style={{ accentColor: "#1e3a8a" }}
+                            style={{ accentColor: "#1e3a8a", width: 15, height: 15, cursor: "pointer" }}
                           />
                           <span>{p.label}</span>
                         </label>
@@ -1067,7 +1096,18 @@ export default function AdminUserManagementPage() {
             </div>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 20 }}>
+          <div style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: 10,
+            marginTop: 16,
+            paddingTop: 12,
+            borderTop: "1px solid #e2e8f0",
+            backgroundColor: "#ffffff",
+            position: "sticky",
+            bottom: 0,
+            zIndex: 10,
+          }}>
             <GovButton type="button" variant="secondary" onClick={() => setCustomRoleModalOpen(false)}>
               Cancel
             </GovButton>
