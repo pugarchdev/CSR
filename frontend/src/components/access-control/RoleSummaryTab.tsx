@@ -1,11 +1,11 @@
-// Role Summary Tab — Metadata, risk summary, and lifecycle actions
+// Role Summary Tab — Metadata, module access summary bars, risk summary, and protected actions
 "use client";
 
-import { Shield, Calendar, User, AlertTriangle, Copy, Pencil, Power, Archive, Trash2 } from "lucide-react";
+import { Shield, Calendar, User, AlertTriangle, Copy, Pencil, Power, Trash2, Lock, CheckCircle2, Layers } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { TypeBadge, StatusBadge, ScopeBadge, ProtectedIndicator, RiskBadge } from "./RoleBadges";
+import { TypeBadge, StatusBadge, ScopeBadge, ProtectedIndicator } from "./RoleBadges";
 import { useAuthStore } from "@/store/authStore";
 import type { Role } from "@/types/accessControl";
 
@@ -35,154 +35,147 @@ export function RoleSummaryTab({
   const canCreate = hasPermission("role:create");
   const canDelete = hasPermission("role:delete");
   const userCount = (role._count?.roleAssignments ?? 0) + (role._count?.users ?? 0);
+  const isSystemRole = role.isSystemRole || role.type === "SYSTEM" || role.isProtected;
+
+  // Calculate module access summary bars
+  const moduleSummary = [
+    { label: "Enquiries", count: role.permissions.filter((p) => p.startsWith("enquiry:")).length, total: 5, desc: "View, Create, Assign" },
+    { label: "Pitches", count: role.permissions.filter((p) => p.startsWith("pitch:")).length, total: 6, desc: "View, Submit, Approve" },
+    { label: "Feasibility", count: role.permissions.filter((p) => p.startsWith("feasibility:") || p.startsWith("assessment:")).length, total: 5, desc: "Create, Review, Decide" },
+    { label: "Projects", count: role.permissions.filter((p) => p.startsWith("project:")).length, total: 8, desc: "View, Track, Manage" },
+    { label: "Milestones", count: role.permissions.filter((p) => p.startsWith("milestone:")).length, total: 5, desc: "Draft, Submit, Verify" },
+    { label: "Documents", count: role.permissions.filter((p) => p.startsWith("document:") || p.startsWith("mou:")).length, total: 6, desc: "Upload, Sign, Verify" },
+  ];
 
   return (
-    <div className="space-y-5">
-      {/* Role Identity */}
-      <Card variant="outlined" hover={false} tilt={false}>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <InfoRow label="Display Name" value={role.displayName || role.name} />
-              <InfoRow label="Role Code" value={role.code} mono />
-              <InfoRow label="Description" value={role.description || "No description provided."} />
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-slate-500 w-28 shrink-0">Type</span>
-                <TypeBadge type={role.type} />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-slate-500 w-28 shrink-0">Default Scope</span>
-                <ScopeBadge scope={role.defaultScope} />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-slate-500 w-28 shrink-0">Status</span>
-                <StatusBadge status={role.status} />
-              </div>
+    <div className="space-y-5 text-xs">
+      {/* Protected System Role Warning Banner */}
+      {isSystemRole && (
+        <div className="bg-amber-50 border border-amber-200/80 p-4 rounded-2xl flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+              <Lock size={18} />
             </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-slate-500 w-28 shrink-0">Protected</span>
-                <ProtectedIndicator isProtected={role.isProtected} />
-                {!role.isProtected && (
-                  <Badge variant="muted" size="sm">Not Protected</Badge>
-                )}
+            <div>
+              <div className="font-bold text-sm text-amber-950">🔒 Protected Platform System Role</div>
+              <div className="text-[11px] text-amber-800 font-medium mt-0.5">
+                This is a core workflow role required by the MahaCSR governance engine. System identity cannot be deleted or renamed.
               </div>
-              <InfoRow
-                label="Assigned Users"
-                value={`${userCount} user${userCount !== 1 ? "s" : ""}`}
-                icon={<User size={12} className="text-slate-400" />}
-              />
-              <InfoRow
-                label="Version"
-                value={`v${role.version}`}
-                mono
-              />
-              <InfoRow
-                label="Created"
-                value={new Date(role.createdAt).toLocaleDateString(undefined, {
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric",
-                })}
-                icon={<Calendar size={12} className="text-slate-400" />}
-              />
-              <InfoRow
-                label="Last Modified"
-                value={new Date(role.updatedAt).toLocaleDateString(undefined, {
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-                icon={<Calendar size={12} className="text-slate-400" />}
-              />
-              {role.organizationId && (
-                <InfoRow label="Organization" value={role.organizationId} mono />
-              )}
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Risk Summary */}
-      <Card variant="outlined" hover={false} tilt={false}>
-        <CardContent>
-          <h4 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
-            <AlertTriangle size={14} className="text-amber-500" />
-            Risk Summary
-          </h4>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-200/40">
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Permissions</p>
-              <p className="text-xl font-bold text-slate-800 mt-1">{role.permissions.length}</p>
-            </div>
-            <div className="p-3 bg-amber-50/80 rounded-xl border border-amber-200/40">
-              <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">High Risk</p>
-              <p className="text-xl font-bold text-amber-800 mt-1">{highRiskCount}</p>
-            </div>
-            <div className="p-3 bg-red-50/80 rounded-xl border border-red-200/40">
-              <p className="text-[10px] font-bold text-red-600 uppercase tracking-wider">Critical</p>
-              <p className="text-xl font-bold text-red-800 mt-1">{criticalCount}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Actions */}
-      {!role.isProtected && (
-        <div className="flex flex-wrap items-center gap-2 pt-2">
-          {canConfigure && (
-            <Button variant="outline" size="sm" icon={Pencil} onClick={onEdit}>
-              Edit Details
-            </Button>
-          )}
-          {canCreate && (
-            <Button variant="outline" size="sm" icon={Copy} onClick={onClone}>
-              Clone Role
-            </Button>
-          )}
-          {canConfigure && role.status === "ACTIVE" && (
-            <Button variant="warning" size="sm" icon={Power} onClick={onDeactivate}>
-              Deactivate
-            </Button>
-          )}
-          {canConfigure && role.status === "INACTIVE" && (
-            <Button variant="primary" size="sm" icon={Power} onClick={onActivate}>
-              Activate
-            </Button>
-          )}
-          {canDelete && !role.isSystemRole && (
-            <Button variant="danger" size="sm" icon={Trash2} onClick={onDelete}>
-              Delete Role
-            </Button>
-          )}
+          <Button size="sm" variant="outline" onClick={onClone} disabled={!canCreate} className="shrink-0 font-bold border-amber-300 text-amber-900 bg-white">
+            <Copy size={13} className="mr-1.5" /> Clone into Custom Role
+          </Button>
         </div>
       )}
-    </div>
-  );
-}
 
-function InfoRow({
-  label,
-  value,
-  mono,
-  icon,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-  icon?: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-start gap-2">
-      <span className="text-xs font-semibold text-slate-500 w-28 shrink-0 pt-0.5">{label}</span>
-      <div className="flex items-center gap-1.5">
-        {icon}
-        <span className={`text-sm text-slate-800 ${mono ? "font-mono text-xs bg-slate-50 px-1.5 py-0.5 rounded" : ""}`}>
-          {value}
-        </span>
+      {/* Role Identity Card */}
+      <Card variant="outlined" hover={false} tilt={false}>
+        <CardContent className="p-5 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                {role.displayName || role.name}
+              </h2>
+              <p className="text-slate-500 text-xs mt-0.5">{role.description || "No description provided."}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <TypeBadge type={role.type} />
+              <StatusBadge status={role.status} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-1">
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+              <div className="text-[10px] font-bold text-slate-400 uppercase">Role Code</div>
+              <div className="font-mono font-bold text-slate-800 mt-0.5">{role.code}</div>
+            </div>
+
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+              <div className="text-[10px] font-bold text-slate-400 uppercase">Assigned Users</div>
+              <div className="font-bold text-blue-900 text-sm mt-0.5 flex items-center gap-1">
+                <User size={13} /> {userCount} Users
+              </div>
+            </div>
+
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+              <div className="text-[10px] font-bold text-slate-400 uppercase">Default Access Level</div>
+              <div className="mt-0.5">
+                <ScopeBadge scope={role.defaultScope} />
+              </div>
+            </div>
+
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+              <div className="text-[10px] font-bold text-slate-400 uppercase">Total Permissions</div>
+              <div className="font-bold text-slate-800 text-sm mt-0.5 flex items-center gap-1">
+                <Layers size={13} /> {role.permissions.length} Grants
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Module Access Summary Bar Chart Card */}
+      <Card variant="outlined" hover={false} tilt={false}>
+        <CardContent className="p-5 space-y-4">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <Shield size={16} className="text-blue-900" />
+              <span>Module Access Summary</span>
+            </h3>
+            <p className="text-[11px] text-slate-500 mt-0.5">Summary of granted capabilities across key platform modules.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {moduleSummary.map((mod) => {
+              const pct = Math.min(100, Math.round((mod.count / mod.total) * 100));
+              return (
+                <div key={mod.label} className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-1.5">
+                  <div className="flex justify-between items-center text-xs font-bold text-slate-800">
+                    <span>{mod.label}</span>
+                    <span className="text-[11px] font-semibold text-slate-500">{mod.count} / {mod.total} grants</span>
+                  </div>
+                  <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                    <div className="bg-blue-900 h-full transition-all duration-300" style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-medium">{mod.desc}</div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Lifecycle Actions */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+        <div className="flex items-center gap-2">
+          {!isSystemRole && (
+            <Button size="sm" variant="outline" onClick={onEdit} disabled={!canConfigure} className="font-bold">
+              <Pencil size={13} className="mr-1.5" /> Edit Custom Role
+            </Button>
+          )}
+          <Button size="sm" variant="outline" onClick={onClone} disabled={!canCreate} className="font-bold">
+            <Copy size={13} className="mr-1.5" /> Duplicate Role
+          </Button>
+        </div>
+
+        {!isSystemRole && (
+          <div className="flex items-center gap-2">
+            {role.status === "ACTIVE" ? (
+              <Button size="sm" variant="outline" onClick={onDeactivate} disabled={!canConfigure} className="font-bold text-amber-800 border-amber-200 hover:bg-amber-50">
+                <Power size={13} className="mr-1.5 text-amber-600" /> Deactivate
+              </Button>
+            ) : (
+              <Button size="sm" variant="outline" onClick={onActivate} disabled={!canConfigure} className="font-bold text-emerald-800 border-emerald-200 hover:bg-emerald-50">
+                <Power size={13} className="mr-1.5 text-emerald-600" /> Activate
+              </Button>
+            )}
+
+            <Button size="sm" variant="outline" onClick={onDelete} disabled={!canDelete} className="font-bold text-red-700 border-red-200 hover:bg-red-50">
+              <Trash2 size={13} className="mr-1.5 text-red-500" /> Delete Role
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -264,19 +264,47 @@ function CreateAssignmentModal({ isOpen, onClose, roles, onCreated }: {
           </select>
         </div>
         <div>
-          <label className="block text-xs font-bold text-slate-600 mb-1">Scope</label>
-          <div className="flex gap-1.5">
-            {(["GLOBAL", "ORGANIZATION", "DISTRICT", "PROJECT"] as DefaultScope[]).map((s) => (
-              <button key={s} type="button" onClick={() => setScope(s)}
-                className={cn("px-2.5 py-1 text-[10px] font-bold rounded-lg border min-h-[28px]",
-                  scope === s ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-500 border-slate-200/60")}>
-                {s}
+          <label className="block text-xs font-bold text-slate-600 mb-1">Access Level (Scope)</label>
+          <div className="grid grid-cols-2 gap-1.5">
+            {[
+              { value: "GLOBAL", label: "○ Entire platform" },
+              { value: "ORGANIZATION", label: "○ My organization" },
+              { value: "ORGANIZATION_AND_CHILDREN", label: "○ Org + Sub-Depts" },
+              { value: "DEPARTMENT", label: "○ Specific Department" },
+              { value: "DISTRICT", label: "○ Specific District" },
+              { value: "PROJECT", label: "○ Assigned Projects" }
+            ].map((s) => (
+              <button
+                key={s.value}
+                type="button"
+                onClick={() => setScope(s.value as any)}
+                className={cn(
+                  "px-3 py-1.5 text-xs font-bold rounded-xl border text-left transition-all",
+                  scope === s.value
+                    ? "bg-blue-900 text-white border-blue-900 shadow-sm"
+                    : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+                )}
+              >
+                {s.label}
               </button>
             ))}
           </div>
         </div>
+
+        {/* Visual Access Hierarchy Tree Preview */}
+        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
+          <div className="font-bold text-slate-900">Effective Access Hierarchy Preview:</div>
+          <div className="font-mono text-[11px] text-blue-900 font-semibold space-y-0.5 pl-2 border-l-2 border-blue-400">
+            <div>Registered Organization</div>
+            {scope === "DEPARTMENT" && <div className="pl-3">└── Assigned Department</div>}
+            {scope === "DISTRICT" && <div className="pl-3">└── Assigned District Projects</div>}
+            {scope === "PROJECT" && <div className="pl-3">└── Specific Assigned Project</div>}
+            {scope === "ORGANIZATION_AND_CHILDREN" && <div className="pl-3">└── All Child Sub-Departments</div>}
+          </div>
+        </div>
+
         <div>
-          <label htmlFor="assign-reason" className="block text-xs font-bold text-slate-600 mb-1">Reason</label>
+          <label htmlFor="assign-reason" className="block text-xs font-bold text-slate-600 mb-1">Reason for Assignment</label>
           <textarea id="assign-reason" value={reason} onChange={(e) => setReason(e.target.value)}
             placeholder="Optional justification..." className="w-full h-16 px-3 py-2 bg-white border border-slate-200/60 rounded-xl text-sm resize-none focus:outline-none focus:border-blue-400/60 focus:ring-2 focus:ring-blue-500/10" />
         </div>

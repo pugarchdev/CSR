@@ -21,15 +21,13 @@ interface CreateRoleWizardProps {
 const STEPS = ["Metadata", "Scope", "Permissions", "Members", "Review"];
 
 const SCOPE_OPTIONS: { value: DefaultScope; label: string; description: string }[] = [
-  { value: "GLOBAL", label: "Global", description: "Applies across the entire Maharashtra CSR platform." },
-  { value: "ORGANIZATION", label: "Organization", description: "Scoped to the specific registered organization." },
-  { value: "ORGANIZATION_AND_CHILDREN", label: "Organization + Children", description: "Scoped to top-level organization and all verified child departments/branches." },
-  { value: "DEPARTMENT", label: "Department", description: "Scoped strictly to the user's assigned department." },
-  { value: "DISTRICT", label: "District", description: "Scoped to the officer's assigned district." },
-  { value: "DIVISION", label: "Division", description: "Scoped to an administrative division." },
-  { value: "ASSIGNED", label: "Assigned", description: "Scoped strictly to assigned enquiries, pitches, and projects." },
-  { value: "OWN", label: "Own Records", description: "Scoped to records created directly by the user." },
-  { value: "MULTI_ORGANIZATION", label: "Multi-Organization", description: "Cross-organization operational access." },
+  { value: "GLOBAL", label: "○ Entire platform", description: "Applies across the entire Maharashtra CSR platform." },
+  { value: "ORGANIZATION", label: "○ My organization", description: "Scoped strictly to the registered parent organization." },
+  { value: "ORGANIZATION_AND_CHILDREN", label: "○ My organization and sub-departments", description: "Scoped to top-level organization and all verified child departments." },
+  { value: "DEPARTMENT", label: "○ My department", description: "Scoped strictly to the officer's assigned department." },
+  { value: "DISTRICT", label: "○ My district", description: "Scoped to the officer's assigned district." },
+  { value: "DIVISION", label: "○ My division", description: "Scoped to an administrative division." },
+  { value: "ASSIGNED", label: "○ Assigned projects & resources only", description: "Scoped strictly to assigned enquiries, pitches, and projects." },
 ];
 
 export function CreateRoleWizard({ isOpen, onClose, onCreated }: CreateRoleWizardProps) {

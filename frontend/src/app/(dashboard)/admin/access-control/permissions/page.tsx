@@ -1,23 +1,45 @@
-// Permissions Catalog Page — Read-only permission reference
+// Permissions Catalog & System Role Matrix Page
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, Shield, Key } from "lucide-react";
+import { Search, Shield, Key, Check, Minus, LayoutGrid, List } from "lucide-react";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import GovPageHeader from "@/components/layout/GovPageHeader";
 import { Card, CardContent } from "@/components/ui/Card";
 import { RiskBadge, DelegableBadge } from "@/components/access-control/RoleBadges";
 import { usePermissions } from "@/hooks/useAccessControl";
 import { cn } from "@/lib/utils";
-import type { Permission, RiskLevel } from "@/types/accessControl";
+import type { Permission } from "@/types/accessControl";
 import "@/styles/gov-theme.css";
 
 import AccessControlTabs from "@/components/access-control/AccessControlTabs";
+
+const SYSTEM_ROLES_HEADERS = [
+  { code: "SA", name: "Super Admin" },
+  { code: "PS", name: "Planning Secretary" },
+  { code: "JS", name: "Joint Secretary" },
+  { code: "DNO", name: "District Nodal Officer" },
+  { code: "DNC", name: "District Nodal Consultant" },
+  { code: "RM", name: "Relationship Manager" },
+  { code: "GOVT", name: "Government Officer" },
+  { code: "COMP", name: "Company Admin" },
+  { code: "IA", name: "NGO / IA Admin" },
+];
+
+const MATRIX_MODULE_OVERVIEW = [
+  { module: "Corporate Enquiry", sa: true, ps: true, js: true, dno: false, dnc: true, rm: true, govt: false, comp: true, ia: false },
+  { module: "Government Pitch", sa: true, ps: true, js: true, dno: true, dnc: true, rm: true, govt: true, comp: false, ia: false },
+  { module: "Feasibility Assessment", sa: true, ps: true, js: true, dno: true, dnc: true, rm: true, govt: false, comp: true, ia: false },
+  { module: "Convergence Project", sa: true, ps: true, js: true, dno: true, dnc: true, rm: true, govt: true, comp: true, ia: true },
+  { module: "Milestone Execution", sa: true, ps: true, js: true, dno: true, dnc: true, rm: false, govt: true, comp: true, ia: true },
+  { module: "MoU & Agreements", sa: true, ps: true, js: true, dno: false, dnc: true, rm: true, govt: false, comp: true, ia: true },
+];
 
 export default function PermissionsPage() {
   const { data: permissions = [], isLoading } = usePermissions();
   const [search, setSearch] = useState("");
   const [riskFilter, setRiskFilter] = useState<string>("ALL");
+  const [viewMode, setViewMode] = useState<"catalog" | "matrix">("catalog");
 
   const modules = useMemo(() => {
     const map = new Map<string, Permission[]>();
@@ -48,99 +70,119 @@ export default function PermissionsPage() {
       .filter(([, perms]) => perms.length > 0);
   }, [modules, search, riskFilter]);
 
-  const totalFiltered = filtered.reduce((acc, [, perms]) => acc + perms.length, 0);
-
   return (
     <GovPortalLayout>
       <GovPageHeader
-        title="Permission Catalog"
-        breadcrumb="Administration / Access Control"
+        title="Permission Catalog & System Role Matrix"
+        description="Master catalog of platform permission keys and 9 System Roles capability matrix."
       />
 
-      <AccessControlTabs />
+      <div className="space-y-6">
+        <AccessControlTabs />
 
-      <div className="space-y-4">
-        {/* Search + Filters */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search permissions..."
-              className="w-full h-10 pl-9 pr-3 bg-white/80 backdrop-blur-sm border border-slate-200/80 rounded-xl text-sm placeholder:text-slate-400 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/10"
-              aria-label="Search permissions"
-            />
+        {/* View Selector & Search Controls */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm text-xs">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setViewMode("catalog")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition-all ${
+                viewMode === "catalog" ? "bg-blue-900 text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              <List size={14} />
+              <span>Permission Catalog</span>
+            </button>
+            <button
+              onClick={() => setViewMode("matrix")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition-all ${
+                viewMode === "matrix" ? "bg-blue-900 text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              <LayoutGrid size={14} />
+              <span>9 System Roles Matrix</span>
+            </button>
           </div>
-          <div className="flex items-center gap-1.5">
-            {["ALL", "LOW", "MEDIUM", "HIGH", "CRITICAL"].map((level) => (
-              <button
-                key={level}
-                type="button"
-                onClick={() => setRiskFilter(level)}
-                className={cn(
-                  "px-3 py-1.5 text-[10px] font-bold rounded-lg border transition-all min-h-[36px]",
-                  riskFilter === level
-                    ? "bg-blue-600 text-white border-blue-600"
-                    : "bg-white text-slate-500 border-slate-200/60 hover:border-slate-300"
-                )}
-              >
-                {level}
-              </button>
-            ))}
+
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+              <input
+                type="text"
+                placeholder="Search permissions..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 pr-3 py-1.5 border border-slate-200 rounded-xl bg-slate-50 font-semibold focus:outline-none"
+              />
+            </div>
           </div>
         </div>
 
-        <p className="text-xs text-slate-500">
-          <strong>{totalFiltered}</strong> permissions across <strong>{filtered.length}</strong> modules
-        </p>
+        {/* MATRIX VIEW */}
+        {viewMode === "matrix" && (
+          <Card variant="outlined" hover={false} tilt={false}>
+            <CardContent className="p-6 space-y-4">
+              <h3 className="text-base font-bold text-slate-900">System Roles Capability Matrix</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                      <th className="p-3">Platform Module</th>
+                      {SYSTEM_ROLES_HEADERS.map((h) => (
+                        <th key={h.code} className="p-3 text-center" title={h.name}>{h.code}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {MATRIX_MODULE_OVERVIEW.map((row) => (
+                      <tr key={row.module} className="hover:bg-slate-50">
+                        <td className="p-3 font-bold text-slate-900">{row.module}</td>
+                        <td className="p-3 text-center">{row.sa ? <Check size={14} className="mx-auto text-emerald-600 font-bold" /> : <Minus size={14} className="mx-auto text-slate-300" />}</td>
+                        <td className="p-3 text-center">{row.ps ? <Check size={14} className="mx-auto text-emerald-600 font-bold" /> : <Minus size={14} className="mx-auto text-slate-300" />}</td>
+                        <td className="p-3 text-center">{row.js ? <Check size={14} className="mx-auto text-emerald-600 font-bold" /> : <Minus size={14} className="mx-auto text-slate-300" />}</td>
+                        <td className="p-3 text-center">{row.dno ? <Check size={14} className="mx-auto text-emerald-600 font-bold" /> : <Minus size={14} className="mx-auto text-slate-300" />}</td>
+                        <td className="p-3 text-center">{row.dnc ? <Check size={14} className="mx-auto text-emerald-600 font-bold" /> : <Minus size={14} className="mx-auto text-slate-300" />}</td>
+                        <td className="p-3 text-center">{row.rm ? <Check size={14} className="mx-auto text-emerald-600 font-bold" /> : <Minus size={14} className="mx-auto text-slate-300" />}</td>
+                        <td className="p-3 text-center">{row.govt ? <Check size={14} className="mx-auto text-emerald-600 font-bold" /> : <Minus size={14} className="mx-auto text-slate-300" />}</td>
+                        <td className="p-3 text-center">{row.comp ? <Check size={14} className="mx-auto text-emerald-600 font-bold" /> : <Minus size={14} className="mx-auto text-slate-300" />}</td>
+                        <td className="p-3 text-center">{row.ia ? <Check size={14} className="mx-auto text-emerald-600 font-bold" /> : <Minus size={14} className="mx-auto text-slate-300" />}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-        {isLoading ? (
-          <div className="py-12 text-center text-sm text-slate-400">Loading permission catalog...</div>
-        ) : (
-          filtered.map(([mod, perms]) => (
-            <Card key={mod} variant="outlined" hover={false} tilt={false}>
-              <CardContent className="p-0">
-                <div className="px-5 py-3 bg-slate-50/60 border-b border-slate-100/60">
-                  <div className="flex items-center gap-2">
-                    <Key size={14} className="text-blue-500" />
-                    <h3 className="text-sm font-bold text-slate-700 capitalize">{mod.replace(/[-_]/g, " ")}</h3>
-                    <span className="text-[10px] text-slate-400 ml-auto">{perms.length} permissions</span>
-                  </div>
-                </div>
-                <div className="divide-y divide-slate-100/40">
-                  {perms.map((perm) => (
-                    <div key={perm.id || perm.key} className="px-5 py-3.5 hover:bg-slate-50/30 transition-colors">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-semibold text-slate-800">
-                              {perm.title || perm.key}
-                            </span>
-                            <RiskBadge level={perm.riskLevel || "LOW"} />
-                            <DelegableBadge isDelegable={perm.isDelegable !== false} />
-                          </div>
-                          <p className="text-[11px] font-mono text-blue-600/80 mt-0.5">{perm.key}</p>
-                          {perm.description && (
-                            <p className="text-xs text-slate-500 mt-1.5">{perm.description}</p>
-                          )}
-                          {perm.dependencies && perm.dependencies.length > 0 && (
-                            <p className="text-[10px] text-slate-400 mt-1">
-                              Dependencies: <span className="font-mono">{perm.dependencies.join(", ")}</span>
-                            </p>
-                          )}
-                          {perm.scopeBehavior && (
-                            <p className="text-[10px] text-slate-400 mt-0.5">Scope: {perm.scopeBehavior}</p>
-                          )}
+        {/* CATALOG VIEW */}
+        {viewMode === "catalog" && (
+          <div className="space-y-6">
+            {isLoading ? (
+              <div className="p-8 text-center text-xs text-slate-400 font-semibold">Loading permission catalog...</div>
+            ) : filtered.length === 0 ? (
+              <div className="p-8 text-center text-xs text-slate-400 font-semibold">No permissions found matching search criteria.</div>
+            ) : (
+              filtered.map(([mod, perms]) => (
+                <Card key={mod} variant="outlined" hover={false} tilt={false}>
+                  <CardContent className="p-5 space-y-3">
+                    <h3 className="text-sm font-bold text-slate-900 capitalize flex items-center gap-2">
+                      <Key size={15} className="text-blue-900" />
+                      <span>{mod.replace(/_/g, " ")} Module</span>
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+                      {perms.map((p) => (
+                        <div key={p.id || p.key} className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                          <div className="font-bold text-slate-900">{p.title || p.key}</div>
+                          <div className="font-mono text-[10px] text-blue-900 font-semibold">{p.key}</div>
+                          <div className="text-[11px] text-slate-500">{p.description || "System permission key."}</div>
                         </div>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ))
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
         )}
       </div>
     </GovPortalLayout>
