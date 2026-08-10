@@ -81,7 +81,8 @@ export const getJwtRefreshSecret = () => {
 };
 
 export const getPrimaryFrontendUrl = () => {
-  const rawBase = process.env.FRONTEND_URL || process.env.CLIENT_URL || process.env.PORTAL_URL || "http://localhost:3000";
+  const defaultProdUrl = "https://csr-seven.vercel.app";
+  const rawBase = process.env.FRONTEND_URL || process.env.CLIENT_URL || process.env.PORTAL_URL || (isProduction ? defaultProdUrl : "http://localhost:3000");
   return rawBase.split(",")[0].trim().replace(/\/+$/, "");
 };
 

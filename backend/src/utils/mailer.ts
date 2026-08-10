@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { getAbsoluteUrl } from "../services/emailService";
 
 const smtpHost = process.env.SMTP_HOST || "smtp.gmail.com";
 const smtpPort = parseInt(process.env.SMTP_PORT || "587", 10);
@@ -154,7 +155,7 @@ export const sendNgoInvitationEmail = async (toEmail: string, ngoName: string, i
   })[character] || character);
   const safeNgoName = escapeHtml(ngoName);
   const safeCompanyName = escapeHtml(companyName);
-  const safeInviteUrl = escapeHtml(inviteUrl);
+  const safeInviteUrl = escapeHtml(getAbsoluteUrl(inviteUrl));
   const htmlContent = `
     <!DOCTYPE html>
     <html>
