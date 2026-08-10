@@ -267,9 +267,6 @@ export default function RegisterPage() {
     }
 
     if (role === "GOV_ENTITY") {
-      if (!formData.officialRegNo.trim() && !formData.registrationNumber.trim()) {
-        errors.officialRegNo = "Official registration / identification number is required";
-      }
       if (!formData.website.trim()) {
         errors.website = "Official website URL is required";
       }
@@ -1002,20 +999,6 @@ export default function RegisterPage() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="flex flex-col gap-1">
-                            <label className="text-xs font-bold text-slate-800">
-                              Official Registration / Identification Number *
-                            </label>
-                            <input
-                              name="officialRegNo"
-                              value={formData.officialRegNo}
-                              onChange={handleChange}
-                              placeholder="e.g. ULB Code / Local Body Code / DDO Code"
-                              className={getInputClassName("officialRegNo")}
-                            />
-                            {renderFieldError("officialRegNo")}
-                          </div>
-
-                          <div className="flex flex-col gap-1">
                             <label className="text-xs font-bold text-slate-800">Official Department / Office Code</label>
                             <input
                               name="deptOfficeCode"
@@ -1027,7 +1010,7 @@ export default function RegisterPage() {
                             {renderFieldError("deptOfficeCode")}
                           </div>
 
-                          <div className="flex flex-col gap-1 md:col-span-2">
+                          <div className="flex flex-col gap-1">
                             <label className="text-xs font-bold text-slate-800">Official Website *</label>
                             <input
                               type="url"

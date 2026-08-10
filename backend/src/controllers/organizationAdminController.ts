@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { OrganizationStatus } from "@prisma/client";
+import { OrganizationStatus, OrganizationKind } from "@prisma/client";
 import prisma from "../config/db";
 import { AuthenticatedRequest } from "../middlewares/authMiddleware";
 import { notifyHierarchy } from "../services/hierarchyNotificationService";
@@ -51,24 +51,22 @@ export const listOrganizations = async (req: AuthenticatedRequest, res: Response
     if (targetKind && targetKind !== "ALL") {
       if (targetKind === "CSR_COMPANY" || targetKind === "CORPORATE") {
         whereClause.OR = [
-          { kind: "CSR_COMPANY" },
-          { kind: "CORPORATE" },
+          { kind: OrganizationKind.CSR_COMPANY },
           { csrCompanyProfile: { isNot: null } }
         ];
       } else if (targetKind === "NGO" || targetKind === "IMPLEMENTING_AGENCY") {
         whereClause.OR = [
-          { kind: "NGO" },
-          { kind: "IMPLEMENTING_AGENCY" },
+          { kind: OrganizationKind.NGO },
+          { kind: OrganizationKind.IMPLEMENTING_AGENCY },
           { ngoProfile: { isNot: null } }
         ];
       } else if (targetKind === "GOVERNMENT_DEPARTMENT" || targetKind === "GOVT_DEPT") {
         whereClause.OR = [
-          { kind: "GOVERNMENT_DEPARTMENT" },
-          { kind: "GOVT_DEPT" },
+          { kind: OrganizationKind.GOVERNMENT_DEPARTMENT },
           { govDeptProfile: { isNot: null } }
         ];
-      } else {
-        whereClause.kind = targetKind;
+      } else if (Object.values(OrganizationKind).includes(targetKind as OrganizationKind)) {
+        whereClause.kind = targetKind as OrganizationKind;
       }
     }
 
@@ -196,26 +194,24 @@ export const listPendingOrganizations = async (req: AuthenticatedRequest, res: R
     }
 
     if (kind && typeof kind === "string" && kind !== "ALL") {
-      if (kind === "CSR_COMPANY") {
+      if (kind === "CSR_COMPANY" || kind === "CORPORATE") {
         whereClause.OR = [
-          { kind: "CSR_COMPANY" },
-          { kind: "CORPORATE" },
+          { kind: OrganizationKind.CSR_COMPANY },
           { csrCompanyProfile: { isNot: null } }
         ];
-      } else if (kind === "NGO") {
+      } else if (kind === "NGO" || kind === "IMPLEMENTING_AGENCY") {
         whereClause.OR = [
-          { kind: "NGO" },
-          { kind: "IMPLEMENTING_AGENCY" },
+          { kind: OrganizationKind.NGO },
+          { kind: OrganizationKind.IMPLEMENTING_AGENCY },
           { ngoProfile: { isNot: null } }
         ];
-      } else if (kind === "GOVERNMENT_DEPARTMENT") {
+      } else if (kind === "GOVERNMENT_DEPARTMENT" || kind === "GOVT_DEPT") {
         whereClause.OR = [
-          { kind: "GOVERNMENT_DEPARTMENT" },
-          { kind: "GOVT_DEPT" },
+          { kind: OrganizationKind.GOVERNMENT_DEPARTMENT },
           { govDeptProfile: { isNot: null } }
         ];
-      } else {
-        whereClause.kind = kind;
+      } else if (Object.values(OrganizationKind).includes(kind as OrganizationKind)) {
+        whereClause.kind = kind as OrganizationKind;
       }
     }
 
@@ -881,14 +877,20 @@ export const createAdminOrganization = async (req: AuthenticatedRequest, res: Re
     const { name, kind = "GOVERNMENT_DEPARTMENT", district, email, phone, address } = req.body;
     if (!name || !name.trim()) return res.status(400).json({ error: "Department / Organization name is required." });
 
+    const resolvedKind = kind === "GOVT_DEPT"
+      ? OrganizationKind.GOVERNMENT_DEPARTMENT
+      : kind === "CORPORATE"
+      ? OrganizationKind.CSR_COMPANY
+      : (kind as OrganizationKind);
+
     const org = await prisma.organization.create({
       data: {
         name: name.trim(),
-        kind: kind as any,
+        kind: resolvedKind,
         district: district ? String(district).trim() : null,
         officialEmail: email ? String(email).trim().toLowerCase() : null,
         status: "ACTIVE",
-        ...(kind === "GOVERNMENT_DEPARTMENT" || kind === "GOVT_DEPT" ? {
+        ...(resolvedKind === OrganizationKind.GOVERNMENT_DEPARTMENT ? {
           govDeptProfile: {
             create: {
               departmentType: "STATE_GOVT",
