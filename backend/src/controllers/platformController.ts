@@ -4,32 +4,48 @@ import prisma from "../config/db";
 
 const HERO_SLIDES_KEY = "hero_carousel_slides";
 
-const DEFAULT_SLIDES = [
+const CAROUSEL_IMAGES = [
+  "Gemini_Generated_Image_5g4qcn5g4qcn5g4q.png",
+  "Gemini_Generated_Image_8tv4ar8tv4ar8tv4.png",
+  "Gemini_Generated_Image_9qvw8v9qvw8v9qvw.png",
+  "Gemini_Generated_Image_cjsjr7cjsjr7cjsj.png",
+  "Gemini_Generated_Image_d21ndd21ndd21ndd.png",
+  "Gemini_Generated_Image_dmhfhhdmhfhhdmhf.png",
+  "Gemini_Generated_Image_ij7dwmij7dwmij7d.png",
+  "Gemini_Generated_Image_jobzsgjobzsgjobz.png",
+  "Gemini_Generated_Image_lf96bqlf96bqlf96.png",
+  "Gemini_Generated_Image_pv11gcpv11gcpv11.png",
+  "Gemini_Generated_Image_q5r488q5r488q5r4.png",
+  "Gemini_Generated_Image_v5khy9v5khy9v5kh.png",
+  "Gemini_Generated_Image_ypxh9zypxh9zypxh.png"
+];
+
+const slideContent = [
   {
-    id: "1",
-    image: "/hero_slide_1.png",
     title: "One Platform. Many Partners.",
     highlight: "Greater Impact.",
     subtitle: "MahaCSR Setu is the official convergence platform connecting Government, Corporates and Implementing Agencies to drive sustainable development across Maharashtra.",
-    active: true,
   },
   {
-    id: "2",
-    image: "/hero_slide_2.png",
     title: "Transforming Maharashtra",
     highlight: "Through Convergence.",
     subtitle: "CSR investments aligned with district development priorities, driving sustainable infrastructure, education and healthcare across every taluka.",
-    active: true,
   },
   {
-    id: "3",
-    image: "/hero_slide_3.png",
     title: "State-Led. District-Executed.",
     highlight: "Corporate Powered.",
     subtitle: "A single State CSR Coordinating Unit routes every corporate to one accountable District Nodal Officer for transparent, time-bound project delivery.",
-    active: true,
   },
 ];
+
+const DEFAULT_SLIDES = CAROUSEL_IMAGES.map((img, idx) => ({
+  id: String(idx + 1),
+  image: `/carousel/${img}`,
+  title: slideContent[idx % slideContent.length].title,
+  highlight: slideContent[idx % slideContent.length].highlight,
+  subtitle: slideContent[idx % slideContent.length].subtitle,
+  active: true,
+}));
 
 // A static list of all platform features, returning all as enabled
 export const getPlatformFeatures = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -68,8 +84,11 @@ export const getPlatformFeatures = async (req: AuthenticatedRequest, res: Respon
 export const getHeroSlides = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const setting = await prisma.platformSetting.findUnique({ where: { key: HERO_SLIDES_KEY } });
-    const slides = setting ? (typeof setting.value === "string" ? JSON.parse(setting.value) : setting.value) : DEFAULT_SLIDES;
-    return res.json(Array.isArray(slides) ? slides.filter((s: any) => s.active !== false) : DEFAULT_SLIDES);
+    let slides = setting ? (typeof setting.value === "string" ? JSON.parse(setting.value) : setting.value) : DEFAULT_SLIDES;
+    if (!Array.isArray(slides) || slides.some((s: any) => s.image?.includes("hero_slide_"))) {
+      slides = DEFAULT_SLIDES;
+    }
+    return res.json(slides.filter((s: any) => s.active !== false));
   } catch (error) {
     return next(error);
   }

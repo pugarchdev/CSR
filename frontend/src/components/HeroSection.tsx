@@ -7,32 +7,50 @@ import { Building2, Landmark, CheckCircle2, ChevronLeft, ChevronRight, ArrowRigh
 import { API_BASE_URL } from "@/lib/api";
 
 /* ─── Default slides (overridden by API fetch) ─── */
-const DEFAULT_SLIDES = [
+const CAROUSEL_IMAGES = [
+  "Gemini_Generated_Image_5g4qcn5g4qcn5g4q.png",
+  "Gemini_Generated_Image_8tv4ar8tv4ar8tv4.png",
+  "Gemini_Generated_Image_9qvw8v9qvw8v9qvw.png",
+  "Gemini_Generated_Image_cjsjr7cjsjr7cjsj.png",
+  "Gemini_Generated_Image_d21ndd21ndd21ndd.png",
+  "Gemini_Generated_Image_dmhfhhdmhfhhdmhf.png",
+  "Gemini_Generated_Image_ij7dwmij7dwmij7d.png",
+  "Gemini_Generated_Image_jobzsgjobzsgjobz.png",
+  "Gemini_Generated_Image_lf96bqlf96bqlf96.png",
+  "Gemini_Generated_Image_pv11gcpv11gcpv11.png",
+  "Gemini_Generated_Image_q5r488q5r488q5r4.png",
+  "Gemini_Generated_Image_v5khy9v5khy9v5kh.png",
+  "Gemini_Generated_Image_ypxh9zypxh9zypxh.png"
+];
+
+const slideContent = [
   {
-    id: "1",
-    image: "/hero_slide_1.png",
     title: "One Platform. Many Partners.",
     highlight: "Greater Impact.",
     subtitle:
       "MahaCSR Setu is the official convergence platform connecting Government, Corporates and Implementing Agencies to drive sustainable development across Maharashtra.",
   },
   {
-    id: "2",
-    image: "/hero_slide_2.png",
     title: "Transforming Maharashtra",
     highlight: "Through Convergence.",
     subtitle:
       "CSR investments aligned with district development priorities, driving sustainable infrastructure, education and healthcare across every taluka.",
   },
   {
-    id: "3",
-    image: "/hero_slide_3.png",
     title: "State-Led. District-Executed.",
     highlight: "Corporate Powered.",
     subtitle:
       "A single State CSR Coordinating Unit routes every corporate to one accountable District Nodal Officer for transparent, time-bound project delivery.",
   },
 ];
+
+const DEFAULT_SLIDES = CAROUSEL_IMAGES.map((img, idx) => ({
+  id: String(idx + 1),
+  image: `/carousel/${img}`,
+  title: slideContent[idx % slideContent.length].title,
+  highlight: slideContent[idx % slideContent.length].highlight,
+  subtitle: slideContent[idx % slideContent.length].subtitle,
+}));
 
 /* ─── Mouse Trail Canvas ─── */
 function MouseTrailCanvas() {
@@ -187,7 +205,10 @@ export default function HeroSection() {
     fetch(`${API_BASE_URL}/platform/hero-slides`)
       .then((r) => r.json())
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) setSlides(data);
+        if (Array.isArray(data) && data.length > 0) {
+          const filtered = data.filter((s: any) => !s.image?.includes("hero_slide_"));
+          if (filtered.length > 0) setSlides(filtered);
+        }
       })
       .catch(() => {
         /* Use defaults */
