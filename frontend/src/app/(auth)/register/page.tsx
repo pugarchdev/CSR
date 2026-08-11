@@ -264,7 +264,7 @@ export default function RegisterPage() {
     const errors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      errors.name = role === "GOV_ENTITY" ? "Government Organization / Local Body Name is required" : "Organization Name is required";
+      errors.name = role === "GOV_ENTITY" ? "Government Organization is required" : "Organization Name is required";
     }
 
     if (!formData.firstName.trim()) {
@@ -998,7 +998,7 @@ export default function RegisterPage() {
 
                           <div className="flex flex-col gap-1 md:col-span-2">
                             <label className="text-xs font-bold text-slate-800">
-                              {formData.registrationCategory === "GOVT_DEPARTMENT" ? "Government Department Name *" : "Government Organization / Local Body Name *"}
+                              {formData.registrationCategory === "GOVT_DEPARTMENT" ? "Government Department Name *" : "Government Organization *"}
                             </label>
                             <input
                               name="name"

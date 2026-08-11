@@ -103,15 +103,7 @@ const companyDocumentTypes = [
   "PAN_CARD",
   "GST_CERTIFICATE",
   "MCA_MASTER_DATA",
-  "CSR_POLICY",
-  "CSR_DECLARATION",
-  "BOARD_RESOLUTION",
-  "AUTHORIZATION_LETTER",
-  "AUDITED_FINANCIAL_STATEMENT",
-  "CSR_ANNUAL_REPORT",
-  "SCHEDULE_VII_DECLARATION",
-  "ESG_BRSR_REPORT",
-  "BANK_VERIFICATION"
+  "CSR_POLICY"
 ];
 
 const departmentDocumentTypes = [
@@ -763,12 +755,13 @@ export function CompanyOnboardingStep() {
   const [saving, setSaving] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [clarificationResponseNotes, setClarificationResponseNotes] = useState("");
+  const [companyDeclarationChecks, setCompanyDeclarationChecks] = useState<boolean[]>([false, false, false, false]);
 
   useEffect(() => {
-    const currentStatus = (organization?.onboardingStatus || organization?.status || "").toUpperCase();
-    const locked = ["SUBMITTED_FOR_REVIEW", "UNDER_VERIFICATION", "APPROVED", "ACTIVE", "SUSPENDED"];
+    const currentStatus = (organization?.onboardingStatus || "").toUpperCase();
+    const locked = ["SUBMITTED_FOR_REVIEW", "UNDER_VERIFICATION", "APPROVED", "SUSPENDED"];
     if (organization && currentStatus && locked.includes(currentStatus)) {
-      router.replace(currentStatus === "APPROVED" || currentStatus === "ACTIVE" ? "/organization/onboarding/details" : "/organization/onboarding/status");
+      router.replace(currentStatus === "APPROVED" ? "/organization/onboarding/details" : "/organization/onboarding/status");
     }
   }, [organization, router]);
   const org = organization || ({} as Organization);
@@ -893,21 +886,68 @@ export function CompanyOnboardingStep() {
               />
             </div>
           )}
-          <div className="space-y-3.5 text-xs md:text-sm font-semibold text-slate-800">
-            <p className="flex items-center gap-2"><CheckCircle2 className="text-emerald-600 shrink-0" size={18} /> Information submitted is true and accurate.</p>
-            <p className="flex items-center gap-2"><CheckCircle2 className="text-emerald-600 shrink-0" size={18} /> Company is authorized to participate in CSR project discovery and funding.</p>
-            <p className="flex items-center gap-2"><CheckCircle2 className="text-emerald-600 shrink-0" size={18} /> Company agrees to portal verification and public-safe impact disclosure.</p>
-            <p className="flex items-center gap-2"><CheckCircle2 className="text-emerald-600 shrink-0" size={18} /> Sensitive payment and compliance documents will not be public.</p>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between pb-1 border-b border-slate-100">
+              <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Mandatory Application Declarations</span>
+              <button
+                type="button"
+                onClick={() => setCompanyDeclarationChecks(prev => prev.every(Boolean) ? [false, false, false, false] : [true, true, true, true])}
+                className="text-xs font-extrabold text-blue-800 hover:text-blue-900 cursor-pointer hover:underline"
+              >
+                {companyDeclarationChecks.every(Boolean) ? "Deselect All" : "Select All"}
+              </button>
+            </div>
+            {[
+              "Information submitted is true and accurate.",
+              "Company is authorized to participate in CSR project discovery and funding.",
+              "Company agrees to portal verification and public-safe impact disclosure.",
+              "Sensitive payment and compliance documents will not be public."
+            ].map((text, idx) => {
+              const isChecked = companyDeclarationChecks[idx];
+              return (
+                <label
+                  key={idx}
+                  onClick={() => {
+                    setCompanyDeclarationChecks(prev => {
+                      const next = [...prev];
+                      next[idx] = !next[idx];
+                      return next;
+                    });
+                  }}
+                  className={`flex items-center gap-3.5 p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer select-none ${
+                    isChecked
+                      ? "bg-emerald-50/80 border-emerald-300 text-slate-900 shadow-xs ring-1 ring-emerald-500/20"
+                      : "bg-slate-50/80 border-slate-200/80 text-slate-700 hover:border-slate-300 hover:bg-slate-100/50"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    readOnly
+                    className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/20 cursor-pointer accent-emerald-600 shrink-0"
+                  />
+                  <span className="text-xs md:text-sm font-semibold leading-relaxed">
+                    {text}
+                  </span>
+                </label>
+              );
+            })}
           </div>
-          <div className="pt-4 border-t border-slate-100">
+          <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <button
               onClick={submit}
-              disabled={saving}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 px-6 py-3 text-xs font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105 disabled:opacity-50 cursor-pointer"
+              disabled={saving || !companyDeclarationChecks.every(Boolean)}
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 px-6 py-3 text-xs font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               <ShieldCheck size={16} />
               {saving ? "Submitting Application..." : isClarification ? "Submit Clarification Response & Re-submit Profile" : "Accept Declaration and Submit"}
             </button>
+            {!companyDeclarationChecks.every(Boolean) && (
+              <span className="text-[11px] text-amber-800 font-bold bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200 flex items-center gap-1.5">
+                <AlertCircle size={14} className="text-amber-600 shrink-0" />
+                Please check all declaration boxes above to proceed
+              </span>
+            )}
           </div>
         </section>
       </Shell>
@@ -974,10 +1014,7 @@ export function CompanyOnboardingStep() {
             <Field label="Turnover" type="number" value={data.turnover} onChange={(value) => setData("turnover", value)} />
             <Field label="Net profit" type="number" value={data.netProfit} onChange={(value) => setData("netProfit", value)} />
             <Field label="Average net profit last 3 years" type="number" value={data.averageNetProfit} onChange={(value) => setData("averageNetProfit", value)} />
-            <Field label="Applicable CSR obligation amount" type="number" value={data.csrObligationAmount} onChange={(value) => setData("csrObligationAmount", value)} />
-            <Field label="2% CSR obligation value" type="number" value={data.twoPercentCsrObligation} onChange={(value) => setData("twoPercentCsrObligation", value)} />
             <Field label="CSR budget current financial year" required type="number" value={data.currentYearCsrBudget} onChange={(value) => setData("currentYearCsrBudget", value)} />
-            <Field label="Unspent CSR amount" type="number" value={data.unspentCsrAmount} onChange={(value) => setData("unspentCsrAmount", value)} />
           </>
         )}
         {step === "preferences" && (
@@ -1032,9 +1069,6 @@ export function CompanyOnboardingStep() {
               placeholder={selectedDistricts.length > 0 ? "Select preferred talukas" : "Select districts first"}
             />
             <CheckboxList label="Preferred sectors" values={data.preferredSectors || []} options={scheduleAreas} onChange={(values) => setData("preferredSectors", values)} />
-            <SelectField label="Preferred project size" value={data.preferredProjectSize} onChange={(value) => setData("preferredProjectSize", value)} options={["Small", "Medium", "Large"]} />
-            <Field label="Minimum funding amount" type="number" value={data.minFundingAmount} onChange={(value) => setData("minFundingAmount", value)} />
-            <Field label="Maximum funding amount" type="number" value={data.maxFundingAmount} onChange={(value) => setData("maxFundingAmount", value)} />
             <SelectField label="Funding preference" value={data.fundingPreference} onChange={(value) => setData("fundingPreference", value)} options={["Full funding", "Partial funding", "Co-funding"]} />
             <SelectField label="Implementation preference" value={data.implementationPreference} onChange={(value) => setData("implementationPreference", value)} options={["Direct asset delivery", "NGO implementation", "Mixed model"]} />
             <TagSelectorField
@@ -1279,10 +1313,7 @@ function DocumentsStep({
       "CERTIFICATE_OF_INCORPORATION",
       "PAN_CARD",
       "GST_CERTIFICATE",
-      "BOARD_RESOLUTION",
-      "AUTHORIZATION_LETTER",
       "CSR_POLICY",
-      "CSR_DECLARATION",
       "DEPARTMENT_AUTHORIZATION",
       "DEPARTMENT_PROOF",
       "OFFICE_ORDER",
@@ -1474,12 +1505,13 @@ export function DepartmentOnboardingStep() {
   const { organization, profile, setOrganization, setProfile, error, setError, load } = useEntityProfile("department");
   const [saving, setSaving] = useState(false);
   const [clarificationResponseNotes, setClarificationResponseNotes] = useState("");
+  const [deptDeclarationChecks, setDeptDeclarationChecks] = useState<boolean[]>([false, false]);
 
   useEffect(() => {
-    const currentStatus = (organization?.onboardingStatus || organization?.status || "").toUpperCase();
-    const locked = ["SUBMITTED_FOR_REVIEW", "UNDER_VERIFICATION", "APPROVED", "ACTIVE", "SUSPENDED"];
+    const currentStatus = (organization?.onboardingStatus || "").toUpperCase();
+    const locked = ["SUBMITTED_FOR_REVIEW", "UNDER_VERIFICATION", "APPROVED", "SUSPENDED"];
     if (organization && currentStatus && locked.includes(currentStatus)) {
-      router.replace(currentStatus === "APPROVED" || currentStatus === "ACTIVE" ? "/organization/onboarding/details" : "/organization/onboarding/status");
+      router.replace(currentStatus === "APPROVED" ? "/organization/onboarding/details" : "/organization/onboarding/status");
     }
   }, [organization, router]);
 
@@ -1572,19 +1604,66 @@ export function DepartmentOnboardingStep() {
               />
             </div>
           )}
-          <div className="space-y-3.5 text-xs md:text-sm font-semibold text-slate-800">
-            <p className="flex items-center gap-2"><CheckCircle2 className="text-emerald-600 shrink-0" size={18} /> Department details and office orders are official government records.</p>
-            <p className="flex items-center gap-2"><CheckCircle2 className="text-emerald-600 shrink-0" size={18} /> Designated Nodal Officer holds authorization to submit CSR pitches.</p>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between pb-1 border-b border-slate-100">
+              <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Mandatory Department Declarations</span>
+              <button
+                type="button"
+                onClick={() => setDeptDeclarationChecks(prev => prev.every(Boolean) ? [false, false] : [true, true])}
+                className="text-xs font-extrabold text-blue-800 hover:text-blue-900 cursor-pointer hover:underline"
+              >
+                {deptDeclarationChecks.every(Boolean) ? "Deselect All" : "Select All"}
+              </button>
+            </div>
+            {[
+              "Department details and office orders are official government records.",
+              "Designated Nodal Officer holds authorization to submit CSR pitches."
+            ].map((text, idx) => {
+              const isChecked = deptDeclarationChecks[idx];
+              return (
+                <label
+                  key={idx}
+                  onClick={() => {
+                    setDeptDeclarationChecks(prev => {
+                      const next = [...prev];
+                      next[idx] = !next[idx];
+                      return next;
+                    });
+                  }}
+                  className={`flex items-center gap-3.5 p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer select-none ${
+                    isChecked
+                      ? "bg-emerald-50/80 border-emerald-300 text-slate-900 shadow-xs ring-1 ring-emerald-500/20"
+                      : "bg-slate-50/80 border-slate-200/80 text-slate-700 hover:border-slate-300 hover:bg-slate-100/50"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    readOnly
+                    className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/20 cursor-pointer accent-emerald-600 shrink-0"
+                  />
+                  <span className="text-xs md:text-sm font-semibold leading-relaxed">
+                    {text}
+                  </span>
+                </label>
+              );
+            })}
           </div>
-          <div className="pt-4 border-t border-slate-100">
+          <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <button
               onClick={submit}
-              disabled={saving}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 px-6 py-3 text-xs font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105 disabled:opacity-50 cursor-pointer"
+              disabled={saving || !deptDeclarationChecks.every(Boolean)}
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 px-6 py-3 text-xs font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               <ShieldCheck size={16} />
               {saving ? "Submitting Application..." : isClarification ? "Submit Clarification Response & Re-submit Profile" : "Accept Declaration and Submit"}
             </button>
+            {!deptDeclarationChecks.every(Boolean) && (
+              <span className="text-[11px] text-amber-800 font-bold bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200 flex items-center gap-1.5">
+                <AlertCircle size={14} className="text-amber-600 shrink-0" />
+                Please check all declaration boxes above to proceed
+              </span>
+            )}
           </div>
         </section>
       </Shell>

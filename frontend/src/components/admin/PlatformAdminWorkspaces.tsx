@@ -2077,10 +2077,10 @@ export function OrganizationOnboardingWorkspace() {
 
   // Once submitted, onboarding details are read-only — redirect away from the edit form.
   useEffect(() => {
-    const currentStatus = (organization?.onboardingStatus || organization?.status || "").toUpperCase();
-    const locked = ["SUBMITTED_FOR_REVIEW", "UNDER_VERIFICATION", "APPROVED", "ACTIVE", "SUSPENDED"];
+    const currentStatus = (organization?.onboardingStatus || "").toUpperCase();
+    const locked = ["SUBMITTED_FOR_REVIEW", "UNDER_VERIFICATION", "APPROVED", "SUSPENDED"];
     if (organization && currentStatus && locked.includes(currentStatus)) {
-      router.replace(currentStatus === "APPROVED" || currentStatus === "ACTIVE" ? "/organization/onboarding/details" : "/organization/onboarding/status");
+      router.replace(currentStatus === "APPROVED" ? "/organization/onboarding/details" : "/organization/onboarding/status");
     }
   }, [organization, router]);
 

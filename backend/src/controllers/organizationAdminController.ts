@@ -31,9 +31,9 @@ export const getOwnedOrganization = async (req: AuthenticatedRequest, kind?: str
   if (kind && organization.kind !== kind) throw new Error("Wrong organization kind");
 
   if (!allowLocked) {
-    const LOCKED_STATUSES = ["SUBMITTED_FOR_REVIEW", "UNDER_VERIFICATION", "APPROVED", "ACTIVE", "SUSPENDED"];
-    const currentStatus = ((organization as any).onboardingStatus || organization.status || "").toUpperCase();
-    if (LOCKED_STATUSES.includes(currentStatus)) {
+    const LOCKED_STATUSES = ["SUBMITTED_FOR_REVIEW", "UNDER_VERIFICATION", "APPROVED", "SUSPENDED"];
+    const currentStatus = ((organization as any).onboardingStatus || "").toUpperCase();
+    if (currentStatus && LOCKED_STATUSES.includes(currentStatus)) {
       throw new Error("Your organization onboarding application has already been submitted and cannot be edited.");
     }
   }
@@ -846,7 +846,9 @@ export const submitDepartmentOnboarding = async (req: AuthenticatedRequest, res:
     const org = await getOwnedOrganization(req, "GOVERNMENT_DEPARTMENT");
     const updated = await prisma.organization.update({
       where: { id: org.id },
-      data: { status: "UNDER_VERIFICATION" }
+      data: {
+        status: "UNDER_VERIFICATION"
+      }
     });
     notifyHierarchy({
       title: "New Government Department Onboarding Submitted",

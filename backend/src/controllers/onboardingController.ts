@@ -117,11 +117,11 @@ export const submitApplication = async (req: AuthenticatedRequest, res: Response
     const existing = await prisma.organization.findUnique({ where: { id: orgId } });
     let wasClarificationRequired = false;
     if (existing) {
-      const currentStatus = ((existing as any).onboardingStatus || existing.status || "").toUpperCase();
+      const currentStatus = ((existing as any).onboardingStatus || "").toUpperCase();
       wasClarificationRequired = currentStatus === "CLARIFICATION_REQUIRED";
 
-      const LOCKED_STATUSES = ["SUBMITTED_FOR_REVIEW", "UNDER_VERIFICATION", "APPROVED", "ACTIVE", "SUSPENDED"];
-      if (LOCKED_STATUSES.includes(currentStatus) && !wasClarificationRequired) {
+      const LOCKED_STATUSES = ["SUBMITTED_FOR_REVIEW", "UNDER_VERIFICATION", "APPROVED", "SUSPENDED"];
+      if (currentStatus && LOCKED_STATUSES.includes(currentStatus) && !wasClarificationRequired) {
         return res.status(400).json({ error: "Your organization onboarding application has already been submitted and is under verification." });
       }
     }
