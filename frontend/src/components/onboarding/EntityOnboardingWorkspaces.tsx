@@ -774,12 +774,6 @@ export function CompanyOnboardingStep() {
   const [clarificationResponseNotes, setClarificationResponseNotes] = useState("");
   const [companyDeclarationChecks, setCompanyDeclarationChecks] = useState<boolean[]>([false, false, false, false]);
 
-  useEffect(() => {
-    const currentStatus = (organization?.onboardingStatus || organization?.status || "").toUpperCase();
-    if (organization && currentStatus === "APPROVED") {
-      router.replace("/organization/onboarding/details");
-    }
-  }, [organization, router]);
   const org = organization || ({} as Organization);
   const data: Record<string, any> = { ...org, ...profile };
 
@@ -1522,13 +1516,6 @@ export function DepartmentOnboardingStep() {
   const [saving, setSaving] = useState(false);
   const [clarificationResponseNotes, setClarificationResponseNotes] = useState("");
   const [deptDeclarationChecks, setDeptDeclarationChecks] = useState<boolean[]>([false, false]);
-
-  useEffect(() => {
-    const currentStatus = (organization?.onboardingStatus || organization?.status || "").toUpperCase();
-    if (organization && currentStatus === "APPROVED") {
-      router.replace("/organization/onboarding/details");
-    }
-  }, [organization, router]);
 
   const org = organization || ({} as Organization);
   const data: Record<string, any> = { ...org, ...profile };

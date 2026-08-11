@@ -292,13 +292,27 @@ export default function DashboardEngine() {
   };
 
   const rawQuickActions = visibleByPermission(QUICK_ACTIONS, summary);
-  const quickActions = rawQuickActions.filter((action) => {
-    if (action.key === "onboarding") return true;
-    if (isRM && (action.key === "pitches" || action.key === "enquiry_create")) return false;
-    if (isCorporate && action.key === "pitches") return false;
-    if (isGovernment && action.key === "enquiry_create") return false;
-    return true;
-  });
+  const quickActions = rawQuickActions
+    .filter((action) => {
+      if (action.key === "onboarding") return true;
+      if (isRM && (action.key === "pitches" || action.key === "enquiry_create")) return false;
+      if (isCorporate && action.key === "pitches") return false;
+      if (isGovernment && action.key === "enquiry_create") return false;
+      return true;
+    })
+    .map((action) => {
+      if (action.key === "onboarding") {
+        return {
+          ...action,
+          href: isGovernment
+            ? "/organization/onboarding/department"
+            : isCorporate
+            ? "/organization/onboarding/company"
+            : "/organization/onboarding",
+        };
+      }
+      return action;
+    });
 
   const onboarding = summary.onboardingStatus;
 

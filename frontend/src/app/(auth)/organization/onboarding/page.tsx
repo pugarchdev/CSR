@@ -1,19 +1,20 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { OrganizationOnboardingWorkspace } from "@/components/admin/PlatformAdminWorkspaces";
+import { Loader2 } from "lucide-react";
 import { apiFetch, getStoredUser } from "@/lib/api";
 
 export default function OrganizationOnboardingPage() {
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const user = getStoredUser();
     const role = (user?.role || user?.roleSlug || "").toUpperCase();
     const accountType = (user?.accountType || "").toUpperCase();
     const storedOrgKind = (user?.organization?.kind || user?.organization?.organizationType || user?.orgKind || "").toUpperCase();
-    const numericRoleId = user?.roleNumericId;
+    const numericRoleId = Number(user?.roleNumericId || user?.roleId || (typeof user?.role === "number" ? user?.role : 0));
 
     const routeToTypeForm = (kind?: string) => {
       const typeStr = (kind || storedOrgKind || "").toUpperCase();
@@ -24,13 +25,19 @@ export default function OrganizationOnboardingPage() {
         accountType === "GOVERNMENT_DEPARTMENT" ||
         role === "BENEFICIARY_AGENCY" ||
         role === "NODAL_OFFICER" ||
+        role === "DISTRICT_NODAL_OFFICER" ||
+        role === "DISTRICT_NODAL_CONSULTANT" ||
         role === "GOVERNMENT_USER" ||
         role === "GOV_ENTITY" ||
         role === "DEPARTMENT_ADMIN" ||
         role === "GOVERNMENT_DEPARTMENT_ADMIN" ||
+        role === "JOINT_SECRETARY" ||
+        role === "PLANNING_SECRETARY" ||
         role.includes("GOVT") ||
         role.includes("DEPARTMENT") ||
-        numericRoleId === 7;
+        role.includes("NODAL") ||
+        role.includes("OFFICER") ||
+        [2, 3, 4, 5, 7].includes(numericRoleId);
 
       if (isGov) {
         router.replace("/organization/onboarding/department");
@@ -62,18 +69,24 @@ export default function OrganizationOnboardingPage() {
     apiFetch<any>("/onboarding/status")
       .then((res) => {
         const org = res?.data || res || {};
-        const currentStatus = (org.onboardingStatus || org.status || user?.organization?.status || "").toUpperCase();
-        if (currentStatus === "APPROVED") {
-          router.replace("/organization/onboarding/details");
-          return;
-        }
         routeToTypeForm(org.kind || org.organizationType);
       })
       .catch(() => {
         routeToTypeForm(storedOrgKind);
+      })
+      .finally(() => {
+        setLoading(false);
       });
   }, [router]);
 
-  return <OrganizationOnboardingWorkspace />;
+  return (
+    <div className="flex h-screen w-full items-center justify-center bg-slate-50/50">
+      <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-6 py-4 shadow-sm">
+        <Loader2 className="animate-spin text-blue-900" size={24} />
+        <span className="text-sm font-semibold text-slate-700">Loading Organization Onboarding Workspace...</span>
+      </div>
+    </div>
+  );
 }
+
 
