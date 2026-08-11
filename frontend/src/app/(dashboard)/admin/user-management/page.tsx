@@ -379,14 +379,14 @@ export default function AdminUserManagementPage() {
     setTransferSource(null);
   };
 
-  return (
+return (
     <GovPortalLayout>
-      <GovPageHeader
+    <GovPageHeader
         title="User Management"
         breadcrumb="Admin / Security / Users"
         description="Create platform users, manage their roles, districts and account status."
         actions={
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <div className="flex items-center gap-2">
             <GovButton variant="secondary" onClick={() => setCustomRoleModalOpen(true)}>
               + Create Custom Role
             </GovButton>
@@ -397,25 +397,24 @@ export default function AdminUserManagementPage() {
         }
       />
 
-      <div className="gov-container">
+      <div className="gov-container !px-2 sm:!px-4 md:!px-8">
         {!createModalOpen && !editModalOpen && !deleteTarget && !transferSource && error && (
           <div className="gov-alert gov-alert-danger gov-mb-4">{error}</div>
         )}
         {success && <div className="gov-alert gov-alert-success gov-mb-4">{success}</div>}
 
         <GovCard>
-          <GovCardHeader>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", flexWrap: "wrap", gap: 12 }}>
+          <GovCardHeader className="!p-4 md:!p-5">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full">
               <GovCardTitle>User Directory ({pagination.total})</GovCardTitle>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
                 <select
-                  className="gov-select"
+                  className="gov-select w-full sm:w-auto md:min-w-[140px]"
                   value={statusFilter}
                   onChange={(e) => {
                     setStatusFilter(e.target.value);
                     setPage(1);
                   }}
-                  style={{ minWidth: 140 }}
                 >
                   <option value="">All statuses</option>
                   <option value="ACTIVE">ACTIVE</option>
@@ -425,90 +424,94 @@ export default function AdminUserManagementPage() {
                 </select>
                 <input
                   type="text"
-                  className="gov-input"
+                  className="gov-input w-full sm:w-auto md:min-w-[240px]"
                   placeholder="Search users by email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{ minWidth: 240 }}
                 />
               </div>
             </div>
           </GovCardHeader>
-          <GovCardBody>
+          
+          <GovCardBody className="!p-2 sm:!p-4 md:!p-5">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-16 gap-4 w-full bg-white">
                 <div className="w-10 h-10 rounded-full border-4 border-[#14274e] border-t-transparent animate-spin" />
                 <span className="text-xs text-slate-500 font-semibold">Loading user accounts...</span>
               </div>
             ) : filteredUsers.length > 0 ? (
-              <div className="gov-table-container">
-                <table className="gov-table">
-                  <thead>
+              <div className="w-full md:overflow-x-auto">
+                <table className="w-full block md:table text-left border-collapse">
+                  <thead className="hidden md:table-header-group border-b-2 border-slate-200">
                     <tr>
-                      <th>User / Official Name</th>
-                      <th>User Email</th>
-                      <th>Designation</th>
-                      <th>Role</th>
-                      <th>Assigned District</th>
-                      <th>Status</th>
-                      <th className="gov-text-right">Actions</th>
+                      <th className="px-4 py-3 text-left">User / Official Name</th>
+                      <th className="px-4 py-3 text-left">User Email</th>
+                      <th className="px-4 py-3 text-left">Designation</th>
+                      <th className="px-4 py-3 text-left">Role</th>
+                      <th className="px-4 py-3 text-left">Assigned District</th>
+                      <th className="px-4 py-3 text-left">Status</th>
+                      <th className="px-4 py-3 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="block md:table-row-group divide-y-0 md:divide-y md:divide-slate-100">
                     {filteredUsers.map((u) => {
                       const isActive = (u.accountStatus || "ACTIVE") === "ACTIVE";
                       const fullName = ([u.firstName, u.lastName].filter(Boolean).join(" ")) || u.officerProfile?.fullName || "Official User";
+                      
                       return (
-                        <tr key={u.id}>
-                          <td className="gov-font-semibold gov-text-primary" style={{ verticalAlign: "middle" }}>
-                            <div>{fullName}</div>
-                            {(u.ngo?.name || u.company?.name || u.organization?.name) && (
-                              <div style={{ fontSize: "11px", color: "#64748b", fontWeight: 500 }}>
-                                {u.ngo?.name || u.company?.name || u.organization?.name}
-                              </div>
-                            )}
+                        <tr 
+                          key={u.id}
+                          className="block md:table-row mb-4 md:mb-0 bg-white border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-sm md:shadow-none hover:bg-slate-50/80 transition-colors overflow-hidden"
+                        >
+                          <td 
+                            data-label="User / Official Name" 
+                            className="flex md:table-cell flex-col md:flex-row items-start md:items-center px-4 py-3 md:py-4 border-b border-slate-100 md:border-none align-middle before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden before:mb-1"
+                          >
+                            <div className="text-left w-full md:w-auto">
+                              <div className="gov-font-semibold gov-text-primary break-words">{fullName}</div>
+                              {(u.ngo?.name || u.company?.name || u.organization?.name) && (
+                                <div className="text-[11px] text-slate-500 font-medium break-words mt-0.5">
+                                  {u.ngo?.name || u.company?.name || u.organization?.name}
+                                </div>
+                              )}
+                            </div>
                           </td>
-                          <td style={{ verticalAlign: "middle", fontSize: "12px", color: "#334155" }}>
-                            {u.email}
+                          
+                          <td 
+                            data-label="User Email" 
+                            className="flex md:table-cell justify-between items-center px-4 py-3 md:py-4 border-b border-slate-100 md:border-none align-middle text-[12px] text-slate-700 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden min-w-0"
+                          >
+                            <span className="break-all md:break-words text-right md:text-left">{u.email}</span>
                           </td>
-                          <td style={{ verticalAlign: "middle" }}>
-                            <span style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}>
+                          
+                          <td 
+                            data-label="Designation" 
+                            className="flex md:table-cell justify-between items-center px-4 py-3 md:py-4 border-b border-slate-100 md:border-none align-middle before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden"
+                          >
+                            <span className="text-[12px] font-semibold text-slate-900 text-right md:text-left">
                               {u.officerProfile?.designation || "N/A"}
                             </span>
                           </td>
-                          <td style={{ verticalAlign: "middle" }}>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
+                          
+                          <td 
+                            data-label="Role" 
+                            className="flex md:table-cell justify-between items-start md:items-center px-4 py-3 md:py-4 border-b border-slate-100 md:border-none align-middle before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden"
+                          >
+                            <div className="flex flex-col gap-1 items-end md:items-start w-full md:w-auto">
                               {effectiveRole(u) ? (
-                                <span
-                                  style={{
-                                    padding: "3px 10px",
-                                    borderRadius: 12,
-                                    backgroundColor: u.role ? "#f1f5f9" : "#eff6ff",
-                                    color: u.role ? "#334155" : "#1e40af",
-                                    fontSize: 12,
-                                    fontWeight: 600,
-                                    border: "1px solid #e2e8f0",
-                                  }}
-                                >
+                                <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold border ${u.role ? 'bg-slate-100 text-slate-700 border-slate-200' : 'bg-blue-50 text-blue-800 border-blue-200'}`}>
                                   {effectiveRole(u)}
                                 </span>
                               ) : (
-                                <span className="gov-text-muted" style={{ fontSize: 12 }}>No role</span>
+                                <span className="gov-text-muted text-[12px]">No role</span>
                               )}
+                              
                               {u.dynamicRoles && u.dynamicRoles.length > 0 && (
-                                <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                                <div className="flex flex-wrap justify-end md:justify-start gap-1 mt-1 w-full md:w-auto">
                                   {u.dynamicRoles.map((dr) => (
                                     <span
                                       key={dr.roleId}
-                                      style={{
-                                        padding: "2px 6px",
-                                        borderRadius: 8,
-                                        backgroundColor: "#eff6ff",
-                                        color: "#1e40af",
-                                        fontSize: 10,
-                                        fontWeight: 600,
-                                        border: "1px solid #bfdbfe",
-                                      }}
+                                      className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-800 text-[10px] font-bold border border-blue-200 whitespace-nowrap"
                                     >
                                       +{dr.roleName}
                                     </span>
@@ -517,32 +520,38 @@ export default function AdminUserManagementPage() {
                               )}
                             </div>
                           </td>
-                          <td style={{ verticalAlign: "middle" }}>{u.assignedDistrict || <span className="gov-text-muted">State level</span>}</td>
-                          <td style={{ verticalAlign: "middle" }}>
-                            <span
-                              style={{
-                                padding: "3px 10px",
-                                borderRadius: 12,
-                                fontSize: 11,
-                                fontWeight: 700,
-                                backgroundColor: isActive ? "#ecfdf5" : u.accountStatus === "SUSPENDED" ? "#fff1f2" : "#f1f5f9",
-                                color: isActive ? "#047857" : u.accountStatus === "SUSPENDED" ? "#be123c" : "#475569",
-                              }}
-                            >
+                          
+                          <td 
+                            data-label="Assigned District" 
+                            className="flex md:table-cell justify-between items-center px-4 py-3 md:py-4 border-b border-slate-100 md:border-none align-middle before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden"
+                          >
+                            <span className="text-right md:text-left text-sm md:text-sm">
+                              {u.assignedDistrict || <span className="gov-text-muted text-[12px]">State level</span>}
+                            </span>
+                          </td>
+                          
+                          <td 
+                            data-label="Status" 
+                            className="flex md:table-cell justify-between items-center px-4 py-3 md:py-4 border-b border-slate-100 md:border-none align-middle before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden"
+                          >
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                              isActive ? "bg-emerald-50 text-emerald-700" : u.accountStatus === "SUSPENDED" ? "bg-rose-50 text-rose-700" : "bg-slate-100 text-slate-600"
+                            }`}>
                               {u.accountStatus || "ACTIVE"}
                             </span>
                           </td>
-                          <td className="gov-text-right" style={{ verticalAlign: "middle" }}>
-                            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 10 }}>
+                          
+                          <td className="block md:table-cell px-4 py-3 md:py-4 align-middle bg-slate-50/50 md:bg-transparent">
+                            <div className="flex md:inline-flex justify-end items-center gap-2.5 w-full md:w-auto">
                               {isAdmin && isRelationshipManager(u) && (
-                                <GovButton variant="secondary" onClick={() => setTransferSource(u)}>
+                                <GovButton variant="secondary" className="flex-1 md:flex-none justify-center px-2 py-1 text-xs" onClick={() => setTransferSource(u)}>
                                   Transfer Portfolio
                                 </GovButton>
                               )}
-                              <GovButton variant="secondary" onClick={() => openEditModal(u)}>
+                              <GovButton variant="secondary" className="flex-1 md:flex-none justify-center px-2 py-1 text-xs" onClick={() => openEditModal(u)}>
                                 Edit
                               </GovButton>
-                              {/* Activate / Inactivate toggle */}
+                              
                               <button
                                 type="button"
                                 role="switch"
@@ -576,7 +585,8 @@ export default function AdminUserManagementPage() {
                                   }}
                                 />
                               </button>
-                              <GovButton variant="danger" onClick={() => setDeleteTarget(u)}>
+                              
+                              <GovButton variant="danger" className="flex-1 md:flex-none justify-center px-2 py-1 text-xs" onClick={() => setDeleteTarget(u)}>
                                 Delete
                               </GovButton>
                             </div>
@@ -586,14 +596,16 @@ export default function AdminUserManagementPage() {
                     })}
                   </tbody>
                 </table>
+                
                 {pagination.totalPages > 1 && (
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16, borderTop: "1px solid #e2e8f0", paddingTop: 16 }}>
-                    <span className="gov-text-xs gov-text-muted">
+                  <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-4 pt-4 border-t border-slate-200">
+                    <span className="gov-text-xs gov-text-muted text-center sm:text-left">
                       Showing page {page} of {pagination.totalPages} ({pagination.total} users total)
                     </span>
-                    <div style={{ display: "flex", gap: 8 }}>
+                    <div className="flex gap-2 w-full sm:w-auto">
                       <GovButton
                         variant="secondary"
+                        className="flex-1 sm:flex-none justify-center"
                         disabled={page <= 1}
                         onClick={() => setPage((p) => Math.max(1, p - 1))}
                       >
@@ -601,6 +613,7 @@ export default function AdminUserManagementPage() {
                       </GovButton>
                       <GovButton
                         variant="secondary"
+                        className="flex-1 sm:flex-none justify-center"
                         disabled={page >= pagination.totalPages}
                         onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
                       >
@@ -622,7 +635,6 @@ export default function AdminUserManagementPage() {
         <form onSubmit={handleCreateUser}>
           {error && <div className="gov-alert gov-alert-danger gov-mb-4">{error}</div>}
 
-          {/* Dynamic Invitation Condition Helper Alert */}
           {!userForm.password.trim() ? (
             <div className="gov-alert gov-alert-info gov-mb-4" style={{ fontSize: 13, display: "flex", gap: 8, alignItems: "center" }}>
               <span>💡</span>
@@ -639,7 +651,7 @@ export default function AdminUserManagementPage() {
             </div>
           )}
 
-          <div className="gov-grid gov-grid-cols-2 gov-gap-4">
+          <div className="gov-grid gov-grid-cols-1 sm:gov-grid-cols-2 gov-gap-4">
             <GovInput
               label="First Name"
               required
@@ -744,11 +756,11 @@ export default function AdminUserManagementPage() {
             </div>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 24 }}>
-            <GovButton type="button" variant="secondary" onClick={() => setCreateModalOpen(false)}>
+          <div style={{ display: "flex", flexDirection: "column-reverse", justifyContent: "flex-end", gap: 8, marginTop: 24 }} className="sm:flex-row">
+            <GovButton type="button" variant="secondary" onClick={() => setCreateModalOpen(false)} className="w-full sm:w-auto justify-center">
               Cancel
             </GovButton>
-            <GovButton type="submit" variant="primary" disabled={saving}>
+            <GovButton type="submit" variant="primary" disabled={saving} className="w-full sm:w-auto justify-center">
               {saving ? "Creating..." : "Create & Send Invitation"}
             </GovButton>
           </div>
@@ -759,7 +771,7 @@ export default function AdminUserManagementPage() {
       <GovModal open={editModalOpen} onClose={() => { setError(""); setEditModalOpen(false); }} title={`Edit User: ${editForm.email}`} width={680}>
         <form onSubmit={handleSaveEdit}>
           {error && <div className="gov-alert gov-alert-danger gov-mb-4">{error}</div>}
-          <div className="gov-grid gov-grid-cols-2 gov-gap-4">
+          <div className="gov-grid gov-grid-cols-1 sm:gov-grid-cols-2 gov-gap-4">
             <GovInput
               label="First Name"
               required
@@ -902,11 +914,11 @@ export default function AdminUserManagementPage() {
             position: "sticky",
             bottom: 0,
             zIndex: 10,
-          }}>
-            <GovButton type="button" variant="secondary" onClick={() => setEditModalOpen(false)}>
+          }} className="flex-col-reverse sm:flex-row">
+            <GovButton type="button" variant="secondary" onClick={() => setEditModalOpen(false)} className="w-full sm:w-auto justify-center">
               Cancel
             </GovButton>
-            <GovButton type="submit" variant="primary" disabled={saving}>
+            <GovButton type="submit" variant="primary" disabled={saving} className="w-full sm:w-auto justify-center">
               {saving ? "Saving..." : "Save Changes"}
             </GovButton>
           </div>
@@ -937,11 +949,11 @@ export default function AdminUserManagementPage() {
           This action cannot be undone. If the user has linked records (assignments, audit
           history), the account will be suspended instead of removed.
         </p>
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <GovButton type="button" variant="secondary" onClick={() => setDeleteTarget(null)}>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }} className="flex-col-reverse sm:flex-row">
+          <GovButton type="button" variant="secondary" onClick={() => setDeleteTarget(null)} className="w-full sm:w-auto justify-center">
             Cancel
           </GovButton>
-          <GovButton type="button" variant="danger" onClick={handleDeleteUser} disabled={saving}>
+          <GovButton type="button" variant="danger" onClick={handleDeleteUser} disabled={saving} className="w-full sm:w-auto justify-center">
             {saving ? "Deleting..." : "Delete User"}
           </GovButton>
         </div>
@@ -980,7 +992,7 @@ export default function AdminUserManagementPage() {
         }}>
           {roleError && <div className="gov-alert gov-alert-danger gov-mb-4">{roleError}</div>}
           
-          <div className="gov-grid gov-grid-cols-2 gov-gap-4">
+          <div className="gov-grid gov-grid-cols-1 sm:gov-grid-cols-2 gov-gap-4">
             <GovInput
               label="Role Name"
               required
@@ -1109,11 +1121,11 @@ export default function AdminUserManagementPage() {
             position: "sticky",
             bottom: 0,
             zIndex: 10,
-          }}>
-            <GovButton type="button" variant="secondary" onClick={() => setCustomRoleModalOpen(false)}>
+          }} className="flex-col-reverse sm:flex-row">
+            <GovButton type="button" variant="secondary" onClick={() => setCustomRoleModalOpen(false)} className="w-full sm:w-auto justify-center">
               Cancel
             </GovButton>
-            <GovButton type="submit" variant="primary" disabled={creatingRole}>
+            <GovButton type="submit" variant="primary" disabled={creatingRole} className="w-full sm:w-auto justify-center">
               {creatingRole ? "Creating Role..." : "Create Custom Role"}
             </GovButton>
           </div>

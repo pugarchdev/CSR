@@ -1021,41 +1021,44 @@ function AuditDetailsModal({
   return createPortal(
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[999999] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-[999999] flex items-center justify-center bg-slate-900/40 p-2 sm:p-4 backdrop-blur-md animate-in fade-in duration-200"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[85vh] h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl border border-slate-200 z-[1000000]"
+        className="flex max-h-[90vh] sm:max-h-[85vh] h-[90vh] sm:h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl border border-slate-200 z-[1000000]"
       >
         {/* Modal Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-gradient-to-r from-blue-900 to-indigo-900 p-5 text-white">
+        <div className="flex shrink-0 items-start sm:items-center justify-between border-b border-slate-200 bg-gradient-to-r from-blue-900 to-indigo-900 p-4 sm:p-5 text-white gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-xs font-extrabold text-blue-200 bg-white/10 px-2.5 py-0.5 rounded-full border border-white/20">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-mono text-[10px] sm:text-xs font-extrabold text-blue-200 bg-white/10 px-2 sm:px-2.5 py-0.5 rounded-full border border-white/20">
                 Assessment #{assessment.id.slice(0, 8)}
               </span>
-              <span className="text-xs text-blue-100 font-medium">
+              <span className="text-[10px] sm:text-xs text-blue-100 font-medium">
                 Enquiry #{assessment.enquiryId.slice(0, 8)}
               </span>
             </div>
-            <h2 className="mt-1 text-base font-extrabold">
+            <h2 className="mt-1.5 sm:mt-1 text-sm sm:text-base font-extrabold line-clamp-2 sm:line-clamp-1">
               {assessment.enquiry?.corporateName || "Corporate Feasibility Audit Sheet"}
             </h2>
           </div>
 
           <button
             onClick={onClose}
-            className="rounded-xl p-2 text-white/80 hover:bg-white/10 hover:text-white transition-all"
+            className="shrink-0 rounded-xl p-2 text-white/80 hover:bg-white/10 hover:text-white transition-all -mr-1 sm:mr-0"
           >
             <X size={20} />
           </button>
         </div>
 
-        {/* Modal Tabs Header */}
-        <div className="flex shrink-0 items-center border-b border-slate-200 bg-slate-50 px-5 text-xs font-bold text-slate-600">
+        {/* Modal Tabs Header - FIX: Added overflow-x-auto and webkit hide scrollbar styles */}
+        <div 
+          className="flex shrink-0 items-center overflow-x-auto border-b border-slate-200 bg-slate-50 px-2 sm:px-5 text-xs font-bold text-slate-600 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+        >
+          {/* FIX: Added shrink-0 and whitespace-nowrap to prevent text squishing/wrapping */}
           <button
             onClick={() => setActiveTab("checklist")}
-            className={`py-3 px-4 border-b-2 transition-all flex items-center gap-1.5 ${
+            className={`shrink-0 whitespace-nowrap py-3 px-3 sm:px-4 border-b-2 transition-all flex items-center gap-1.5 ${
               activeTab === "checklist" ? "border-blue-900 text-blue-900 font-extrabold" : "border-transparent hover:text-slate-900"
             }`}
           >
@@ -1063,7 +1066,7 @@ function AuditDetailsModal({
           </button>
           <button
             onClick={() => setActiveTab("remediation")}
-            className={`py-3 px-4 border-b-2 transition-all flex items-center gap-1.5 ${
+            className={`shrink-0 whitespace-nowrap py-3 px-3 sm:px-4 border-b-2 transition-all flex items-center gap-1.5 ${
               activeTab === "remediation" ? "border-blue-900 text-blue-900 font-extrabold" : "border-transparent hover:text-slate-900"
             }`}
           >
@@ -1071,7 +1074,7 @@ function AuditDetailsModal({
           </button>
           <button
             onClick={() => setActiveTab("corporate")}
-            className={`py-3 px-4 border-b-2 transition-all flex items-center gap-1.5 ${
+            className={`shrink-0 whitespace-nowrap py-3 px-3 sm:px-4 border-b-2 transition-all flex items-center gap-1.5 ${
               activeTab === "corporate" ? "border-blue-900 text-blue-900 font-extrabold" : "border-transparent hover:text-slate-900"
             }`}
           >
@@ -1083,17 +1086,17 @@ function AuditDetailsModal({
         <div
           ref={scrollRef}
           tabIndex={0}
-          className="flex-1 min-h-0 h-[calc(85vh-160px)] max-h-[calc(85vh-160px)] overflow-y-auto overscroll-contain scroll-smooth p-6 space-y-5 focus:outline-none"
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain scroll-smooth p-4 sm:p-6 space-y-5 focus:outline-none"
           style={{ scrollbarWidth: "thin" }}
         >
           {activeTab === "checklist" && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between rounded-xl bg-blue-50/60 p-3.5 border border-blue-100">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl bg-blue-50/60 p-3.5 border border-blue-100">
                 <div>
                   <p className="text-xs font-extrabold text-blue-950">Feasibility Verification Matrix</p>
                   <p className="text-[11px] text-slate-600">All 13 criteria evaluated by Relationship Manager.</p>
                 </div>
-                <div className="text-right">
+                <div className="sm:text-right flex sm:block items-center gap-3">
                   <span className="text-sm font-black text-blue-900">{yesCount}/13 YES</span>
                   <p className="text-[10px] font-bold text-emerald-700">{percent}% Compliance Rate</p>
                 </div>
@@ -1112,21 +1115,21 @@ function AuditDetailsModal({
                         item.answer === "YES" ? "border-slate-200 bg-white" : "border-rose-200 bg-rose-50/30"
                       }`}
                     >
-                      <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                        <span className="font-extrabold text-slate-900">
+                      <div className="flex items-start sm:items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                        <span className="font-extrabold text-slate-900 leading-tight">
                           {icon} {item.itemNumber}. {item.dimension}
                         </span>
                         <span
-                          className={`rounded px-2 py-0.5 text-[10px] font-extrabold ${
+                          className={`shrink-0 rounded px-2 py-0.5 text-[10px] font-extrabold ${
                             item.answer === "YES" ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
                           }`}
                         >
                           {item.answer || "N/A"}
                         </span>
                       </div>
-                      <p className="mt-2 font-medium text-slate-800">{item.checkText || seedDef.checkText}</p>
+                      <p className="mt-2 font-medium text-slate-800 leading-relaxed">{item.checkText || seedDef.checkText}</p>
                       {item.note && (
-                        <p className="mt-2 border-t border-slate-100 pt-2 text-[11px] text-slate-600">
+                        <p className="mt-2 border-t border-slate-100 pt-2 text-[11px] text-slate-600 leading-relaxed">
                           <strong>Note:</strong> {item.note}
                         </p>
                       )}
@@ -1140,7 +1143,7 @@ function AuditDetailsModal({
           {activeTab === "remediation" && (
             <div className="space-y-3">
               {conditions.length === 0 ? (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-8 text-center text-xs text-slate-500">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 sm:p-8 text-center text-xs text-slate-500">
                   <CheckCircle2 size={32} className="mx-auto mb-2 text-emerald-600" />
                   <p className="font-bold text-slate-900">No Conditional Remediations Required</p>
                   <p className="mt-1">All critical feasibility factors passed initial evaluation.</p>
@@ -1150,8 +1153,8 @@ function AuditDetailsModal({
                   {conditions.map((c: any, index: number) => (
                     <div key={index} className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 text-xs space-y-1">
                       <p className="font-extrabold text-amber-950">Check #{c.itemNumber} Remediation Action</p>
-                      <p className="text-slate-800 font-medium">{c.remediation}</p>
-                      <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-amber-900 border-t border-amber-200 pt-2">
+                      <p className="text-slate-800 font-medium leading-relaxed">{c.remediation}</p>
+                      <div className="mt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-0 text-[11px] font-bold text-amber-900 border-t border-amber-200 pt-2">
                         <span>Owner: {c.owner}</span>
                         <span>Target Date: {c.targetDate}</span>
                       </div>
@@ -1194,11 +1197,11 @@ function AuditDetailsModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="flex shrink-0 items-center justify-between border-t border-slate-200 bg-slate-50 p-4">
-          <span className="text-xs font-bold text-slate-500">MahaCSR Setu Feasibility Audit Module</span>
+        <div className="flex flex-col sm:flex-row shrink-0 items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 p-4">
+          <span className="text-[10px] sm:text-xs font-bold text-slate-500 text-center sm:text-left">MahaCSR Setu Feasibility Audit Module</span>
           <button
             onClick={onClose}
-            className="rounded-xl bg-blue-900 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-blue-800 transition-all"
+            className="w-full sm:w-auto rounded-xl bg-blue-900 px-6 py-2.5 sm:py-2 text-xs font-bold text-white shadow-xs hover:bg-blue-800 transition-all"
           >
             Close Audit
           </button>

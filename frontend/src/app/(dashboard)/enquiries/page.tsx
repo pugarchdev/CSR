@@ -314,7 +314,7 @@ const canSubmitEnquiry = useMemo(() => {
       </div>
 
       {/* Main Content Register */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+<div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
           <div className="relative flex-1 max-w-md">
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -332,7 +332,7 @@ const canSubmitEnquiry = useMemo(() => {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-800 focus:bg-white focus:border-blue-600 focus:outline-none"
+              className="w-full md:w-auto rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-800 focus:bg-white focus:border-blue-600 focus:outline-none"
             >
               <option value="ALL">All Statuses</option>
               <option value="SUBMITTED">Submitted</option>
@@ -343,7 +343,7 @@ const canSubmitEnquiry = useMemo(() => {
           </div>
         </div>
 
-        {/* Data Table */}
+        {/* Data Table / Mobile Cards */}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-12 gap-3 text-slate-500">
             <Loader2 size={28} className="animate-spin text-blue-900" />
@@ -358,9 +358,9 @@ const canSubmitEnquiry = useMemo(() => {
             No corporate enquiries found matching your search.
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-2xl border border-slate-200/80">
-            <table className="w-full text-left text-xs font-medium text-slate-700">
-              <thead className="bg-slate-50 text-[11px] font-extrabold uppercase tracking-wider text-slate-500 border-b border-slate-200/80">
+          <div className="w-full md:overflow-x-auto md:rounded-2xl md:border md:border-slate-200/80">
+            <table className="w-full block md:table text-left text-xs font-medium text-slate-700 border-collapse">
+              <thead className="hidden md:table-header-group bg-slate-50 text-[11px] font-extrabold uppercase tracking-wider text-slate-500 border-b border-slate-200/80">
                 <tr>
                   <th className="px-4 py-3">Tracking ID</th>
                   <th className="px-4 py-3">Corporate / Company</th>
@@ -371,14 +371,25 @@ const canSubmitEnquiry = useMemo(() => {
                   <th className="px-4 py-3 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="block md:table-row-group divide-y-0 md:divide-y md:divide-slate-100">
                 {filtered.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-4 py-3.5 font-mono font-bold text-blue-950">{item.trackingId}</td>
-                    <td className="px-4 py-3.5 font-bold text-slate-900">{item.companyName}</td>
-                    <td className="px-4 py-3.5 text-slate-600">{item.sector}</td>
-                    <td className="px-4 py-3.5 font-mono font-bold text-slate-900">{item.indicativeBudgetCr == null ? "—" : `₹${item.indicativeBudgetCr} Cr`}</td>
-                    <td className="px-4 py-3.5">
+                  <tr 
+                    key={item.id} 
+                    className="block md:table-row mb-4 md:mb-0 bg-white border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-sm md:shadow-none hover:bg-slate-50/80 transition-colors overflow-hidden"
+                  >
+                    <td data-label="Tracking ID" className="flex md:table-cell justify-between items-center px-4 py-3 md:py-3.5 border-b border-slate-100 md:border-none font-mono font-bold text-blue-950 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden">
+                      {item.trackingId}
+                    </td>
+                    <td data-label="Company" className="flex md:table-cell justify-between items-center px-4 py-3 md:py-3.5 border-b border-slate-100 md:border-none font-bold text-slate-900 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
+                      {item.companyName}
+                    </td>
+                    <td data-label="Sector" className="flex md:table-cell justify-between items-center px-4 py-3 md:py-3.5 border-b border-slate-100 md:border-none text-slate-600 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden">
+                      {item.sector}
+                    </td>
+                    <td data-label="Outlay (₹ Cr)" className="flex md:table-cell justify-between items-center px-4 py-3 md:py-3.5 border-b border-slate-100 md:border-none font-mono font-bold text-slate-900 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden">
+                      {item.indicativeBudgetCr == null ? "—" : `₹${item.indicativeBudgetCr} Cr`}
+                    </td>
+                    <td data-label="Status" className="flex md:table-cell justify-between items-center px-4 py-3 md:py-3.5 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
                         item.status === "APPROVED" ? "bg-emerald-50 text-emerald-800 border border-emerald-200" :
                         item.status === "UNDER_ASSESSMENT" ? "bg-blue-50 text-blue-800 border border-blue-200" :
@@ -387,11 +398,13 @@ const canSubmitEnquiry = useMemo(() => {
                         {item.status.replace(/_/g, " ")}
                       </span>
                     </td>
-                    <td className="px-4 py-3.5 text-slate-500">{item.submittedDate}</td>
-                    <td className="px-4 py-3.5 text-right">
+                    <td data-label="Submitted Date" className="flex md:table-cell justify-between items-center px-4 py-3 md:py-3.5 border-b border-slate-100 md:border-none text-slate-500 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden">
+                      {item.submittedDate}
+                    </td>
+                    <td className="block md:table-cell px-4 py-3 md:py-3.5 text-right bg-slate-50/50 md:bg-transparent">
                       <Link
                         href={`/enquiries/${item.id}`}
-                        className="inline-flex items-center gap-1 text-xs font-bold text-blue-900 hover:text-blue-700"
+                        className="inline-flex items-center justify-center md:justify-end gap-1 w-full md:w-auto text-xs font-bold text-blue-900 hover:text-blue-700 border border-blue-200 md:border-none bg-white md:bg-transparent rounded-lg py-2 md:py-0 transition-colors"
                       >
                         Details <ArrowUpRight size={14} />
                       </Link>

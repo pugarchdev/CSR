@@ -47,12 +47,13 @@ export function RoleSummaryTab({
     { label: "Documents", count: role.permissions.filter((p) => p.startsWith("document:") || p.startsWith("mou:")).length, total: 6, desc: "Upload, Sign, Verify" },
   ];
 
-  return (
-    <div className="space-y-5 text-xs">
+return (
+    <div className="space-y-4 md:space-y-5 text-xs">
       {/* Protected System Role Warning Banner */}
       {isSystemRole && (
-        <div className="bg-amber-50 border border-amber-200/80 p-4 rounded-2xl flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+        // Changed to flex-col on mobile, md:flex-row on desktop
+        <div className="bg-amber-50 border border-amber-200/80 p-3.5 sm:p-4 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
               <Lock size={18} />
             </div>
@@ -63,52 +64,53 @@ export function RoleSummaryTab({
               </div>
             </div>
           </div>
-          <Button size="sm" variant="outline" onClick={onClone} disabled={!canCreate} className="shrink-0 font-bold border-amber-300 text-amber-900 bg-white">
-            <Copy size={13} className="mr-1.5" /> Clone into Custom Role
+          {/* Made button full width on mobile */}
+          <Button size="sm" variant="outline" onClick={onClone} disabled={!canCreate} className="w-full md:w-auto shrink-0 font-bold border-amber-300 text-amber-900 bg-white justify-center">
+            <Copy size={13} className="mr-1.5 shrink-0" /> Clone into Custom Role
           </Button>
         </div>
       )}
 
       {/* Role Identity Card */}
       <Card variant="outlined" hover={false} tilt={false}>
-        <CardContent className="p-5 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+        <CardContent className="p-4 md:p-5 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-start md:items-center justify-between gap-3 border-b border-slate-100 pb-3">
             <div>
-              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2 break-words">
                 {role.displayName || role.name}
               </h2>
-              <p className="text-slate-500 text-xs mt-0.5">{role.description || "No description provided."}</p>
+              <p className="text-slate-500 text-[11px] sm:text-xs mt-0.5">{role.description || "No description provided."}</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
               <TypeBadge type={role.type} />
               <StatusBadge status={role.status} />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-1">
-            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-              <div className="text-[10px] font-bold text-slate-400 uppercase">Role Code</div>
-              <div className="font-mono font-bold text-slate-800 mt-0.5">{role.code}</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 pt-1">
+            <div className="bg-slate-50 p-2.5 sm:p-3 rounded-xl border border-slate-100">
+              <div className="text-[10px] font-bold text-slate-400 uppercase truncate">Role Code</div>
+              <div className="font-mono font-bold text-slate-800 mt-0.5 truncate" title={role.code}>{role.code}</div>
             </div>
 
-            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-              <div className="text-[10px] font-bold text-slate-400 uppercase">Assigned Users</div>
-              <div className="font-bold text-blue-900 text-sm mt-0.5 flex items-center gap-1">
-                <User size={13} /> {userCount} Users
+            <div className="bg-slate-50 p-2.5 sm:p-3 rounded-xl border border-slate-100">
+              <div className="text-[10px] font-bold text-slate-400 uppercase truncate">Assigned Users</div>
+              <div className="font-bold text-blue-900 text-xs sm:text-sm mt-0.5 flex items-center gap-1">
+                <User size={13} className="shrink-0" /> {userCount} Users
               </div>
             </div>
 
-            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-              <div className="text-[10px] font-bold text-slate-400 uppercase">Default Access Level</div>
+            <div className="bg-slate-50 p-2.5 sm:p-3 rounded-xl border border-slate-100">
+              <div className="text-[10px] font-bold text-slate-400 uppercase truncate">Default Access Level</div>
               <div className="mt-0.5">
                 <ScopeBadge scope={role.defaultScope} />
               </div>
             </div>
 
-            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-              <div className="text-[10px] font-bold text-slate-400 uppercase">Total Permissions</div>
-              <div className="font-bold text-slate-800 text-sm mt-0.5 flex items-center gap-1">
-                <Layers size={13} /> {role.permissions.length} Grants
+            <div className="bg-slate-50 p-2.5 sm:p-3 rounded-xl border border-slate-100">
+              <div className="text-[10px] font-bold text-slate-400 uppercase truncate">Total Permissions</div>
+              <div className="font-bold text-slate-800 text-xs sm:text-sm mt-0.5 flex items-center gap-1">
+                <Layers size={13} className="shrink-0" /> {role.permissions.length} Grants
               </div>
             </div>
           </div>
@@ -117,28 +119,28 @@ export function RoleSummaryTab({
 
       {/* Module Access Summary Bar Chart Card */}
       <Card variant="outlined" hover={false} tilt={false}>
-        <CardContent className="p-5 space-y-4">
+        <CardContent className="p-4 md:p-5 space-y-4">
           <div>
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <Shield size={16} className="text-blue-900" />
+              <Shield size={16} className="text-blue-900 shrink-0" />
               <span>Module Access Summary</span>
             </h3>
             <p className="text-[11px] text-slate-500 mt-0.5">Summary of granted capabilities across key platform modules.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
             {moduleSummary.map((mod) => {
               const pct = Math.min(100, Math.round((mod.count / mod.total) * 100));
               return (
                 <div key={mod.label} className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-1.5">
-                  <div className="flex justify-between items-center text-xs font-bold text-slate-800">
-                    <span>{mod.label}</span>
-                    <span className="text-[11px] font-semibold text-slate-500">{mod.count} / {mod.total} grants</span>
+                  <div className="flex justify-between items-center text-xs font-bold text-slate-800 gap-2">
+                    <span className="truncate">{mod.label}</span>
+                    <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 shrink-0">{mod.count} / {mod.total} grants</span>
                   </div>
                   <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
                     <div className="bg-blue-900 h-full transition-all duration-300" style={{ width: `${pct}%` }} />
                   </div>
-                  <div className="text-[10px] text-slate-400 font-medium">{mod.desc}</div>
+                  <div className="text-[10px] text-slate-400 font-medium truncate" title={mod.desc}>{mod.desc}</div>
                 </div>
               );
             })}
@@ -147,32 +149,32 @@ export function RoleSummaryTab({
       </Card>
 
       {/* Lifecycle Actions */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pt-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
           {!isSystemRole && (
-            <Button size="sm" variant="outline" onClick={onEdit} disabled={!canConfigure} className="font-bold">
-              <Pencil size={13} className="mr-1.5" /> Edit Custom Role
+            <Button size="sm" variant="outline" onClick={onEdit} disabled={!canConfigure} className="font-bold w-full sm:w-auto justify-center">
+              <Pencil size={13} className="mr-1.5 shrink-0" /> Edit Custom Role
             </Button>
           )}
-          <Button size="sm" variant="outline" onClick={onClone} disabled={!canCreate} className="font-bold">
-            <Copy size={13} className="mr-1.5" /> Duplicate Role
+          <Button size="sm" variant="outline" onClick={onClone} disabled={!canCreate} className="font-bold w-full sm:w-auto justify-center">
+            <Copy size={13} className="mr-1.5 shrink-0" /> Duplicate Role
           </Button>
         </div>
 
         {!isSystemRole && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
             {role.status === "ACTIVE" ? (
-              <Button size="sm" variant="outline" onClick={onDeactivate} disabled={!canConfigure} className="font-bold text-amber-800 border-amber-200 hover:bg-amber-50">
-                <Power size={13} className="mr-1.5 text-amber-600" /> Deactivate
+              <Button size="sm" variant="outline" onClick={onDeactivate} disabled={!canConfigure} className="font-bold text-amber-800 border-amber-200 hover:bg-amber-50 w-full sm:w-auto justify-center">
+                <Power size={13} className="mr-1.5 text-amber-600 shrink-0" /> Deactivate
               </Button>
             ) : (
-              <Button size="sm" variant="outline" onClick={onActivate} disabled={!canConfigure} className="font-bold text-emerald-800 border-emerald-200 hover:bg-emerald-50">
-                <Power size={13} className="mr-1.5 text-emerald-600" /> Activate
+              <Button size="sm" variant="outline" onClick={onActivate} disabled={!canConfigure} className="font-bold text-emerald-800 border-emerald-200 hover:bg-emerald-50 w-full sm:w-auto justify-center">
+                <Power size={13} className="mr-1.5 text-emerald-600 shrink-0" /> Activate
               </Button>
             )}
 
-            <Button size="sm" variant="outline" onClick={onDelete} disabled={!canDelete} className="font-bold text-red-700 border-red-200 hover:bg-red-50">
-              <Trash2 size={13} className="mr-1.5 text-red-500" /> Delete Role
+            <Button size="sm" variant="outline" onClick={onDelete} disabled={!canDelete} className="font-bold text-red-700 border-red-200 hover:bg-red-50 w-full sm:w-auto justify-center">
+              <Trash2 size={13} className="mr-1.5 text-red-500 shrink-0" /> Delete Role
             </Button>
           </div>
         )}

@@ -72,56 +72,58 @@ export default function CompaniesPage() {
 
   const filteredCompanies = items;
 
-  return (
+return (
     <GovPortalLayout>
       <GovPageHeader
         title="Corporate Company Partners"
         breadcrumb="Admin / Companies"
       />
 
-      <div className="gov-container">
-        {/* Stats Cards */}
-        <div className="gov-grid gov-grid-cols-4 gov-gap-6 gov-mb-6">
+      {/* Force reduced padding on mobile container */}
+      <div className="gov-container !px-2 sm:!px-4 md:!px-6">
+        
+        {/* Stats Cards - Updated grid for better mobile stacking */}
+        <div className="gov-grid gov-grid-cols-2 md:gov-grid-cols-4 gov-gap-3 md:gov-gap-6 gov-mb-6">
           <GovCard>
-            <GovCardBody>
-              <div className="gov-text-sm gov-text-muted gov-mb-1">Total Companies</div>
-              <div className="gov-text-3xl gov-font-bold gov-text-primary">{loading ? "…" : pagination.total}</div>
-              <div className="gov-text-xs gov-text-muted gov-mt-1">Registered corporate partners</div>
+            <GovCardBody className="!p-3 md:!p-5">
+              <div className="gov-text-xs md:gov-text-sm gov-text-muted gov-mb-1">Total Companies</div>
+              <div className="gov-text-2xl md:gov-text-3xl gov-font-bold gov-text-primary">{loading ? "…" : pagination.total}</div>
+              <div className="gov-text-[10px] md:gov-text-xs gov-text-muted gov-mt-1">Registered corporate partners</div>
             </GovCardBody>
           </GovCard>
           <GovCard>
-            <GovCardBody>
-              <div className="gov-text-sm gov-text-muted gov-mb-1">Active</div>
-              <div className="gov-text-3xl gov-font-bold" style={{ color: "#166534" }}>
+            <GovCardBody className="!p-3 md:!p-5">
+              <div className="gov-text-xs md:gov-text-sm gov-text-muted gov-mb-1">Active</div>
+              <div className="gov-text-2xl md:gov-text-3xl gov-font-bold" style={{ color: "#166534" }}>
                 {loading ? "…" : (pagination.active || 0)}
               </div>
-              <div className="gov-text-xs gov-text-muted gov-mt-1">Currently operational</div>
+              <div className="gov-text-[10px] md:gov-text-xs gov-text-muted gov-mt-1">Currently operational</div>
             </GovCardBody>
           </GovCard>
           <GovCard>
-            <GovCardBody>
-              <div className="gov-text-sm gov-text-muted gov-mb-1">Under Review</div>
-              <div className="gov-text-3xl gov-font-bold" style={{ color: "#005ea8" }}>
+            <GovCardBody className="!p-3 md:!p-5">
+              <div className="gov-text-xs md:gov-text-sm gov-text-muted gov-mb-1">Under Review</div>
+              <div className="gov-text-2xl md:gov-text-3xl gov-font-bold" style={{ color: "#005ea8" }}>
                 {loading ? "…" : (pagination.pending || 0)}
               </div>
-              <div className="gov-text-xs gov-text-muted gov-mt-1">Pending verification</div>
+              <div className="gov-text-[10px] md:gov-text-xs gov-text-muted gov-mt-1">Pending verification</div>
             </GovCardBody>
           </GovCard>
           <GovCard>
-            <GovCardBody>
-              <div className="gov-text-sm gov-text-muted gov-mb-1">Suspended</div>
-              <div className="gov-text-3xl gov-font-bold" style={{ color: "#b91c1c" }}>
+            <GovCardBody className="!p-3 md:!p-5">
+              <div className="gov-text-xs md:gov-text-sm gov-text-muted gov-mb-1">Suspended</div>
+              <div className="gov-text-2xl md:gov-text-3xl gov-font-bold" style={{ color: "#b91c1c" }}>
                 {loading ? "…" : (pagination.suspended || 0)}
               </div>
-              <div className="gov-text-xs gov-text-muted gov-mt-1">Compliance issues</div>
+              <div className="gov-text-[10px] md:gov-text-xs gov-text-muted gov-mt-1">Compliance issues</div>
             </GovCardBody>
           </GovCard>
         </div>
 
         {/* Filters */}
         <GovCard className="gov-mb-6">
-          <GovCardBody>
-            <div className="gov-grid gov-grid-cols-3 gov-gap-4">
+          <GovCardBody className="!p-3 md:!p-5">
+            <div className="gov-grid gov-grid-cols-1 sm:gov-grid-cols-3 gov-gap-3 md:gov-gap-4">
               <GovInput
                 label="Search Company"
                 placeholder="Search by name or CIN..."
@@ -162,68 +164,128 @@ export default function CompaniesPage() {
 
         {/* Companies List */}
         <GovCard>
-          <GovCardHeader>
+          <GovCardHeader className="!px-3 !py-3 md:!px-5 md:!py-4">
             <GovCardTitle>Registered Companies ({pagination.total})</GovCardTitle>
           </GovCardHeader>
-          <GovCardBody>
-            <div className="gov-table-container">
-              <table className="gov-table">
-                <thead>
+          {/* Drastically reduced padding here for mobile to let cards breathe */}
+          <GovCardBody className="!p-2 sm:!p-4 md:!p-5">
+            <div className="w-full md:overflow-x-auto">
+              <table className="w-full block md:table text-left border-collapse">
+                <thead className="hidden md:table-header-group border-b border-slate-200 bg-slate-50">
                   <tr>
-                    <th>Company ID</th>
-                    <th>Company Name</th>
-                    <th>CIN</th>
-                    <th>Sector</th>
-                    <th>CSR Obligation</th>
-                    <th>Amount Spent</th>
-                    <th>Projects</th>
-                    <th>Last Report</th>
-                    <th>Status</th>
-                    <th>Actions</th>
+                    <th className="px-4 py-3">Company ID</th>
+                    <th className="px-4 py-3">Company Name</th>
+                    <th className="px-4 py-3">CIN</th>
+                    <th className="px-4 py-3">Sector</th>
+                    <th className="px-4 py-3">CSR Obligation</th>
+                    <th className="px-4 py-3">Amount Spent</th>
+                    <th className="px-4 py-3 text-center">Projects</th>
+                    <th className="px-4 py-3">Last Report</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3 text-right md:text-left">Actions</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="block md:table-row-group divide-y-0 md:divide-y md:divide-slate-100">
                   {filteredCompanies.map((company) => (
-                     <tr key={company.id}>
-                      <td className="gov-font-mono">{company.displayId || company.id}</td>
-                      <td className="gov-font-semibold">{company.name}</td>
-                      <td className="gov-font-mono gov-text-sm">{company.cin}</td>
-                      <td>
-                        <span className="gov-badge gov-badge-info">{company.sector}</span>
+                    <tr 
+                      key={company.id}
+                      className="block md:table-row mb-3 md:mb-0 bg-white border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-sm md:shadow-none hover:bg-slate-50/80 transition-colors overflow-hidden"
+                    >
+                      <td 
+                        data-label="Company ID" 
+                        className="flex md:table-cell justify-between items-center px-3 md:px-4 py-2.5 md:py-3 border-b border-slate-100 md:border-none gov-font-mono before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left text-xs md:text-sm"
+                      >
+                        {company.displayId || company.id}
                       </td>
-                      <td className="gov-font-semibold">{company.csrObligation}</td>
-                      <td className="gov-font-semibold">{company.spent}</td>
-                      <td className="gov-text-center">{company.projects}</td>
-                      <td className="gov-text-sm">{company.lastReport}</td>
-                      <td>
+                      <td 
+                        data-label="Company Name" 
+                        className="flex md:table-cell justify-between items-center px-3 md:px-4 py-2.5 md:py-3 border-b border-slate-100 md:border-none gov-font-semibold before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left text-xs md:text-sm"
+                      >
+                        {company.name}
+                      </td>
+                      <td 
+                        data-label="CIN" 
+                        className="flex md:table-cell justify-between items-center px-3 md:px-4 py-2.5 md:py-3 border-b border-slate-100 md:border-none gov-font-mono gov-text-xs md:gov-text-sm before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
+                      >
+                        {company.cin}
+                      </td>
+                      <td 
+                        data-label="Sector" 
+                        className="flex md:table-cell justify-between items-center px-3 md:px-4 py-2.5 md:py-3 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
+                      >
+                        <span className="gov-badge gov-badge-info text-[10px] md:text-xs">{company.sector}</span>
+                      </td>
+                      <td 
+                        data-label="CSR Obligation" 
+                        className="flex md:table-cell justify-between items-center px-3 md:px-4 py-2.5 md:py-3 border-b border-slate-100 md:border-none gov-font-semibold before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left text-xs md:text-sm"
+                      >
+                        {company.csrObligation}
+                      </td>
+                      <td 
+                        data-label="Amount Spent" 
+                        className="flex md:table-cell justify-between items-center px-3 md:px-4 py-2.5 md:py-3 border-b border-slate-100 md:border-none gov-font-semibold before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left text-xs md:text-sm"
+                      >
+                        {company.spent}
+                      </td>
+                      <td 
+                        data-label="Projects" 
+                        className="flex md:table-cell justify-between items-center px-3 md:px-4 py-2.5 md:py-3 border-b border-slate-100 md:border-none md:gov-text-center before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-center text-xs md:text-sm"
+                      >
+                        {company.projects}
+                      </td>
+                      <td 
+                        data-label="Last Report" 
+                        className="flex md:table-cell justify-between items-center px-3 md:px-4 py-2.5 md:py-3 border-b border-slate-100 md:border-none gov-text-xs md:gov-text-sm before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
+                      >
+                        {company.lastReport}
+                      </td>
+                      <td 
+                        data-label="Status" 
+                        className="flex md:table-cell justify-between items-center px-3 md:px-4 py-2.5 md:py-3 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
+                      >
                         <GovStatusBadge variant={company.statusVariant}>
                           {company.status}
                         </GovStatusBadge>
                       </td>
-                      <td>
-                        <div className="gov-flex gov-gap-2">
-                          <GovButton variant="secondary" onClick={() => {
-                            if (company.isDb) {
-                              router.push(`/admin/organizations/${company.id}`);
-                            } else {
-                              router.push("/admin/organizations");
-                            }
-                          }}>View</GovButton>
-                          <GovButton variant="muted" onClick={() => router.push("/admin/reports")}>Reports</GovButton>
+                      <td className="block md:table-cell px-3 md:px-4 py-3 bg-slate-50/50 md:bg-transparent">
+                        <div className="flex md:inline-flex justify-end gap-2 w-full md:w-auto">
+                          <GovButton 
+                            variant="secondary" 
+                            className="flex-1 md:flex-none justify-center text-xs md:text-sm"
+                            onClick={() => {
+                              if (company.isDb) {
+                                router.push(`/admin/organizations/${company.id}`);
+                              } else {
+                                router.push("/admin/organizations");
+                              }
+                            }}
+                          >
+                            View
+                          </GovButton>
+                          <GovButton 
+                            variant="muted" 
+                            className="flex-1 md:flex-none justify-center text-xs md:text-sm"
+                            onClick={() => router.push("/admin/reports")}
+                          >
+                            Reports
+                          </GovButton>
                         </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+
+              {/* Responsive Pagination */}
               {pagination.totalPages > 1 && (
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16, borderTop: "1px solid #e2e8f0", paddingTop: 16 }}>
-                  <span className="gov-text-xs gov-text-muted">
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mt-4 pt-4 border-t border-slate-200">
+                  <span className="gov-text-[11px] md:gov-text-xs gov-text-muted text-center sm:text-left">
                     Showing page {page} of {pagination.totalPages} ({pagination.total} companies total)
                   </span>
-                  <div style={{ display: "flex", gap: 8 }}>
+                  <div className="flex gap-2 w-full sm:w-auto">
                     <GovButton
                       variant="secondary"
+                      className="flex-1 sm:flex-none justify-center text-xs md:text-sm py-1.5 md:py-2"
                       disabled={page <= 1}
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                     >
@@ -231,6 +293,7 @@ export default function CompaniesPage() {
                     </GovButton>
                     <GovButton
                       variant="secondary"
+                      className="flex-1 sm:flex-none justify-center text-xs md:text-sm py-1.5 md:py-2"
                       disabled={page >= pagination.totalPages}
                       onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
                     >

@@ -154,39 +154,39 @@ export default function ReportsPage() {
     }, 1200);
   };
 
-  return (
-    <div className="mx-auto flex min-h-screen max-w-7xl flex-col gap-6 px-4 py-6 md:px-8">
+ return (
+    <div className="mx-auto flex min-h-screen max-w-7xl flex-col gap-4 sm:gap-6 px-3 sm:px-4 py-6 md:px-8">
       <GovPageHeader
         title="CSR Analytical Dashboard & Audit Reports"
         eyebrow="State Governance & Analytics"
         actions={
-          <div className="flex items-center gap-1 rounded-xl bg-slate-100 p-1 border border-slate-200/80">
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-1 w-full sm:w-auto rounded-xl bg-slate-100 p-1 border border-slate-200/80">
             <button
               onClick={() => setActiveTab("ANALYTICS")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-all ${
                 activeTab === "ANALYTICS"
                   ? "bg-white text-blue-900 shadow-sm"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              <BarChart3 size={14} /> Analytics & Graphs
+              <BarChart3 size={14} className="shrink-0" /> <span className="whitespace-nowrap">Analytics & Graphs</span>
             </button>
             <button
               onClick={() => setActiveTab("REPORTS")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-all ${
                 activeTab === "REPORTS"
                   ? "bg-white text-blue-900 shadow-sm"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              <FileText size={14} /> Official Reports ({reportsList.length})
+              <FileText size={14} className="shrink-0" /> <span className="whitespace-nowrap">Reports ({reportsList.length})</span>
             </button>
           </div>
         }
       />
 
       {/* 3D KPI Key Statistics Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
           label="Total CSR Committed"
           value="₹141.1 Cr"
@@ -222,36 +222,36 @@ export default function ReportsPage() {
       </div>
 
       {activeTab === "ANALYTICS" && (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-4 sm:gap-6">
           {/* Top Charts Row: Sector Bar Chart & District Donut Chart */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Sector Allocation Recharts Horizontal Bar Chart */}
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              className="lg:col-span-2 rounded-3xl border border-white/80 bg-white/90 backdrop-blur-2xl p-6 shadow-glass flex flex-col justify-between"
+              className="min-w-0 lg:col-span-2 rounded-3xl border border-white/80 bg-white/90 backdrop-blur-2xl p-4 sm:p-6 shadow-glass flex flex-col justify-between"
             >
-              <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4 mb-3">
                 <div>
-                  <h3 className="text-base font-extrabold text-slate-900 font-heading flex items-center gap-2">
-                    <BarChart3 size={18} className="text-blue-600" /> Sector-Wise CSR Capital Allocation & Utilization
+                  <h3 className="text-sm sm:text-base font-extrabold text-slate-900 font-heading flex items-center gap-2">
+                    <BarChart3 size={18} className="text-blue-600 shrink-0" /> Sector-Wise Allocation
                   </h3>
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">Budget outlays (₹ Crores) & verified project utilization rate</p>
+                  <p className="text-[11px] sm:text-xs text-slate-500 font-medium mt-0.5">Budget outlays (₹ Crores) & utilization rate</p>
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-full">
+                <span className="w-fit text-[10px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-full">
                   FY 2025-26
                 </span>
               </div>
 
               <div className="h-[280px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={sectorAnalytics} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                  <BarChart data={sectorAnalytics} layout="vertical" margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
-                    <XAxis type="number" fontSize={11} fontWeight="bold" unit=" Cr" />
-                    <YAxis dataKey="sector" type="category" fontSize={11} fontWeight="bold" width={90} axisLine={false} tickLine={false} />
+                    <XAxis type="number" fontSize={10} fontWeight="bold" unit=" Cr" />
+                    <YAxis dataKey="sector" type="category" fontSize={10} fontWeight="bold" width={80} axisLine={false} tickLine={false} />
                     <Tooltip
                       formatter={(val: any) => [`₹${val} Cr`, "Allocated Budget"]}
-                      contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 10px 25px -5px rgba(0,0,0,0.1)" }}
+                      contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 10px 25px -5px rgba(0,0,0,0.1)", fontSize: "12px" }}
                     />
                     <Bar dataKey="allocatedCr" radius={[0, 8, 8, 0]}>
                       {sectorAnalytics.map((entry, index) => (
@@ -268,13 +268,13 @@ export default function ReportsPage() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="rounded-3xl border border-white/80 bg-white/90 backdrop-blur-2xl p-6 shadow-glass flex flex-col justify-between"
+              className="min-w-0 rounded-3xl border border-white/80 bg-white/90 backdrop-blur-2xl p-4 sm:p-6 shadow-glass flex flex-col justify-between"
             >
               <div className="border-b border-slate-100 pb-4 mb-2">
-                <h3 className="text-base font-extrabold text-slate-900 font-heading flex items-center gap-2">
-                  <PieChart size={18} className="text-purple-600" /> District Distribution
+                <h3 className="text-sm sm:text-base font-extrabold text-slate-900 font-heading flex items-center gap-2">
+                  <PieChart size={18} className="text-purple-600 shrink-0" /> District Distribution
                 </h3>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">CSR allocation breakdown by district focus</p>
+                <p className="text-[11px] sm:text-xs text-slate-500 font-medium mt-0.5">CSR allocation breakdown</p>
               </div>
 
               <div className="h-[260px] w-full relative">
@@ -284,8 +284,8 @@ export default function ReportsPage() {
                       data={districtDistribution}
                       cx="50%"
                       cy="50%"
-                      innerRadius={55}
-                      outerRadius={85}
+                      innerRadius={50}
+                      outerRadius={80}
                       paddingAngle={4}
                       dataKey="value"
                       nameKey="name"
@@ -294,8 +294,8 @@ export default function ReportsPage() {
                         <Cell key={`cell-${index}`} fill={entry.fill} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(val: any) => [`₹${val} Cr`, "Outlay"]} />
-                    <Legend wrapperStyle={{ fontSize: 11, fontWeight: "bold" }} />
+                    <Tooltip formatter={(val: any) => [`₹${val} Cr`, "Outlay"]} contentStyle={{ fontSize: "12px", borderRadius: "8px" }} />
+                    <Legend wrapperStyle={{ fontSize: 10, fontWeight: "bold" }} />
                   </RePieChart>
                 </ResponsiveContainer>
               </div>
@@ -303,33 +303,33 @@ export default function ReportsPage() {
           </div>
 
           {/* Row 2: UN SDG Alignment Donut & ESG Radar Scorecard */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* UN SDG Target Alignment Bar & Donut Chart */}
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
-              className="lg:col-span-2 rounded-3xl border border-white/80 bg-white/90 backdrop-blur-2xl p-6 shadow-glass flex flex-col justify-between"
+              className="min-w-0 lg:col-span-2 rounded-3xl border border-white/80 bg-white/90 backdrop-blur-2xl p-4 sm:p-6 shadow-glass flex flex-col justify-between"
             >
-              <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4 mb-3">
                 <div>
-                  <h3 className="text-base font-extrabold text-slate-900 font-heading flex items-center gap-2">
-                    <Sparkles size={18} className="text-amber-500" /> UN Sustainable Development Goals (SDG) Capital Alignment
+                  <h3 className="text-sm sm:text-base font-extrabold text-slate-900 font-heading flex items-center gap-2">
+                    <Sparkles size={18} className="text-amber-500 shrink-0" /> UN SDG Capital Alignment
                   </h3>
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">CSR allocation distribution aligned with NITI Aayog & UN SDG Frameworks</p>
+                  <p className="text-[11px] sm:text-xs text-slate-500 font-medium mt-0.5">Allocation aligned with NITI Aayog</p>
                 </div>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-800 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">
+                <span className="w-fit text-[10px] font-extrabold uppercase tracking-wider text-amber-800 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">
                   NITI Aayog Vetted
                 </span>
               </div>
 
               <div className="h-[280px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={sdgAlignmentData} margin={{ top: 10, right: 30, left: 10, bottom: 25 }}>
+                  <BarChart data={sdgAlignmentData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                    <XAxis dataKey="code" fontSize={11} fontWeight="bold" />
-                    <YAxis fontSize={11} fontWeight="bold" unit=" Cr" />
-                    <Tooltip formatter={(val: any) => [`₹${val} Cr`, "Allocated Capital"]} />
+                    <XAxis dataKey="code" fontSize={10} fontWeight="bold" angle={-45} textAnchor="end" />
+                    <YAxis fontSize={10} fontWeight="bold" unit=" Cr" />
+                    <Tooltip formatter={(val: any) => [`₹${val} Cr`, "Allocated Capital"]} contentStyle={{ fontSize: "12px", borderRadius: "8px" }} />
                     <Bar dataKey="value" radius={[8, 8, 0, 0]}>
                       {sdgAlignmentData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.fill} />
@@ -345,23 +345,23 @@ export default function ReportsPage() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="rounded-3xl border border-white/80 bg-white/90 backdrop-blur-2xl p-6 shadow-glass flex flex-col justify-between"
+              className="min-w-0 rounded-3xl border border-white/80 bg-white/90 backdrop-blur-2xl p-4 sm:p-6 shadow-glass flex flex-col justify-between"
             >
               <div className="border-b border-slate-100 pb-4 mb-2">
-                <h3 className="text-base font-extrabold text-slate-900 font-heading flex items-center gap-2">
-                  <ShieldCheck size={18} className="text-emerald-600" /> ESG Due Diligence Radar
+                <h3 className="text-sm sm:text-base font-extrabold text-slate-900 font-heading flex items-center gap-2">
+                  <ShieldCheck size={18} className="text-emerald-600 shrink-0" /> ESG Due Diligence Radar
                 </h3>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">Environmental, Social & Governance compliance rating</p>
+                <p className="text-[11px] sm:text-xs text-slate-500 font-medium mt-0.5">Environmental, Social & Governance compliance</p>
               </div>
 
               <div className="h-[260px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart cx="50%" cy="50%" outerRadius="75%" data={esgRadarData}>
+                  <RadarChart cx="50%" cy="50%" outerRadius="65%" data={esgRadarData}>
                     <PolarGrid stroke="#e2e8f0" />
-                    <PolarAngleAxis dataKey="subject" fontSize={10} fontWeight="bold" />
-                    <PolarRadiusAxis angle={30} domain={[0, 100]} fontSize={9} />
+                    <PolarAngleAxis dataKey="subject" fontSize={9} fontWeight="bold" />
+                    <PolarRadiusAxis angle={30} domain={[0, 100]} fontSize={8} />
                     <Radar name="ESG Rating Score" dataKey="score" stroke="#059669" fill="#10b981" fillOpacity={0.4} />
-                    <Tooltip formatter={(val: any) => [`${val}/100`, "Score"]} />
+                    <Tooltip formatter={(val: any) => [`${val}/100`, "Score"]} contentStyle={{ fontSize: "12px", borderRadius: "8px" }} />
                   </RadarChart>
                 </ResponsiveContainer>
               </div>
@@ -373,24 +373,24 @@ export default function ReportsPage() {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25 }}
-            className="rounded-3xl border border-white/80 bg-white/90 backdrop-blur-2xl p-6 shadow-glass flex flex-col gap-4"
+            className="min-w-0 rounded-3xl border border-white/80 bg-white/90 backdrop-blur-2xl p-4 sm:p-6 shadow-glass flex flex-col gap-4"
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
               <div>
-                <h3 className="text-base font-extrabold text-slate-900 font-heading flex items-center gap-2">
-                  <TrendingUp size={18} className="text-emerald-600" /> Monthly Escrow Fund Release Velocity & Tranches (Jan - Jun 2026)
+                <h3 className="text-sm sm:text-base font-extrabold text-slate-900 font-heading flex items-center gap-2">
+                  <TrendingUp size={18} className="text-emerald-600 shrink-0" /> Monthly Escrow Fund Velocity (Jan - Jun)
                 </h3>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">Smooth milestone tranche disbursement curve (₹ Crores per Month)</p>
+                <p className="text-[11px] sm:text-xs text-slate-500 font-medium mt-0.5">Milestone tranche disbursement curve (₹ Crores)</p>
               </div>
-              <span className="text-[10px] font-extrabold text-emerald-800 bg-emerald-100 border border-emerald-200 px-3 py-1 rounded-full">
-                +192% Growth Rate
+              <span className="w-fit text-[10px] font-extrabold text-emerald-800 bg-emerald-100 border border-emerald-200 px-3 py-1 rounded-full">
+                +192% Growth
               </span>
             </div>
 
             {/* Smooth Recharts Area Spline Curve Chart */}
             <div className="h-[280px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={monthlyTrend} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <AreaChart data={monthlyTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorCommitted" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#1e3a8a" stopOpacity={0.8} />
@@ -402,10 +402,10 @@ export default function ReportsPage() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                  <XAxis dataKey="month" fontSize={11} fontWeight="bold" />
-                  <YAxis fontSize={11} fontWeight="bold" unit=" Cr" />
-                  <Tooltip formatter={(val: any) => [`₹${val} Cr`]} />
-                  <Legend wrapperStyle={{ fontSize: 11, fontWeight: "bold" }} />
+                  <XAxis dataKey="month" fontSize={10} fontWeight="bold" />
+                  <YAxis fontSize={10} fontWeight="bold" unit=" Cr" />
+                  <Tooltip formatter={(val: any) => [`₹${val} Cr`]} contentStyle={{ fontSize: "12px", borderRadius: "8px" }} />
+                  <Legend wrapperStyle={{ fontSize: 10, fontWeight: "bold" }} />
                   <Area type="monotone" dataKey="committedCr" name="Committed Budget" stroke="#1e3a8a" fillOpacity={1} fill="url(#colorCommitted)" strokeWidth={2.5} />
                   <Area type="monotone" dataKey="escrowDisbursedCr" name="Escrow Disbursed" stroke="#059669" fillOpacity={1} fill="url(#colorEscrow)" strokeWidth={2.5} />
                 </AreaChart>
@@ -416,13 +416,13 @@ export default function ReportsPage() {
       )}
 
       {activeTab === "REPORTS" && (
-        <div className="rounded-3xl border border-white/80 bg-white/90 backdrop-blur-2xl p-6 shadow-glass">
+        <div className="rounded-3xl border border-white/80 bg-white/90 backdrop-blur-2xl p-4 sm:p-6 shadow-glass">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
             <div className="relative max-w-md w-full">
               <Search className="absolute left-3.5 top-3 text-slate-400" size={15} />
               <input
                 type="text"
-                placeholder="Search reports by name, code, or category..."
+                placeholder="Search reports by name, code..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-slate-50/80 py-2.5 pl-10 pr-4 text-xs font-medium text-slate-900 focus:border-blue-600 focus:bg-white focus:outline-none transition-all"
@@ -430,10 +430,10 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-200/80 text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+          <div className="w-full md:overflow-x-auto md:rounded-xl md:border md:border-slate-200/80">
+            <table className="w-full block md:table text-left border-collapse">
+              <thead className="hidden md:table-header-group bg-slate-50 text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                <tr>
                   <th className="py-3 px-4">Report Code</th>
                   <th className="py-3 px-4">Report Name</th>
                   <th className="py-3 px-4">Category</th>
@@ -441,22 +441,28 @@ export default function ReportsPage() {
                   <th className="py-3 px-4 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-xs">
+              <tbody className="block md:table-row-group divide-y-0 md:divide-y md:divide-slate-100 text-xs">
                 {filtered.map((rpt) => (
-                  <tr key={rpt.id} className="hover:bg-blue-50/40 transition-colors">
-                    <td className="py-3.5 px-4 font-mono font-bold text-blue-900">{rpt.code}</td>
-                    <td className="py-3.5 px-4 font-bold text-slate-900">{rpt.name}</td>
-                    <td className="py-3.5 px-4">
+                  <tr key={rpt.id} className="block md:table-row mb-4 md:mb-0 bg-white md:bg-transparent border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-sm md:shadow-none hover:bg-blue-50/40 transition-colors">
+                    <td data-label="Report Code" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none font-mono font-bold text-blue-900 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
+                      {rpt.code}
+                    </td>
+                    <td data-label="Report Name" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none font-bold text-slate-900 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left break-words">
+                      {rpt.name}
+                    </td>
+                    <td data-label="Category" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
                       <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">
                         {rpt.category}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-slate-500 font-medium">{rpt.period}</td>
-                    <td className="py-3.5 px-4 text-right">
+                    <td data-label="Coverage" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none text-slate-500 font-medium before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
+                      {rpt.period}
+                    </td>
+                    <td className="block md:table-cell py-3.5 px-4 text-right bg-slate-50/50 md:bg-transparent rounded-b-xl md:rounded-none">
                       <button
                         onClick={() => handleDownload(rpt.id)}
                         disabled={downloadingId === rpt.id}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-blue-900 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-blue-800 transition-all hover:scale-105"
+                        className="w-full md:w-auto justify-center inline-flex items-center gap-1.5 rounded-xl bg-blue-900 px-3.5 py-2 md:py-1.5 text-xs font-bold text-white shadow-sm hover:bg-blue-800 transition-all hover:scale-105"
                       >
                         <Download size={13} />
                         {downloadingId === rpt.id ? "Generating..." : "Export Report"}

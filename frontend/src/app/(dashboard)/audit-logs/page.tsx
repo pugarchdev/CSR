@@ -119,11 +119,13 @@ export default function AuditLogsPage() {
       </div>
 
       {/* Log Search and Filters */}
-      <GovCard style={{ marginBottom: 24 }}>
-        <GovCardBody>
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_260px] gap-4 items-end">
-            <div>
-              <label style={{ display: "block", marginBottom: 6, fontSize: 12, fontWeight: 700 }}>
+<GovCard className="mb-6">
+        <GovCardBody className="!p-4 md:!p-5">
+          <div className="flex flex-col md:flex-row md:items-end gap-3 md:gap-4 w-full">
+            
+            {/* Search Bar - Takes up remaining space */}
+            <div className="w-full flex-1 min-w-0">
+              <label className="block mb-1.5 text-xs font-bold text-slate-700">
                 Search Audit Logs
               </label>
               <GovInput
@@ -133,84 +135,121 @@ export default function AuditLogsPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <GovSelect
-              label="Filter by Action"
-              value={filterAction}
-              onChange={(e) => setFilterAction(e.target.value)}
-            >
-              <option value="ALL">All Actions</option>
-              {actions.map((a) => (
-                <option key={a} value={a}>{a.replace(/_/g, " ")}</option>
-              ))}
-            </GovSelect>
+
+            {/* Dropdown - Increased width to 380px to fit long action names */}
+            <div className="w-full md:w-[380px] shrink-0">
+              <GovSelect
+                label="Filter by Action"
+                value={filterAction}
+                onChange={(e) => setFilterAction(e.target.value)}
+              >
+                <option value="ALL">All Actions</option>
+                {actions.map((a) => (
+                  <option key={a} value={a}>{a.replace(/_/g, " ")}</option>
+                ))}
+              </GovSelect>
+            </div>
+            
           </div>
         </GovCardBody>
       </GovCard>
 
       {/* Log Table */}
-      <GovCard>
-        <GovCardHeader>
+   <GovCard>
+        <GovCardHeader className="!px-4 !py-4 md:!px-5">
           <GovCardTitle>System Audit Events ({filtered.length})</GovCardTitle>
         </GovCardHeader>
-        <GovCardBody style={{ padding: 0 }}>
+        <GovCardBody className="!p-3 md:!p-0">
           {loading ? (
-            <div style={{ padding: 48, textAlign: "center", color: "var(--gov-text-muted)", fontSize: 13 }}>
+            <div className="p-12 text-center text-slate-500 text-[13px]">
               Loading audit events from database…
             </div>
           ) : error ? (
-            <div className="gov-alert danger" style={{ margin: 16 }}>{error}</div>
+            <div className="gov-alert danger m-4">{error}</div>
           ) : filtered.length === 0 ? (
-            <div style={{ padding: 48, textAlign: "center", color: "var(--gov-text-muted)", fontSize: 13 }}>
+            <div className="p-12 text-center text-slate-500 text-[13px]">
               No audit events found in database.
             </div>
           ) : (
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ borderBottom: "2px solid var(--gov-border)" }}>
-                    <th style={{ padding: "12px 16px", textAlign: "left", fontSize: 11, fontWeight: 800, color: "var(--gov-text-muted)" }}>TIMESTAMP</th>
-                    <th style={{ padding: "12px 16px", textAlign: "left", fontSize: 11, fontWeight: 800, color: "var(--gov-text-muted)" }}>USER</th>
-                    <th style={{ padding: "12px 16px", textAlign: "left", fontSize: 11, fontWeight: 800, color: "var(--gov-text-muted)" }}>ACTION</th>
-                    <th style={{ padding: "12px 16px", textAlign: "left", fontSize: 11, fontWeight: 800, color: "var(--gov-text-muted)" }}>ENTITY</th>
-                    <th style={{ padding: "12px 16px", textAlign: "left", fontSize: 11, fontWeight: 800, color: "var(--gov-text-muted)" }}>IP ADDRESS</th>
-                    <th style={{ padding: "12px 16px", textAlign: "left", fontSize: 11, fontWeight: 800, color: "var(--gov-text-muted)" }}>DETAILS</th>
+            <div className="w-full md:overflow-x-auto">
+              <table className="w-full block md:table text-left border-collapse">
+                <thead className="hidden md:table-header-group border-b-2 border-slate-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500">TIMESTAMP</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500">USER</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500">ACTION</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500">ENTITY</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500">IP ADDRESS</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500">DETAILS</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="block md:table-row-group divide-y-0 md:divide-y md:divide-slate-100">
                   {filtered.map((log) => {
                     const detail = detailText(log.details);
                     const expanded = expandedId === log.id;
                     return (
                       <tr
                         key={log.id}
-                        style={{ borderBottom: "1px solid var(--gov-border)", cursor: detail ? "pointer" : "default" }}
+                        className={`block md:table-row mb-4 md:mb-0 bg-white border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-sm md:shadow-none transition-colors hover:bg-slate-50/50 ${detail ? "cursor-pointer" : "cursor-default"}`}
                         onClick={() => setExpandedId(expanded ? null : log.id)}
                       >
-                        <td style={{ padding: "14px 16px", fontSize: 12, fontWeight: 600, color: "var(--gov-text-secondary)", whiteSpace: "nowrap" }}>
+                        <td 
+                          data-label="TIMESTAMP" 
+                          className="flex md:table-cell justify-between items-center px-4 py-3 border-b border-slate-100 md:border-none text-xs font-semibold text-slate-600 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden whitespace-nowrap"
+                        >
                           {new Date(log.createdAt).toLocaleString()}
                         </td>
-                        <td style={{ padding: "14px 16px", fontSize: 13 }}>
-                          <div style={{ fontWeight: 700 }}>{log.user?.email || "system"}</div>
-                          <div style={{ fontSize: 11, color: "var(--gov-text-muted)" }}>{log.user?.role || ""}</div>
+                        
+                        <td 
+                          data-label="USER" 
+                          /* FIX: Added md:w-auto to reset cell width on desktop */
+                          className="flex md:table-cell justify-between items-center px-4 py-3 border-b border-slate-100 md:border-none text-[13px] before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden w-full md:w-auto min-w-0"
+                        >
+                          <div className="text-right md:text-left min-w-0">
+                            {/* FIX: Use break-words on desktop, break-all on mobile */}
+                            <div className="font-bold text-slate-900 break-all md:break-words">{log.user?.email || "system"}</div>
+                            <div className="text-[11px] text-slate-500">{log.user?.role || ""}</div>
+                          </div>
                         </td>
-                        <td style={{ padding: "14px 16px" }}>
+                        
+                        <td 
+                          data-label="ACTION" 
+                          className="flex md:table-cell justify-between items-center px-4 py-3 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden"
+                        >
                           <GovStatusBadge variant={actionVariant(log.action)}>
                             {log.action.replace(/_/g, " ")}
                           </GovStatusBadge>
                         </td>
-                        <td style={{ padding: "14px 16px", fontSize: 12, fontWeight: 600, color: "var(--gov-text-secondary)" }}>
-                          <div>{log.entityType || "—"}</div>
-                          {log.entityId && (
-                            <div style={{ fontSize: 11, color: "var(--gov-text-muted)" }}>
-                              {log.entityId.length > 18 ? `${log.entityId.slice(0, 18)}…` : log.entityId}
-                            </div>
-                          )}
+                        
+                        <td 
+                          data-label="ENTITY" 
+                          /* FIX: Added md:w-auto to reset cell width on desktop */
+                          className="flex md:table-cell justify-between items-center px-4 py-3 border-b border-slate-100 md:border-none text-xs font-semibold text-slate-600 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden w-full md:w-auto min-w-0"
+                        >
+                          <div className="text-right md:text-left min-w-0">
+                            <div className="text-slate-900 break-all md:break-words">{log.entityType || "—"}</div>
+                            {log.entityId && (
+                              <div className="text-[11px] text-slate-500 break-all md:break-words">
+                                {log.entityId.length > 18 ? `${log.entityId.slice(0, 18)}…` : log.entityId}
+                              </div>
+                            )}
+                          </div>
                         </td>
-                        <td style={{ padding: "14px 16px", fontSize: 12, fontWeight: 600, color: "var(--gov-text-secondary)" }}>
+                        
+                        <td 
+                          data-label="IP ADDRESS" 
+                          className="flex md:table-cell justify-between items-center px-4 py-3 border-b border-slate-100 md:border-none text-xs font-semibold text-slate-600 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden"
+                        >
                           {log.ipAddress || "—"}
                         </td>
-                        <td style={{ padding: "14px 16px", fontSize: 12, color: "var(--gov-text-secondary)", maxWidth: 320 }}>
-                          <span title={detail} style={expanded ? { wordBreak: "break-all" } : undefined}>
+                        
+                        <td 
+                          data-label="DETAILS" 
+                          /* FIX: Added md:w-auto and increased max-w for desktop readability */
+                          className="flex md:table-cell flex-col md:flex-row items-start md:items-center px-4 py-3 md:border-none text-xs text-slate-600 w-full md:w-auto min-w-0 md:max-w-[400px] before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden before:mb-1"
+                        >
+                          {/* FIX: Break-words instead of break-all on desktop so standard text flows naturally */}
+                          <span title={detail} className={`w-full ${expanded ? "break-all" : "break-all md:break-words"}`}>
                             {expanded || detail.length <= 80 ? detail || "—" : `${detail.slice(0, 80)}…`}
                           </span>
                         </td>

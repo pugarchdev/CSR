@@ -3020,13 +3020,13 @@ export function AdminOrganizationsWorkspace() {
     return `${item.name} ${typeStr} ${item.district || ""} ${statusStr}`.toLowerCase().includes(search.toLowerCase());
   });
 
-  return (
+return (
     <WorkspaceShell
       eyebrow="Portal Admin"
       title="Government Departments"
       description="Review government department organizations in this portal instance and manage onboarding status."
       actions={
-        <Button onClick={() => setCreateModalOpen(true)}>
+        <Button onClick={() => setCreateModalOpen(true)} className="w-full sm:w-auto justify-center">
           <Plus size={16} className="mr-1.5 inline" /> Add Department
         </Button>
       }
@@ -3034,43 +3034,74 @@ export function AdminOrganizationsWorkspace() {
       <ErrorBox error={error} />
       <section className="border border-slate-200/60 bg-white/70 backdrop-blur-xl rounded-2xl shadow-glass overflow-hidden">
         <div className="flex flex-col gap-3 border-b border-gov-line p-4 md:flex-row md:items-center md:justify-between">
-          <SearchBox value={search} onChange={setSearch} placeholder="Search departments..." />
-          <div className="text-xs font-bold text-gov-muted">{filtered.length} department(s)</div>
+          <div className="w-full md:max-w-sm">
+            <SearchBox value={search} onChange={setSearch} placeholder="Search departments..." />
+          </div>
+          <div className="text-xs font-bold text-gov-muted text-right">{filtered.length} department(s)</div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[980px] text-left text-sm">
-            <thead className="bg-gov-mist text-[11px] uppercase tracking-wider text-gov-muted">
+        
+        {/* Wrapper: Handles overflow on desktop, full width on mobile */}
+        <div className="w-full md:overflow-x-auto p-4 md:p-0 bg-slate-50/50 md:bg-transparent">
+          <table className="w-full block md:table text-left text-sm border-collapse">
+            <thead className="hidden md:table-header-group bg-gov-mist text-[11px] uppercase tracking-wider text-gov-muted">
               <tr>
-                <th className="px-5 py-3">Organization</th>
-                <th className="px-5 py-3">Type</th>
-                <th className="px-5 py-3">District</th>
-                <th className="px-5 py-3">Onboarding</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3 text-right">Actions</th>
+                <th className="px-5 py-3 font-bold">Organization</th>
+                <th className="px-5 py-3 font-bold">Type</th>
+                <th className="px-5 py-3 font-bold">District</th>
+                <th className="px-5 py-3 font-bold">Onboarding</th>
+                <th className="px-5 py-3 font-bold">Status</th>
+                <th className="px-5 py-3 font-bold text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gov-line">
-              {loading ? <LoadingRow colSpan={6} /> : filtered.length === 0 ? <EmptyRow colSpan={6} text="No government departments found." /> : filtered.map((item) => (
-                <tr key={item.id}>
-                  <td className="px-5 py-4 font-bold text-gov-ink">
-                    <Link href={`/admin/organizations/${item.id}`} className="text-gov-blue hover:underline">{item.name}</Link>
-                    <div className="text-xs font-medium text-gov-muted">{item.email || "-"}</div>
-                  </td>
-                  <td className="px-5 py-4 text-gov-muted">
-                    {String(item.organizationType || item.kind || "GOVERNMENT_DEPARTMENT").replace(/_/g, " ")}
-                  </td>
-                  <td className="px-5 py-4 text-gov-muted">{item.district || "-"}</td>
-                  <td className="px-5 py-4"><Badge>{item.onboardingStatus || item.status || "ACTIVE"}</Badge></td>
-                  <td className="px-5 py-4"><Badge>{item.status || "ACTIVE"}</Badge></td>
-                  <td className="px-5 py-4">
-                    <div className="flex justify-end gap-2">
-                      <Button size="sm" onClick={() => action(item.id, "approve")}>Approve</Button>
-                      <Button size="sm" variant="secondary" onClick={() => action(item.id, "request-clarification")}>Clarify</Button>
-                      <Button size="sm" variant="danger" onClick={() => action(item.id, "suspend")}>Suspend</Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+            <tbody className="block md:table-row-group divide-y-0 md:divide-y md:divide-gov-line">
+              {loading ? (
+                <LoadingRow colSpan={6} />
+              ) : filtered.length === 0 ? (
+                <EmptyRow colSpan={6} text="No government departments found." />
+              ) : (
+                filtered.map((item) => (
+                  <tr 
+                    key={item.id} 
+                    className="block md:table-row mb-4 md:mb-0 bg-white md:bg-transparent border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-sm md:shadow-none hover:bg-slate-50/50 transition-colors overflow-hidden"
+                  >
+                    <td data-label="Organization" className="flex md:table-cell flex-col md:flex-row items-start md:items-center px-4 md:px-5 py-3.5 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-bold before:text-slate-400 before:md:hidden before:mb-1">
+                      <div className="flex flex-col items-start md:items-start w-full text-left">
+                        <Link href={`/admin/organizations/${item.id}`} className="font-bold text-gov-blue hover:underline break-words">
+                          {item.name}
+                        </Link>
+                        <div className="text-xs font-medium text-gov-muted break-all">
+                          {item.email || "-"}
+                        </div>
+                      </div>
+                    </td>
+                    <td data-label="Type" className="flex md:table-cell justify-between items-center px-4 md:px-5 py-3.5 md:py-4 border-b border-slate-100 md:border-none text-gov-muted font-medium before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-bold before:text-slate-400 before:md:hidden text-right md:text-left">
+                      {String(item.organizationType || item.kind || "GOVERNMENT_DEPARTMENT").replace(/_/g, " ")}
+                    </td>
+                    <td data-label="District" className="flex md:table-cell justify-between items-center px-4 md:px-5 py-3.5 md:py-4 border-b border-slate-100 md:border-none text-gov-muted font-medium before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-bold before:text-slate-400 before:md:hidden text-right md:text-left">
+                      {item.district || "-"}
+                    </td>
+                    <td data-label="Onboarding" className="flex md:table-cell justify-between items-center px-4 md:px-5 py-3.5 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-bold before:text-slate-400 before:md:hidden text-right md:text-left">
+                      <Badge>{item.onboardingStatus || item.status || "ACTIVE"}</Badge>
+                    </td>
+                    <td data-label="Status" className="flex md:table-cell justify-between items-center px-4 md:px-5 py-3.5 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-bold before:text-slate-400 before:md:hidden text-right md:text-left">
+                      <Badge>{item.status || "ACTIVE"}</Badge>
+                    </td>
+                    <td className="block md:table-cell px-4 md:px-5 py-3.5 md:py-4 text-right bg-slate-50/50 md:bg-transparent">
+                      <div className="flex flex-wrap md:flex-nowrap justify-end gap-2">
+                        <Button size="sm" className="flex-1 md:flex-none justify-center text-xs" onClick={() => action(item.id, "approve")}>
+                          Approve
+                        </Button>
+                        <Button size="sm" variant="secondary" className="flex-1 md:flex-none justify-center text-xs" onClick={() => action(item.id, "request-clarification")}>
+                          Clarify
+                        </Button>
+                        <Button size="sm" variant="danger" className="w-full sm:flex-1 md:flex-none justify-center text-xs mt-1 sm:mt-0" onClick={() => action(item.id, "suspend")}>
+                          Suspend
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -3087,7 +3118,7 @@ export function AdminOrganizationsWorkspace() {
               value={deptForm.name}
               onChange={(e) => setDeptForm((prev) => ({ ...prev, name: e.target.value }))}
               placeholder="e.g. Planning Department Maharashtra"
-              className="border border-slate-200 rounded-lg p-2.5 text-sm font-medium outline-none focus:border-blue-600"
+              className="border border-slate-200 rounded-lg p-2.5 text-sm font-medium outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-shadow"
             />
           </label>
           <label className="flex flex-col gap-1.5 text-xs font-bold text-slate-700">
@@ -3097,7 +3128,7 @@ export function AdminOrganizationsWorkspace() {
               value={deptForm.email}
               onChange={(e) => setDeptForm((prev) => ({ ...prev, email: e.target.value }))}
               placeholder="e.g. planning@mahacsr.gov.in"
-              className="border border-slate-200 rounded-lg p-2.5 text-sm font-medium outline-none focus:border-blue-600"
+              className="border border-slate-200 rounded-lg p-2.5 text-sm font-medium outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-shadow"
             />
           </label>
           <label className="flex flex-col gap-1.5 text-xs font-bold text-slate-700">
@@ -3107,12 +3138,16 @@ export function AdminOrganizationsWorkspace() {
               value={deptForm.district}
               onChange={(e) => setDeptForm((prev) => ({ ...prev, district: e.target.value }))}
               placeholder="e.g. Mumbai / All Districts"
-              className="border border-slate-200 rounded-lg p-2.5 text-sm font-medium outline-none focus:border-blue-600"
+              className="border border-slate-200 rounded-lg p-2.5 text-sm font-medium outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-shadow"
             />
           </label>
-          <div className="flex justify-end gap-2 mt-4">
-            <Button type="button" variant="secondary" onClick={() => setCreateModalOpen(false)}>Cancel</Button>
-            <Button type="submit" disabled={creating}>{creating ? "Creating..." : "Create Department"}</Button>
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 mt-4 pt-2 border-t border-slate-100">
+            <Button type="button" variant="secondary" className="w-full sm:w-auto justify-center" onClick={() => setCreateModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={creating} className="w-full sm:w-auto justify-center">
+              {creating ? "Creating..." : "Create Department"}
+            </Button>
           </div>
         </form>
       </GovModal>
@@ -3259,13 +3294,13 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
 
   const docs = Array.isArray(org.documents) ? org.documents : [];
 
-  return (
+return (
     <WorkspaceShell
       eyebrow="Portal Admin"
       title={org.name || "Organization Onboarding Details"}
       description="Review complete statutory profile, contact location, CSR financial outlay, and submitted documents."
       actions={
-        <Link href="/admin/onboarding-approvals" className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition-colors border border-slate-200">
+        <Link href="/admin/onboarding-approvals" className="inline-flex w-full sm:w-auto justify-center items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition-colors border border-slate-200">
           ← Back to Approvals List
         </Link>
       }
@@ -3276,179 +3311,182 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
           <Loader2 size={32} className="animate-spin text-blue-900" />
         </div>
       ) : (
-        <div className="space-y-6">
+        /* Added -mx-3 to pull the layout closer to the screen edges on mobile */
+        <div className="-mx-3 sm:mx-0 space-y-4 md:space-y-6">
+          
           {/* Header Identity Card */}
-          <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-100 text-purple-700 font-extrabold text-xl shadow-2xs">
-                <Building2 size={28} />
+          <div className="rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-4 md:p-6 shadow-xs flex flex-col md:flex-row md:items-start lg:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full md:w-auto">
+              <div className="flex h-12 w-12 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-2xl bg-purple-100 text-purple-700 font-extrabold text-xl shadow-2xs">
+                <Building2 size={24} className="sm:w-[28px] sm:h-[28px]" />
               </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-xl font-extrabold text-slate-900">{org.name || org.legalName}</h1>
-                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-800 border border-purple-200 uppercase">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 break-words leading-tight">{org.name || org.legalName}</h1>
+                  <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold bg-purple-50 text-purple-800 border border-purple-200 uppercase whitespace-nowrap">
                     {typeLabel}
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 font-medium mt-1">
-                  CIN / Reg: <span className="font-mono font-bold text-purple-700">{regNo}</span>
+                <p className="text-xs text-slate-500 font-medium mt-1 md:mt-0">
+                  CIN / Reg: <span className="font-mono font-bold text-purple-700 break-all">{regNo}</span>
                 </p>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+            <div className="flex flex-wrap items-center gap-2 shrink-0 border-t border-slate-100 pt-3 md:border-0 md:pt-0 w-full md:w-auto">
+              <span className="px-2.5 py-1 sm:px-3 rounded-full text-[10px] sm:text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
                 {statusLabel}
               </span>
-              <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+              <span className="px-2.5 py-1 sm:px-3 rounded-full text-[10px] sm:text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
                 {org.status || "REGISTERED"}
               </span>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
             {/* Left 2 Columns: Information Panels */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-2 space-y-4 lg:space-y-6">
+              
               {/* Section 1: Statutory & Registration Profile */}
-              <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs space-y-4">
+              <div className="rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-4 md:p-6 shadow-xs space-y-4">
                 <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-3">
-                  <ShieldCheck size={16} className="text-purple-600" /> Statutory & Registration Profile
+                  <ShieldCheck size={16} className="text-purple-600 shrink-0" /> Statutory & Registration Profile
                 </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
                   <div>
-                    <span className="text-slate-400 block font-medium">Legal Registered Name</span>
-                    <span className="font-bold text-slate-900">{org.legalName || org.name || "-"}</span>
+                    <span className="text-slate-400 block font-medium mb-0.5">Legal Registered Name</span>
+                    <span className="font-bold text-slate-900 break-words">{org.legalName || org.name || "-"}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block font-medium">PAN Number</span>
-                    <span className="font-mono font-bold text-slate-900">{pan}</span>
+                    <span className="text-slate-400 block font-medium mb-0.5">PAN Number</span>
+                    <span className="font-mono font-bold text-slate-900 break-all">{pan}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block font-medium">GSTIN Number</span>
-                    <span className="font-mono font-bold text-slate-900">{gst}</span>
+                    <span className="text-slate-400 block font-medium mb-0.5">GSTIN Number</span>
+                    <span className="font-mono font-bold text-slate-900 break-all">{gst}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block font-medium">Registration / CIN</span>
-                    <span className="font-mono font-semibold text-slate-800">{regNo}</span>
+                    <span className="text-slate-400 block font-medium mb-0.5">Registration / CIN</span>
+                    <span className="font-mono font-semibold text-slate-800 break-all">{regNo}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block font-medium">Company Structure / Type</span>
+                    <span className="text-slate-400 block font-medium mb-0.5">Company Structure / Type</span>
                     <span className="font-semibold text-slate-800">{companyType}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block font-medium">Year of Incorporation</span>
+                    <span className="text-slate-400 block font-medium mb-0.5">Year of Incorporation</span>
                     <span className="font-semibold text-slate-800">{year}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block font-medium">MCA Statutory Check</span>
+                    <span className="text-slate-400 block font-medium mb-0.5">MCA Statutory Check</span>
                     <span className="font-bold text-emerald-700 flex items-center gap-1">
-                      <CheckCircle2 size={13} /> {mcaStatus}
+                      <CheckCircle2 size={13} className="shrink-0" /> {mcaStatus}
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block font-medium">Company Status</span>
+                    <span className="text-slate-400 block font-medium mb-0.5">Company Status</span>
                     <span className="font-bold text-blue-900 uppercase">{org.companyStatus || "ACTIVE"}</span>
                   </div>
                 </div>
               </div>
 
               {/* Section 2: Contact & Headquarters Location */}
-              <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs space-y-4">
+              <div className="rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-4 md:p-6 shadow-xs space-y-4">
                 <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-3">
-                  <MapPin size={16} className="text-blue-600" /> Contact & Headquarters Location
+                  <MapPin size={16} className="text-blue-600 shrink-0" /> Contact & Headquarters Location
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   <div>
-                    <span className="text-slate-400 block font-medium">Official Email Address</span>
-                    <span className="font-bold text-slate-900">{email}</span>
+                    <span className="text-slate-400 block font-medium mb-0.5">Official Email Address</span>
+                    <span className="font-bold text-slate-900 break-all">{email}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block font-medium">Official Contact Phone</span>
+                    <span className="text-slate-400 block font-medium mb-0.5">Official Contact Phone</span>
                     <span className="font-bold text-slate-900">{phone}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block font-medium">Official Website</span>
-                    <span className="font-bold text-blue-600">{website}</span>
+                    <span className="text-slate-400 block font-medium mb-0.5">Official Website</span>
+                    <a href={website !== "-" && !website.startsWith('http') ? `https://${website}` : website} target="_blank" rel="noreferrer" className="font-bold text-blue-600 break-all hover:underline">{website}</a>
                   </div>
                   <div>
-                    <span className="text-slate-400 block font-medium">District, State & Pincode</span>
+                    <span className="text-slate-400 block font-medium mb-0.5">District, State & Pincode</span>
                     <span className="font-semibold text-slate-800">{district}, {org.state || "Maharashtra"} {org.pincode ? `- ${org.pincode}` : ""}</span>
                   </div>
                 </div>
                 {fullAddress !== "-" && (
                   <div className="pt-3 border-t border-slate-100 text-xs">
-                    <span className="text-slate-400 block font-medium">Registered Office Address</span>
+                    <span className="text-slate-400 block font-medium mb-0.5">Registered Office Address</span>
                     <span className="font-medium text-slate-800">{fullAddress}</span>
                   </div>
                 )}
                 {org.corporateOfficeAddress && org.corporateOfficeAddress !== fullAddress && (
                   <div className="pt-2 text-xs">
-                    <span className="text-slate-400 block font-medium">Corporate Office Address</span>
+                    <span className="text-slate-400 block font-medium mb-0.5">Corporate Office Address</span>
                     <span className="font-medium text-slate-800">{org.corporateOfficeAddress}</span>
                   </div>
                 )}
               </div>
 
-              {/* Section 3: CSR Company Profile (Financials, CSR Head & Preferences) */}
+              {/* Section 3: CSR Company Profile */}
               {(csrProfile.annualCsrBudget || csrProfile.netWorth || typeLabel.includes("COMPANY") || typeLabel.includes("CORPORATE")) && (
-                <div className="rounded-2xl border border-purple-200/80 bg-purple-50/40 p-6 shadow-xs space-y-5">
+                <div className="rounded-2xl border border-purple-200/80 bg-purple-50/40 p-3.5 sm:p-4 md:p-6 shadow-xs space-y-5">
                   <h3 className="text-xs font-extrabold text-purple-950 uppercase tracking-wider flex items-center gap-2 border-b border-purple-200/60 pb-3">
-                    <Coins size={16} className="text-amber-600" /> CSR Portfolio, Outlay & Strategy Preferences
+                    <Coins size={16} className="text-amber-600 shrink-0" /> CSR Portfolio, Outlay & Strategy
                   </h3>
 
                   {/* Financial Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                    <div className="bg-white p-3 rounded-xl border border-purple-100 shadow-2xs">
-                      <span className="text-slate-400 block text-[10px] font-extrabold uppercase">CSR Budget</span>
-                      <span className="font-extrabold text-purple-900 text-sm">{formatCurrency(csrProfile.annualCsrBudget || csrProfile.currentYearCsrBudget)}</span>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2.5 md:gap-3 text-xs">
+                    <div className="bg-white p-2.5 md:p-3 rounded-xl border border-purple-100 shadow-2xs flex flex-col justify-center">
+                      <span className="text-slate-400 block text-[10px] font-extrabold uppercase truncate">CSR Budget</span>
+                      <span className="font-extrabold text-purple-900 text-sm md:text-sm truncate" title={formatCurrency(csrProfile.annualCsrBudget || csrProfile.currentYearCsrBudget)}>{formatCurrency(csrProfile.annualCsrBudget || csrProfile.currentYearCsrBudget)}</span>
                     </div>
-                    <div className="bg-white p-3 rounded-xl border border-purple-100 shadow-2xs">
-                      <span className="text-slate-400 block text-[10px] font-extrabold uppercase">Net Worth</span>
-                      <span className="font-extrabold text-slate-900 text-sm">{formatCurrency(csrProfile.netWorth)}</span>
+                    <div className="bg-white p-2.5 md:p-3 rounded-xl border border-purple-100 shadow-2xs flex flex-col justify-center">
+                      <span className="text-slate-400 block text-[10px] font-extrabold uppercase truncate">Net Worth</span>
+                      <span className="font-extrabold text-slate-900 text-sm md:text-sm truncate" title={formatCurrency(csrProfile.netWorth)}>{formatCurrency(csrProfile.netWorth)}</span>
                     </div>
-                    <div className="bg-white p-3 rounded-xl border border-purple-100 shadow-2xs">
-                      <span className="text-slate-400 block text-[10px] font-extrabold uppercase">Turnover</span>
-                      <span className="font-extrabold text-slate-900 text-sm">{formatCurrency(csrProfile.turnover)}</span>
+                    <div className="bg-white p-2.5 md:p-3 rounded-xl border border-purple-100 shadow-2xs flex flex-col justify-center">
+                      <span className="text-slate-400 block text-[10px] font-extrabold uppercase truncate">Turnover</span>
+                      <span className="font-extrabold text-slate-900 text-sm md:text-sm truncate" title={formatCurrency(csrProfile.turnover)}>{formatCurrency(csrProfile.turnover)}</span>
                     </div>
-                    <div className="bg-white p-3 rounded-xl border border-purple-100 shadow-2xs">
-                      <span className="text-slate-400 block text-[10px] font-extrabold uppercase">Net Profit</span>
-                      <span className="font-extrabold text-slate-900 text-sm">{formatCurrency(csrProfile.netProfit)}</span>
+                    <div className="bg-white p-2.5 md:p-3 rounded-xl border border-purple-100 shadow-2xs flex flex-col justify-center">
+                      <span className="text-slate-400 block text-[10px] font-extrabold uppercase truncate">Net Profit</span>
+                      <span className="font-extrabold text-slate-900 text-sm md:text-sm truncate" title={formatCurrency(csrProfile.netProfit)}>{formatCurrency(csrProfile.netProfit)}</span>
                     </div>
-                    <div className="bg-white p-3 rounded-xl border border-purple-100 shadow-2xs">
-                      <span className="text-slate-400 block text-[10px] font-extrabold uppercase">2% CSR Obligation</span>
-                      <span className="font-extrabold text-amber-900 text-sm">{formatCurrency(csrProfile.twoPercentCsrObligation || csrProfile.csrObligationAmount)}</span>
+                    <div className="bg-white p-2.5 md:p-3 rounded-xl border border-purple-100 shadow-2xs flex flex-col justify-center">
+                      <span className="text-slate-400 block text-[10px] font-extrabold uppercase truncate">2% Obligation</span>
+                      <span className="font-extrabold text-amber-900 text-sm md:text-sm truncate" title={formatCurrency(csrProfile.twoPercentCsrObligation || csrProfile.csrObligationAmount)}>{formatCurrency(csrProfile.twoPercentCsrObligation || csrProfile.csrObligationAmount)}</span>
                     </div>
-                    <div className="bg-white p-3 rounded-xl border border-purple-100 shadow-2xs">
-                      <span className="text-slate-400 block text-[10px] font-extrabold uppercase">Unspent CSR Amount</span>
-                      <span className="font-extrabold text-slate-900 text-sm">{formatCurrency(csrProfile.unspentCsrAmount)}</span>
+                    <div className="bg-white p-2.5 md:p-3 rounded-xl border border-purple-100 shadow-2xs flex flex-col justify-center">
+                      <span className="text-slate-400 block text-[10px] font-extrabold uppercase truncate">Unspent CSR</span>
+                      <span className="font-extrabold text-slate-900 text-sm md:text-sm truncate" title={formatCurrency(csrProfile.unspentCsrAmount)}>{formatCurrency(csrProfile.unspentCsrAmount)}</span>
                     </div>
-                    <div className="bg-white p-3 rounded-xl border border-purple-100 shadow-2xs">
-                      <span className="text-slate-400 block text-[10px] font-extrabold uppercase">CSR Reg No</span>
-                      <span className="font-mono font-bold text-indigo-900 text-xs">{csrProfile.csrRegistrationNo || "-"}</span>
+                    <div className="bg-white p-2.5 md:p-3 rounded-xl border border-purple-100 shadow-2xs flex flex-col justify-center">
+                      <span className="text-slate-400 block text-[10px] font-extrabold uppercase truncate">CSR Reg No</span>
+                      <span className="font-mono font-bold text-indigo-900 text-xs truncate" title={csrProfile.csrRegistrationNo || "-"}>{csrProfile.csrRegistrationNo || "-"}</span>
                     </div>
-                    <div className="bg-white p-3 rounded-xl border border-purple-100 shadow-2xs">
-                      <span className="text-slate-400 block text-[10px] font-extrabold uppercase">Financial Year</span>
-                      <span className="font-bold text-slate-800 text-xs">{csrProfile.financialYear || "FY 2025-26"}</span>
+                    <div className="bg-white p-2.5 md:p-3 rounded-xl border border-purple-100 shadow-2xs flex flex-col justify-center">
+                      <span className="text-slate-400 block text-[10px] font-extrabold uppercase truncate">Financial Year</span>
+                      <span className="font-bold text-slate-800 text-xs truncate" title={csrProfile.financialYear || "FY 2025-26"}>{csrProfile.financialYear || "FY 2025-26"}</span>
                     </div>
                   </div>
 
                   {/* CSR Head Contact Card */}
                   {(csrProfile.csrHeadName || csrProfile.csrHeadEmail || csrProfile.csrHeadMobile) && (
-                    <div className="bg-white p-4 rounded-xl border border-purple-100 space-y-2 text-xs">
+                    <div className="bg-white p-3.5 md:p-4 rounded-xl border border-purple-100 space-y-2 text-xs">
                       <h4 className="font-bold text-purple-950 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                        <UserCheck size={14} className="text-purple-700" /> Designated CSR Head / Nodal Contact
+                        <UserCheck size={14} className="text-purple-700 shrink-0" /> Designated CSR Head
                       </h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                         <div>
-                          <span className="text-slate-400 block text-[10px]">Name</span>
-                          <span className="font-bold text-slate-900">{csrProfile.csrHeadName || "-"}</span>
+                          <span className="text-slate-400 block text-[10px] mb-0.5">Name</span>
+                          <span className="font-bold text-slate-900 break-words">{csrProfile.csrHeadName || "-"}</span>
                         </div>
                         <div>
-                          <span className="text-slate-400 block text-[10px]">Email</span>
-                          <span className="font-bold text-slate-900">{csrProfile.csrHeadEmail || "-"}</span>
+                          <span className="text-slate-400 block text-[10px] mb-0.5">Email</span>
+                          <span className="font-bold text-slate-900 break-all">{csrProfile.csrHeadEmail || "-"}</span>
                         </div>
                         <div>
-                          <span className="text-slate-400 block text-[10px]">Mobile</span>
+                          <span className="text-slate-400 block text-[10px] mb-0.5">Mobile</span>
                           <span className="font-bold text-slate-900">{csrProfile.csrHeadMobile || "-"}</span>
                         </div>
                       </div>
@@ -3456,17 +3494,17 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
                   )}
 
                   {/* Sector & Geography Preferences */}
-                  <div className="bg-white p-4 rounded-xl border border-purple-100 space-y-3 text-xs">
+                  <div className="bg-white p-3.5 md:p-4 rounded-xl border border-purple-100 space-y-3 text-xs">
                     <h4 className="font-bold text-purple-950 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                      <Target size={14} className="text-purple-700" /> Sector & Target Geography Preferences
+                      <Target size={14} className="text-purple-700 shrink-0" /> Target Preferences
                     </h4>
 
                     <div>
-                      <span className="text-slate-400 block text-[10px] font-bold uppercase mb-1">Preferred Focus Sectors</span>
+                      <span className="text-slate-400 block text-[10px] font-bold uppercase mb-1.5">Preferred Focus Sectors</span>
                       <div className="flex flex-wrap gap-1.5">
                         {(csrProfile.preferredSectors || []).length > 0 ? (
                           csrProfile.preferredSectors.map((s: string, i: number) => (
-                            <span key={i} className="px-2.5 py-1 rounded-lg bg-purple-50 text-purple-900 font-bold border border-purple-200 text-[11px]">
+                            <span key={i} className="px-2.5 py-1 rounded-lg bg-purple-50 text-purple-900 font-bold border border-purple-200 text-[10px] md:text-[11px]">
                               {s}
                             </span>
                           ))
@@ -3477,11 +3515,11 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
                     </div>
 
                     <div className="pt-2 border-t border-slate-100">
-                      <span className="text-slate-400 block text-[10px] font-bold uppercase mb-1">Target Focus Districts</span>
+                      <span className="text-slate-400 block text-[10px] font-bold uppercase mb-1.5">Target Focus Districts</span>
                       <div className="flex flex-wrap gap-1.5">
                         {(csrProfile.preferredDistricts || []).length > 0 ? (
                           csrProfile.preferredDistricts.map((d: string, i: number) => (
-                            <span key={i} className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-900 font-bold border border-blue-200 text-[11px]">
+                            <span key={i} className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-900 font-bold border border-blue-200 text-[10px] md:text-[11px]">
                               {d}
                             </span>
                           ))
@@ -3492,23 +3530,23 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
                     </div>
 
                     {(csrProfile.sdgFocusAreas || csrProfile.preferredBeneficiaryGroups || csrProfile.implementationPreference) && (
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
                         {csrProfile.sdgFocusAreas && (
                           <div>
-                            <span className="text-slate-400 block text-[10px]">SDG Focus Areas</span>
-                            <span className="font-semibold text-slate-800">{csrProfile.sdgFocusAreas}</span>
+                            <span className="text-slate-400 block text-[10px] mb-0.5">SDG Focus Areas</span>
+                            <span className="font-semibold text-slate-800 break-words">{csrProfile.sdgFocusAreas}</span>
                           </div>
                         )}
                         {csrProfile.preferredBeneficiaryGroups && (
                           <div>
-                            <span className="text-slate-400 block text-[10px]">Beneficiary Groups</span>
-                            <span className="font-semibold text-slate-800">{csrProfile.preferredBeneficiaryGroups}</span>
+                            <span className="text-slate-400 block text-[10px] mb-0.5">Beneficiary Groups</span>
+                            <span className="font-semibold text-slate-800 break-words">{csrProfile.preferredBeneficiaryGroups}</span>
                           </div>
                         )}
                         {csrProfile.implementationPreference && (
-                          <div>
-                            <span className="text-slate-400 block text-[10px]">Implementation Model</span>
-                            <span className="font-semibold text-slate-800">{csrProfile.implementationPreference}</span>
+                          <div className="sm:col-span-2 md:col-span-1">
+                            <span className="text-slate-400 block text-[10px] mb-0.5">Implementation Model</span>
+                            <span className="font-semibold text-slate-800 break-words">{csrProfile.implementationPreference}</span>
                           </div>
                         )}
                       </div>
@@ -3519,68 +3557,68 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
 
               {/* Section 4: NGO Profile Details (If NGO) */}
               {(ngoProf.darpanNumber || ngoProf.csr1Number || typeLabel.includes("NGO")) && (
-                <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/40 p-6 shadow-xs space-y-4">
+                <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/40 p-3.5 sm:p-4 md:p-6 shadow-xs space-y-4">
                   <h3 className="text-xs font-extrabold text-emerald-950 uppercase tracking-wider flex items-center gap-2 border-b border-emerald-200/60 pb-3">
-                    <HeartHandshake size={16} className="text-emerald-700" /> NGO Registration & Statutory Accreditation
+                    <HeartHandshake size={16} className="text-emerald-700 shrink-0" /> NGO Registration & Statutory Accreditation
                   </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
                     <div>
-                      <span className="text-slate-400 block font-medium">NITI Aayog DARPAN ID</span>
-                      <span className="font-mono font-bold text-emerald-900">{ngoProf.darpanNumber || "-"}</span>
+                      <span className="text-slate-400 block font-medium mb-0.5">NITI Aayog DARPAN ID</span>
+                      <span className="font-mono font-bold text-emerald-900 break-all">{ngoProf.darpanNumber || "-"}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block font-medium">MCA CSR-1 Registration</span>
-                      <span className="font-mono font-bold text-emerald-900">{ngoProf.csr1Number || "-"}</span>
+                      <span className="text-slate-400 block font-medium mb-0.5">MCA CSR-1 Registration</span>
+                      <span className="font-mono font-bold text-emerald-900 break-all">{ngoProf.csr1Number || "-"}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block font-medium">Year Established</span>
+                      <span className="text-slate-400 block font-medium mb-0.5">Year Established</span>
                       <span className="font-semibold text-slate-800">{ngoProf.yearEstablished || "-"}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block font-medium">FCRA Registration</span>
+                      <span className="text-slate-400 block font-medium mb-0.5">FCRA Registration</span>
                       <span className="font-semibold text-slate-800">{ngoProf.fcraDetails || "Not Applicable"}</span>
                     </div>
                     {ngoProf.certificate12AUrl && (
                       <div>
-                        <span className="text-slate-400 block font-medium">12A Certificate</span>
-                        <a href={ngoProf.certificate12AUrl} target="_blank" rel="noreferrer" className="text-blue-600 font-bold hover:underline">View 12A</a>
+                        <span className="text-slate-400 block font-medium mb-0.5">12A Certificate</span>
+                        <a href={ngoProf.certificate12AUrl} target="_blank" rel="noreferrer" className="text-blue-600 font-bold hover:underline inline-flex items-center gap-1"><ExternalLink size={12}/> View 12A</a>
                       </div>
                     )}
                     {ngoProf.certificate80GUrl && (
                       <div>
-                        <span className="text-slate-400 block font-medium">80G Certificate</span>
-                        <a href={ngoProf.certificate80GUrl} target="_blank" rel="noreferrer" className="text-blue-600 font-bold hover:underline">View 80G</a>
+                        <span className="text-slate-400 block font-medium mb-0.5">80G Certificate</span>
+                        <a href={ngoProf.certificate80GUrl} target="_blank" rel="noreferrer" className="text-blue-600 font-bold hover:underline inline-flex items-center gap-1"><ExternalLink size={12}/> View 80G</a>
                       </div>
                     )}
                   </div>
                 </div>
               )}
 
-              {/* Section 5: Government Department Details (If Government Dept) */}
+              {/* Section 5: Government Profile */}
               {(govProf.nodalOfficerName || typeLabel.includes("GOVERNMENT") || typeLabel.includes("GOVT")) && (
-                <div className="rounded-2xl border border-purple-200/80 bg-purple-50/40 p-6 shadow-xs space-y-4">
+                <div className="rounded-2xl border border-purple-200/80 bg-purple-50/40 p-3.5 sm:p-4 md:p-6 shadow-xs space-y-4">
                   <h3 className="text-xs font-extrabold text-purple-950 uppercase tracking-wider flex items-center gap-2 border-b border-purple-200/60 pb-3">
-                    <ShieldCheck size={16} className="text-purple-700" /> Government Department Profile & Nodal Contact
+                    <ShieldCheck size={16} className="text-purple-700 shrink-0" /> Government Department Profile & Nodal Contact
                   </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
                     <div>
-                      <span className="text-slate-400 block font-medium">Department Type</span>
-                      <span className="font-bold text-purple-900">{govProf.departmentType || "State Government Department"}</span>
+                      <span className="text-slate-400 block font-medium mb-0.5">Department Type</span>
+                      <span className="font-bold text-purple-900 break-words">{govProf.departmentType || "State Government Department"}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block font-medium">Nodal Officer Name</span>
-                      <span className="font-bold text-slate-900">{govProf.nodalOfficerName || "-"}</span>
+                      <span className="text-slate-400 block font-medium mb-0.5">Nodal Officer Name</span>
+                      <span className="font-bold text-slate-900 break-words">{govProf.nodalOfficerName || "-"}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block font-medium">Designation</span>
-                      <span className="font-semibold text-slate-800">{govProf.nodalOfficerDesignation || "-"}</span>
+                      <span className="text-slate-400 block font-medium mb-0.5">Designation</span>
+                      <span className="font-semibold text-slate-800 break-words">{govProf.nodalOfficerDesignation || "-"}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block font-medium">Nodal Email</span>
-                      <span className="font-bold text-blue-900">{govProf.nodalOfficerEmail || "-"}</span>
+                      <span className="text-slate-400 block font-medium mb-0.5">Nodal Email</span>
+                      <span className="font-bold text-blue-900 break-all">{govProf.nodalOfficerEmail || "-"}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block font-medium">Nodal Mobile</span>
+                      <span className="text-slate-400 block font-medium mb-0.5">Nodal Mobile</span>
                       <span className="font-semibold text-slate-800">{govProf.nodalOfficerMobile || "-"}</span>
                     </div>
                   </div>
@@ -3589,13 +3627,14 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
             </div>
 
             {/* Right 1 Column: Documents & Decision Actions */}
-            <div className="space-y-6">
+            <div className="space-y-4 lg:space-y-6">
+              
               {/* Approval Decision Controls */}
-              <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs space-y-4">
+              <div className="rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-4 md:p-6 shadow-xs space-y-4">
                 <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-3 flex items-center justify-between">
-                  <span>Approval Decision Controls</span>
+                  <span>Decision Controls</span>
                   {(org.onboardingStatus === "APPROVED" || org.status === "ACTIVE" || org.onboardingStatus === "ACTIVE") && (
-                    <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold border border-emerald-300">
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold border border-emerald-300 ml-2">
                       ✓ APPROVED
                     </span>
                   )}
@@ -3611,9 +3650,9 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
                       onClick={() => executeAction("approve")}
                       loading={actionLoading && activeAction === "approve"}
                       disabled={actionLoading}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 shadow-2xs cursor-pointer"
+                      className="w-full justify-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 shadow-2xs cursor-pointer"
                     >
-                      <CheckCircle2 size={16} className="mr-1.5" /> Approve & Activate
+                      <CheckCircle2 size={16} className="mr-1.5 shrink-0" /> Approve & Activate
                     </Button>
                   )}
 
@@ -3622,9 +3661,9 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
                     onClick={() => openActionModal("request-clarification")}
                     loading={actionLoading && activeAction === "request-clarification"}
                     disabled={actionLoading}
-                    className="w-full font-bold cursor-pointer"
+                    className="w-full justify-center font-bold cursor-pointer text-center text-xs sm:text-sm py-2.5"
                   >
-                    <FileText size={16} className="mr-1.5 text-amber-600" /> Request Clarification / Document Re-upload
+                    <FileText size={16} className="mr-1.5 text-amber-600 shrink-0" /> Request Clarification
                   </Button>
 
                   {(org.onboardingStatus === "REJECTED" || org.status === "REJECTED") ? (
@@ -3638,7 +3677,7 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
                       onClick={() => openActionModal("reject")}
                       loading={actionLoading && activeAction === "reject"}
                       disabled={actionLoading}
-                      className="w-full font-bold cursor-pointer"
+                      className="w-full justify-center font-bold cursor-pointer py-2.5"
                     >
                       Reject Application
                     </Button>
@@ -3647,7 +3686,7 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
                   {(org.onboardingStatus === "SUSPENDED" || org.status === "SUSPENDED") ? (
                     <div className="w-full rounded-xl bg-slate-100 border border-slate-300 p-3.5 text-center text-xs font-extrabold text-slate-700 flex items-center justify-center gap-2">
                       <AlertCircle size={16} className="text-slate-500 shrink-0" />
-                      Organization Access Suspended
+                      Access Suspended
                     </div>
                   ) : (
                     <Button
@@ -3655,7 +3694,7 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
                       onClick={() => openActionModal("suspend")}
                       loading={actionLoading && activeAction === "suspend"}
                       disabled={actionLoading}
-                      className="w-full font-bold text-slate-600 cursor-pointer"
+                      className="w-full justify-center font-bold text-slate-600 cursor-pointer py-2.5"
                     >
                       Suspend Organization
                     </Button>
@@ -3665,9 +3704,9 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
 
               {/* Remarks History Banner */}
               {(org.clarificationRemarks || org.rejectionReason) && (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-5 space-y-2 text-xs text-amber-900">
+                <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-3.5 md:p-5 space-y-2 text-xs text-amber-900 break-words">
                   <h4 className="font-extrabold uppercase tracking-wider text-[11px] text-amber-950 flex items-center gap-1.5">
-                    <AlertTriangle size={14} className="text-amber-600" /> Process Remarks
+                    <AlertTriangle size={14} className="text-amber-600 shrink-0" /> Process Remarks
                   </h4>
                   {org.clarificationRemarks && <p><strong>Clarification Requested:</strong> {org.clarificationRemarks}</p>}
                   {org.rejectionReason && <p><strong>Rejection Reason:</strong> {org.rejectionReason}</p>}
@@ -3675,21 +3714,21 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
               )}
 
               {/* Uploaded Statutory Documents List */}
-              <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs space-y-4">
+              <div className="rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-4 md:p-6 shadow-xs space-y-4">
                 <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-3">
-                  Submitted Onboarding Documents ({docs.length})
+                  Submitted Documents ({docs.length})
                 </h3>
                 {docs.length === 0 ? (
-                  <div className="p-6 text-center text-xs font-medium text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                  <div className="p-4 sm:p-5 text-center text-xs font-medium text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-200">
                     No statutory documents uploaded yet.
                   </div>
                 ) : (
                   <div className="space-y-2.5">
                     {docs.map((doc: any) => (
-                      <div key={doc.id} className="flex items-center justify-between p-3 bg-slate-50/80 rounded-xl border border-slate-200/80 text-xs hover:border-blue-200 transition-colors">
-                        <div className="flex items-center gap-2.5 overflow-hidden">
+                      <div key={doc.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-slate-50/80 rounded-xl border border-slate-200/80 text-xs hover:border-blue-200 transition-colors gap-2 sm:gap-0">
+                        <div className="flex items-center gap-2.5 min-w-0">
                           <FileText size={16} className="text-indigo-600 shrink-0" />
-                          <div className="truncate">
+                          <div className="truncate min-w-0">
                             <span className="font-bold text-slate-900 block truncate text-xs">{doc.title || doc.fileName || doc.documentType}</span>
                             <span className="text-[10px] text-slate-400 font-bold uppercase">{doc.documentType}</span>
                           </div>
@@ -3699,7 +3738,7 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
                             href={doc.fileUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="ml-2 shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[11px] border border-blue-200 transition-colors"
+                            className="shrink-0 w-full sm:w-auto inline-flex items-center justify-center sm:justify-start gap-1 px-3 py-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[11px] border border-blue-200 transition-colors"
                           >
                             View <ExternalLink size={11} />
                           </a>
@@ -3737,11 +3776,11 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
             />
           </div>
 
-          <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
-            <Button type="button" variant="secondary" onClick={() => setActionModal(prev => ({ ...prev, open: false }))}>
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 pt-3 border-t border-slate-100">
+            <Button type="button" variant="secondary" className="w-full sm:w-auto justify-center" onClick={() => setActionModal(prev => ({ ...prev, open: false }))}>
               Cancel
             </Button>
-            <Button type="submit" variant={actionModal.isDanger ? "danger" : "primary"} loading={actionLoading}>
+            <Button type="submit" variant={actionModal.isDanger ? "danger" : "primary"} className="w-full sm:w-auto justify-center" loading={actionLoading}>
               {actionModal.submitLabel}
             </Button>
           </div>

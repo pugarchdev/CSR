@@ -204,85 +204,125 @@ export default function WorkflowPage() {
           </GovCard>
         </div>
 
-        <div style={{ marginTop: 18 }}>
-          <GovCard>
-            <GovCardHeader>
-              <GovCardTitle>Government Pitch Flow (Pitch a Development Need)</GovCardTitle>
-            </GovCardHeader>
-            <GovCardBody>
-              <div style={{ display: "grid", gap: 12 }}>
-                {governmentPitchSteps.map(([number, title, detail]) => (
-                  <div
-                    key={number}
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "56px minmax(0, 1fr)",
-                      gap: 14,
-                      padding: 14,
-                      border: "1px solid var(--gov-border)",
-                      borderLeft: "4px solid var(--gov-saffron)",
-                      background: number === "3" || number === "5" ? "#e8f5e9" : "#fef3e0",
-                    }}
-                  >
-                    <div style={{ fontWeight: 800, color: "var(--gov-warning)" }}>Step {number}</div>
-                    <div>
-                      <div style={{ fontWeight: 800 }}>{title}</div>
-                      <div style={{ marginTop: 4, color: "var(--gov-text-secondary)", fontSize: 13, lineHeight: 1.55 }}>{detail}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+   <div style={{ marginTop: 18 }}>
+  <GovCard>
+    <GovCardHeader>
+      <GovCardTitle>Government Pitch Flow (Pitch a Development Need)</GovCardTitle>
+    </GovCardHeader>
+    <GovCardBody>
+      <div className="grid gap-3">
+        {governmentPitchSteps.map(([number, title, detail]) => (
+          <div
+            key={number}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "56px minmax(0, 1fr)",
+              gap: 14,
+              padding: 14,
+              border: "1px solid var(--gov-border)",
+              borderLeft: "4px solid var(--gov-saffron)",
+              background: number === "3" || number === "5" ? "#e8f5e9" : "#fef3e0",
+            }}
+          >
+            <div style={{ fontWeight: 800, color: "var(--gov-warning)" }}>Step {number}</div>
+            <div>
+              <div style={{ fontWeight: 800 }}>{title}</div>
+              <div style={{ marginTop: 4, color: "var(--gov-text-secondary)", fontSize: 13, lineHeight: 1.55 }}>{detail}</div>
+            </div>
+          </div>
+        ))}
+      </div>
 
-              <h3 className="gov-section-title" style={{ marginTop: 18 }}>9.1 The Government Pitch Form</h3>
-              <div className="gov-table-container">
-                <table className="gov-table">
-                  <thead>
-                    <tr>
-                      <th>Field</th>
-                      <th>Description</th>
-                      <th>Validation</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {governmentPitchFields.map(([field, description, validation]) => (
-                      <tr key={field}>
-                        <td style={{ fontWeight: 700 }}>{field}</td>
-                        <td>{description}</td>
-                        <td>{validation}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+      <h3 className=" mt-6 mb-3 font-semibold text-gray-800 ">9.1 The Government Pitch Form</h3>
+      
+      {/* Wrapper added for rounded corners on desktop */}
+      <div className="w-full md:border md:border-gray-200 md:rounded-xl md:overflow-hidden bg-white">
+        <table className="w-full block md:table text-left border-collapse">
+          <thead className="hidden md:table-header-group bg-gray-50/50 border-b border-gray-200">
+            <tr>
+              <th className="p-3 md:px-6 md:py-4 font-semibold text-gray-700 text-sm">Field</th>
+              <th className="p-3 md:px-6 md:py-4 font-semibold text-gray-700 text-sm">Description</th>
+              <th className="p-3 md:px-6 md:py-4 font-semibold text-gray-700 text-sm">Validation</th>
+            </tr>
+          </thead>
+          <tbody className="block md:table-row-group">
+            {governmentPitchFields.map(([field, description, validation]) => (
+              <tr 
+                key={field} 
+                className="block md:table-row mb-4 md:mb-0 border border-gray-200 md:border-0 md:border-b md:border-gray-200 last:border-b-0 rounded-lg md:rounded-none"
+              >
+                <td 
+                  data-label="Field" 
+                  className="block md:table-cell relative py-3 pr-4 pl-[40%] md:px-6 md:py-4 border-b md:border-none last:border-b-0 break-words font-bold md:font-normal text-sm text-gray-800 before:content-[attr(data-label)] before:absolute before:left-4 before:top-3 before:font-semibold before:text-gray-500 md:before:hidden"
+                >
+                  {field}
+                </td>
+                <td 
+                  data-label="Description" 
+                  className="block md:table-cell relative py-3 pr-4 pl-[40%] md:px-6 md:py-4 border-b md:border-none last:border-b-0 break-words text-sm text-gray-600 before:content-[attr(data-label)] before:absolute before:left-4 before:top-3 before:font-semibold before:text-gray-500 md:before:hidden"
+                >
+                  {description}
+                </td>
+                <td 
+                  data-label="Validation" 
+                  className="block md:table-cell relative py-3 pr-4 pl-[40%] md:px-6 md:py-4 border-b md:border-none last:border-b-0 break-words text-sm text-gray-600 before:content-[attr(data-label)] before:absolute before:left-4 before:top-3 before:font-semibold before:text-gray-500 md:before:hidden"
+                >
+                  {validation}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-              <h3 className="gov-section-title" style={{ marginTop: 18 }}>9.3 The I am Interested Pop-Up Form</h3>
-              <div className="gov-table-container">
-                <table className="gov-table">
-                  <thead>
-                    <tr>
-                      <th>Field</th>
-                      <th>Description</th>
-                      <th>Validation</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {interestFields.map(([field, description, validation]) => (
-                      <tr key={field}>
-                        <td style={{ fontWeight: 700 }}>{field}</td>
-                        <td>{description}</td>
-                        <td>{validation}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+      <h3 className=" mt-4 mb-3 font-semibold text-gray-800">9.3 The I am Interested Pop-Up Form</h3>
+      
+      {/* Wrapper added for rounded corners on desktop */}
+      <div className="w-full md:border md:border-gray-200 md:rounded-xl md:overflow-hidden bg-white">
+        <table className="w-full block md:table text-left border-collapse">
+          <thead className="hidden md:table-header-group bg-gray-50/50 border-b border-gray-200">
+            <tr>
+              <th className="p-3 md:px-6 md:py-4 font-semibold text-gray-700 text-sm">Field</th>
+              <th className="p-3 md:px-6 md:py-4 font-semibold text-gray-700 text-sm">Description</th>
+              <th className="p-3 md:px-6 md:py-4 font-semibold text-gray-700 text-sm">Validation</th>
+            </tr>
+          </thead>
+          <tbody className="block md:table-row-group">
+            {interestFields.map(([field, description, validation]) => (
+              <tr 
+                key={field} 
+                className="block md:table-row mb-4 md:mb-0 border border-gray-200 md:border-0 md:border-b md:border-gray-200 last:border-b-0 rounded-lg md:rounded-none"
+              >
+                <td 
+                  data-label="Field" 
+                  className="block md:table-cell relative py-3 pr-4 pl-[40%] md:px-6 md:py-4 border-b md:border-none last:border-b-0 break-words font-bold md:font-normal text-sm text-gray-800 before:content-[attr(data-label)] before:absolute before:left-4 before:top-3 before:font-semibold before:text-gray-500 md:before:hidden"
+                >
+                  {field}
+                </td>
+                <td 
+                  data-label="Description" 
+                  className="block md:table-cell relative py-3 pr-4 pl-[40%] md:px-6 md:py-4 border-b md:border-none last:border-b-0 break-words text-sm text-gray-600 before:content-[attr(data-label)] before:absolute before:left-4 before:top-3 before:font-semibold before:text-gray-500 md:before:hidden"
+                >
+                  {description}
+                </td>
+                <td 
+                  data-label="Validation" 
+                  className="block md:table-cell relative py-3 pr-4 pl-[40%] md:px-6 md:py-4 border-b md:border-none last:border-b-0 break-words text-sm text-gray-600 before:content-[attr(data-label)] before:absolute before:left-4 before:top-3 before:font-semibold before:text-gray-500 md:before:hidden"
+                >
+                  {validation}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-              <div style={{ marginTop: 14, padding: 14, border: "1px solid var(--gov-border)", background: "#ecfdf5", fontSize: 13, lineHeight: 1.65 }}>
-                On submission, a Unique Tracking ID is generated and SMS + Email are sent, exactly as in the corporate enquiry flow. The Relationship Manager then coordinates between the two parties.
-              </div>
-            </GovCardBody>
-          </GovCard>
-        </div>
+      <div className="mt-5 p-4 border border-emerald-200 bg-emerald-50 text-sm text-gray-700 rounded-lg leading-relaxed">
+        On submission, a Unique Tracking ID is generated and SMS + Email are sent, exactly as in the corporate enquiry flow. The Relationship Manager then coordinates between the two parties.
+      </div>
+    </GovCardBody>
+  </GovCard>
+</div>
 
         <div style={{ marginTop: 18 }}>
           <GovCard>

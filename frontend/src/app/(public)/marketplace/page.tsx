@@ -608,7 +608,7 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
     }
   };
 
-  return (
+return (
     <div className="space-y-6 pb-12">
 
       <GovPageHeader
@@ -656,46 +656,46 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
         />
       </div>
 
-      <div className="rounded-2xl border border-slate-200/90 bg-white p-2 shadow-xs flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          {[
-            { id: "projects", label: "Active Project Proposals", icon: Compass, count: projects.length },
-            { id: "ngos", label: "Verified Grassroots NGOs (Implementing Agencies)", icon: Landmark, count: ngos.length },
-            { id: "companies", label: "Registered Corporate Donors", icon: Building2, count: companies.length }
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveTab(tab.id as DirectoryTab);
-                  resetAllFilters();
-                  window.history.replaceState(null, "", `/marketplace/${tab.id}`);
-                }}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap cursor-pointer ${
-                  isActive
-                    ? "bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-950 text-white shadow-md"
-                    : "text-slate-600 hover:text-blue-900 hover:bg-slate-100/80 font-bold"
-                }`}
-              >
-                <Icon size={16} />
-                <span>{tab.label}</span>
-                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black ${
-                  isActive ? "bg-white/20 text-white" : "bg-slate-200/80 text-slate-700"
-                }`}>
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+      {/* Tabs Container: Added overflow-x-auto to prevent squishing on mobile */}
+      <div className="rounded-2xl border border-slate-200/90 bg-white p-2 shadow-xs flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        {[
+          { id: "projects", label: "Active Project Proposals", icon: Compass, count: projects.length },
+          { id: "ngos", label: "Verified Grassroots NGOs", icon: Landmark, count: ngos.length },
+          { id: "companies", label: "Registered Corporate Donors", icon: Building2, count: companies.length }
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setActiveTab(tab.id as DirectoryTab);
+                resetAllFilters();
+                window.history.replaceState(null, "", `/marketplace/${tab.id}`);
+              }}
+              className={`shrink-0 flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap cursor-pointer ${
+                isActive
+                  ? "bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-950 text-white shadow-md"
+                  : "text-slate-600 hover:text-blue-900 hover:bg-slate-100/80 font-bold"
+              }`}
+            >
+              <Icon size={16} />
+              <span>{tab.label}</span>
+              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black ${
+                isActive ? "bg-white/20 text-white" : "bg-slate-200/80 text-slate-700"
+              }`}>
+                {tab.count}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col gap-3">
-        <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col gap-4">
+        {/* Filters Container: Allowed inputs to stack full-width on mobile */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-4">
           
-          <div className="flex-1 min-w-[200px] flex flex-col gap-1.5">
+          <div className="w-full md:flex-1 md:min-w-[200px] flex flex-col gap-1.5">
             <label className="text-slate-700 text-xs font-bold flex items-center gap-1.5">
               <Search size={13} className="text-blue-600" />
               <span>Search Keywords / Name</span>
@@ -723,7 +723,7 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
             </div>
           </div>
 
-          <div className="w-full sm:w-auto min-w-[160px] flex flex-col gap-1.5">
+          <div className="w-full md:w-auto md:min-w-[160px] flex flex-col gap-1.5">
             <label className="text-slate-700 text-xs font-bold flex items-center gap-1.5">
               <MapPin size={13} className="text-blue-600" />
               <span>District (Maharashtra)</span>
@@ -746,7 +746,7 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
             </select>
           </div>
 
-          <div className="w-full sm:w-auto min-w-[160px] flex flex-col gap-1.5">
+          <div className="w-full md:w-auto md:min-w-[160px] flex flex-col gap-1.5">
             <label className="text-slate-700 text-xs font-bold flex items-center gap-1.5">
               <Tag size={13} className="text-blue-600" />
               <span>Sector Focus Area</span>
@@ -766,7 +766,7 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
             </select>
           </div>
 
-          <div className="w-full sm:w-auto min-w-[150px] flex flex-col gap-1.5">
+          <div className="w-full md:w-auto md:min-w-[150px] flex flex-col gap-1.5">
             <label className="text-slate-700 text-xs font-bold flex items-center gap-1.5">
               <Coins size={13} className="text-blue-600" />
               <span>Budget Scope</span>
@@ -783,31 +783,31 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
             </select>
           </div>
 
-          <div className="flex items-center gap-2 pt-2 sm:pt-0">
+          <div className="flex items-center justify-between md:justify-end gap-2 pt-2 md:pt-0 w-full md:w-auto">
             <ViewToggle view={viewMode} onChange={setViewMode} />
 
             {activeFilterCount > 0 && (
               <button
                 onClick={resetAllFilters}
-                className="text-xs text-slate-700 hover:text-red-600 font-bold flex items-center gap-1 bg-slate-100 hover:bg-red-50 px-3 py-2 rounded-xl border border-slate-200 transition-all h-[36px]"
+                className="text-xs text-slate-700 hover:text-red-600 font-bold flex items-center justify-center gap-1 bg-slate-100 hover:bg-red-50 px-3 py-2 rounded-xl border border-slate-200 transition-all h-[36px] flex-1 md:flex-none"
                 title="Reset filters"
               >
-                <X size={14} /> <span className="hidden md:inline">Reset</span>
+                <X size={14} /> <span>Reset</span>
               </button>
             )}
           </div>
 
         </div>
 
-        <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-slate-700">
+        <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-bold text-slate-700">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
             <span className="text-slate-900 font-extrabold text-xs sm:text-sm">
               {activeTab === "projects" && `${filteredProjects.length} Project Proposals Found`}
               {activeTab === "ngos" && `${filteredNGOs.length} Empaneled Grassroots NGOs Registered`}
               {activeTab === "companies" && `${filteredCompanies.length} Corporate Donors Found`}
             </span>
-            <span className="text-slate-400 font-medium text-[11px]">| Showing verified Maharashtra directory listings</span>
+            <span className="text-slate-400 font-medium text-[11px] hidden sm:inline">| Showing verified Maharashtra directory listings</span>
           </div>
 
           {activeFilterCount > 0 && (
@@ -847,44 +847,49 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
           <span className="text-xs text-slate-500 font-semibold">Loading public directory records...</span>
         </div>
       ) : viewMode === "list" ? (
-        <div className="rounded-2xl border border-slate-200/90 bg-white overflow-hidden shadow-xs">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-900 text-white font-extrabold uppercase tracking-wider text-[11px]">
+        // List View: Updated for mobile stacked cards
+        <div className="w-full md:rounded-2xl md:border md:border-slate-200/90 md:bg-white overflow-hidden md:shadow-xs">
+          <div className="w-full">
+            <table className="w-full block md:table text-left text-xs border-collapse">
+              <thead className="hidden md:table-header-group bg-slate-900 text-white font-extrabold uppercase tracking-wider text-[11px]">
                 <tr>
                   <th className="py-4 px-4">{activeTab === "projects" ? "Proposal Title" : activeTab === "ngos" ? "NGO Legal Name" : "Corporate Donor Name"}</th>
                   <th className="py-4 px-4">{activeTab === "projects" ? "Focus Sector" : activeTab === "ngos" ? "Darpan ID" : "Industry Sector"}</th>
                   <th className="py-4 px-4">District Scope</th>
                   <th className="py-4 px-4">{activeTab === "projects" ? "Budget Requested" : activeTab === "ngos" ? "Total CSR Sourced" : "Active CSR Budget Limit"}</th>
                   <th className="py-4 px-4">{activeTab === "projects" ? "Match Score" : "Compliance Status"}</th>
-                  <th className="py-4 px-4 text-center">Actions</th>
+                  <th className="py-4 px-4 text-right md:text-center">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-150">
+              <tbody className="block md:table-row-group divide-y-0 md:divide-y md:divide-slate-150">
                 {activeTab === "projects" && filteredProjects.map((p) => (
-                  <tr key={p.id} className="hover:bg-blue-50/50 transition-colors">
-                    <td className="py-3.5 px-4">
-                      <div className="font-extrabold text-slate-900 text-sm">{p.title}</div>
+                  <tr key={p.id} className="block md:table-row mb-4 md:mb-0 bg-white border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-sm md:shadow-none hover:bg-blue-50/50 transition-colors overflow-hidden">
+                    <td data-label="Proposal Title" className="flex md:table-cell flex-col md:flex-row items-start md:items-center py-3.5 px-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden before:mb-1">
+                      <div className="font-extrabold text-slate-900 text-sm md:text-sm">{p.title}</div>
                       <div className="text-[11px] text-slate-500 font-medium">NGO: {p.ngoName} • {p.ngoRating} ★</div>
                     </td>
-                    <td className="py-3.5 px-4 font-bold text-slate-700">
+                    <td data-label="Focus Sector" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none font-bold text-slate-700 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
                       <span className="bg-blue-50 text-blue-800 border border-blue-200 px-2 py-0.5 rounded text-[10px] font-extrabold">
                         {p.focusArea}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-slate-700 font-semibold">{p.district}, {p.taluka}</td>
-                    <td className="py-3.5 px-4 font-black text-amber-700 text-sm">₹{p.budgetRequested.toLocaleString("en-IN")}</td>
-                    <td className="py-3.5 px-4">
+                    <td data-label="District Scope" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none text-slate-700 font-semibold before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
+                      {p.district}, {p.taluka}
+                    </td>
+                    <td data-label="Budget Requested" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none font-black text-amber-700 text-sm before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
+                      ₹{p.budgetRequested.toLocaleString("en-IN")}
+                    </td>
+                    <td data-label="Match Score" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
                       <span className="font-mono font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded text-[11px]">
                         {p.matchScore}% Match
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-center">
+                    <td className="block md:table-cell py-3.5 px-4 text-right md:text-center bg-slate-50/50 md:bg-transparent">
                       <Button
                         variant="secondary"
                         size="sm"
                         onClick={() => setSelectedProjectDetail(p)}
-                        className="bg-blue-900 hover:bg-blue-950 text-white text-xs font-bold py-1.5 px-3 shadow-2xs"
+                        className="w-full md:w-auto bg-blue-900 hover:bg-blue-950 text-white text-xs font-bold py-2 md:py-1.5 px-3 shadow-2xs justify-center"
                       >
                         <Eye size={14} className="mr-1" /> View Details
                       </Button>
@@ -893,25 +898,31 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
                 ))}
 
                 {activeTab === "ngos" && filteredNGOs.map((n) => (
-                  <tr key={n.id} className="hover:bg-emerald-50/50 transition-colors">
-                    <td className="py-3.5 px-4">
+                  <tr key={n.id} className="block md:table-row mb-4 md:mb-0 bg-white border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-sm md:shadow-none hover:bg-emerald-50/50 transition-colors overflow-hidden">
+                    <td data-label="NGO Legal Name" className="flex md:table-cell flex-col md:flex-row items-start md:items-center py-3.5 px-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden before:mb-1">
                       <div className="font-extrabold text-slate-900 text-sm">{n.name}</div>
                       <div className="text-[11px] text-slate-500 font-medium">{n.category} • Est. {n.establishedYear || 2012}</div>
                     </td>
-                    <td className="py-3.5 px-4 font-mono font-bold text-blue-900">{n.darpanId}</td>
-                    <td className="py-3.5 px-4 text-slate-700 font-semibold">{n.district} ({n.taluka})</td>
-                    <td className="py-3.5 px-4 font-black text-slate-900 text-sm">₹{(n.totalFundingReceived / 100000).toFixed(1)} Lakhs</td>
-                    <td className="py-3.5 px-4">
-                      <span className="font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded text-[11px] flex items-center gap-1 w-fit">
+                    <td data-label="Darpan ID" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none font-mono font-bold text-blue-900 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
+                      {n.darpanId}
+                    </td>
+                    <td data-label="District Scope" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none text-slate-700 font-semibold before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
+                      {n.district} ({n.taluka})
+                    </td>
+                    <td data-label="Total CSR Sourced" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none font-black text-slate-900 text-sm before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
+                      ₹{(n.totalFundingReceived / 100000).toFixed(1)} Lakhs
+                    </td>
+                    <td data-label="Compliance Status" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
+                      <span className="font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded text-[11px] flex items-center gap-1 w-fit ml-auto md:ml-0">
                         <ShieldCheck size={13} /> {n.csr1Status}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-center">
+                    <td className="block md:table-cell py-3.5 px-4 text-right md:text-center bg-slate-50/50 md:bg-transparent">
                       <Button
                         variant="secondary"
                         size="sm"
                         onClick={() => setSelectedNgoDetail(n)}
-                        className="bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold py-1.5 px-3 shadow-2xs"
+                        className="w-full md:w-auto bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold py-2 md:py-1.5 px-3 shadow-2xs justify-center"
                       >
                         <Eye size={14} className="mr-1" /> View Details
                       </Button>
@@ -920,25 +931,31 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
                 ))}
 
                 {activeTab === "companies" && filteredCompanies.map((c) => (
-                  <tr key={c.id} className="hover:bg-purple-50/50 transition-colors">
-                    <td className="py-3.5 px-4">
+                  <tr key={c.id} className="block md:table-row mb-4 md:mb-0 bg-white border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-sm md:shadow-none hover:bg-purple-50/50 transition-colors overflow-hidden">
+                    <td data-label="Corporate Donor Name" className="flex md:table-cell flex-col md:flex-row items-start md:items-center py-3.5 px-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden before:mb-1">
                       <div className="font-extrabold text-slate-900 text-sm">{c.name}</div>
                       <div className="text-[11px] text-slate-500 font-medium">{c.focusArea}</div>
                     </td>
-                    <td className="py-3.5 px-4 font-semibold text-slate-800">{c.industry}</td>
-                    <td className="py-3.5 px-4 text-slate-700 font-semibold">{c.district}</td>
-                    <td className="py-3.5 px-4 font-black text-purple-950 text-sm">₹{(c.csrBudget / 10000000).toFixed(1)} Cr</td>
-                    <td className="py-3.5 px-4 font-bold text-indigo-700">
+                    <td data-label="Industry Sector" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none font-semibold text-slate-800 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
+                      {c.industry}
+                    </td>
+                    <td data-label="District Scope" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none text-slate-700 font-semibold before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
+                      {c.district}
+                    </td>
+                    <td data-label="Active CSR Budget Limit" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none font-black text-purple-950 text-sm before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
+                      ₹{(c.csrBudget / 10000000).toFixed(1)} Cr
+                    </td>
+                    <td data-label="Compliance Status" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none font-bold text-indigo-700 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
                       <span className="bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded text-[11px] font-mono">
                         Active Donor
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-center">
+                    <td className="block md:table-cell py-3.5 px-4 text-right md:text-center bg-slate-50/50 md:bg-transparent">
                       <Button
                         variant="secondary"
                         size="sm"
                         onClick={() => setSelectedCompanyDetail(c)}
-                        className="bg-purple-900 hover:bg-purple-950 text-white text-xs font-bold py-1.5 px-3 shadow-2xs"
+                        className="w-full md:w-auto bg-purple-900 hover:bg-purple-950 text-white text-xs font-bold py-2 md:py-1.5 px-3 shadow-2xs justify-center"
                       >
                         <Eye size={14} className="mr-1" /> View Details
                       </Button>
@@ -950,17 +967,17 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {activeTab === "projects" && filteredProjects.map((project) => (
             <motion.div
               key={project.id}
               whileHover={{ y: -5, scale: 1.01 }}
               transition={{ duration: 0.2 }}
-              className="group relative rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50/50 to-blue-50/20 p-5 shadow-xs hover:shadow-xl transition-all duration-200 flex flex-col justify-between gap-5 overflow-hidden"
+              className="group relative rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50/50 to-blue-50/20 p-4 sm:p-5 shadow-xs hover:shadow-xl transition-all duration-200 flex flex-col justify-between gap-5 overflow-hidden"
             >
               <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-800" />
               <div className="flex flex-col gap-3">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center gap-2 flex-wrap">
                   <span className="text-[10px] bg-blue-50 border border-blue-200 text-blue-800 px-2.5 py-0.5 rounded-md font-extrabold uppercase tracking-wider">
                     {project.focusArea}
                   </span>
@@ -971,8 +988,8 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
                 <h3 className="font-heading font-extrabold text-base text-slate-900 leading-snug group-hover:text-blue-900 transition-colors">
                   {project.title}
                 </h3>
-                <p className="text-xs text-slate-600 font-semibold flex items-center gap-1.5">
-                  <Landmark size={14} className="text-blue-700 shrink-0" />
+                <p className="text-xs text-slate-600 font-semibold flex items-start gap-1.5">
+                  <Landmark size={14} className="text-blue-700 shrink-0 mt-0.5" />
                   <span>NGO: <strong className="text-slate-900">{project.ngoName}</strong> • {project.ngoRating} ★</span>
                 </p>
                 <p className="text-slate-600 text-xs leading-relaxed line-clamp-3 font-medium">
@@ -980,12 +997,12 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
                 </p>
               </div>
               <div className="flex flex-col gap-3.5 pt-2 border-t border-slate-200/80">
-                <div className="flex justify-between items-center text-xs font-semibold">
+                <div className="flex justify-between items-center text-xs font-semibold gap-2 flex-wrap">
                   <span className="text-slate-600 flex items-center gap-1 font-medium">
-                    <MapPin size={13} className="text-slate-400" /> {project.district}, {project.taluka}
+                    <MapPin size={13} className="text-slate-400 shrink-0" /> {project.district}, {project.taluka}
                   </span>
                   <span className="text-amber-700 font-black text-sm flex items-center gap-1">
-                    <Coins size={14} className="text-amber-600" /> ₹{project.budgetRequested.toLocaleString("en-IN")}
+                    <Coins size={14} className="text-amber-600 shrink-0" /> ₹{project.budgetRequested.toLocaleString("en-IN")}
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 pt-1">
@@ -993,16 +1010,16 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
                     variant="secondary"
                     size="sm"
                     onClick={() => setSelectedProjectDetail(project)}
-                    className="w-full bg-blue-900 hover:bg-blue-950 text-white font-extrabold text-xs py-2 shadow-2xs"
+                    className="w-full bg-blue-900 hover:bg-blue-950 text-white font-extrabold text-xs py-2 shadow-2xs justify-center"
                   >
-                    <Eye size={14} className="mr-1" /> View Details
+                    <Eye size={14} className="mr-1 hidden sm:inline-block" /> Details
                   </Button>
                   <Button
                     variant="primary"
                     size="sm"
-                    className="w-full font-bold text-xs py-2 bg-gradient-to-r from-blue-700 to-indigo-700 text-white"
+                    className="w-full font-bold text-xs py-2 bg-gradient-to-r from-blue-700 to-indigo-700 text-white justify-center"
                   >
-                    Fund Initiative
+                    Fund Now
                   </Button>
                 </div>
               </div>
@@ -1014,7 +1031,7 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
               key={ngo.id}
               whileHover={{ y: -5, scale: 1.01 }}
               transition={{ duration: 0.2 }}
-              className="group relative rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50/50 to-emerald-50/20 p-5 shadow-xs hover:shadow-xl transition-all duration-200 flex flex-col justify-between gap-5 overflow-hidden"
+              className="group relative rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50/50 to-emerald-50/20 p-4 sm:p-5 shadow-xs hover:shadow-xl transition-all duration-200 flex flex-col justify-between gap-5 overflow-hidden"
             >
               <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-800" />
               <div className="flex flex-col gap-3">
@@ -1035,7 +1052,7 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
                   variant="secondary"
                   size="sm"
                   onClick={() => setSelectedNgoDetail(ngo)}
-                  className="w-full bg-emerald-800 hover:bg-emerald-900 text-white font-extrabold text-xs py-2 shadow-2xs"
+                  className="w-full bg-emerald-800 hover:bg-emerald-900 text-white font-extrabold text-xs py-2 shadow-2xs justify-center"
                 >
                   <Eye size={14} className="mr-1" /> View Details
                 </Button>
@@ -1048,7 +1065,7 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
               key={comp.id}
               whileHover={{ y: -5, scale: 1.01 }}
               transition={{ duration: 0.2 }}
-              className="group relative rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50/50 to-purple-50/20 p-5 shadow-xs hover:shadow-xl transition-all duration-200 flex flex-col justify-between gap-5 overflow-hidden"
+              className="group relative rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50/50 to-purple-50/20 p-4 sm:p-5 shadow-xs hover:shadow-xl transition-all duration-200 flex flex-col justify-between gap-5 overflow-hidden"
             >
               <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-800" />
               <div className="flex flex-col gap-3">
@@ -1069,7 +1086,7 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
                   variant="secondary"
                   size="sm"
                   onClick={() => setSelectedCompanyDetail(comp)}
-                  className="w-full bg-purple-900 hover:bg-purple-950 text-white font-extrabold text-xs py-2 shadow-2xs"
+                  className="w-full bg-purple-900 hover:bg-purple-950 text-white font-extrabold text-xs py-2 shadow-2xs justify-center"
                 >
                   <Eye size={14} className="mr-1" /> View Details
                 </Button>
@@ -1080,12 +1097,12 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
           {((activeTab === "projects" && filteredProjects.length === 0) ||
             (activeTab === "ngos" && filteredNGOs.length === 0) ||
             (activeTab === "companies" && filteredCompanies.length === 0)) && (
-            <div className="md:col-span-2 lg:col-span-3 border border-slate-200 bg-white p-10 rounded-2xl text-center shadow-xs flex flex-col items-center gap-3">
+            <div className="col-span-1 sm:col-span-2 lg:col-span-3 border border-slate-200 bg-white p-6 sm:p-10 rounded-2xl text-center shadow-xs flex flex-col items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
                 <Search size={22} />
               </div>
               <h3 className="font-heading font-extrabold text-base text-slate-900">No matching records found</h3>
-              <p className="text-xs text-slate-500 max-w-xl mx-auto font-medium">
+              <p className="text-xs text-slate-500 max-w-xl mx-auto font-medium px-4">
                 Try broadening your search query or clearing district/sector filters. All marketplace listings undergo administrative verification before public publishing.
               </p>
               <Button variant="outline" size="sm" onClick={resetAllFilters} className="mt-2 font-bold text-xs">
@@ -1096,6 +1113,7 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
         </div>
       )}
 
+      {/* Modals - Content is responsive via internal flex/grid classes */}
       <Modal
         isOpen={!!selectedProjectDetail}
         onClose={() => setSelectedProjectDetail(null)}
@@ -1104,9 +1122,9 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
       >
         {selectedProjectDetail && (
           <div className="flex flex-col gap-6 text-xs text-slate-700">
-            <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 p-5 rounded-2xl text-white flex flex-col gap-3">
+            <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 p-4 sm:p-5 rounded-2xl text-white flex flex-col gap-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="bg-blue-500/30 text-blue-200 border border-blue-400/40 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
                     {selectedProjectDetail.focusArea}
                   </span>
@@ -1121,18 +1139,18 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
               <h2 className="text-lg sm:text-xl font-heading font-black leading-snug">
                 {selectedProjectDetail.title}
               </h2>
-              <div className="flex flex-wrap items-center gap-4 text-xs text-slate-300 font-medium pt-1 border-t border-white/10">
-                <span className="flex items-center gap-1.5">
-                  <MapPin size={14} className="text-blue-400" />
-                  <strong>District Scope:</strong> {selectedProjectDetail.district}, {selectedProjectDetail.taluka}
+              <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3 sm:gap-4 text-xs text-slate-300 font-medium pt-3 sm:pt-1 border-t border-white/10">
+                <span className="flex items-start sm:items-center gap-1.5">
+                  <MapPin size={14} className="text-blue-400 shrink-0 mt-0.5 sm:mt-0" />
+                  <span><strong>District Scope:</strong> {selectedProjectDetail.district}, {selectedProjectDetail.taluka}</span>
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <Landmark size={14} className="text-blue-400" />
-                  <strong>Empaneled NGO:</strong> {selectedProjectDetail.ngoName} ({selectedProjectDetail.ngoRating} ★)
+                <span className="flex items-start sm:items-center gap-1.5">
+                  <Landmark size={14} className="text-blue-400 shrink-0 mt-0.5 sm:mt-0" />
+                  <span><strong>Empaneled NGO:</strong> {selectedProjectDetail.ngoName} ({selectedProjectDetail.ngoRating} ★)</span>
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <Calendar size={14} className="text-blue-400" />
-                  <strong>Duration:</strong> {selectedProjectDetail.duration || "12 Months"}
+                <span className="flex items-start sm:items-center gap-1.5">
+                  <Calendar size={14} className="text-blue-400 shrink-0 mt-0.5 sm:mt-0" />
+                  <span><strong>Duration:</strong> {selectedProjectDetail.duration || "12 Months"}</span>
                 </span>
               </div>
             </div>
@@ -1140,25 +1158,25 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200/90 text-center">
               <div>
                 <span className="text-slate-500 text-[10px] uppercase font-bold block">Total Budget Requested</span>
-                <span className="text-amber-700 text-base font-black mt-0.5 block">
+                <span className="text-amber-700 text-sm sm:text-base font-black mt-0.5 block break-all">
                   ₹{selectedProjectDetail.budgetRequested.toLocaleString("en-IN")}
                 </span>
               </div>
               <div>
                 <span className="text-slate-500 text-[10px] uppercase font-bold block">Target Beneficiaries</span>
-                <span className="text-slate-900 text-base font-extrabold mt-0.5 block">
-                  {selectedProjectDetail.beneficiaryCount.toLocaleString()} Individuals
+                <span className="text-slate-900 text-sm sm:text-base font-extrabold mt-0.5 block">
+                  {selectedProjectDetail.beneficiaryCount.toLocaleString()}
                 </span>
               </div>
               <div>
                 <span className="text-slate-500 text-[10px] uppercase font-bold block">Verification Status</span>
                 <span className="text-emerald-700 text-xs font-bold mt-1 block flex items-center justify-center gap-1">
-                  <CheckCircle2 size={14} /> Verified Proposal
+                  <CheckCircle2 size={14} /> Verified
                 </span>
               </div>
               <div>
                 <span className="text-slate-500 text-[10px] uppercase font-bold block">Cost Per Beneficiary</span>
-                <span className="text-indigo-900 text-base font-extrabold mt-0.5 block">
+                <span className="text-indigo-900 text-sm sm:text-base font-extrabold mt-0.5 block">
                   ₹{Math.round(selectedProjectDetail.budgetRequested / selectedProjectDetail.beneficiaryCount).toLocaleString()}
                 </span>
               </div>
@@ -1208,8 +1226,8 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
                     <h4 className="font-heading font-extrabold text-sm text-slate-900 uppercase tracking-wider flex items-center gap-2">
                       <Coins size={16} className="text-amber-600" /> Budget Allocation Breakdown
                     </h4>
-                    <div className="bg-white rounded-xl border border-slate-200/80 overflow-hidden shadow-2xs">
-                      <table className="w-full text-left text-xs">
+                    <div className="bg-white rounded-xl border border-slate-200/80 overflow-x-auto shadow-2xs">
+                      <table className="w-full text-left text-xs whitespace-nowrap min-w-[400px]">
                         <thead className="bg-slate-100 text-slate-800 font-bold uppercase text-[10px]">
                           <tr>
                             <th className="p-3">Cost Component</th>
@@ -1237,25 +1255,25 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
                     Empaneled Implementing NGO
                   </h4>
                   <div>
-                    <span className="font-bold text-slate-900 text-sm block">{selectedProjectDetail.ngoName}</span>
+                    <span className="font-bold text-slate-900 text-sm block break-words">{selectedProjectDetail.ngoName}</span>
                     <span className="text-slate-500 text-[11px] block mt-0.5">Rating: {selectedProjectDetail.ngoRating} ★ Rating</span>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-200">
+            <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-200">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setSelectedProjectDetail(null)}
-                className="font-bold text-slate-700"
+                className="w-full sm:w-auto font-bold text-slate-700 justify-center"
               >
                 Close Window
               </Button>
               <Button
                 variant="primary"
                 size="sm"
-                className="font-extrabold bg-gradient-to-r from-blue-900 to-indigo-900 text-white px-6 shadow-md"
+                className="w-full sm:w-auto font-extrabold bg-gradient-to-r from-blue-900 to-indigo-900 text-white px-6 shadow-md justify-center"
               >
                 Fund Initiative Now
               </Button>
@@ -1272,9 +1290,9 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
       >
         {selectedNgoDetail && (
           <div className="flex flex-col gap-6 text-xs text-slate-700">
-            <div className="bg-gradient-to-r from-emerald-950 via-teal-900 to-slate-900 p-5 rounded-2xl text-white flex flex-col gap-3">
+            <div className="bg-gradient-to-r from-emerald-950 via-teal-900 to-slate-900 p-4 sm:p-5 rounded-2xl text-white flex flex-col gap-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
                     {selectedNgoDetail.category}
                   </span>
@@ -1289,29 +1307,29 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
               <h2 className="text-lg sm:text-xl font-heading font-black leading-snug">
                 {selectedNgoDetail.name}
               </h2>
-              <div className="flex flex-wrap items-center gap-4 text-xs text-slate-300 font-medium pt-1 border-t border-white/10">
-                <span>NITI Aayog Darpan ID: <strong className="text-white font-mono">{selectedNgoDetail.darpanId}</strong></span>
-                <span>District HQ: <strong className="text-white">{selectedNgoDetail.district}</strong> ({selectedNgoDetail.taluka})</span>
+              <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3 sm:gap-4 text-xs text-slate-300 font-medium pt-3 sm:pt-1 border-t border-white/10">
+                <span>NITI Darpan ID: <strong className="text-white font-mono break-all">{selectedNgoDetail.darpanId}</strong></span>
+                <span>District HQ: <strong className="text-white">{selectedNgoDetail.district}</strong></span>
                 <span>Established: <strong className="text-white">{selectedNgoDetail.establishedYear || 2012}</strong></span>
               </div>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200/90 text-center">
               <div>
-                <span className="text-slate-500 text-[10px] uppercase font-bold block">Total CSR Funds Sourced</span>
-                <span className="text-emerald-800 text-base font-black mt-0.5 block">
-                  ₹{(selectedNgoDetail.totalFundingReceived / 100000).toFixed(1)} Lakhs
+                <span className="text-slate-500 text-[10px] uppercase font-bold block">Total CSR Funds</span>
+                <span className="text-emerald-800 text-sm sm:text-base font-black mt-0.5 block break-all">
+                  ₹{(selectedNgoDetail.totalFundingReceived / 100000).toFixed(1)}L
                 </span>
               </div>
               <div>
-                <span className="text-slate-500 text-[10px] uppercase font-bold block">Completed CSR Projects</span>
-                <span className="text-slate-900 text-base font-extrabold mt-0.5 block">
-                  {selectedNgoDetail.completedProjectsCount || 24} Projects
+                <span className="text-slate-500 text-[10px] uppercase font-bold block">Completed Projects</span>
+                <span className="text-slate-900 text-sm sm:text-base font-extrabold mt-0.5 block">
+                  {selectedNgoDetail.completedProjectsCount || 24}
                 </span>
               </div>
               <div>
-                <span className="text-slate-500 text-[10px] uppercase font-bold block">Active Proposal Count</span>
-                <span className="text-blue-900 text-base font-extrabold mt-0.5 block">
+                <span className="text-slate-500 text-[10px] uppercase font-bold block">Active Proposals</span>
+                <span className="text-blue-900 text-sm sm:text-base font-extrabold mt-0.5 block">
                   {selectedNgoDetail.projectsCount} Active
                 </span>
               </div>
@@ -1327,7 +1345,7 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
               <div className="md:col-span-2 flex flex-col gap-5">
                 <div className="flex flex-col gap-2">
                   <h4 className="font-heading font-extrabold text-xs text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <Info size={15} className="text-emerald-700" /> Organizational Profile & Background
+                    <Info size={15} className="text-emerald-700 shrink-0" /> Organizational Profile & Background
                   </h4>
                   <p className="text-xs text-slate-700 leading-relaxed font-medium bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs">
                     {selectedNgoDetail.about || "Empaneled Grassroots NGO implementing high-impact CSR projects in digital education, rural health, and water conservation across Maharashtra."}
@@ -1335,28 +1353,28 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
                 </div>
                 <div className="flex flex-col gap-2">
                   <h4 className="font-heading font-extrabold text-xs text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <ShieldCheck size={15} className="text-emerald-700" /> Mandatory Audit Checkpoints Ledger
+                    <ShieldCheck size={15} className="text-emerald-700 shrink-0" /> Mandatory Audit Checkpoints Ledger
                   </h4>
                   <div className="bg-white rounded-xl border border-slate-200/80 p-3 shadow-2xs">
                     <ul className="flex flex-col gap-2">
-                      <li className="flex items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-200/80">
-                        <span className="font-bold text-slate-800">12A Tax Exemption Certificate</span>
+                      <li className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-200/80 gap-1 sm:gap-0">
+                        <span className="font-bold text-slate-800">12A Tax Exemption</span>
                         <span className="text-emerald-700 font-bold flex items-center gap-1"><CheckCircle2 size={14} /> Verified Active</span>
                       </li>
-                      <li className="flex items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-200/80">
-                        <span className="font-bold text-slate-800">80G Tax Exemption Certificate</span>
+                      <li className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-200/80 gap-1 sm:gap-0">
+                        <span className="font-bold text-slate-800">80G Tax Exemption</span>
                         <span className="text-emerald-700 font-bold flex items-center gap-1"><CheckCircle2 size={14} /> Verified Active</span>
                       </li>
-                      <li className="flex items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-200/80">
-                        <span className="font-bold text-slate-800">CSR-1 MCA Registration Filing</span>
+                      <li className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-200/80 gap-1 sm:gap-0">
+                        <span className="font-bold text-slate-800">CSR-1 MCA Filing</span>
                         <span className="text-emerald-700 font-bold flex items-center gap-1"><CheckCircle2 size={14} /> MCA Approved</span>
                       </li>
-                      <li className="flex items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-200/80">
-                        <span className="font-bold text-slate-800">3-Year Audited Balance Sheet Filings</span>
+                      <li className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-200/80 gap-1 sm:gap-0">
+                        <span className="font-bold text-slate-800">3-Year Audited Balance Sheet</span>
                         <span className="text-emerald-700 font-bold flex items-center gap-1"><CheckCircle2 size={14} /> Verified</span>
                       </li>
-                      <li className="flex items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-200/80">
-                        <span className="font-bold text-slate-800">NITI Aayog Darpan Empanelment</span>
+                      <li className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-200/80 gap-1 sm:gap-0">
+                        <span className="font-bold text-slate-800">NITI Darpan Empanelment</span>
                         <span className="text-emerald-700 font-bold flex items-center gap-1"><CheckCircle2 size={14} /> Empaneled</span>
                       </li>
                     </ul>
@@ -1364,7 +1382,7 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
                 </div>
                 <div className="flex flex-col gap-2">
                   <h4 className="font-heading font-extrabold text-xs text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <MapPin size={15} className="text-blue-700" /> Operational Districts in Maharashtra
+                    <MapPin size={15} className="text-blue-700 shrink-0" /> Operational Districts in Maharashtra
                   </h4>
                   <div className="flex flex-wrap gap-2">
                     {(selectedNgoDetail.operatingDistricts || [selectedNgoDetail.district, "Pune", "Thane", "Nashik"]).map((d, i) => (
@@ -1393,12 +1411,12 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
                 </div>
               </div>
             </div>
-            <div className="flex items-center justify-between pt-4 border-t border-slate-200">
-              <Button variant="outline" size="sm" onClick={() => setSelectedNgoDetail(null)} className="font-bold text-slate-700">
+            <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-200">
+              <Button variant="outline" size="sm" onClick={() => setSelectedNgoDetail(null)} className="w-full sm:w-auto font-bold text-slate-700 justify-center">
                 Close Window
               </Button>
-              <Button variant="primary" size="sm" className="font-extrabold bg-emerald-800 hover:bg-emerald-900 text-white px-6 shadow-md">
-                Request Proposal / Contact NGO
+              <Button variant="primary" size="sm" className="w-full sm:w-auto font-extrabold bg-emerald-800 hover:bg-emerald-900 text-white px-6 shadow-md justify-center">
+                Request Proposal / Contact
               </Button>
             </div>
           </div>
@@ -1413,7 +1431,7 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
       >
         {selectedCompanyDetail && (
           <div className="flex flex-col gap-6 text-xs text-slate-700">
-            <div className="bg-gradient-to-r from-purple-950 via-indigo-950 to-slate-900 p-5 rounded-2xl text-white flex flex-col gap-3">
+            <div className="bg-gradient-to-r from-purple-950 via-indigo-950 to-slate-900 p-4 sm:p-5 rounded-2xl text-white flex flex-col gap-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="bg-purple-500/30 text-purple-200 border border-purple-400/40 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
                   {selectedCompanyDetail.industry} Industry
@@ -1425,7 +1443,7 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
               <h2 className="text-lg sm:text-xl font-heading font-black leading-snug">
                 {selectedCompanyDetail.name}
               </h2>
-              <div className="flex flex-wrap items-center gap-4 text-xs text-slate-300 font-medium pt-1 border-t border-white/10">
+              <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3 sm:gap-4 text-xs text-slate-300 font-medium pt-3 sm:pt-1 border-t border-white/10">
                 <span>Corporate HQ: <strong className="text-white">{selectedCompanyDetail.district}</strong></span>
                 <span>Primary Sector: <strong className="text-white">{selectedCompanyDetail.focusArea}</strong></span>
                 <span>Funded Initiatives: <strong className="text-white">{selectedCompanyDetail.projectsFunded} Projects</strong></span>
@@ -1435,14 +1453,14 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200/90 text-center">
               <div>
                 <span className="text-slate-500 text-[10px] uppercase font-bold block">CSR Budget Limit</span>
-                <span className="text-purple-950 text-base font-black mt-0.5 block">
-                  ₹{(selectedCompanyDetail.csrBudget / 10000000).toFixed(1)} Crore
+                <span className="text-purple-950 text-sm sm:text-base font-black mt-0.5 block break-all">
+                  ₹{(selectedCompanyDetail.csrBudget / 10000000).toFixed(1)} Cr
                 </span>
               </div>
               <div>
                 <span className="text-slate-500 text-[10px] uppercase font-bold block">Pledged CSR Capital</span>
-                <span className="text-indigo-900 text-base font-extrabold mt-0.5 block">
-                  ₹{((selectedCompanyDetail.csrPledged || 35000000) / 10000000).toFixed(1)} Crore
+                <span className="text-indigo-900 text-sm sm:text-base font-extrabold mt-0.5 block break-all">
+                  ₹{((selectedCompanyDetail.csrPledged || 35000000) / 10000000).toFixed(1)} Cr
                 </span>
               </div>
               <div>
@@ -1453,8 +1471,8 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
               </div>
               <div>
                 <span className="text-slate-500 text-[10px] uppercase font-bold block">Funded Projects</span>
-                <span className="text-slate-900 font-extrabold text-base mt-0.5 block">
-                  {selectedCompanyDetail.projectsFunded} Initiatives
+                <span className="text-slate-900 font-extrabold text-sm sm:text-base mt-0.5 block">
+                  {selectedCompanyDetail.projectsFunded}
                 </span>
               </div>
             </div>
@@ -1463,7 +1481,7 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
               <div className="md:col-span-2 flex flex-col gap-5">
                 <div className="flex flex-col gap-2">
                   <h4 className="font-heading font-extrabold text-xs text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <FileText size={15} className="text-purple-700" /> CSR Vision & Strategic Policy Statement
+                    <FileText size={15} className="text-purple-700 shrink-0" /> CSR Vision & Policy
                   </h4>
                   <p className="text-xs text-slate-700 leading-relaxed font-medium bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs">
                     {selectedCompanyDetail.csrPolicySummary || "Committed to driving sustainable social impact in Maharashtra through strategic grants in education, healthcare, and water security."}
@@ -1471,7 +1489,7 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
                 </div>
                 <div className="flex flex-col gap-2">
                   <h4 className="font-heading font-extrabold text-xs text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <CheckCircle2 size={15} className="text-purple-700" /> Mandatory NGO Eligibility Prerequisites
+                    <CheckCircle2 size={15} className="text-purple-700 shrink-0" /> Mandatory NGO Eligibility
                   </h4>
                   <div className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-2xs">
                     <ul className="flex flex-col gap-2.5">
@@ -1492,7 +1510,7 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
                 </div>
                 <div className="flex flex-col gap-2">
                   <h4 className="font-heading font-extrabold text-xs text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <MapPin size={15} className="text-blue-700" /> Priority Target Districts
+                    <MapPin size={15} className="text-blue-700 shrink-0" /> Priority Target Districts
                   </h4>
                   <div className="flex flex-wrap gap-2">
                     {(selectedCompanyDetail.targetDistricts || [selectedCompanyDetail.district, "Pune", "Thane", "Nagpur"]).map((d, i) => (
@@ -1510,7 +1528,7 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
                   </h4>
                   <div className="flex flex-col gap-2 text-xs text-slate-800 font-medium">
                     <strong className="text-slate-900 font-bold">{selectedCompanyDetail.contactPerson || "CSR Head"}</strong>
-                    <span className="flex items-center gap-2">
+                    <span className="flex items-center gap-2 break-all">
                       <Mail size={14} className="text-purple-700 shrink-0" />
                       {selectedCompanyDetail.contactEmail || "csr@company.com"}
                     </span>
@@ -1522,12 +1540,12 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
                 </div>
               </div>
             </div>
-            <div className="flex items-center justify-between pt-4 border-t border-slate-200">
-              <Button variant="outline" size="sm" onClick={() => setSelectedCompanyDetail(null)} className="font-bold text-slate-700">
+            <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-200">
+              <Button variant="outline" size="sm" onClick={() => setSelectedCompanyDetail(null)} className="w-full sm:w-auto font-bold text-slate-700 justify-center">
                 Close Window
               </Button>
-              <Button variant="primary" size="sm" className="font-extrabold bg-purple-900 hover:bg-purple-950 text-white px-6 shadow-md">
-                Submit Proposal to Corporate
+              <Button variant="primary" size="sm" className="w-full sm:w-auto font-extrabold bg-purple-900 hover:bg-purple-950 text-white px-6 shadow-md justify-center">
+                Submit Proposal
               </Button>
             </div>
           </div>

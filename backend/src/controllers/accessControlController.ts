@@ -10,13 +10,22 @@ import {
   CloneRoleSchema,
   ImpactPreviewSchema,
   CreateAssignmentSchema,
-  PatchAssignmentSchema
+  PatchAssignmentSchema,
 } from "../validators/accessControlValidator";
 
-export const getOverview = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const getOverview = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
-    const isSuper = req.user?.role === 1 || req.user?.role === "SUPER_ADMIN" || req.user?.roleId === "1";
-    const orgId = isSuper ? (req.query.organizationId as string | undefined) : req.user?.organizationId;
+    const isSuper =
+      req.user?.role === 1 ||
+      req.user?.role === "SUPER_ADMIN" ||
+      req.user?.roleId === "1";
+    const orgId = isSuper
+      ? (req.query.organizationId as string | undefined)
+      : req.user?.organizationId;
     const stats = await AccessControlApiService.getOverview(orgId);
     return res.json(stats);
   } catch (error) {
@@ -24,9 +33,16 @@ export const getOverview = async (req: AuthenticatedRequest, res: Response, next
   }
 };
 
-export const getRoles = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const getRoles = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
-    const isSuper = req.user?.role === 1 || req.user?.role === "SUPER_ADMIN" || req.user?.roleId === "1";
+    const isSuper =
+      req.user?.role === 1 ||
+      req.user?.role === "SUPER_ADMIN" ||
+      req.user?.roleId === "1";
     const userOrgId = req.user?.organizationId;
     const { status, type, search } = req.query;
 
@@ -51,9 +67,9 @@ export const getRoles = async (req: AuthenticatedRequest, res: Response, next: N
           OR: [
             { name: { contains: String(search), mode: "insensitive" } },
             { code: { contains: String(search), mode: "insensitive" } },
-            { description: { contains: String(search), mode: "insensitive" } }
-          ]
-        }
+            { description: { contains: String(search), mode: "insensitive" } },
+          ],
+        },
       ];
     }
 
@@ -61,37 +77,64 @@ export const getRoles = async (req: AuthenticatedRequest, res: Response, next: N
       where,
       include: {
         _count: { select: { roleAssignments: true, users: true } },
-        rolePermissions: { include: { permission: true } }
+        rolePermissions: { include: { permission: true } },
       },
-      orderBy: { id: "asc" }
+      orderBy: { id: "asc" },
     });
 
     return res.json({
       data: roles.map((r) => ({
         ...r,
-        permissions: r.rolePermissions.map((rp) => rp.permission.key)
-      }))
+        permissions: r.rolePermissions.map((rp) => rp.permission.key),
+      })),
     });
   } catch (error) {
     next(error);
   }
 };
 
-export const createRole = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const createRole = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const parseResult = CreateRoleSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({ error: "Validation error", details: parseResult.error.format() });
+      return res
+        .status(400)
+        .json({
+          error: "Validation error",
+          details: parseResult.error.format(),
+        });
     }
 
-    const { code, name, displayName, description, defaultScope, organizationId, permissions = [] } = parseResult.data;
-    const isSuper = req.user?.role === 1 || req.user?.role === "SUPER_ADMIN" || req.user?.roleId === "1";
+    const {
+      code,
+      name,
+      displayName,
+      description,
+      defaultScope,
+      organizationId,
+      permissions = [],
+    } = parseResult.data;
+    const isSuper =
+      req.user?.role === 1 ||
+      req.user?.role === "SUPER_ADMIN" ||
+      req.user?.roleId === "1";
 
     if (!isSuper && !req.user?.organizationId) {
-      return res.status(403).json({ error: "Forbidden: user must belong to an organization to create custom roles" });
+      return res
+        .status(403)
+        .json({
+          error:
+            "Forbidden: user must belong to an organization to create custom roles",
+        });
     }
 
-    const targetOrgId = isSuper ? (organizationId || null) : req.user?.organizationId;
+    const targetOrgId = isSuper
+      ? organizationId || null
+      : req.user?.organizationId;
 
     // Check duplicate code or name
     const existingCode = await prisma.role.findUnique({ where: { code } });
@@ -101,7 +144,10 @@ export const createRole = async (req: AuthenticatedRequest, res: Response, next:
 
     if (permissions.length > 0) {
       await AccessControlApiService.validatePermissionKeys(permissions);
-      await AccessControlApiService.checkDelegationCeiling(req.user!.id, permissions);
+      await AccessControlApiService.checkDelegationCeiling(
+        req.user!.id,
+        permissions,
+      );
     }
 
     const newRole = await prisma.$transaction(async (tx) => {
@@ -117,30 +163,37 @@ export const createRole = async (req: AuthenticatedRequest, res: Response, next:
           isSystemRole: false,
           isProtected: false,
           version: 1,
-          organizationId: targetOrgId
-        }
+          organizationId: targetOrgId,
+        },
       });
 
       if (permissions.length > 0) {
         const permsInDb = await tx.permission.findMany({
           where: { key: { in: permissions } },
-          select: { id: true }
+          select: { id: true },
         });
 
         await tx.rolePermission.createMany({
-          data: permsInDb.map((p) => ({ roleId: created.id, permissionId: p.id }))
+          data: permsInDb.map((p) => ({
+            roleId: created.id,
+            permissionId: p.id,
+          })),
         });
       }
 
       await AccessControlApiService.recordAuditLog(
         tx,
-        { actorUserId: req.user!.id, ipAddress: req.ip, userAgent: req.get("user-agent") },
+        {
+          actorUserId: req.user!.id,
+          ipAddress: req.ip,
+          userAgent: req.get("user-agent"),
+        },
         "ROLE_CREATED",
         "ROLE",
         String(created.id),
         null,
         created,
-        "Custom role created"
+        "Custom role created",
       );
 
       return created;
@@ -148,69 +201,117 @@ export const createRole = async (req: AuthenticatedRequest, res: Response, next:
 
     return res.status(201).json(newRole);
   } catch (error: any) {
-    if (error.message?.includes("Delegation Ceiling") || error.message?.includes("Invalid permission")) {
+    if (
+      error.message?.includes("Delegation Ceiling") ||
+      error.message?.includes("Invalid permission")
+    ) {
       return res.status(403).json({ error: error.message });
     }
     next(error);
   }
 };
 
-export const getRoleById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const getRoleById = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const roleId = parseInt(req.params.id, 10);
-    if (isNaN(roleId)) return res.status(400).json({ error: "Invalid Role ID" });
+    if (isNaN(roleId))
+      return res.status(400).json({ error: "Invalid Role ID" });
 
     const role = await prisma.role.findUnique({
       where: { id: roleId },
       include: {
         rolePermissions: { include: { permission: true } },
-        _count: { select: { roleAssignments: true, users: true } }
-      }
+        _count: { select: { roleAssignments: true, users: true } },
+      },
     });
 
     if (!role) return res.status(404).json({ error: "Role not found" });
 
-    const isSuper = req.user?.role === 1 || req.user?.role === "SUPER_ADMIN" || req.user?.roleId === "1";
-    if (!isSuper && role.organizationId && role.organizationId !== req.user?.organizationId) {
-      return res.status(403).json({ error: "Forbidden: access restricted to your organization's roles" });
+    const isSuper =
+      req.user?.role === 1 ||
+      req.user?.role === "SUPER_ADMIN" ||
+      req.user?.roleId === "1";
+    if (
+      !isSuper &&
+      role.organizationId &&
+      role.organizationId !== req.user?.organizationId
+    ) {
+      return res
+        .status(403)
+        .json({
+          error: "Forbidden: access restricted to your organization's roles",
+        });
     }
 
     return res.json({
       ...role,
-      permissions: role.rolePermissions.map((rp) => rp.permission.key)
+      permissions: role.rolePermissions.map((rp) => rp.permission.key),
     });
   } catch (error) {
     next(error);
   }
 };
 
-export const patchRole = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const patchRole = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const roleId = parseInt(req.params.id, 10);
-    if (isNaN(roleId)) return res.status(400).json({ error: "Invalid Role ID" });
+    if (isNaN(roleId))
+      return res.status(400).json({ error: "Invalid Role ID" });
 
     const parseResult = PatchRoleSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({ error: "Validation error", details: parseResult.error.format() });
+      return res
+        .status(400)
+        .json({
+          error: "Validation error",
+          details: parseResult.error.format(),
+        });
     }
 
-    const { name, displayName, description, defaultScope, version, reason } = parseResult.data;
-    const existingRole = await prisma.role.findUnique({ where: { id: roleId } });
+    const { name, displayName, description, defaultScope, version, reason } =
+      parseResult.data;
+    const existingRole = await prisma.role.findUnique({
+      where: { id: roleId },
+    });
     if (!existingRole) return res.status(404).json({ error: "Role not found" });
 
-    const isSuper = req.user?.role === 1 || req.user?.role === "SUPER_ADMIN" || req.user?.roleId === "1";
+    const isSuper =
+      req.user?.role === 1 ||
+      req.user?.role === "SUPER_ADMIN" ||
+      req.user?.roleId === "1";
     if (!isSuper && (existingRole.isSystemRole || existingRole.isProtected)) {
-      return res.status(403).json({ error: "Forbidden: system roles can only be modified by Super Admin" });
+      return res
+        .status(403)
+        .json({
+          error: "Forbidden: system roles can only be modified by Super Admin",
+        });
     }
-    if (!isSuper && existingRole.organizationId && existingRole.organizationId !== req.user?.organizationId) {
-      return res.status(403).json({ error: "Forbidden: access restricted to your organization's roles" });
+    if (
+      !isSuper &&
+      existingRole.organizationId &&
+      existingRole.organizationId !== req.user?.organizationId
+    ) {
+      return res
+        .status(403)
+        .json({
+          error: "Forbidden: access restricted to your organization's roles",
+        });
     }
 
     // Optimistic Locking Check
     if (existingRole.version !== version) {
       return res.status(409).json({
-        error: "Conflict: Role version mismatch. The role was updated by another administrator since you fetched it.",
-        currentVersion: existingRole.version
+        error:
+          "Conflict: Role version mismatch. The role was updated by another administrator since you fetched it.",
+        currentVersion: existingRole.version,
       });
     }
 
@@ -222,19 +323,23 @@ export const patchRole = async (req: AuthenticatedRequest, res: Response, next: 
           ...(displayName ? { displayName } : {}),
           ...(description !== undefined ? { description } : {}),
           ...(defaultScope ? { defaultScope: defaultScope as any } : {}),
-          version: { increment: 1 }
-        }
+          version: { increment: 1 },
+        },
       });
 
       await AccessControlApiService.recordAuditLog(
         tx,
-        { actorUserId: req.user!.id, ipAddress: req.ip, userAgent: req.get("user-agent") },
+        {
+          actorUserId: req.user!.id,
+          ipAddress: req.ip,
+          userAgent: req.get("user-agent"),
+        },
         "ROLE_UPDATED",
         "ROLE",
         String(roleId),
         existingRole,
         updated,
-        reason || "Role metadata patched"
+        reason || "Role metadata patched",
       );
 
       return updated;
@@ -246,31 +351,53 @@ export const patchRole = async (req: AuthenticatedRequest, res: Response, next: 
   }
 };
 
-export const cloneRole = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const cloneRole = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const roleId = parseInt(req.params.id, 10);
-    if (isNaN(roleId)) return res.status(400).json({ error: "Invalid Role ID" });
+    if (isNaN(roleId))
+      return res.status(400).json({ error: "Invalid Role ID" });
 
     const parseResult = CloneRoleSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({ error: "Validation error", details: parseResult.error.format() });
+      return res
+        .status(400)
+        .json({
+          error: "Validation error",
+          details: parseResult.error.format(),
+        });
     }
 
     const { newCode, newName, newDisplayName } = parseResult.data;
     const sourceRole = await prisma.role.findUnique({
       where: { id: roleId },
-      include: { rolePermissions: true }
+      include: { rolePermissions: true },
     });
 
-    if (!sourceRole) return res.status(404).json({ error: "Source role not found" });
+    if (!sourceRole)
+      return res.status(404).json({ error: "Source role not found" });
 
-    const isSuper = req.user?.role === 1 || req.user?.role === "SUPER_ADMIN" || req.user?.roleId === "1";
+    const isSuper =
+      req.user?.role === 1 ||
+      req.user?.role === "SUPER_ADMIN" ||
+      req.user?.roleId === "1";
     if (!isSuper && !req.user?.organizationId) {
-      return res.status(403).json({ error: "Forbidden: user must belong to an organization to clone roles" });
+      return res
+        .status(403)
+        .json({
+          error:
+            "Forbidden: user must belong to an organization to clone roles",
+        });
     }
 
-    const existingCode = await prisma.role.findUnique({ where: { code: newCode } });
-    if (existingCode) return res.status(409).json({ error: "Target role code already exists" });
+    const existingCode = await prisma.role.findUnique({
+      where: { code: newCode },
+    });
+    if (existingCode)
+      return res.status(409).json({ error: "Target role code already exists" });
 
     const cloned = await prisma.$transaction(async (tx) => {
       const created = await tx.role.create({
@@ -285,16 +412,18 @@ export const cloneRole = async (req: AuthenticatedRequest, res: Response, next: 
           isSystemRole: false,
           isProtected: false,
           version: 1,
-          organizationId: isSuper ? sourceRole.organizationId : req.user?.organizationId
-        }
+          organizationId: isSuper
+            ? sourceRole.organizationId
+            : req.user?.organizationId,
+        },
       });
 
       if (sourceRole.rolePermissions.length > 0) {
         await tx.rolePermission.createMany({
           data: sourceRole.rolePermissions.map((rp) => ({
             roleId: created.id,
-            permissionId: rp.permissionId
-          }))
+            permissionId: rp.permissionId,
+          })),
         });
       }
 
@@ -306,7 +435,7 @@ export const cloneRole = async (req: AuthenticatedRequest, res: Response, next: 
         String(created.id),
         { sourceRoleId: roleId },
         created,
-        `Cloned from role ID ${roleId}`
+        `Cloned from role ID ${roleId}`,
       );
 
       return created;
@@ -318,12 +447,16 @@ export const cloneRole = async (req: AuthenticatedRequest, res: Response, next: 
   }
 };
 
-export const activateRole = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const activateRole = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const roleId = parseInt(req.params.id, 10);
     const updated = await prisma.role.update({
       where: { id: roleId },
-      data: { status: "ACTIVE", version: { increment: 1 } }
+      data: { status: "ACTIVE", version: { increment: 1 } },
     });
     return res.json(updated);
   } catch (error) {
@@ -331,12 +464,16 @@ export const activateRole = async (req: AuthenticatedRequest, res: Response, nex
   }
 };
 
-export const deactivateRole = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const deactivateRole = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const roleId = parseInt(req.params.id, 10);
     const updated = await prisma.role.update({
       where: { id: roleId },
-      data: { status: "INACTIVE", version: { increment: 1 } }
+      data: { status: "INACTIVE", version: { increment: 1 } },
     });
     return res.json(updated);
   } catch (error) {
@@ -344,23 +481,34 @@ export const deactivateRole = async (req: AuthenticatedRequest, res: Response, n
   }
 };
 
-export const deleteRole = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const deleteRole = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const roleId = parseInt(req.params.id, 10);
     const role = await prisma.role.findUnique({
       where: { id: roleId },
-      include: { _count: { select: { roleAssignments: { where: { status: "ACTIVE" } } } } }
+      include: {
+        _count: {
+          select: { roleAssignments: { where: { status: "ACTIVE" } } },
+        },
+      },
     });
 
     if (!role) return res.status(404).json({ error: "Role not found" });
     if (role.isProtected || role.isSystemRole) {
-      return res.status(403).json({ error: "Forbidden: system protected roles cannot be deleted" });
+      return res
+        .status(403)
+        .json({ error: "Forbidden: system protected roles cannot be deleted" });
     }
 
     if (role._count.roleAssignments > 0) {
       return res.status(422).json({
-        error: "Invalid State Transition: Role cannot be deleted while active user assignments exist. Reassign users first.",
-        activeAssignmentsCount: role._count.roleAssignments
+        error:
+          "Invalid State Transition: Role cannot be deleted while active user assignments exist. Reassign users first.",
+        activeAssignmentsCount: role._count.roleAssignments,
       });
     }
 
@@ -376,7 +524,7 @@ export const deleteRole = async (req: AuthenticatedRequest, res: Response, next:
         String(roleId),
         role,
         null,
-        "Role deleted"
+        "Role deleted",
       );
     });
 
@@ -386,13 +534,21 @@ export const deleteRole = async (req: AuthenticatedRequest, res: Response, next:
   }
 };
 
-export const getPermissions = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const getPermissions = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
-    const isSuper = req.user?.role === 1 || req.user?.role === "SUPER_ADMIN" || req.user?.roleId === "1";
+    const isSuper =
+      req.user?.role === 1 ||
+      req.user?.role === "SUPER_ADMIN" ||
+      req.user?.roleId === "1";
     let perms = await prisma.permission.findMany({ orderBy: { key: "asc" } });
 
     if (!isSuper && req.user?.id) {
-      const userAccess = await EffectivePermissionService.getEffectiveAccessPayload(req.user.id);
+      const userAccess =
+        await EffectivePermissionService.getEffectiveAccessPayload(req.user.id);
       const userPermSet = new Set(userAccess.permissions);
       perms = perms.filter((p) => userPermSet.has(p.key));
     }
@@ -403,69 +559,96 @@ export const getPermissions = async (req: AuthenticatedRequest, res: Response, n
   }
 };
 
-export const getRolePermissions = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const getRolePermissions = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const roleId = parseInt(req.params.id, 10);
     const role = await prisma.role.findUnique({
       where: { id: roleId },
-      include: { rolePermissions: { include: { permission: true } } }
+      include: { rolePermissions: { include: { permission: true } } },
     });
 
     if (!role) return res.status(404).json({ error: "Role not found" });
-    return res.json({ roleId, permissions: role.rolePermissions.map((rp) => rp.permission) });
+    return res.json({
+      roleId,
+      permissions: role.rolePermissions.map((rp) => rp.permission),
+    });
   } catch (error) {
     next(error);
   }
 };
 
-export const updateRolePermissions = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const updateRolePermissions = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const roleId = parseInt(req.params.id, 10);
     const parseResult = UpdatePermissionsSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({ error: "Validation error", details: parseResult.error.format() });
+      return res
+        .status(400)
+        .json({
+          error: "Validation error",
+          details: parseResult.error.format(),
+        });
     }
 
     const { permissions, version, reason } = parseResult.data;
-    const existingRole = await prisma.role.findUnique({ where: { id: roleId } });
+    const existingRole = await prisma.role.findUnique({
+      where: { id: roleId },
+    });
     if (!existingRole) return res.status(404).json({ error: "Role not found" });
 
     if (existingRole.version !== version) {
       return res.status(409).json({
-        error: "Conflict: Role version mismatch. Permissions were modified by another administrator.",
-        currentVersion: existingRole.version
+        error:
+          "Conflict: Role version mismatch. Permissions were modified by another administrator.",
+        currentVersion: existingRole.version,
       });
     }
 
     await AccessControlApiService.validatePermissionKeys(permissions);
-    await AccessControlApiService.checkDelegationCeiling(req.user!.id, permissions);
+    await AccessControlApiService.checkDelegationCeiling(
+      req.user!.id,
+      permissions,
+    );
 
     await prisma.$transaction(async (tx) => {
       await tx.rolePermission.deleteMany({ where: { roleId } });
-      const permsInDb = await tx.permission.findMany({ where: { key: { in: permissions } }, select: { id: true } });
+      const permsInDb = await tx.permission.findMany({
+        where: { key: { in: permissions } },
+        select: { id: true },
+      });
 
       if (permsInDb.length > 0) {
         await tx.rolePermission.createMany({
-          data: permsInDb.map((p) => ({ roleId, permissionId: p.id }))
+          data: permsInDb.map((p) => ({ roleId, permissionId: p.id })),
         });
       }
 
       await tx.role.update({
         where: { id: roleId },
-        data: { version: { increment: 1 } }
+        data: { version: { increment: 1 } },
       });
 
       // Session revocation: increment tokenVersion for assigned users
       const activeAssignments = await tx.userRoleAssignment.findMany({
         where: { roleId, status: "ACTIVE" },
-        select: { userId: true }
+        select: { userId: true },
       });
 
-      const userIds = Array.from(new Set(activeAssignments.map((a) => a.userId)));
+      const userIds = Array.from(
+        new Set(activeAssignments.map((a) => a.userId)),
+      );
       if (userIds.length > 0) {
         await tx.user.updateMany({
           where: { id: { in: userIds } },
-          data: { tokenVersion: { increment: 1 } }
+          data: { tokenVersion: { increment: 1 } },
         });
       }
 
@@ -477,31 +660,43 @@ export const updateRolePermissions = async (req: AuthenticatedRequest, res: Resp
         String(roleId),
         { previousPermissionsCount: permissions.length },
         { updatedPermissionsCount: permissions.length },
-        reason || "Permissions replaced"
+        reason || "Permissions replaced",
       );
     });
 
     return res.json({ message: "Role permissions updated successfully" });
   } catch (error: any) {
-    if (error.message?.includes("Delegation Ceiling") || error.message?.includes("Invalid permission")) {
+    if (
+      error.message?.includes("Delegation Ceiling") ||
+      error.message?.includes("Invalid permission")
+    ) {
       return res.status(403).json({ error: error.message });
     }
     next(error);
   }
 };
 
-export const getImpactPreview = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const getImpactPreview = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const roleId = parseInt(req.params.id, 10);
     const parseResult = ImpactPreviewSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({ error: "Validation error", details: parseResult.error.format() });
+      return res
+        .status(400)
+        .json({
+          error: "Validation error",
+          details: parseResult.error.format(),
+        });
     }
 
     const preview = await AccessControlApiService.computeImpactPreview(
       roleId,
       parseResult.data.permissionsToAdd,
-      parseResult.data.permissionsToRemove
+      parseResult.data.permissionsToRemove,
     );
 
     return res.json(preview);
@@ -510,9 +705,16 @@ export const getImpactPreview = async (req: AuthenticatedRequest, res: Response,
   }
 };
 
-export const getAssignments = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const getAssignments = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
-    const isSuper = req.user?.role === 1 || req.user?.role === "SUPER_ADMIN" || req.user?.roleId === "1";
+    const isSuper =
+      req.user?.role === 1 ||
+      req.user?.role === "SUPER_ADMIN" ||
+      req.user?.roleId === "1";
     const userOrgId = req.user?.organizationId;
 
     const where: any = {};
@@ -531,9 +733,11 @@ export const getAssignments = async (req: AuthenticatedRequest, res: Response, n
       where,
       include: {
         role: true,
-        user: { select: { id: true, email: true, firstName: true, lastName: true } }
+        user: {
+          select: { id: true, email: true, firstName: true, lastName: true },
+        },
       },
-      orderBy: { createdAt: "desc" }
+      orderBy: { createdAt: "desc" },
     });
 
     return res.json({ data: assignments });
@@ -542,19 +746,44 @@ export const getAssignments = async (req: AuthenticatedRequest, res: Response, n
   }
 };
 
-export const createAssignment = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const createAssignment = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const parseResult = CreateAssignmentSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({ error: "Validation error", details: parseResult.error.format() });
+      return res
+        .status(400)
+        .json({
+          error: "Validation error",
+          details: parseResult.error.format(),
+        });
     }
 
-    const { userId, roleId, organizationId, scopeType, districtCode, divisionCode, departmentId, projectId, validFrom, validUntil } = parseResult.data;
+    const {
+      userId,
+      roleId,
+      organizationId,
+      scopeType,
+      districtCode,
+      divisionCode,
+      departmentId,
+      projectId,
+      validFrom,
+      validUntil,
+    } = parseResult.data;
     const role = await prisma.role.findUnique({ where: { id: roleId } });
     if (!role) return res.status(404).json({ error: "Target role not found" });
 
     if (role.status !== "ACTIVE") {
-      return res.status(422).json({ error: "Invalid State Transition: Inactive roles cannot be newly assigned" });
+      return res
+        .status(422)
+        .json({
+          error:
+            "Invalid State Transition: Inactive roles cannot be newly assigned",
+        });
     }
 
     const created = await prisma.$transaction(async (tx) => {
@@ -571,13 +800,13 @@ export const createAssignment = async (req: AuthenticatedRequest, res: Response,
           status: "ACTIVE",
           validFrom: validFrom ? new Date(validFrom) : new Date(),
           validUntil: validUntil ? new Date(validUntil) : null,
-          assignedById: req.user!.id
-        }
+          assignedById: req.user!.id,
+        },
       });
 
       await tx.user.update({
         where: { id: userId },
-        data: { tokenVersion: { increment: 1 } }
+        data: { tokenVersion: { increment: 1 } },
       });
 
       await AccessControlApiService.recordAuditLog(
@@ -588,7 +817,7 @@ export const createAssignment = async (req: AuthenticatedRequest, res: Response,
         assignment.id,
         null,
         assignment,
-        "Role assigned to user"
+        "Role assigned to user",
       );
 
       return assignment;
@@ -600,12 +829,21 @@ export const createAssignment = async (req: AuthenticatedRequest, res: Response,
   }
 };
 
-export const patchAssignment = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const patchAssignment = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const assignmentId = req.params.id;
     const parseResult = PatchAssignmentSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({ error: "Validation error", details: parseResult.error.format() });
+      return res
+        .status(400)
+        .json({
+          error: "Validation error",
+          details: parseResult.error.format(),
+        });
     }
 
     const { status, validUntil } = parseResult.data;
@@ -614,13 +852,15 @@ export const patchAssignment = async (req: AuthenticatedRequest, res: Response, 
         where: { id: assignmentId },
         data: {
           ...(status ? { status: status as any } : {}),
-          ...(validUntil !== undefined ? { validUntil: validUntil ? new Date(validUntil) : null } : {})
-        }
+          ...(validUntil !== undefined
+            ? { validUntil: validUntil ? new Date(validUntil) : null }
+            : {}),
+        },
       });
 
       await tx.user.update({
         where: { id: asgn.userId },
-        data: { tokenVersion: { increment: 1 } }
+        data: { tokenVersion: { increment: 1 } },
       });
 
       return asgn;
@@ -632,14 +872,20 @@ export const patchAssignment = async (req: AuthenticatedRequest, res: Response, 
   }
 };
 
-export const deleteAssignment = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const deleteAssignment = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const assignmentId = req.params.id;
     await prisma.$transaction(async (tx) => {
-      const asgn = await tx.userRoleAssignment.delete({ where: { id: assignmentId } });
+      const asgn = await tx.userRoleAssignment.delete({
+        where: { id: assignmentId },
+      });
       await tx.user.update({
         where: { id: asgn.userId },
-        data: { tokenVersion: { increment: 1 } }
+        data: { tokenVersion: { increment: 1 } },
       });
 
       await AccessControlApiService.recordAuditLog(
@@ -650,7 +896,7 @@ export const deleteAssignment = async (req: AuthenticatedRequest, res: Response,
         assignmentId,
         asgn,
         null,
-        "Role assignment revoked"
+        "Role assignment revoked",
       );
     });
 
@@ -660,17 +906,26 @@ export const deleteAssignment = async (req: AuthenticatedRequest, res: Response,
   }
 };
 
-export const getUserEffectiveAccess = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const getUserEffectiveAccess = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const userId = req.params.id;
-    const access = await EffectivePermissionService.getEffectiveAccessPayload(userId);
+    const access =
+      await EffectivePermissionService.getEffectiveAccessPayload(userId);
     return res.json(access);
   } catch (error) {
     next(error);
   }
 };
 
-export const getAuditLogs = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const getAuditLogs = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const { action, actorUserId, entityType, limit = 100 } = req.query;
     const where: any = {};
@@ -681,7 +936,7 @@ export const getAuditLogs = async (req: AuthenticatedRequest, res: Response, nex
     const logs = await prisma.auditLog.findMany({
       where,
       take: Number(limit),
-      orderBy: { createdAt: "desc" }
+      orderBy: { createdAt: "desc" },
     });
 
     return res.json({ data: logs });
