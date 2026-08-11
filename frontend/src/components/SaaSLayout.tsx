@@ -168,7 +168,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
     };
   }, []);
 
-  const isLoggedIn = mounted && typeof window !== "undefined" && !!localStorage.getItem("accessToken");
+  const isLoggedIn = mounted && typeof window !== "undefined" && !!getAccessToken();
 
   const usesGovPortalShell =
     pathname.startsWith("/admin") ||

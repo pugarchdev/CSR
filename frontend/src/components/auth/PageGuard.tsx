@@ -68,6 +68,23 @@ export default function PageGuard({ children }: { children: React.ReactNode }) {
       return { allowed: false, requiredPerm: "authentication:required", reason: "Authentication is required to view this page." };
     }
 
+    // Universal authenticated routes — always allowed for any logged-in user
+    const universalAuthRoutes = [
+      "/dashboard",
+      "/organization/onboarding",
+      "/organization/onboarding/company",
+      "/organization/onboarding/department",
+      "/organization/onboarding/status",
+      "/profile",
+      "/settings",
+      "/notifications",
+      "/communications",
+      "/helpdesk",
+    ];
+    if (universalAuthRoutes.some((r) => pathname === r || pathname.startsWith(r + "/"))) {
+      return { allowed: true, requiredPerm: undefined };
+    }
+
     // Super Admin bypass
     if (isAdmin) {
       return { allowed: true, requiredPerm: undefined };
