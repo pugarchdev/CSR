@@ -6,18 +6,35 @@ export const API_BASE_URL =
 
 export const getAccessToken = () => {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem("accessToken");
+  const token = localStorage.getItem("accessToken") || localStorage.getItem("token") || localStorage.getItem("mahacsr_access_token");
+  if (token) return token;
+  try {
+    const raw = localStorage.getItem("auth-storage");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.state?.token) return parsed.state.token;
+      if (parsed?.state?.accessToken) return parsed.state.accessToken;
+    }
+  } catch {}
+  return null;
 };
 
 export const getStoredUser = () => {
   if (typeof window === "undefined") return null;
   const raw = localStorage.getItem("user");
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
+  if (raw) {
+    try {
+      return JSON.parse(raw);
+    } catch {}
   }
+  try {
+    const authStorage = localStorage.getItem("auth-storage");
+    if (authStorage) {
+      const parsed = JSON.parse(authStorage);
+      if (parsed?.state?.user) return parsed.state.user;
+    }
+  } catch {}
+  return null;
 };
 
 export const clearApiCache = () => {

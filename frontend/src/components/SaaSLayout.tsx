@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/Button";
 import { Loader } from "./ui/Loader";
-import { apiFetch, getStoredUser } from "@/lib/api";
+import { apiFetch, getStoredUser, getAccessToken } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import PageGuard from "@/components/auth/PageGuard";
 import { isNavItemVisible } from "@/lib/pageRegistry";
@@ -257,7 +257,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
   useEffect(() => {
     if (!mounted) return;
 
-    const token = localStorage.getItem("accessToken");
+    const token = getAccessToken();
     const user = getStoredUser();
 
     const cleanPath = pathname.endsWith("/") && pathname !== "/" ? pathname.slice(0, -1) : pathname;

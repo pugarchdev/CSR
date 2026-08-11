@@ -87,9 +87,9 @@ function LoginForm() {
       }
 
       const user = data.data?.user || data.user;
-      const accessToken = data.data?.accessToken || data.accessToken;
+      const accessToken = data.data?.accessToken || data.accessToken || data.data?.token || data.token;
 
-      if (!user) {
+      if (!user || !accessToken) {
         throw new Error("Invalid response payload from authentication gateway");
       }
 

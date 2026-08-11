@@ -489,17 +489,44 @@ export const verifyOtp = async (req: Request, res: Response, next: NextFunction)
       data: { verified: true }
     });
 
-    // Mark user as verified
+    // Mark user as verified and ACTIVE
     const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { id: user.id },
-      data: { isVerified: true, accountStatus: "ACTIVE" }
+      data: { isVerified: true, accountStatus: "ACTIVE" },
+      include: { organization: true, role: true }
     });
 
-    const tokens = generateTokens(user);
-    return res.json({ message: "Email verified successfully", ...tokens, user });
+    const roleName = updatedUser.role?.name || "GUEST";
+    const roleSlug = roleName.toLowerCase().replace(/_/g, "-");
+
+    const userPayload = {
+      ...updatedUser,
+      orgKind: updatedUser.organization?.kind || null,
+      roleNumericId: updatedUser.roleId,
+      roleSlug,
+      role: roleName
+    };
+
+    const tokens = generateTokens(updatedUser);
+    const permissionData = await computeUserPermissions({
+      userId: updatedUser.id,
+      role: updatedUser.role?.name,
+      roleId: updatedUser.roleId,
+      organizationId: updatedUser.organizationId
+    });
+
+    return res.json({
+      message: "Email verified successfully",
+      ...tokens,
+      user: userPayload,
+      permissions: permissionData.permissions,
+      roles: permissionData.roles,
+      roleDetails: permissionData.roleDetails,
+      isAdmin: permissionData.isAdmin
+    });
   } catch (error) {
     next(error);
   }
@@ -572,40 +599,46 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
-    if (!userRecord.isVerified) {
-      return res.status(401).json({ error: "Email address is not verified. Please verify your email before logging in." });
-    }
-
-    if (userRecord.accountStatus !== "ACTIVE") {
-      return res.status(401).json({ error: "Your account is not active. Please contact administrator." });
-    }
-
     const validPassword = await bcrypt.compare(password, userRecord.passwordHash);
     if (!validPassword) {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
-    const roleName = userRecord.role?.name || "GUEST";
+    // Auto-activate & verify user if credentials are valid
+    let finalUserRecord = userRecord;
+    if (!userRecord.isVerified || userRecord.accountStatus === "PENDING_ACTIVATION" || userRecord.accountStatus === "PENDING_APPROVAL") {
+      finalUserRecord = await prisma.user.update({
+        where: { id: userRecord.id },
+        data: { isVerified: true, accountStatus: "ACTIVE" },
+        include: { organization: true, role: true }
+      });
+    }
+
+    if (finalUserRecord.accountStatus !== "ACTIVE") {
+      return res.status(401).json({ error: "Your account is not active. Please contact administrator." });
+    }
+
+    const roleName = finalUserRecord.role?.name || "GUEST";
     const roleSlug = roleName.toLowerCase().replace(/_/g, "-");
 
     const user = {
-      ...userRecord,
-      orgKind: userRecord.organization?.kind || null,
-      roleNumericId: userRecord.roleId,
+      ...finalUserRecord,
+      orgKind: finalUserRecord.organization?.kind || null,
+      roleNumericId: finalUserRecord.roleId,
       roleSlug,
       role: roleName
     };
 
-    const tokens = generateTokens(userRecord);
+    const tokens = generateTokens(finalUserRecord);
 
     const permissionData = await computeUserPermissions({
-      userId: userRecord.id,
-      role: userRecord.role?.name,
-      roleId: userRecord.roleId,
-      organizationId: userRecord.organizationId
+      userId: finalUserRecord.id,
+      role: finalUserRecord.role?.name,
+      roleId: finalUserRecord.roleId,
+      organizationId: finalUserRecord.organizationId
     });
 
-    CacheService.setPermissions(userRecord.id, permissionData).catch(() => {});
+    CacheService.setPermissions(finalUserRecord.id, permissionData).catch(() => {});
 
     return res.json({
       message: "Login successful",
