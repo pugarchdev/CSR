@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle, AlertTriangle, ArrowRight, Building2, Check, CheckCircle2, Clock, Coins, Compass, ExternalLink, Eye, FileText, HeartHandshake, HelpCircle, LayoutGrid, List, Loader2, Mail, MapPin, Phone, Plus, RefreshCw, Save, Search, ShieldAlert, ShieldCheck, Target, ToggleLeft, ToggleRight, Trash2, Upload, User, UserCheck, XCircle } from "lucide-react";
-import { apiFetch, API_BASE_URL } from "@/lib/api";
+import { apiFetch, API_BASE_URL, getAccessToken } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { Pagination } from "@/components/ui/Pagination";
 import GovModal from "@/components/gov/GovModal";
@@ -2253,8 +2253,8 @@ export function OrganizationOnboardingStatusWorkspace() {
   const fetchStatus = () => {
     setLoading(true);
     setError("");
-    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-    if (!token) {
+    const token = getAccessToken();
+    if (!token && typeof window !== "undefined" && !localStorage.getItem("accessToken") && !localStorage.getItem("token")) {
       setLoading(false);
       return;
     }

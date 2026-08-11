@@ -849,7 +849,7 @@ export default function RegisterPage() {
                               )}
                             </div>
                             <div>
-                              <div className="font-extrabold text-xs text-slate-900">Government Organization / Local Body</div>
+                              <div className="font-extrabold text-xs text-slate-900">Government Organization Name</div>
                               <div className="text-[11px] text-slate-500 font-medium">Top-level entity (e.g. NMC Nagpur, Collectorate, Zilla Parishad)</div>
                             </div>
                           </div>
@@ -1025,12 +1025,12 @@ export default function RegisterPage() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="flex flex-col gap-1">
-                            <label className="text-xs font-bold text-slate-800">Official Department / Office Code</label>
+                            <label className="text-xs font-bold text-slate-800">Official Department Name</label>
                             <input
                               name="deptOfficeCode"
                               value={formData.deptOfficeCode}
                               onChange={handleChange}
-                              placeholder="e.g. NMC-NGP-HQ"
+                              placeholder="e.g. Health Department, Public Works Department"
                               className={getInputClassName("deptOfficeCode")}
                             />
                             {renderFieldError("deptOfficeCode")}
@@ -1069,28 +1069,6 @@ export default function RegisterPage() {
                               onChange={handleChange}
                               placeholder="Landmark / Area / Locality"
                               className={getInputClassName("addressLine2")}
-                            />
-                          </div>
-
-                          <div className="flex flex-col gap-1">
-                            <label className="text-xs font-bold text-slate-800">City / Town *</label>
-                            <input
-                              name="city"
-                              value={formData.city}
-                              onChange={handleChange}
-                              placeholder="e.g. Nagpur"
-                              className={getInputClassName("city")}
-                            />
-                          </div>
-
-                          <div className="flex flex-col gap-1">
-                            <label className="text-xs font-bold text-slate-800">Taluka</label>
-                            <input
-                              name="taluka"
-                              value={formData.taluka}
-                              onChange={handleChange}
-                              placeholder="e.g. Nagpur Urban"
-                              className={getInputClassName("taluka")}
                             />
                           </div>
 
@@ -1148,6 +1126,64 @@ export default function RegisterPage() {
                                 onChange={(e) => setCustomDistrict(e.target.value)}
                                 placeholder="Enter District Name"
                                 className={getInputClassName("customDistrict")}
+                              />
+                            </div>
+                          )}
+
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-bold text-slate-800">Taluka *</label>
+                            <select
+                              name="taluka"
+                              value={formData.taluka}
+                              onChange={handleChange}
+                              className={getInputClassName("taluka")}
+                            >
+                              {availableTalukas.map((t) => (
+                                <option key={t} value={t}>{t}</option>
+                              ))}
+                              <option value="Other">Other</option>
+                            </select>
+                            {renderFieldError("taluka")}
+                          </div>
+
+                          {formData.taluka === "Other" && (
+                            <div className="flex flex-col gap-1">
+                              <label className="text-xs font-bold text-slate-800">Specify Custom Taluka *</label>
+                              <input
+                                type="text"
+                                value={customTaluka}
+                                onChange={(e) => setCustomTaluka(e.target.value)}
+                                placeholder="Enter Taluka Name"
+                                className={getInputClassName("customTaluka")}
+                              />
+                            </div>
+                          )}
+
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-bold text-slate-800">City / Town *</label>
+                            <select
+                              name="city"
+                              value={formData.city}
+                              onChange={handleChange}
+                              className={getInputClassName("city")}
+                            >
+                              {availableCities.map((c) => (
+                                <option key={c} value={c}>{c}</option>
+                              ))}
+                              <option value="Other">Other</option>
+                            </select>
+                            {renderFieldError("city")}
+                          </div>
+
+                          {formData.city === "Other" && (
+                            <div className="flex flex-col gap-1">
+                              <label className="text-xs font-bold text-slate-800">Specify Custom City / Town *</label>
+                              <input
+                                type="text"
+                                value={customCity}
+                                onChange={(e) => setCustomCity(e.target.value)}
+                                placeholder="Enter City / Town Name"
+                                className={getInputClassName("customCity")}
                               />
                             </div>
                           )}
@@ -1261,12 +1297,12 @@ export default function RegisterPage() {
                           </div>
 
                           <div className="flex flex-col gap-1">
-                            <label className="text-xs font-bold text-slate-800">Employee / Officer ID</label>
+                            <label className="text-xs font-bold text-slate-800">Employee / Officer ID (Optional)</label>
                             <input
                               name="employeeId"
                               value={formData.employeeId}
                               onChange={handleChange}
-                              placeholder="e.g. EMP-98765"
+                              placeholder="e.g. EMP-98765 (Optional)"
                               className={getInputClassName("employeeId")}
                             />
                           </div>

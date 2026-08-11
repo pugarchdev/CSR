@@ -50,6 +50,7 @@ type OrganizationDocument = {
 type Organization = {
   id: string;
   organizationType: string;
+  kind?: string | null;
   name: string;
   legalName?: string | null;
   displayName?: string | null;
@@ -697,7 +698,22 @@ function LoadingPanel() {
 }
 
 function useEntityProfile(type: "company" | "department") {
-  const [organization, setOrganization] = useState<Organization | null>(null);
+  const storedUser = getStoredUser();
+  const initialOrg: Organization | null = storedUser?.organization
+    ? storedUser.organization
+    : storedUser?.organizationId
+    ? ({
+        id: storedUser.organizationId,
+        name: storedUser.organizationName || (type === "company" ? "MahaCSR Corporate Partner" : "State Department"),
+        organizationType: type === "company" ? "COMPANY" : "DEPARTMENT",
+        kind: type === "company" ? "CSR_COMPANY" : "GOVERNMENT_DEPARTMENT",
+        status: "REGISTERED",
+        onboardingStatus: "DRAFT",
+        documents: [],
+      } as Organization)
+    : null;
+
+  const [organization, setOrganization] = useState<Organization | null>(initialOrg);
   const [profile, setProfile] = useState<Record<string, any>>({});
   const [error, setError] = useState("");
 
@@ -705,9 +721,10 @@ function useEntityProfile(type: "company" | "department") {
     setError("");
     try {
       const data = await apiFetch<ProfileResponse>(`/onboarding/${type}/profile`);
-      if (data && data.organization) {
-        setOrganization(data.organization);
-        setProfile(data.profile || {});
+      if (data && (data.organization || data.profile || (data as any).id)) {
+        const orgData = data.organization || (data as any).id ? (data as any) : data;
+        setOrganization(orgData);
+        setProfile(data.profile || (data as any).govDeptProfile || (data as any).csrCompanyProfile || {});
         return;
       }
     } catch (err: any) {
@@ -715,17 +732,17 @@ function useEntityProfile(type: "company" | "department") {
     }
 
     // Resilient Fallback: Populate baseline draft organization from stored user so form never breaks
-    const storedUser = getStoredUser();
     const fallbackOrg: Organization = {
       id: storedUser?.organizationId || storedUser?.organization?.id || `org-${Date.now()}`,
       organizationType: type === "company" ? "COMPANY" : "DEPARTMENT",
+      kind: type === "company" ? "CSR_COMPANY" : "GOVERNMENT_DEPARTMENT",
       name: storedUser?.organization?.name || (type === "company" ? "MahaCSR Corporate Partner" : "State Department"),
       legalName: storedUser?.organization?.legalName || storedUser?.organization?.name || "MahaCSR Corporate Partner Ltd",
       email: storedUser?.email || "admin@mahacsr.gov.in",
       officialEmail: storedUser?.email || "admin@mahacsr.gov.in",
       phone: storedUser?.phone || "+91 98200 12345",
       onboardingStatus: "DRAFT",
-      status: "ACTIVE",
+      status: "REGISTERED",
       district: "Mumbai City",
       documents: [],
     };
@@ -758,10 +775,9 @@ export function CompanyOnboardingStep() {
   const [companyDeclarationChecks, setCompanyDeclarationChecks] = useState<boolean[]>([false, false, false, false]);
 
   useEffect(() => {
-    const currentStatus = (organization?.onboardingStatus || "").toUpperCase();
-    const locked = ["SUBMITTED_FOR_REVIEW", "UNDER_VERIFICATION", "APPROVED", "SUSPENDED"];
-    if (organization && currentStatus && locked.includes(currentStatus)) {
-      router.replace(currentStatus === "APPROVED" ? "/organization/onboarding/details" : "/organization/onboarding/status");
+    const currentStatus = (organization?.onboardingStatus || organization?.status || "").toUpperCase();
+    if (organization && currentStatus === "APPROVED") {
+      router.replace("/organization/onboarding/details");
     }
   }, [organization, router]);
   const org = organization || ({} as Organization);
@@ -1508,10 +1524,9 @@ export function DepartmentOnboardingStep() {
   const [deptDeclarationChecks, setDeptDeclarationChecks] = useState<boolean[]>([false, false]);
 
   useEffect(() => {
-    const currentStatus = (organization?.onboardingStatus || "").toUpperCase();
-    const locked = ["SUBMITTED_FOR_REVIEW", "UNDER_VERIFICATION", "APPROVED", "SUSPENDED"];
-    if (organization && currentStatus && locked.includes(currentStatus)) {
-      router.replace(currentStatus === "APPROVED" ? "/organization/onboarding/details" : "/organization/onboarding/status");
+    const currentStatus = (organization?.onboardingStatus || organization?.status || "").toUpperCase();
+    if (organization && currentStatus === "APPROVED") {
+      router.replace("/organization/onboarding/details");
     }
   }, [organization, router]);
 
