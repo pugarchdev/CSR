@@ -160,7 +160,7 @@ export default function ProjectImplementingAgenciesPage() {
               <label className="block font-bold text-slate-700 mb-1">Contact Person Name</label>
               <input
                 type="text"
-                placeholder="e.g. Rahul Sharma"
+                placeholder="e.g. John Doe"
                 value={formData.contactPersonName}
                 onChange={(e) => setFormData({ ...formData, contactPersonName: e.target.value })}
                 className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-semibold"
@@ -172,7 +172,7 @@ export default function ProjectImplementingAgenciesPage() {
               <input
                 type="email"
                 required
-                placeholder="e.g. rahul@abc.org"
+                placeholder="e.g. john.doe@example.com"
                 value={formData.contactEmail}
                 onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
                 className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-semibold"
@@ -183,7 +183,7 @@ export default function ProjectImplementingAgenciesPage() {
               <label className="block font-bold text-slate-700 mb-1">Mobile Number</label>
               <input
                 type="text"
-                placeholder="e.g. 9876543210"
+                placeholder="e.g. 1234567890"
                 value={formData.mobile}
                 onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
                 className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-semibold"

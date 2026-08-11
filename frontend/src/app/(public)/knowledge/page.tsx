@@ -248,7 +248,7 @@ export default function KnowledgeCenter() {
                       required
                       value={ticketForm.name}
                       onChange={(e) => setTicketForm({...ticketForm, name: e.target.value})}
-                      placeholder="e.g. Anand Kumar"
+                      placeholder="e.g. John Doe"
                     />
                   </div>
                   <div>
@@ -260,7 +260,7 @@ export default function KnowledgeCenter() {
                       type="email"
                       value={ticketForm.email}
                       onChange={(e) => setTicketForm({...ticketForm, email: e.target.value})}
-                      placeholder="e.g. anand@domain.org"
+                      placeholder="e.g. john.doe@example.com"
                     />
                   </div>
                   <div>

@@ -203,7 +203,7 @@ export default function NodalAppointmentsPage() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Dr. Rajesh Deshmukh"
+                  placeholder="e.g. Dr. John Doe"
                   value={officerName}
                   onChange={(e) => setOfficerName(e.target.value)}
                   className="w-full rounded-xl border border-slate-200 py-2 px-3 text-xs font-medium text-slate-900 focus:border-blue-600 focus:outline-none"

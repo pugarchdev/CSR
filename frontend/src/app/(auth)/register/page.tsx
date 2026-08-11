@@ -1239,7 +1239,7 @@ export default function RegisterPage() {
                               name="firstName"
                               value={formData.firstName}
                               onChange={handleChange}
-                              placeholder="e.g. Rajesh"
+                              placeholder="e.g. John"
                               className={getInputClassName("firstName")}
                             />
                             {renderFieldError("firstName")}
@@ -1251,7 +1251,7 @@ export default function RegisterPage() {
                               name="lastName"
                               value={formData.lastName}
                               onChange={handleChange}
-                              placeholder="e.g. Sharma"
+                              placeholder="e.g. Doe"
                               className={getInputClassName("lastName")}
                             />
                             {renderFieldError("lastName")}
@@ -1277,7 +1277,7 @@ export default function RegisterPage() {
                               value={formData.email}
                               onChange={handleChange}
                               onBlur={handleBlurValidate}
-                              placeholder="e.g. official@nmcnagpur.gov.in"
+                              placeholder="e.g. john.doe@example.com"
                               className={getInputClassName("email")}
                             />
                             {renderFieldError("email")}
@@ -1290,7 +1290,7 @@ export default function RegisterPage() {
                               value={formData.mobile}
                               onChange={handleChange}
                               maxLength={10}
-                              placeholder="10-digit mobile number"
+                              placeholder="e.g. 1234567890"
                               className={getInputClassName("mobile")}
                             />
                             {renderFieldError("mobile")}
@@ -1353,7 +1353,7 @@ export default function RegisterPage() {
                           name="firstName"
                           value={formData.firstName}
                           onChange={handleChange}
-                          placeholder="e.g. Anand"
+                          placeholder="e.g. John"
                           className={getInputClassName("firstName")}
                         />
                         {renderFieldError("firstName")}
@@ -1365,7 +1365,7 @@ export default function RegisterPage() {
                           name="lastName"
                           value={formData.lastName}
                           onChange={handleChange}
-                          placeholder="e.g. Gadge"
+                          placeholder="e.g. Doe"
                           className={getInputClassName("lastName")}
                         />
                         {renderFieldError("lastName")}
@@ -1391,7 +1391,7 @@ export default function RegisterPage() {
                           value={formData.email}
                           onChange={handleChange}
                           onBlur={handleBlurValidate}
-                          placeholder="e.g. abc@company.com"
+                          placeholder="e.g. john.doe@example.com"
                           className={getInputClassName("email")}
                         />
                         {renderFieldError("email")}

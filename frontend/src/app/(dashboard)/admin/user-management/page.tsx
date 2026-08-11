@@ -658,7 +658,7 @@ return (
               type="text"
               value={userForm.firstName}
               onChange={(e) => setUserForm((prev) => ({ ...prev, firstName: e.target.value }))}
-              placeholder="e.g. Ramesh"
+              placeholder="e.g. John"
             />
             <GovInput
               label="Last Name"
@@ -666,7 +666,7 @@ return (
               type="text"
               value={userForm.lastName}
               onChange={(e) => setUserForm((prev) => ({ ...prev, lastName: e.target.value }))}
-              placeholder="e.g. Patil"
+              placeholder="e.g. Doe"
             />
             <GovInput
               label="Official Email"
@@ -674,7 +674,7 @@ return (
               type="email"
               value={userForm.email}
               onChange={(e) => setUserForm((prev) => ({ ...prev, email: e.target.value }))}
-              placeholder="user@mahacsr.gov.in"
+              placeholder="john.doe@example.com"
             />
             <GovInput
               label="Mobile Number"
@@ -682,7 +682,7 @@ return (
               type="tel"
               value={userForm.mobile}
               onChange={(e) => setUserForm((prev) => ({ ...prev, mobile: e.target.value }))}
-              placeholder="e.g. 9876543210"
+              placeholder="e.g. 1234567890"
             />
             <GovInput
               label="Designation"

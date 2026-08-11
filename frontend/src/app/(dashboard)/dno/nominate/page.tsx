@@ -213,7 +213,7 @@ export default function NominateDnoPage() {
               <input
                 type="text"
                 required
-                placeholder="e.g. Officer A"
+                placeholder="e.g. John"
                 value={formData.firstName}
                 onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 font-semibold focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
@@ -224,7 +224,7 @@ export default function NominateDnoPage() {
               <input
                 type="text"
                 required
-                placeholder="e.g. Patil"
+                placeholder="e.g. Doe"
                 value={formData.lastName}
                 onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 font-semibold focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
@@ -262,7 +262,7 @@ export default function NominateDnoPage() {
               <input
                 type="email"
                 required
-                placeholder="e.g. officer.patil@nmc.gov.in"
+                placeholder="e.g. john.doe@example.com"
                 value={formData.officialEmail}
                 onChange={(e) => setFormData({ ...formData, officialEmail: e.target.value })}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 font-semibold focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
@@ -273,7 +273,7 @@ export default function NominateDnoPage() {
               <input
                 type="tel"
                 required
-                placeholder="e.g. 9876543210"
+                placeholder="e.g. 1234567890"
                 value={formData.officialMobile}
                 onChange={(e) => setFormData({ ...formData, officialMobile: e.target.value })}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 font-semibold focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"

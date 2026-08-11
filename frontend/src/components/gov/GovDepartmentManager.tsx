@@ -488,7 +488,7 @@ export default function GovDepartmentManager({ organizationName = "Government Or
                     <input
                       value={formData.departmentHead}
                       onChange={(e) => setFormData({ ...formData, departmentHead: e.target.value })}
-                      placeholder="e.g. Dr. Rajesh Sharma (Director)"
+                      placeholder="e.g. Dr. John Doe (Director)"
                       className="w-full px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-900/20 focus:border-blue-900"
                     />
                   </div>
@@ -498,7 +498,7 @@ export default function GovDepartmentManager({ organizationName = "Government Or
                     <input
                       value={formData.dnoName}
                       onChange={(e) => setFormData({ ...formData, dnoName: e.target.value })}
-                      placeholder="e.g. Shri Anand Patil (Assistant Commissioner)"
+                      placeholder="e.g. Shri John Doe (Assistant Commissioner)"
                       className="w-full px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-900/20 focus:border-blue-900"
                     />
                   </div>
@@ -509,7 +509,7 @@ export default function GovDepartmentManager({ organizationName = "Government Or
                       type="email"
                       value={formData.officialEmail}
                       onChange={(e) => setFormData({ ...formData, officialEmail: e.target.value })}
-                      placeholder="swm@nmcnagpur.gov.in"
+                      placeholder="e.g. contact@example.com"
                       className="w-full px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-900/20 focus:border-blue-900"
                     />
                   </div>
@@ -519,7 +519,7 @@ export default function GovDepartmentManager({ organizationName = "Government Or
                     <input
                       value={formData.officialPhone}
                       onChange={(e) => setFormData({ ...formData, officialPhone: e.target.value })}
-                      placeholder="+91-712-2567890"
+                      placeholder="e.g. 1234567890"
                       className="w-full px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-900/20 focus:border-blue-900"
                     />
                   </div>
