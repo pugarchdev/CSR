@@ -7,7 +7,7 @@ import "@/styles/gov-theme.css";
 export default function AdminOrganizationDetailsPage({ params }: { params: { id: string } }) {
   return (
     <GovPortalLayout>
-      <div className="gov-container">
+      <div className="">
         <AdminOrganizationDetailsWorkspace organizationId={params.id} />
       </div>
     </GovPortalLayout>

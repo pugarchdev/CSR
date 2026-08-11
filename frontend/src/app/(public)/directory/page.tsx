@@ -153,7 +153,8 @@ export default function DirectoryPage() {
           </p>
         </div>
 
-        <div className="gov-grid-auto-sm" style={{ marginBottom: 16 }}>
+        {/* Responsive Stats Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           {[
             ["Directory Entries", allEntries.length.toString(), "State, RM, helpdesk and district officers"],
             ["District Nodal Officers", "36", "All Maharashtra districts"],
@@ -175,8 +176,9 @@ export default function DirectoryPage() {
             <GovCardTitle>Search Officer Directory</GovCardTitle>
           </GovCardHeader>
           <GovCardBody>
-            <div className="gov-grid-auto">
-              <GovInput label="Keyword Search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search officer, district, email or responsibility" />
+            {/* Responsive Filters Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <GovInput label="Keyword Search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search officer, district, email..." />
               <GovSelect label="Role" value={role} onChange={(event) => setRole(event.target.value)}>
                 {unique("role").map((value) => <option key={value}>{value}</option>)}
               </GovSelect>
@@ -190,45 +192,59 @@ export default function DirectoryPage() {
                 ).map((value) => <option key={value}>{value}</option>)}
               </GovSelect>
             </div>
-            <div className="gov-help">Showing {filtered.length} of {allEntries.length} directory entries. Officials appointed on the portal appear at the top with live details.</div>
+            <div className="gov-help mt-3 text-sm text-gray-500">Showing {filtered.length} of {allEntries.length} directory entries. Officials appointed on the portal appear at the top with live details.</div>
           </GovCardBody>
         </GovCard>
 
-        <GovCard className="gov-mt-2">
-          <GovCardBody style={{ padding: 0 }}>
-            <div className="gov-table-container">
-              <table className="gov-table gov-table-stack">
-                <thead>
+        <GovCard className="gov-mt-4 mt-4 border-0 shadow-none md:border md:shadow-sm bg-transparent md:bg-white">
+          <GovCardBody className="p-0 sm:p-0 md:p-0">
+            {/* 
+              -mx-4 and w-[calc(100%+32px)] forces it to break out of standard 16px parent padding on mobile. 
+              Adjust to -mx-5 or -mx-6 if your standard container padding is larger.
+            */}
+            <div className="w-[calc(100%+32px)] -mx-4 sm:mx-0 sm:w-full md:border-0 md:rounded-xl md:overflow-hidden bg-white border-y sm:border-y-0 border-gray-200">
+              <table className="w-full block md:table text-left border-collapse">
+                <thead className="hidden md:table-header-group bg-gray-50/50 border-b border-gray-200">
                   <tr>
-                    <th>Role / Officer</th>
-                    <th>District / Division</th>
-                    <th>Office</th>
-                    <th>Contact</th>
-                    <th>Responsibility</th>
+                    <th className="p-3 md:px-6 md:py-4 font-semibold text-gray-700 text-sm">Role / Officer</th>
+                    <th className="p-3 md:px-6 md:py-4 font-semibold text-gray-700 text-sm">District / Division</th>
+                    <th className="p-3 md:px-6 md:py-4 font-semibold text-gray-700 text-sm">Office</th>
+                    <th className="p-3 md:px-6 md:py-4 font-semibold text-gray-700 text-sm">Contact</th>
+                    <th className="p-3 md:px-6 md:py-4 font-semibold text-gray-700 text-sm">Responsibility</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="block md:table-row-group p-4 md:p-0 bg-gray-50 md:bg-white">
                   {filtered.map((entry) => (
-                    <tr key={entry.id}>
-                      <td data-label="Role / Officer">
+                    <tr 
+                      key={entry.id}
+                      className="block md:table-row mb-4 md:mb-0 bg-white border border-gray-200 md:border-0 md:border-b md:border-gray-200 last:border-b-0 shadow-sm md:shadow-none rounded-lg md:rounded-none overflow-hidden"
+                    >
+                      {/* Note the change here: removed relative & absolute positioning. Added before:block before:mb-1 before:text-xs */}
+                      <td data-label="Role / Officer" className="block md:table-cell py-3 px-4 md:px-6 md:py-4 border-b md:border-none last:border-b-0 break-words text-sm text-gray-800 before:content-[attr(data-label)] before:block before:mb-1 before:text-xs before:uppercase before:font-bold before:text-gray-500 md:before:hidden">
                         <div style={{ fontWeight: 800, color: "var(--gov-primary-dark)" }}>{entry.officer}</div>
                         <div style={{ marginTop: 4 }}><GovStatusBadge variant="info">{entry.role}</GovStatusBadge></div>
                       </td>
-                      <td data-label="District / Division">
+                      <td data-label="District / Division" className="block md:table-cell py-3 px-4 md:px-6 md:py-4 border-b md:border-none last:border-b-0 break-words text-sm text-gray-800 before:content-[attr(data-label)] before:block before:mb-1 before:text-xs before:uppercase before:font-bold before:text-gray-500 md:before:hidden">
                         <div style={{ fontWeight: 700 }}>{entry.district}</div>
                         <div style={{ fontSize: 12, color: "var(--gov-text-muted)" }}>{entry.division} Division</div>
                       </td>
-                      <td data-label="Office">{entry.office}</td>
-                      <td data-label="Contact">
+                      <td data-label="Office" className="block md:table-cell py-3 px-4 md:px-6 md:py-4 border-b md:border-none last:border-b-0 break-words text-sm text-gray-800 before:content-[attr(data-label)] before:block before:mb-1 before:text-xs before:uppercase before:font-bold before:text-gray-500 md:before:hidden">
+                        {entry.office}
+                      </td>
+                      <td data-label="Contact" className="block md:table-cell py-3 px-4 md:px-6 md:py-4 border-b md:border-none last:border-b-0 break-words text-sm text-gray-800 before:content-[attr(data-label)] before:block before:mb-1 before:text-xs before:uppercase before:font-bold before:text-gray-500 md:before:hidden">
                         <div>{entry.email}</div>
                         <div style={{ marginTop: 4, color: "var(--gov-text-muted)" }}>{entry.phone}</div>
                       </td>
-                      <td data-label="Responsibility">{entry.responsibility}</td>
+                      <td data-label="Responsibility" className="block md:table-cell py-3 px-4 md:px-6 md:py-4 border-b md:border-none last:border-b-0 break-words text-sm text-gray-600 before:content-[attr(data-label)] before:block before:mb-1 before:text-xs before:uppercase before:font-bold before:text-gray-500 md:before:hidden">
+                        {entry.responsibility}
+                      </td>
                     </tr>
                   ))}
                   {filtered.length === 0 && (
-                    <tr>
-                      <td colSpan={5}>No directory entries match the selected filters.</td>
+                    <tr className="block md:table-row">
+                      <td colSpan={5} className="block md:table-cell p-6 text-center text-gray-500 text-sm">
+                        No directory entries match the selected filters.
+                      </td>
                     </tr>
                   )}
                 </tbody>
@@ -237,7 +253,7 @@ export default function DirectoryPage() {
           </GovCardBody>
         </GovCard>
 
-        <GovCard className="gov-mt-2">
+        <GovCard className="mt-4">
           <GovCardBody>
             <strong>Publication note:</strong> This directory is structured for portal use. Personal officer names and district office numbers should be connected to the official government master directory before production publication.
           </GovCardBody>

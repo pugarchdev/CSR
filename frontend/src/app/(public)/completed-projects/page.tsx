@@ -123,27 +123,55 @@ export default function CompletedProjectsPage() {
           <GovCardHeader>
             <GovCardTitle>Search and Filter Completed Projects</GovCardTitle>
           </GovCardHeader>
-          <GovCardBody>
-            <div className="gov-grid-auto">
-              <GovInput label="Keyword Search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Project, corporate, district or ID" />
-              <GovSelect label="District" value={district} onChange={(e) => setDistrict(e.target.value)}>
-                <option value="All">All Districts</option>
-                {filters.districts.map((v) => <option key={v} value={v}>{v}</option>)}
-              </GovSelect>
-              <GovSelect label="Sector" value={sector} onChange={(e) => setSector(e.target.value)}>
-                <option value="All">All Sectors</option>
-                {filters.sectors.map((v) => <option key={v} value={v}>{v}</option>)}
-              </GovSelect>
-              <GovSelect label="Corporate" value={corporate} onChange={(e) => setCorporate(e.target.value)}>
-                <option value="All">All Corporates</option>
-                {filters.corporates.map((v) => <option key={v} value={v}>{v}</option>)}
-              </GovSelect>
-              <GovSelect label="Year" value={year} onChange={(e) => setYear(e.target.value)}>
-                <option value="All">All Years</option>
-                {filters.years.map((v) => <option key={v} value={String(v)}>{v}</option>)}
-              </GovSelect>
-            </div>
-          </GovCardBody>
+         <GovCardBody>
+  {/* Replaced 'gov-grid-auto' with Tailwind responsive grid classes */}
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+    
+    <GovInput 
+      label="Keyword Search" 
+      value={search} 
+      onChange={(e) => setSearch(e.target.value)} 
+      placeholder="Project, corporate, district or ID" 
+    />
+    
+    <GovSelect 
+      label="District" 
+      value={district} 
+      onChange={(e) => setDistrict(e.target.value)}
+    >
+      <option value="All">All Districts</option>
+      {filters.districts.map((v) => <option key={v} value={v}>{v}</option>)}
+    </GovSelect>
+    
+    <GovSelect 
+      label="Sector" 
+      value={sector} 
+      onChange={(e) => setSector(e.target.value)}
+    >
+      <option value="All">All Sectors</option>
+      {filters.sectors.map((v) => <option key={v} value={v}>{v}</option>)}
+    </GovSelect>
+    
+    <GovSelect 
+      label="Corporate" 
+      value={corporate} 
+      onChange={(e) => setCorporate(e.target.value)}
+    >
+      <option value="All">All Corporates</option>
+      {filters.corporates.map((v) => <option key={v} value={v}>{v}</option>)}
+    </GovSelect>
+    
+    <GovSelect 
+      label="Year" 
+      value={year} 
+      onChange={(e) => setYear(e.target.value)}
+    >
+      <option value="All">All Years</option>
+      {filters.years.map((v) => <option key={v} value={String(v)}>{v}</option>)}
+    </GovSelect>
+    
+  </div>
+</GovCardBody>
         </GovCard>
 
         {loading ? (

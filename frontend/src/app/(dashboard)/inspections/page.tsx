@@ -102,10 +102,10 @@ export default function InspectionsPage() {
         />
       </div>
 
-      <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-4 md:p-6 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5 md:mb-6">
           <div className="relative max-w-md w-full">
-            <Search className="absolute left-3.5 top-3 text-slate-400" size={16} />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input
               type="text"
               placeholder="Search by project, location, or milestone..."
@@ -117,38 +117,71 @@ export default function InspectionsPage() {
 
           <button
             onClick={() => setShowUploadModal(true)}
-            className="inline-flex items-center gap-2 rounded-xl bg-blue-900 px-4 py-2.5 text-xs font-bold text-white hover:bg-blue-800 transition-colors shadow-sm"
+            className="inline-flex w-full justify-center md:w-auto items-center gap-2 rounded-xl bg-blue-900 px-4 py-2.5 text-xs font-bold text-white hover:bg-blue-800 transition-colors shadow-sm shrink-0"
           >
             <Camera size={16} /> Record New Site Visit
           </button>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500 font-bold">
+        {/* Wrapper: Removes horizontal scroll on mobile, applies borders on desktop */}
+        <div className="w-full md:overflow-x-auto md:rounded-xl md:border md:border-slate-200/80">
+          <table className="w-full block md:table text-left text-xs border-collapse">
+            {/* Headers: Hidden on mobile, shown on desktop */}
+            <thead className="hidden md:table-header-group border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500 font-bold">
               <tr>
                 <th className="px-4 py-3">Project & Location</th>
                 <th className="px-4 py-3">Milestone Verified</th>
                 <th className="px-4 py-3">Inspector</th>
                 <th className="px-4 py-3">Geo Coordinates</th>
                 <th className="px-4 py-3">Photos</th>
-                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3 text-right md:text-left">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 font-medium">
+            <tbody className="block md:table-row-group divide-y-0 md:divide-y md:divide-slate-100 font-medium">
               {filtered.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="px-4 py-3.5">
-                    <p className="font-bold text-slate-900">{item.project}</p>
-                    <p className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
-                      <MapPin size={10} className="text-blue-600" /> {item.location}
-                    </p>
+                <tr 
+                  key={item.id} 
+                  className="block md:table-row mb-4 md:mb-0 bg-white border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-sm md:shadow-none hover:bg-slate-50/80 transition-colors overflow-hidden"
+                >
+                  <td 
+                    data-label="Project & Location" 
+                    className="flex md:table-cell flex-col md:flex-row items-start md:items-center px-4 py-3 md:py-3.5 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden before:mb-1"
+                  >
+                    <div>
+                      <p className="font-bold text-slate-900">{item.project}</p>
+                      <p className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
+                        <MapPin size={10} className="text-blue-600 shrink-0" /> {item.location}
+                      </p>
+                    </div>
                   </td>
-                  <td className="px-4 py-3.5 text-slate-700">{item.milestone}</td>
-                  <td className="px-4 py-3.5 text-slate-700">{item.inspector}</td>
-                  <td className="px-4 py-3.5 text-slate-600 font-mono text-[11px]">{item.geoCoords}</td>
-                  <td className="px-4 py-3.5 font-bold text-blue-900">{item.photosUploaded} photos</td>
-                  <td className="px-4 py-3.5">
+                  <td 
+                    data-label="Milestone Verified" 
+                    className="flex md:table-cell justify-between items-center px-4 py-3 md:py-3.5 border-b border-slate-100 md:border-none text-slate-700 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
+                  >
+                    {item.milestone}
+                  </td>
+                  <td 
+                    data-label="Inspector" 
+                    className="flex md:table-cell justify-between items-center px-4 py-3 md:py-3.5 border-b border-slate-100 md:border-none text-slate-700 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
+                  >
+                    {item.inspector}
+                  </td>
+                  <td 
+                    data-label="Geo Coordinates" 
+                    className="flex md:table-cell justify-between items-center px-4 py-3 md:py-3.5 border-b border-slate-100 md:border-none text-slate-600 font-mono text-[11px] before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
+                  >
+                    {item.geoCoords}
+                  </td>
+                  <td 
+                    data-label="Photos" 
+                    className="flex md:table-cell justify-between items-center px-4 py-3 md:py-3.5 border-b border-slate-100 md:border-none font-bold text-blue-900 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
+                  >
+                    {item.photosUploaded} photos
+                  </td>
+                  <td 
+                    data-label="Status" 
+                    className="flex md:table-cell justify-between items-center px-4 py-3 md:py-3.5 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden bg-slate-50/50 md:bg-transparent text-right md:text-left"
+                  >
                     <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
                       item.status === "VERIFIED"
                         ? "bg-emerald-100 text-emerald-800"
