@@ -175,7 +175,7 @@ export const getDashboardNavItems = (userRole?: string): NavItem[] => {
   ];
 
   const departmentItems: NavItem[] = [
-    { label: "Organization Onboarding", href: "/organization/onboarding", permission: "organization:view" },
+    { label: "Organization Onboarding", href: "/organization/onboarding/department", permission: "organization:view" },
     { label: "Onboarding Status", href: "/organization/onboarding/status", permission: "organization:view" },
     { label: "Create Requirement", href: "/department/requirements/create", permission: "requirement:create", featureKey: "enableRequirementCreation" },
     { label: "My Requirements", href: "/department/requirements", permission: "requirement:view", featureKey: "enableRequirementCreation" },
@@ -189,7 +189,7 @@ export const getDashboardNavItems = (userRole?: string): NavItem[] => {
   ];
 
   const companyItems: NavItem[] = [
-    { label: "Organization Onboarding", href: "/organization/onboarding", permission: "organization:view" },
+    { label: "Organization Onboarding", href: "/organization/onboarding/company", permission: "organization:view" },
     { label: "Onboarding Status", href: "/organization/onboarding/status", permission: "organization:view" },
     { label: "Project Marketplace", href: "/company/marketplace", permission: "marketplace:view", featureKey: "enableCSRMarketplace" },
     { label: "My Interests", href: "/company/interests", permission: "interest:view", featureKey: "enableCompanyInterest" },
@@ -202,7 +202,7 @@ export const getDashboardNavItems = (userRole?: string): NavItem[] => {
   ];
 
   const ngoItems: NavItem[] = [
-    { label: "Organization Onboarding", href: "/organization/onboarding", permission: "organization:view" },
+    { label: "Organization Onboarding", href: "/organization/onboarding/company", permission: "organization:view" },
     { label: "Onboarding Status", href: "/organization/onboarding/status", permission: "organization:view" },
     { label: "Proposal Requests", href: "/ngo/proposal-requests", permission: "marketplace:view", featureKey: "enableCSRMarketplace" },
     { label: "Assigned Projects", href: "/ngo/assigned-projects", permission: "project:view" },
@@ -232,22 +232,45 @@ export const getDashboardNavItems = (userRole?: string): NavItem[] => {
     { label: "Audit Trail", href: "/admin/audit-trail", permission: "audit:view" },
   ];
 
-  // Add role-specific items
-  switch (userRole) {
-    case "GOVERNMENT_OFFICER":
-    case "BENEFICIARY_AGENCY":
-      return [...baseItems, ...departmentItems];
-    case "COMPANY_ADMIN":
-    case "COMPANY_MEMBER":
-      return [...baseItems, ...companyItems];
-    case "NGO_ADMIN":
-    case "NGO_MEMBER":
-      return [...baseItems, ...ngoItems];
-    case "SUPER_ADMIN":
-    case "PORTAL_ADMIN":
-    case "CSR_ADMIN":
-      return [...baseItems, ...adminItems];
-    default:
-      return baseItems;
+  const norm = (userRole || "").toUpperCase();
+  if (
+    norm === "GOVERNMENT_OFFICER" ||
+    norm === "BENEFICIARY_AGENCY" ||
+    norm === "DEPARTMENT_ADMIN" ||
+    norm === "GOVERNMENT_DEPARTMENT" ||
+    norm === "GOVT_DEPARTMENT" ||
+    norm.includes("GOVT") ||
+    norm.includes("DEPARTMENT")
+  ) {
+    return [...baseItems, ...departmentItems];
   }
+  if (
+    norm === "COMPANY_ADMIN" ||
+    norm === "COMPANY_MEMBER" ||
+    norm === "CSR_COMPANY" ||
+    norm === "CORPORATE" ||
+    norm.includes("COMPANY") ||
+    norm.includes("CORPORATE")
+  ) {
+    return [...baseItems, ...companyItems];
+  }
+  if (
+    norm === "NGO_ADMIN" ||
+    norm === "NGO_MEMBER" ||
+    norm === "IMPLEMENTING_AGENCY" ||
+    norm.includes("NGO") ||
+    norm.includes("AGENCY")
+  ) {
+    return [...baseItems, ...ngoItems];
+  }
+  if (
+    norm === "SUPER_ADMIN" ||
+    norm === "PORTAL_ADMIN" ||
+    norm === "CSR_ADMIN" ||
+    norm.includes("ADMIN")
+  ) {
+    return [...baseItems, ...adminItems];
+  }
+
+  return baseItems;
 };

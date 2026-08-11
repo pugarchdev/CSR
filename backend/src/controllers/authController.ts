@@ -590,6 +590,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 
     const user = {
       ...userRecord,
+      orgKind: userRecord.organization?.kind || null,
       roleNumericId: userRecord.roleId,
       roleSlug,
       role: roleName
@@ -639,6 +640,7 @@ export const me = async (req: any, res: Response, next: NextFunction) => {
 
     const user = {
       ...userRecord,
+      orgKind: userRecord.organization?.kind || null,
       roleNumericId: userRecord.roleId,
       roleSlug,
       role: roleName
