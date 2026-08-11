@@ -195,7 +195,34 @@ const initialForm: FormState = {
 };
 
 export default function OnboardingPage() {
-  const [currentStep, setCurrentStep] = useState(0); // Start from Account & Contact
+  const [currentStep, setCurrentStepState] = useState<number>(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const stepParam = params.get("step");
+      if (stepParam !== null && !isNaN(Number(stepParam))) {
+        const idx = Number(stepParam);
+        if (idx >= 0 && idx < onboardingSteps.length) return idx;
+      }
+      const saved = sessionStorage.getItem("ngo_onboarding_step");
+      if (saved !== null && !isNaN(Number(saved))) {
+        const idx = Number(saved);
+        if (idx >= 0 && idx < onboardingSteps.length) return idx;
+      }
+    }
+    return 0;
+  });
+
+  const setCurrentStep = (indexOrFn: number | ((prev: number) => number)) => {
+    const index = typeof indexOrFn === "function" ? indexOrFn(currentStep) : indexOrFn;
+    setCurrentStepState(index);
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("ngo_onboarding_step", String(index));
+      const url = new URL(window.location.href);
+      url.searchParams.set("step", String(index));
+      window.history.replaceState({}, "", url.toString());
+    }
+  };
+
   const [form, setForm] = useState<FormState>(initialForm);
 
   useEffect(() => {
@@ -1898,7 +1925,7 @@ export default function OnboardingPage() {
                 <GovButton
                   variant="secondary"
                   disabled={currentStep === 0}
-                  onClick={() => setCurrentStep((s) => Math.max(0, s - 1))}
+                  onClick={() => setCurrentStep((s: number) => Math.max(0, s - 1))}
                 >
                   Previous
                 </GovButton>
@@ -1915,7 +1942,7 @@ export default function OnboardingPage() {
                 ) : (
                   <GovButton
                     variant="primary"
-                    onClick={() => setCurrentStep((s) => Math.min(onboardingSteps.length - 1, s + 1))}
+                    onClick={() => setCurrentStep((s: number) => Math.min(onboardingSteps.length - 1, s + 1))}
                   >
                     Save & Continue
                   </GovButton>

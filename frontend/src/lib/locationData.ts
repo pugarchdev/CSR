@@ -9,250 +9,971 @@ export interface StateInfo {
   districts: DistrictInfo[];
 }
 
+const createDistrict = (name: string, cities?: string[], talukas?: string[]): DistrictInfo => ({
+  name,
+  cities: cities && cities.length > 0 ? cities : [name],
+  talukas: talukas && talukas.length > 0 ? talukas : [name]
+});
+
 export const locationData: StateInfo[] = [
   {
     name: "Maharashtra",
     districts: [
-      {
-        name: "Pune",
-        cities: ["Pune City", "Pimpri-Chinchwad", "Lonavala", "Baramati", "Shirur", "Chakan"],
-        talukas: ["Haveli", "Mulshi", "Maval", "Shirur", "Baramati", "Indapur", "Khed", "Junner", "Ambegaon", "Purandhar", "Bhor", "Velhe", "Daund"]
-      },
-      {
-        name: "Nagpur",
-        cities: ["Nagpur City", "Kamptee", "Umred", "Katol"],
-        talukas: ["Nagpur Rural", "Nagpur Urban", "Kamptee", "Ramtek", "Hingna", "Katol", "Kalmeshwar", "Savner", "Parseoni", "Mauda", "Umred", "Bhiwapur", "Kuhi"]
-      },
-      {
-        name: "Thane",
-        cities: ["Thane City", "Kalyan-Dombivli", "Ulhasnagar", "Ambarnath", "Bhiwandi", "Mira-Bhayandar"],
-        talukas: ["Thane", "Kalyan", "Murbad", "Bhiwandi", "Shahapur", "Ulhasnagar", "Ambernath"]
-      },
-      {
-        name: "Mumbai City",
-        cities: ["Mumbai City"],
-        talukas: ["Mumbai City"]
-      },
-      {
-        name: "Mumbai Suburban",
-        cities: ["Andheri", "Borivali", "Kurla", "Bandra", "Ghatkopar"],
-        talukas: ["Andheri", "Borivali", "Kurla"]
-      },
-      {
-        name: "Nashik",
-        cities: ["Nashik City", "Malegaon", "Manmad", "Sinnar"],
-        talukas: ["Nashik", "Sinnar", "Igatpuri", "Dindori", "Peth", "Trimbakeshwar", "Kalwan", "Surgana", "Baglan", "Malegaon", "Chandwad", "Nandgaon", "Yeola", "Niphad", "Deola"]
-      },
-      {
-        name: "Aurangabad",
-        cities: ["Aurangabad City", "Vaijapur", "Kannad", "Sillod"],
-        talukas: ["Aurangabad", "Kannad", "Soegaon", "Sillod", "Phulambri", "Khuldabad", "Vaijapur", "Gangapur", "Paithan"]
-      },
-      {
-        name: "Amravati",
-        cities: ["Amravati City", "Achalpur", "Morshi"],
-        talukas: ["Amravati", "Bhatkuli", "Nandgaon Khandeshwar", "Dharni", "Chikhaldara", "Achalpur", "Chandurbazar", "Morshi", "Warud", "Daryapur", "Anjangaon Surji", "Chandur Railway", "Dhamangaon Railway", "Teosa"]
-      },
-      {
-        name: "Kolhapur",
-        cities: ["Kolhapur City", "Ichalkaranji", "Kagal"],
-        talukas: ["Karvir", "Panhala", "Shahuwadi", "Kagal", "Hatkanangle", "Shirol", "Radhanagari", "Gaganbawada", "Bhudaragad", "Ajara", "Gadhinglaj", "Chandgad"]
-      },
-      {
-        name: "Gadchiroli",
-        cities: ["Gadchiroli", "Desaiganj", "Aheri"],
-        talukas: ["Gadchiroli", "Dhanora", "Chamorshi", "Mulchera", "Aheri", "Sironcha", "Etapalli", "Bhamragad", "Kurkheda", "Korchi", "Armori", "Desaiganj"]
-      },
-      {
-        name: "Ahmednagar",
-        cities: ["Ahmednagar City", "Sangamner", "Kopargaon", "Shrirampur"],
-        talukas: ["Nagar", "Rahuri", "Sangamner", "Kopargaon", "Shrirampur", "Nevasa", "Shevgaon", "Pathardi", "Parner", "Akole", "Jamkhed", "Karjat", "Shrigonda", "Rahata"]
-      },
-      {
-        name: "Akola",
-        cities: ["Akola City", "Akot"],
-        talukas: ["Akola", "Akot", "Telhara", "Balapur", "Patur", "Barshitakli", "Murtizapur"]
-      },
-      {
-        name: "Beed",
-        cities: ["Beed City", "Parli", "Ambejogai"],
-        talukas: ["Beed", "Ashti", "Gevrai", "Kaij", "Majalgaon", "Parli", "Patoda", "Shirur", "Wadwani", "Ambajogai", "Dharur"]
-      },
-      {
-        name: "Bhandara",
-        cities: ["Bhandara City", "Tumsar"],
-        talukas: ["Bhandara", "Tumsar", "Pawni", "Mohadi", "Sakoli", "Lakhani", "Lakhandur"]
-      },
-      {
-        name: "Buldhana",
-        cities: ["Buldhana City", "Khamgaon", "Malkapur", "Shegaon"],
-        talukas: ["Buldhana", "Chikhli", "Deulgaon Raja", "Jalgaon Jamod", "Sangrampur", "Malkapur", "Motala", "Nandura", "Khamgaon", "Shegaon", "Mehkar", "Sindkhed Raja", "Lonar"]
-      },
-      {
-        name: "Chandrapur",
-        cities: ["Chandrapur City", "Ballarpur", "Warora"],
-        talukas: ["Chandrapur", "Bhadravati", "Warora", "Chimur", "Nagbhid", "Brahmapuri", "Sindewahi", "Mul", "Sawali", "Gondpipri", "Korpana", "Rajura", "Jiwanati", "Ballarpur", "Pombhurna"]
-      },
-      {
-        name: "Dhule",
-        cities: ["Dhule City", "Shirpur", "Dondaicha"],
-        talukas: ["Dhule", "Sakri", "Sindkhede", "Shirpur"]
-      },
-      {
-        name: "Gondia",
-        cities: ["Gondia City", "Tirora"],
-        talukas: ["Gondia", "Tirora", "Goregaon", "Arjuni Morgaon", "Amgaon", "Salekasa", "Sadak Arjuni", "Deori"]
-      },
-      {
-        name: "Hingoli",
-        cities: ["Hingoli City", "Basmath"],
-        talukas: ["Hingoli", "Kalamnuri", "Sengaon", "Basmath", "Aundha Nagnath"]
-      },
-      {
-        name: "Jalgaon",
-        cities: ["Jalgaon City", "Bhusawal", "Chalisgaon", "Amalner"],
-        talukas: ["Jalgaon", "Jamner", "Erandol", "Dharangaon", "Bhadgaon", "Chalisgaon", "Pachora", "Bhusawal", "Yawal", "Raver", "Muktainagar", "Bodwad", "Amalner", "Chopda", "Parola"]
-      },
-      {
-        name: "Jalna",
-        cities: ["Jalna City", "Ambad", "Bhokardan"],
-        talukas: ["Jalna", "Badnapur", "Bhokardan", "Jafrabad", "Ambad", "Ghansawangi", "Partur", "Mantha"]
-      },
-      {
-        name: "Latur",
-        cities: ["Latur City", "Udgir", "Ausa"],
-        talukas: ["Latur", "Renapur", "Ahmedpur", "Jalkot", "Chakur", "Shirur Anantpal", "Ausa", "Nilanga", "Udgir", "Deoni"]
-      },
-      {
-        name: "Nanded",
-        cities: ["Nanded-Waghala", "Degloor", "Loha"],
-        talukas: ["Nanded", "Ardhapur", "Bhokar", "Mudkhed", "Hadgaon", "Himayatnagar", "Kinwat", "Mahoor", "Loha", "Kandhar", "Mukhed", "Degloor", "Biloli", "Dharmabad", "Naigaon", "Umri"]
-      },
-      {
-        name: "Nandurbar",
-        cities: ["Nandurbar City", "Shahada"],
-        talukas: ["Nandurbar", "Navapur", "Shahada", "Taloda", "Akkalkuwa", "Akrani"]
-      },
-      {
-        name: "Osmanabad",
-        cities: ["Osmanabad City", "Tuljapur", "Omerga"],
-        talukas: ["Osmanabad", "Tuljapur", "Bhumi", "Paranda", "Washi", "Kalamb", "Omerga", "Lohara"]
-      },
-      {
-        name: "Palghar",
-        cities: ["Palghar City", "Virar", "Vasai", "Dahanu"],
-        talukas: ["Palghar", "Vasai", "Dahanu", "Talasari", "Jawhar", "Mokhada", "Wada", "Vikramgad"]
-      },
-      {
-        name: "Parbhani",
-        cities: ["Parbhani City", "Gangakhed", "Sailu"],
-        talukas: ["Parbhani", "Jintur", "Sailu", "Manwath", "Pathri", "Sonpeth", "Gangakhed", "Palam", "Purna"]
-      },
-      {
-        name: "Raigad",
-        cities: ["Alibag", "Panvel", "Khopoli", "Karjat", "Pen", "Mahad"],
-        talukas: ["Pen", "Alibag", "Murud", "Panvel", "Urana", "Karjat", "Khalapur", "Mangaon", "Tala", "Roha", "Sudhagad", "Mahad", "Poladpur", "Shrivardhan", "Mhasala"]
-      },
-      {
-        name: "Ratnagiri",
-        cities: ["Ratnagiri City", "Chiplun", "Dapoli"],
-        talukas: ["Ratnagiri", "Sangameshwar", "Lanja", "Rajapur", "Chiplun", "Guhagar", "Dapoli", "Mandangad", "Khed"]
-      },
-      {
-        name: "Sangli",
-        cities: ["Sangli City", "Miraj", "Vita", "Islampur"],
-        talukas: ["Miraj", "Tasgaon", "Khanapur", "Atpadi", "Kavathemahankal", "Jat", "Walwa", "Shirala", "Kadegaon", "Palus"]
-      },
-      {
-        name: "Satara",
-        cities: ["Satara City", "Karad", "Phaltan", "Wai"],
-        talukas: ["Satara", "Koregaon", "Wai", "Mahabaleshwar", "Khandala", "Phaltan", "Man", "Khatav", "Karad", "Patan", "Jaoli"]
-      },
-      {
-        name: "Sindhudurg",
-        cities: ["Sawantwadi", "Malvan", "Kudal"],
-        talukas: ["Sawantwadi", "Kudal", "Vengurla", "Malvan", "Devgad", "Kankavali", "Vaibhavwadi", "Dodamarg"]
-      },
-      {
-        name: "Solapur",
-        cities: ["Solapur City", "Pandharpur", "Barshi"],
-        talukas: ["Solapur North", "Solapur South", "Akkalkot", "South Solapur", "Barshi", "Mohol", "Madha", "Karmala", "Sangola", "Malshiras", "Pandharpur", "Mangalvedhe"]
-      },
-      {
-        name: "Wardha",
-        cities: ["Wardha City", "Hinganghat", "Arvi"],
-        talukas: ["Wardha", "Deoli", "Seloo", "Arvi", "Ashti", "Karanja", "Hinganghat", "Samudrapur"]
-      },
-      {
-        name: "Washim",
-        cities: ["Washim City", "Karanja"],
-        talukas: ["Washim", "Risod", "Malegaon", "Mangrulpir", "Karanja", "Manora"]
-      },
-      {
-        name: "Yavatmal",
-        cities: ["Yavatmal City", "Pusad", "Wani"],
-        talukas: ["Yavatmal", "Babhulgaon", "Kalamb", "Darwha", "Digras", "Pusad", "Umarkhed", "Mahagaon", "Kelapur", "Ghatanji", "Wani", "Maregaon", "Zari Jamani", "Ralegaon", "Ner", "Arni"]
-      }
+      createDistrict("Pune", ["Pune City", "Pimpri-Chinchwad", "Lonavala", "Baramati", "Shirur", "Chakan"], ["Haveli", "Mulshi", "Maval", "Shirur", "Baramati", "Indapur", "Khed", "Junner", "Ambegaon", "Purandhar", "Bhor", "Velhe", "Daund"]),
+      createDistrict("Nagpur", ["Nagpur City", "Kamptee", "Umred", "Katol"], ["Nagpur Rural", "Nagpur Urban", "Kamptee", "Ramtek", "Hingna", "Katol", "Kalmeshwar", "Savner", "Parseoni", "Mauda", "Umred", "Bhiwapur", "Kuhi"]),
+      createDistrict("Thane", ["Thane City", "Kalyan-Dombivli", "Ulhasnagar", "Ambarnath", "Bhiwandi", "Mira-Bhayandar"], ["Thane", "Kalyan", "Murbad", "Bhiwandi", "Shahapur", "Ulhasnagar", "Ambernath"]),
+      createDistrict("Mumbai City", ["Mumbai City"], ["Mumbai City"]),
+      createDistrict("Mumbai Suburban", ["Andheri", "Borivali", "Kurla", "Bandra", "Ghatkopar"], ["Andheri", "Borivali", "Kurla"]),
+      createDistrict("Nashik", ["Nashik City", "Malegaon", "Manmad", "Sinnar"], ["Nashik", "Sinnar", "Igatpuri", "Dindori", "Peth", "Trimbakeshwar", "Kalwan", "Surgana", "Baglan", "Malegaon", "Chandwad", "Nandgaon", "Yeola", "Niphad", "Deola"]),
+      createDistrict("Aurangabad", ["Aurangabad City", "Vaijapur", "Kannad", "Sillod"], ["Aurangabad", "Kannad", "Soegaon", "Sillod", "Phulambri", "Khuldabad", "Vaijapur", "Gangapur", "Paithan"]),
+      createDistrict("Amravati", ["Amravati City", "Achalpur", "Morshi"], ["Amravati", "Bhatkuli", "Nandgaon Khandeshwar", "Dharni", "Chikhaldara", "Achalpur", "Chandurbazar", "Morshi", "Warud", "Daryapur", "Anjangaon Surji", "Chandur Railway", "Dhamangaon Railway", "Teosa"]),
+      createDistrict("Kolhapur", ["Kolhapur City", "Ichalkaranji", "Kagal"], ["Karvir", "Panhala", "Shahuwadi", "Kagal", "Hatkanangle", "Shirol", "Radhanagari", "Gaganbawada", "Bhudaragad", "Ajara", "Gadhinglaj", "Chandgad"]),
+      createDistrict("Gadchiroli", ["Gadchiroli", "Desaiganj", "Aheri"], ["Gadchiroli", "Dhanora", "Chamorshi", "Mulchera", "Aheri", "Sironcha", "Etapalli", "Bhamragad", "Kurkheda", "Korchi", "Armori", "Desaiganj"]),
+      createDistrict("Ahmednagar", ["Ahmednagar City", "Sangamner", "Kopargaon", "Shrirampur"], ["Nagar", "Rahuri", "Sangamner", "Kopargaon", "Shrirampur", "Nevasa", "Shevgaon", "Pathardi", "Parner", "Akole", "Jamkhed", "Karjat", "Shrigonda", "Rahata"]),
+      createDistrict("Akola", ["Akola City", "Akot"], ["Akola", "Akot", "Telhara", "Balapur", "Patur", "Barshitakli", "Murtizapur"]),
+      createDistrict("Beed", ["Beed City", "Parli", "Ambejogai"], ["Beed", "Ashti", "Gevrai", "Kaij", "Majalgaon", "Parli", "Patoda", "Shirur", "Wadwani", "Ambajogai", "Dharur"]),
+      createDistrict("Bhandara", ["Bhandara City", "Tumsar"], ["Bhandara", "Tumsar", "Pawni", "Mohadi", "Sakoli", "Lakhani", "Lakhandur"]),
+      createDistrict("Buldhana", ["Buldhana City", "Khamgaon", "Malkapur", "Shegaon"], ["Buldhana", "Chikhli", "Deulgaon Raja", "Jalgaon Jamod", "Sangrampur", "Malkapur", "Motala", "Nandura", "Khamgaon", "Shegaon", "Mehkar", "Sindkhed Raja", "Lonar"]),
+      createDistrict("Chandrapur", ["Chandrapur City", "Ballarpur", "Warora"], ["Chandrapur", "Bhadravati", "Warora", "Chimur", "Nagbhid", "Brahmapuri", "Sindewahi", "Mul", "Sawali", "Gondpipri", "Korpana", "Rajura", "Jiwanati", "Ballarpur", "Pombhurna"]),
+      createDistrict("Dhule", ["Dhule City", "Shirpur", "Dondaicha"], ["Dhule", "Sakri", "Sindkhede", "Shirpur"]),
+      createDistrict("Gondia", ["Gondia City", "Tirora"], ["Gondia", "Tirora", "Goregaon", "Arjuni Morgaon", "Amgaon", "Salekasa", "Sadak Arjuni", "Deori"]),
+      createDistrict("Hingoli", ["Hingoli City", "Basmath"], ["Hingoli", "Kalamnuri", "Sengaon", "Basmath", "Aundha Nagnath"]),
+      createDistrict("Jalgaon", ["Jalgaon City", "Bhusawal", "Chalisgaon", "Amalner"], ["Jalgaon", "Jamner", "Erandol", "Dharangaon", "Bhadgaon", "Chalisgaon", "Pachora", "Bhusawal", "Yawal", "Raver", "Muktainagar", "Bodwad", "Amalner", "Chopda", "Parola"]),
+      createDistrict("Jalna", ["Jalna City", "Ambad", "Bhokardan"], ["Jalna", "Badnapur", "Bhokardan", "Jafrabad", "Ambad", "Ghansawangi", "Partur", "Mantha"]),
+      createDistrict("Latur", ["Latur City", "Udgir", "Ausa"], ["Latur", "Renapur", "Ahmedpur", "Jalkot", "Chakur", "Shirur Anantpal", "Ausa", "Nilanga", "Udgir", "Deoni"]),
+      createDistrict("Nanded", ["Nanded-Waghala", "Degloor", "Loha"], ["Nanded", "Ardhapur", "Bhokar", "Mudkhed", "Hadgaon", "Himayatnagar", "Kinwat", "Mahoor", "Loha", "Kandhar", "Mukhed", "Degloor", "Biloli", "Dharmabad", "Naigaon", "Umri"]),
+      createDistrict("Nandurbar", ["Nandurbar City", "Shahada"], ["Nandurbar", "Navapur", "Shahada", "Taloda", "Akkalkuwa", "Akrani"]),
+      createDistrict("Osmanabad", ["Osmanabad City", "Tuljapur", "Omerga"], ["Osmanabad", "Tuljapur", "Bhumi", "Paranda", "Washi", "Kalamb", "Omerga", "Lohara"]),
+      createDistrict("Palghar", ["Palghar City", "Virar", "Vasai", "Dahanu"], ["Palghar", "Vasai", "Dahanu", "Talasari", "Jawhar", "Mokhada", "Wada", "Vikramgad"]),
+      createDistrict("Parbhani", ["Parbhani City", "Gangakhed", "Sailu"], ["Parbhani", "Jintur", "Sailu", "Manwath", "Pathri", "Sonpeth", "Gangakhed", "Palam", "Purna"]),
+      createDistrict("Raigad", ["Alibag", "Panvel", "Khopoli", "Karjat", "Pen", "Mahad"], ["Pen", "Alibag", "Murud", "Panvel", "Urana", "Karjat", "Khalapur", "Mangaon", "Tala", "Roha", "Sudhagad", "Mahad", "Poladpur", "Shrivardhan", "Mhasala"]),
+      createDistrict("Ratnagiri", ["Ratnagiri City", "Chiplun", "Dapoli"], ["Ratnagiri", "Sangameshwar", "Lanja", "Rajapur", "Chiplun", "Guhagar", "Dapoli", "Mandangad", "Khed"]),
+      createDistrict("Sangli", ["Sangli City", "Miraj", "Vita", "Islampur"], ["Miraj", "Tasgaon", "Khanapur", "Atpadi", "Kavathemahankal", "Jat", "Walwa", "Shirala", "Kadegaon", "Palus"]),
+      createDistrict("Satara", ["Satara City", "Karad", "Phaltan", "Wai"], ["Satara", "Koregaon", "Wai", "Mahabaleshwar", "Khandala", "Phaltan", "Man", "Khatav", "Karad", "Patan", "Jaoli"]),
+      createDistrict("Sindhudurg", ["Sawantwadi", "Malvan", "Kudal"], ["Sawantwadi", "Kudal", "Vengurla", "Malvan", "Devgad", "Kankavali", "Vaibhavwadi", "Dodamarg"]),
+      createDistrict("Solapur", ["Solapur City", "Pandharpur", "Barshi"], ["Solapur North", "Solapur South", "Akkalkot", "South Solapur", "Barshi", "Mohol", "Madha", "Karmala", "Sangola", "Malshiras", "Pandharpur", "Mangalvedhe"]),
+      createDistrict("Wardha", ["Wardha City", "Hinganghat", "Arvi"], ["Wardha", "Deoli", "Seloo", "Arvi", "Ashti", "Karanja", "Hinganghat", "Samudrapur"]),
+      createDistrict("Washim", ["Washim City", "Karanja"], ["Washim", "Risod", "Malegaon", "Mangrulpir", "Karanja", "Manora"]),
+      createDistrict("Yavatmal", ["Yavatmal City", "Pusad", "Wani"], ["Yavatmal", "Babhulgaon", "Kalamb", "Darwha", "Digras", "Pusad", "Umarkhed", "Mahagaon", "Kelapur", "Ghatanji", "Wani", "Maregaon", "Zari Jamani", "Ralegaon", "Ner", "Arni"])
     ]
   },
   {
     name: "Gujarat",
     districts: [
-      {
-        name: "Ahmedabad",
-        cities: ["Ahmedabad City", "Bavla", "Sanand"],
-        talukas: ["Ahmedabad City", "Bavla", "Daskroi", "Detroj-Rampura", "Dhandhuka", "Dholera", "Dholka", "Mandal", "Sanand", "Viramgam"]
-      },
-      {
-        name: "Surat",
-        cities: ["Surat City", "Vyara", "Bardoli"],
-        talukas: ["Bardoli", "Choryasi", "Kamrej", "Mahuva", "Mandvi", "Mangrol", "Olpad", "Palasana", "Surat City", "Umarpada"]
-      },
-      {
-        name: "Vadodara",
-        cities: ["Vadodara City", "Dabhoi", "Padra"],
-        talukas: ["Vadodara", "Dabhoi", "Karjan", "Padra", "Savli", "Sinor", "Waghodia"]
-      },
-      {
-        name: "Rajkot",
-        cities: ["Rajkot City", "Gondal", "Jetpur"],
-        talukas: ["Rajkot City", "Gondal", "Jetpur", "Dhoraji", "Kotda Sangani", "Lodhika", "Paddhari", "Jasdan", "Vinchhiya", "Upleta"]
-      }
+      createDistrict("Ahmedabad", ["Ahmedabad City", "Bavla", "Sanand"], ["Ahmedabad City", "Bavla", "Daskroi", "Detroj-Rampura", "Dhandhuka", "Dholera", "Dholka", "Mandal", "Sanand", "Viramgam"]),
+      createDistrict("Surat", ["Surat City", "Vyara", "Bardoli"], ["Bardoli", "Choryasi", "Kamrej", "Mahuva", "Mandvi", "Mangrol", "Olpad", "Palasana", "Surat City", "Umarpada"]),
+      createDistrict("Vadodara", ["Vadodara City", "Dabhoi", "Padra"], ["Vadodara", "Dabhoi", "Karjan", "Padra", "Savli", "Sinor", "Waghodia"]),
+      createDistrict("Rajkot", ["Rajkot City", "Gondal", "Jetpur"], ["Rajkot City", "Gondal", "Jetpur", "Dhoraji", "Kotda Sangani", "Lodhika", "Paddhari", "Jasdan", "Vinchhiya", "Upleta"]),
+      createDistrict("Amreli"),
+      createDistrict("Anand"),
+      createDistrict("Aravalli"),
+      createDistrict("Banaskantha"),
+      createDistrict("Bharuch"),
+      createDistrict("Bhavnagar"),
+      createDistrict("Botad"),
+      createDistrict("Chhota Udaipur"),
+      createDistrict("Dahod"),
+      createDistrict("Dang"),
+      createDistrict("Devbhumi Dwarka"),
+      createDistrict("Gandhinagar"),
+      createDistrict("Gir Somnath"),
+      createDistrict("Jamnagar"),
+      createDistrict("Junagadh"),
+      createDistrict("Kheda"),
+      createDistrict("Kutch"),
+      createDistrict("Mahisagar"),
+      createDistrict("Mehsana"),
+      createDistrict("Morbi"),
+      createDistrict("Narmada"),
+      createDistrict("Navsari"),
+      createDistrict("Panchmahal"),
+      createDistrict("Patan"),
+      createDistrict("Porbandar"),
+      createDistrict("Sabarkantha"),
+      createDistrict("Surendranagar"),
+      createDistrict("Tapi"),
+      createDistrict("Valsad")
     ]
   },
   {
     name: "Karnataka",
     districts: [
-      {
-        name: "Bengaluru Urban",
-        cities: ["Bengaluru", "Yelahanka", "Anekal"],
-        talukas: ["Bengaluru North", "Bengaluru South", "Bengaluru East", "Anekal", "Yelahanka"]
-      },
-      {
-        name: "Mysore",
-        cities: ["Mysore City", "Hunsur", "Nanjangud"],
-        talukas: ["Mysore", "Hunsur", "KR Nagar", "Nanjangud", "HD Kote", "T Narasipura", "Piriyapatna", "Saragur"]
-      },
-      {
-        name: "Dharwad",
-        cities: ["Hubli", "Dharwad", "Kundgol"],
-        talukas: ["Dharwad", "Hubli", "Hubli Rural", "Kundgol", "Navalgund", "Kalghatgi", "Alnavar", "Annigeri"]
-      }
+      createDistrict("Bengaluru Urban", ["Bengaluru", "Yelahanka", "Anekal"], ["Bengaluru North", "Bengaluru South", "Bengaluru East", "Anekal", "Yelahanka"]),
+      createDistrict("Mysore", ["Mysore City", "Hunsur", "Nanjangud"], ["Mysore", "Hunsur", "KR Nagar", "Nanjangud", "HD Kote", "T Narasipura", "Piriyapatna", "Saragur"]),
+      createDistrict("Dharwad", ["Hubli", "Dharwad", "Kundgol"], ["Dharwad", "Hubli", "Hubli Rural", "Kundgol", "Navalgund", "Kalghatgi", "Alnavar", "Annigeri"]),
+      createDistrict("Bagalkot"),
+      createDistrict("Ballari"),
+      createDistrict("Belagavi"),
+      createDistrict("Bengaluru Rural"),
+      createDistrict("Bidar"),
+      createDistrict("Chamarajanagar"),
+      createDistrict("Chikkaballapura"),
+      createDistrict("Chikkamagaluru"),
+      createDistrict("Chitradurga"),
+      createDistrict("Dakshina Kannada"),
+      createDistrict("Davanagere"),
+      createDistrict("Gadag"),
+      createDistrict("Hassan"),
+      createDistrict("Haveri"),
+      createDistrict("Kalaburagi"),
+      createDistrict("Kodagu"),
+      createDistrict("Kolar"),
+      createDistrict("Koppal"),
+      createDistrict("Mandya"),
+      createDistrict("Raichur"),
+      createDistrict("Ramanagara"),
+      createDistrict("Shivamogga"),
+      createDistrict("Tumakuru"),
+      createDistrict("Udupi"),
+      createDistrict("Uttara Kannada"),
+      createDistrict("Vijayanagara"),
+      createDistrict("Vijayapura"),
+      createDistrict("Yadgir")
     ]
   },
   {
     name: "Delhi",
     districts: [
-      {
-        name: "New Delhi",
-        cities: ["New Delhi City", "Chanakyapuri", "Connaught Place"],
-        talukas: ["Chanakyapuri", "Connaught Place", "Parliament Street"]
-      },
-      {
-        name: "South Delhi",
-        cities: ["Saket", "Hauz Khas", "Mehrauli"],
-        talukas: ["Saket", "Hauz Khas", "Mehrauli"]
-      }
+      createDistrict("New Delhi", ["New Delhi City", "Chanakyapuri", "Connaught Place"], ["Chanakyapuri", "Connaught Place", "Parliament Street"]),
+      createDistrict("South Delhi", ["Saket", "Hauz Khas", "Mehrauli"], ["Saket", "Hauz Khas", "Mehrauli"]),
+      createDistrict("Central Delhi"),
+      createDistrict("East Delhi"),
+      createDistrict("North Delhi"),
+      createDistrict("North East Delhi"),
+      createDistrict("North West Delhi"),
+      createDistrict("Shahdara"),
+      createDistrict("South East Delhi"),
+      createDistrict("South West Delhi"),
+      createDistrict("West Delhi")
+    ]
+  },
+  {
+    name: "Andhra Pradesh",
+    districts: [
+      createDistrict("Alluri Sitharama Raju"),
+      createDistrict("Anakapalli"),
+      createDistrict("Ananthapuramu"),
+      createDistrict("Annamayya"),
+      createDistrict("Bapatla"),
+      createDistrict("Chittoor"),
+      createDistrict("East Godavari"),
+      createDistrict("Eluru"),
+      createDistrict("Guntur"),
+      createDistrict("Kakinada"),
+      createDistrict("NTR"),
+      createDistrict("Nandyal"),
+      createDistrict("Palnadu"),
+      createDistrict("Parvathipuram Manyam"),
+      createDistrict("Prakasam"),
+      createDistrict("Sri Potti Sriramulu Nellore"),
+      createDistrict("Sri Sathya Sai"),
+      createDistrict("Srikakulam"),
+      createDistrict("Tirupati"),
+      createDistrict("Visakhapatnam"),
+      createDistrict("Vizianagaram"),
+      createDistrict("West Godavari"),
+      createDistrict("YSR Kadapa")
+    ]
+  },
+  {
+    name: "Arunachal Pradesh",
+    districts: [
+      createDistrict("Anjaw"),
+      createDistrict("Changlang"),
+      createDistrict("Dibang Valley"),
+      createDistrict("East Kameng"),
+      createDistrict("East Siang"),
+      createDistrict("Itanagar Capital Complex"),
+      createDistrict("Kamle"),
+      createDistrict("Kra Daadi"),
+      createDistrict("Kurung Kumey"),
+      createDistrict("Lepa Rada"),
+      createDistrict("Lohit"),
+      createDistrict("Longding"),
+      createDistrict("Lower Dibang Valley"),
+      createDistrict("Lower Subansiri"),
+      createDistrict("Namsai"),
+      createDistrict("Pakke Kessang"),
+      createDistrict("Papum Pare"),
+      createDistrict("Shi Yomi"),
+      createDistrict("Siang"),
+      createDistrict("Tawang"),
+      createDistrict("Tirap"),
+      createDistrict("Upper Siang"),
+      createDistrict("Upper Subansiri"),
+      createDistrict("West Kameng"),
+      createDistrict("West Siang")
+    ]
+  },
+  {
+    name: "Assam",
+    districts: [
+      createDistrict("Bajali"),
+      createDistrict("Baksa"),
+      createDistrict("Barpeta"),
+      createDistrict("Biswanath"),
+      createDistrict("Bongaigaon"),
+      createDistrict("Cachar"),
+      createDistrict("Charaideo"),
+      createDistrict("Chirang"),
+      createDistrict("Darrang"),
+      createDistrict("Dhemaji"),
+      createDistrict("Dhubri"),
+      createDistrict("Dibrugarh"),
+      createDistrict("Dima Hasao"),
+      createDistrict("Goalpara"),
+      createDistrict("Golaghat"),
+      createDistrict("Hailakandi"),
+      createDistrict("Hojai"),
+      createDistrict("Jorhat"),
+      createDistrict("Kamrup"),
+      createDistrict("Kamrup Metropolitan"),
+      createDistrict("Karbi Anglong"),
+      createDistrict("Karimganj"),
+      createDistrict("Kokrajhar"),
+      createDistrict("Lakhimpur"),
+      createDistrict("Majuli"),
+      createDistrict("Morigaon"),
+      createDistrict("Nagaon"),
+      createDistrict("Nalbari"),
+      createDistrict("Sivasagar"),
+      createDistrict("Sonitpur"),
+      createDistrict("South Salmara-Mankachar"),
+      createDistrict("Tamulpur"),
+      createDistrict("Tinsukia"),
+      createDistrict("Udalguri"),
+      createDistrict("West Karbi Anglong")
+    ]
+  },
+  {
+    name: "Bihar",
+    districts: [
+      createDistrict("Araria"),
+      createDistrict("Arwal"),
+      createDistrict("Aurangabad"),
+      createDistrict("Banka"),
+      createDistrict("Begusarai"),
+      createDistrict("Bhagalpur"),
+      createDistrict("Bhojpur"),
+      createDistrict("Buxar"),
+      createDistrict("Darbhanga"),
+      createDistrict("East Champaran"),
+      createDistrict("Gaya"),
+      createDistrict("Gopalganj"),
+      createDistrict("Jamui"),
+      createDistrict("Jehanabad"),
+      createDistrict("Kaimur"),
+      createDistrict("Katihar"),
+      createDistrict("Khagaria"),
+      createDistrict("Kishanganj"),
+      createDistrict("Lakhisarai"),
+      createDistrict("Madhepura"),
+      createDistrict("Madhubani"),
+      createDistrict("Munger"),
+      createDistrict("Muzaffarpur"),
+      createDistrict("Nalanda"),
+      createDistrict("Nawada"),
+      createDistrict("Patna"),
+      createDistrict("Purnia"),
+      createDistrict("Rohtas"),
+      createDistrict("Saharsa"),
+      createDistrict("Samastipur"),
+      createDistrict("Saran"),
+      createDistrict("Sheikhpura"),
+      createDistrict("Sheohar"),
+      createDistrict("Sitamarhi"),
+      createDistrict("Siwan"),
+      createDistrict("Supaul"),
+      createDistrict("Vaishali"),
+      createDistrict("West Champaran")
+    ]
+  },
+  {
+    name: "Chhattisgarh",
+    districts: [
+      createDistrict("Balod"),
+      createDistrict("Baloda Bazar"),
+      createDistrict("Balrampur"),
+      createDistrict("Bastar"),
+      createDistrict("Bemetara"),
+      createDistrict("Bijapur"),
+      createDistrict("Bilaspur"),
+      createDistrict("Dantewada"),
+      createDistrict("Dhamtari"),
+      createDistrict("Durg"),
+      createDistrict("Gariaband"),
+      createDistrict("Gaurela-Pendra-Marwahi"),
+      createDistrict("Janjgir-Champa"),
+      createDistrict("Jashpur"),
+      createDistrict("Kabirdham"),
+      createDistrict("Kanker"),
+      createDistrict("Khairagarh-Chhuikhadan-Gandai"),
+      createDistrict("Kondagaon"),
+      createDistrict("Korba"),
+      createDistrict("Koriya"),
+      createDistrict("Mahasamund"),
+      createDistrict("Manendragarh-Chirmiri-Bharatpur"),
+      createDistrict("Mohla-Manpur-Ambagarh Chowki"),
+      createDistrict("Mungeli"),
+      createDistrict("Narayanpur"),
+      createDistrict("Raigarh"),
+      createDistrict("Raipur"),
+      createDistrict("Rajnandgaon"),
+      createDistrict("Sarangarh-Bilaigarh"),
+      createDistrict("Shakti"),
+      createDistrict("Sukma"),
+      createDistrict("Surajpur"),
+      createDistrict("Surguja")
+    ]
+  },
+  {
+    name: "Goa",
+    districts: [
+      createDistrict("North Goa", ["Panaji", "Mapusa", "Bicholim"], ["Tiswadi", "Bardez", "Bicholim", "Pernem", "Sattari"]),
+      createDistrict("South Goa", ["Margao", "Vasco da Gama", "Ponda"], ["Salcete", "Mormugao", "Ponda", "Quepem", "Sanguem", "Canacona", "Dharbandora"])
+    ]
+  },
+  {
+    name: "Haryana",
+    districts: [
+      createDistrict("Ambala"),
+      createDistrict("Bhiwani"),
+      createDistrict("Charkhi Dadri"),
+      createDistrict("Faridabad"),
+      createDistrict("Fatehabad"),
+      createDistrict("Gurugram"),
+      createDistrict("Hisar"),
+      createDistrict("Jhajjar"),
+      createDistrict("Jind"),
+      createDistrict("Kaithal"),
+      createDistrict("Karnal"),
+      createDistrict("Kurukshetra"),
+      createDistrict("Mahendragarh"),
+      createDistrict("Nuh"),
+      createDistrict("Palwal"),
+      createDistrict("Panchkula"),
+      createDistrict("Panipat"),
+      createDistrict("Rewari"),
+      createDistrict("Rohtak"),
+      createDistrict("Sirsa"),
+      createDistrict("Sonipat"),
+      createDistrict("Yamunanagar")
+    ]
+  },
+  {
+    name: "Himachal Pradesh",
+    districts: [
+      createDistrict("Bilaspur"),
+      createDistrict("Chamba"),
+      createDistrict("Hamirpur"),
+      createDistrict("Kangra"),
+      createDistrict("Kinnaur"),
+      createDistrict("Kullu"),
+      createDistrict("Lahaul and Spiti"),
+      createDistrict("Mandi"),
+      createDistrict("Shimla"),
+      createDistrict("Sirmaur"),
+      createDistrict("Solan"),
+      createDistrict("Una")
+    ]
+  },
+  {
+    name: "Jharkhand",
+    districts: [
+      createDistrict("Bokaro"),
+      createDistrict("Chatra"),
+      createDistrict("Deoghar"),
+      createDistrict("Dhanbad"),
+      createDistrict("Dumka"),
+      createDistrict("East Singhbhum"),
+      createDistrict("Garhwa"),
+      createDistrict("Giridih"),
+      createDistrict("Godda"),
+      createDistrict("Gumla"),
+      createDistrict("Hazaribagh"),
+      createDistrict("Jamtara"),
+      createDistrict("Khunti"),
+      createDistrict("Koderma"),
+      createDistrict("Latehar"),
+      createDistrict("Lohardaga"),
+      createDistrict("Pakur"),
+      createDistrict("Palamu"),
+      createDistrict("Ramgarh"),
+      createDistrict("Ranchi"),
+      createDistrict("Sahibganj"),
+      createDistrict("Seraikela Kharsawan"),
+      createDistrict("Simdega"),
+      createDistrict("West Singhbhum")
+    ]
+  },
+  {
+    name: "Kerala",
+    districts: [
+      createDistrict("Alappuzha"),
+      createDistrict("Ernakulam"),
+      createDistrict("Idukki"),
+      createDistrict("Kannur"),
+      createDistrict("Kasaragod"),
+      createDistrict("Kollam"),
+      createDistrict("Kottayam"),
+      createDistrict("Kozhikode"),
+      createDistrict("Malappuram"),
+      createDistrict("Palakkad"),
+      createDistrict("Pathanamthitta"),
+      createDistrict("Thiruvananthapuram"),
+      createDistrict("Thrissur"),
+      createDistrict("Wayanad")
+    ]
+  },
+  {
+    name: "Madhya Pradesh",
+    districts: [
+      createDistrict("Agar Malwa"),
+      createDistrict("Alirajpur"),
+      createDistrict("Anuppur"),
+      createDistrict("Ashoknagar"),
+      createDistrict("Balaghat"),
+      createDistrict("Barwani"),
+      createDistrict("Betul"),
+      createDistrict("Bhind"),
+      createDistrict("Bhopal"),
+      createDistrict("Burhanpur"),
+      createDistrict("Chhatarpur"),
+      createDistrict("Chhindwara"),
+      createDistrict("Damoh"),
+      createDistrict("Datia"),
+      createDistrict("Dewas"),
+      createDistrict("Dhar"),
+      createDistrict("Dindori"),
+      createDistrict("Guna"),
+      createDistrict("Gwalior"),
+      createDistrict("Harda"),
+      createDistrict("Indore"),
+      createDistrict("Jabalpur"),
+      createDistrict("Jhabua"),
+      createDistrict("Katni"),
+      createDistrict("Khandwa"),
+      createDistrict("Khargone"),
+      createDistrict("Maihar"),
+      createDistrict("Mandla"),
+      createDistrict("Mandsaur"),
+      createDistrict("Mauganj"),
+      createDistrict("Morena"),
+      createDistrict("Narmadapuram"),
+      createDistrict("Narsinghpur"),
+      createDistrict("Neemuch"),
+      createDistrict("Niwari"),
+      createDistrict("Pandhurna"),
+      createDistrict("Panna"),
+      createDistrict("Raisen"),
+      createDistrict("Rajgarh"),
+      createDistrict("Ratlam"),
+      createDistrict("Rewa"),
+      createDistrict("Sagar"),
+      createDistrict("Satna"),
+      createDistrict("Sehore"),
+      createDistrict("Seoni"),
+      createDistrict("Shahdol"),
+      createDistrict("Shajapur"),
+      createDistrict("Sheopur"),
+      createDistrict("Shivpuri"),
+      createDistrict("Sidhi"),
+      createDistrict("Singrauli"),
+      createDistrict("Tikamgarh"),
+      createDistrict("Ujjain"),
+      createDistrict("Umaria"),
+      createDistrict("Vidisha")
+    ]
+  },
+  {
+    name: "Manipur",
+    districts: [
+      createDistrict("Bishnupur"),
+      createDistrict("Chandel"),
+      createDistrict("Churachandpur"),
+      createDistrict("Imphal East"),
+      createDistrict("Imphal West"),
+      createDistrict("Jiribam"),
+      createDistrict("Kakching"),
+      createDistrict("Kamjong"),
+      createDistrict("Kangpokpi"),
+      createDistrict("Noney"),
+      createDistrict("Pherzawl"),
+      createDistrict("Senapati"),
+      createDistrict("Tamenglong"),
+      createDistrict("Tengnoupal"),
+      createDistrict("Thoubal"),
+      createDistrict("Ukhrul")
+    ]
+  },
+  {
+    name: "Meghalaya",
+    districts: [
+      createDistrict("East Garo Hills"),
+      createDistrict("East Jaintia Hills"),
+      createDistrict("East Khasi Hills"),
+      createDistrict("Eastern West Khasi Hills"),
+      createDistrict("North Garo Hills"),
+      createDistrict("Ri Bhoi"),
+      createDistrict("South Garo Hills"),
+      createDistrict("South West Garo Hills"),
+      createDistrict("South West Khasi Hills"),
+      createDistrict("West Garo Hills"),
+      createDistrict("West Jaintia Hills"),
+      createDistrict("West Khasi Hills")
+    ]
+  },
+  {
+    name: "Mizoram",
+    districts: [
+      createDistrict("Aizawl"),
+      createDistrict("Champhai"),
+      createDistrict("Hnahthial"),
+      createDistrict("Khawzawl"),
+      createDistrict("Kolasib"),
+      createDistrict("Lawngtlai"),
+      createDistrict("Lunglei"),
+      createDistrict("Mamit"),
+      createDistrict("Saitual"),
+      createDistrict("Serchhip"),
+      createDistrict("Siaha")
+    ]
+  },
+  {
+    name: "Nagaland",
+    districts: [
+      createDistrict("Chumoukedima"),
+      createDistrict("Dimapur"),
+      createDistrict("Kiphire"),
+      createDistrict("Kohima"),
+      createDistrict("Longleng"),
+      createDistrict("Mokokchung"),
+      createDistrict("Mon"),
+      createDistrict("Niuland"),
+      createDistrict("Noklak"),
+      createDistrict("Peren"),
+      createDistrict("Phek"),
+      createDistrict("Shamator"),
+      createDistrict("Tseminyu"),
+      createDistrict("Tuensang"),
+      createDistrict("Wokha"),
+      createDistrict("Zunheboto")
+    ]
+  },
+  {
+    name: "Odisha",
+    districts: [
+      createDistrict("Angul"),
+      createDistrict("Balangir"),
+      createDistrict("Balasore"),
+      createDistrict("Bargarh"),
+      createDistrict("Bhadrak"),
+      createDistrict("Boudh"),
+      createDistrict("Cuttack"),
+      createDistrict("Deogarh"),
+      createDistrict("Dhenkanal"),
+      createDistrict("Gajapati"),
+      createDistrict("Ganjam"),
+      createDistrict("Jagatsinghpur"),
+      createDistrict("Jajpur"),
+      createDistrict("Jharsuguda"),
+      createDistrict("Kalahandi"),
+      createDistrict("Kandhamal"),
+      createDistrict("Kendrapara"),
+      createDistrict("Kendujhar"),
+      createDistrict("Khordha"),
+      createDistrict("Koraput"),
+      createDistrict("Malkangiri"),
+      createDistrict("Mayurbhanj"),
+      createDistrict("Nabarangpur"),
+      createDistrict("Nayagarh"),
+      createDistrict("Nuapada"),
+      createDistrict("Puri"),
+      createDistrict("Rayagada"),
+      createDistrict("Sambalpur"),
+      createDistrict("Subarnapur"),
+      createDistrict("Sundergarh")
+    ]
+  },
+  {
+    name: "Punjab",
+    districts: [
+      createDistrict("Amritsar"),
+      createDistrict("Barnala"),
+      createDistrict("Bathinda"),
+      createDistrict("Faridkot"),
+      createDistrict("Fatehgarh Sahib"),
+      createDistrict("Fazilka"),
+      createDistrict("Firozpur"),
+      createDistrict("Gurdaspur"),
+      createDistrict("Hoshiarpur"),
+      createDistrict("Jalandhar"),
+      createDistrict("Kapurthala"),
+      createDistrict("Ludhiana"),
+      createDistrict("Malerkotla"),
+      createDistrict("Mansa"),
+      createDistrict("Moga"),
+      createDistrict("Pathankot"),
+      createDistrict("Patiala"),
+      createDistrict("Rupnagar"),
+      createDistrict("Sahibzada Ajit Singh Nagar"),
+      createDistrict("Shaheed Bhagat Singh Nagar"),
+      createDistrict("Sri Muktsar Sahib"),
+      createDistrict("Tarn Taran")
+    ]
+  },
+  {
+    name: "Rajasthan",
+    districts: [
+      createDistrict("Ajmer"),
+      createDistrict("Alwar"),
+      createDistrict("Anupgarh"),
+      createDistrict("Balotra"),
+      createDistrict("Banswara"),
+      createDistrict("Baran"),
+      createDistrict("Barmer"),
+      createDistrict("Beawar"),
+      createDistrict("Bharatpur"),
+      createDistrict("Bhilwara"),
+      createDistrict("Bikaner"),
+      createDistrict("Bundi"),
+      createDistrict("Chittorgarh"),
+      createDistrict("Churu"),
+      createDistrict("Dausa"),
+      createDistrict("Deeg"),
+      createDistrict("Dholpur"),
+      createDistrict("Didwana-Kuchaman"),
+      createDistrict("Dudu"),
+      createDistrict("Dungarpur"),
+      createDistrict("Gangapur City"),
+      createDistrict("Hanumangarh"),
+      createDistrict("Jaipur"),
+      createDistrict("Jaipur Gramin"),
+      createDistrict("Jaisalmer"),
+      createDistrict("Jalore"),
+      createDistrict("Jhalawar"),
+      createDistrict("Jhunjhunu"),
+      createDistrict("Jodhpur"),
+      createDistrict("Jodhpur Gramin"),
+      createDistrict("Karauli"),
+      createDistrict("Kekri"),
+      createDistrict("Khairthal-Tijara"),
+      createDistrict("Kota"),
+      createDistrict("Kotputli-Behror"),
+      createDistrict("Nagaur"),
+      createDistrict("Neem Ka Thana"),
+      createDistrict("Pali"),
+      createDistrict("Phalodi"),
+      createDistrict("Pratapgarh"),
+      createDistrict("Rajsamand"),
+      createDistrict("Salumbar"),
+      createDistrict("Sanchore"),
+      createDistrict("Sawai Madhopur"),
+      createDistrict("Shahpura"),
+      createDistrict("Sikar"),
+      createDistrict("Sirohi"),
+      createDistrict("Sri Ganganagar"),
+      createDistrict("Tonk"),
+      createDistrict("Udaipur")
+    ]
+  },
+  {
+    name: "Sikkim",
+    districts: [
+      createDistrict("Gangtok"),
+      createDistrict("Gyalshing"),
+      createDistrict("Mangan"),
+      createDistrict("Namchi"),
+      createDistrict("Pakyong"),
+      createDistrict("Soreng")
+    ]
+  },
+  {
+    name: "Tamil Nadu",
+    districts: [
+      createDistrict("Ariyalur"),
+      createDistrict("Chengalpattu"),
+      createDistrict("Chennai"),
+      createDistrict("Coimbatore"),
+      createDistrict("Cuddalore"),
+      createDistrict("Dharmapuri"),
+      createDistrict("Dindigul"),
+      createDistrict("Erode"),
+      createDistrict("Kallakurichi"),
+      createDistrict("Kanchipuram"),
+      createDistrict("Kanyakumari"),
+      createDistrict("Karur"),
+      createDistrict("Krishnagiri"),
+      createDistrict("Madurai"),
+      createDistrict("Mayiladuthurai"),
+      createDistrict("Nagapattinam"),
+      createDistrict("Namakkal"),
+      createDistrict("Nilgiris"),
+      createDistrict("Perambalur"),
+      createDistrict("Pudukkottai"),
+      createDistrict("Ramanathapuram"),
+      createDistrict("Ranipet"),
+      createDistrict("Salem"),
+      createDistrict("Sivaganga"),
+      createDistrict("Tenkasi"),
+      createDistrict("Thanjavur"),
+      createDistrict("Theni"),
+      createDistrict("Thoothukudi"),
+      createDistrict("Tiruchirappalli"),
+      createDistrict("Tirunelveli"),
+      createDistrict("Tirupathur"),
+      createDistrict("Tiruppur"),
+      createDistrict("Tiruvallur"),
+      createDistrict("Tiruvannamalai"),
+      createDistrict("Tiruvarur"),
+      createDistrict("Vellore"),
+      createDistrict("Viluppuram"),
+      createDistrict("Virudhunagar")
+    ]
+  },
+  {
+    name: "Telangana",
+    districts: [
+      createDistrict("Adilabad"),
+      createDistrict("Bhadradri Kothagudem"),
+      createDistrict("Hanamkonda"),
+      createDistrict("Hyderabad"),
+      createDistrict("Jagtial"),
+      createDistrict("Jangaon"),
+      createDistrict("Jayashankar Bhupalpally"),
+      createDistrict("Jogulamba Gadwal"),
+      createDistrict("Kamareddy"),
+      createDistrict("Karimnagar"),
+      createDistrict("Khammam"),
+      createDistrict("Kumuram Bheem Asifabad"),
+      createDistrict("Mahabubabad"),
+      createDistrict("Mahabubnagar"),
+      createDistrict("Mancherial"),
+      createDistrict("Medak"),
+      createDistrict("Medchal-Malkajgiri"),
+      createDistrict("Mulugu"),
+      createDistrict("Nagarkurnool"),
+      createDistrict("Nalgonda"),
+      createDistrict("Narayanpet"),
+      createDistrict("Nirmal"),
+      createDistrict("Nizamabad"),
+      createDistrict("Peddapalli"),
+      createDistrict("Rajanna Sircilla"),
+      createDistrict("Ranga Reddy"),
+      createDistrict("Sangareddy"),
+      createDistrict("Siddipet"),
+      createDistrict("Suryapet"),
+      createDistrict("Vikarabad"),
+      createDistrict("Wanaparthy"),
+      createDistrict("Warangal"),
+      createDistrict("Yadadri Bhuvanagiri")
+    ]
+  },
+  {
+    name: "Tripura",
+    districts: [
+      createDistrict("Dhalai"),
+      createDistrict("Gomati"),
+      createDistrict("Khowai"),
+      createDistrict("North Tripura"),
+      createDistrict("Sepahijala"),
+      createDistrict("South Tripura"),
+      createDistrict("Unakoti"),
+      createDistrict("West Tripura")
+    ]
+  },
+  {
+    name: "Uttar Pradesh",
+    districts: [
+      createDistrict("Agra"),
+      createDistrict("Aligarh"),
+      createDistrict("Ambedkar Nagar"),
+      createDistrict("Amethi"),
+      createDistrict("Amroha"),
+      createDistrict("Auraiya"),
+      createDistrict("Ayodhya"),
+      createDistrict("Azamgarh"),
+      createDistrict("Baghpat"),
+      createDistrict("Bahraich"),
+      createDistrict("Ballia"),
+      createDistrict("Balrampur"),
+      createDistrict("Banda"),
+      createDistrict("Barabanki"),
+      createDistrict("Bareilly"),
+      createDistrict("Basti"),
+      createDistrict("Bhadohi"),
+      createDistrict("Bijnor"),
+      createDistrict("Budaun"),
+      createDistrict("Bulandshahr"),
+      createDistrict("Chandauli"),
+      createDistrict("Chitrakoot"),
+      createDistrict("Deoria"),
+      createDistrict("Etah"),
+      createDistrict("Etawah"),
+      createDistrict("Farrukhabad"),
+      createDistrict("Fatehpur"),
+      createDistrict("Firozabad"),
+      createDistrict("Gautam Buddha Nagar"),
+      createDistrict("Ghaziabad"),
+      createDistrict("Ghazipur"),
+      createDistrict("Gonda"),
+      createDistrict("Gorakhpur"),
+      createDistrict("Hamirpur"),
+      createDistrict("Hapur"),
+      createDistrict("Hardoi"),
+      createDistrict("Hathras"),
+      createDistrict("Jalaun"),
+      createDistrict("Jaunpur"),
+      createDistrict("Jhansi"),
+      createDistrict("Kannauj"),
+      createDistrict("Kanpur Dehat"),
+      createDistrict("Kanpur Nagar"),
+      createDistrict("Kasganj"),
+      createDistrict("Kaushambi"),
+      createDistrict("Lakhimpur Kheri"),
+      createDistrict("Lalitpur"),
+      createDistrict("Lucknow"),
+      createDistrict("Maharajganj"),
+      createDistrict("Mahoba"),
+      createDistrict("Mainpuri"),
+      createDistrict("Mathura"),
+      createDistrict("Mau"),
+      createDistrict("Meerut"),
+      createDistrict("Mirzapur"),
+      createDistrict("Moradabad"),
+      createDistrict("Muzaffarnagar"),
+      createDistrict("Pilibhit"),
+      createDistrict("Pratapgarh"),
+      createDistrict("Prayagraj"),
+      createDistrict("Raebareli"),
+      createDistrict("Rampur"),
+      createDistrict("Saharanpur"),
+      createDistrict("Sambhal"),
+      createDistrict("Sant Kabir Nagar"),
+      createDistrict("Shahjahanpur"),
+      createDistrict("Shamli"),
+      createDistrict("Shravasti"),
+      createDistrict("Siddharthnagar"),
+      createDistrict("Sitapur"),
+      createDistrict("Sonbhadra"),
+      createDistrict("Sultanpur"),
+      createDistrict("Unnao"),
+      createDistrict("Varanasi")
+    ]
+  },
+  {
+    name: "Uttarakhand",
+    districts: [
+      createDistrict("Almora"),
+      createDistrict("Bageshwar"),
+      createDistrict("Chamoli"),
+      createDistrict("Champawat"),
+      createDistrict("Dehradun"),
+      createDistrict("Haridwar"),
+      createDistrict("Nainital"),
+      createDistrict("Pauri Garhwal"),
+      createDistrict("Pithoragarh"),
+      createDistrict("Rudraprayag"),
+      createDistrict("Tehri Garhwal"),
+      createDistrict("Udham Singh Nagar"),
+      createDistrict("Uttarkashi")
+    ]
+  },
+  {
+    name: "West Bengal",
+    districts: [
+      createDistrict("Alipurduar"),
+      createDistrict("Bankura"),
+      createDistrict("Birbhum"),
+      createDistrict("Cooch Behar"),
+      createDistrict("Dakshin Dinajpur"),
+      createDistrict("Darjeeling"),
+      createDistrict("Hooghly"),
+      createDistrict("Howrah"),
+      createDistrict("Jalpaiguri"),
+      createDistrict("Jhargram"),
+      createDistrict("Kalimpong"),
+      createDistrict("Kolkata"),
+      createDistrict("Malda"),
+      createDistrict("Murshidabad"),
+      createDistrict("Nadia"),
+      createDistrict("North 24 Parganas"),
+      createDistrict("Paschim Bardhaman"),
+      createDistrict("Paschim Medinipur"),
+      createDistrict("Purba Bardhaman"),
+      createDistrict("Purba Medinipur"),
+      createDistrict("Purulia"),
+      createDistrict("South 24 Parganas"),
+      createDistrict("Uttar Dinajpur")
+    ]
+  },
+  {
+    name: "Andaman and Nicobar Islands",
+    districts: [
+      createDistrict("Nicobar"),
+      createDistrict("North and Middle Andaman"),
+      createDistrict("South Andaman")
+    ]
+  },
+  {
+    name: "Chandigarh",
+    districts: [
+      createDistrict("Chandigarh")
+    ]
+  },
+  {
+    name: "Dadra and Nagar Haveli and Daman and Diu",
+    districts: [
+      createDistrict("Dadra and Nagar Haveli"),
+      createDistrict("Daman"),
+      createDistrict("Diu")
+    ]
+  },
+  {
+    name: "Lakshadweep",
+    districts: [
+      createDistrict("Lakshadweep")
+    ]
+  },
+  {
+    name: "Puducherry",
+    districts: [
+      createDistrict("Karaikal"),
+      createDistrict("Mahe"),
+      createDistrict("Puducherry"),
+      createDistrict("Yanam")
+    ]
+  },
+  {
+    name: "Ladakh",
+    districts: [
+      createDistrict("Kargil"),
+      createDistrict("Leh")
+    ]
+  },
+  {
+    name: "Jammu and Kashmir",
+    districts: [
+      createDistrict("Anantnag"),
+      createDistrict("Bandipora"),
+      createDistrict("Baramulla"),
+      createDistrict("Budgam"),
+      createDistrict("Doda"),
+      createDistrict("Ganderbal"),
+      createDistrict("Jammu"),
+      createDistrict("Kathua"),
+      createDistrict("Kishtwar"),
+      createDistrict("Kulgam"),
+      createDistrict("Kupwara"),
+      createDistrict("Poonch"),
+      createDistrict("Pulwama"),
+      createDistrict("Rajouri"),
+      createDistrict("Ramban"),
+      createDistrict("Reasi"),
+      createDistrict("Samba"),
+      createDistrict("Shopian"),
+      createDistrict("Srinagar"),
+      createDistrict("Udhampur")
     ]
   }
 ];

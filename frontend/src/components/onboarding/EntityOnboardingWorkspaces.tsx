@@ -322,7 +322,8 @@ function Field({
   onChange,
   type = "text",
   required,
-  format
+  format,
+  disabled
 }: {
   label: string;
   value: any;
@@ -330,36 +331,49 @@ function Field({
   type?: string;
   required?: boolean;
   format?: FieldFormat;
+  disabled?: boolean;
 }) {
   const [fieldError, setFieldError] = useState("");
   return (
     <label className="flex flex-col gap-1.5 text-xs font-bold text-slate-800">
-      <span className="flex items-center gap-1">
-        {label}
-        {required && <span className="text-red-500 font-bold">*</span>}
+      <span className="flex items-center justify-between">
+        <span className="flex items-center gap-1">
+          {label}
+          {required && <span className="text-red-500 font-bold">*</span>}
+        </span>
+        {disabled && (
+          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+            Locked (Registration Identifier)
+          </span>
+        )}
       </span>
       <input
         value={value || ""}
         type={type}
         required={required}
+        disabled={disabled}
+        readOnly={disabled}
         inputMode={format ? inputModeFor(format) : undefined}
         maxLength={format ? FIELD_MAX_LENGTH[format] : undefined}
         onChange={(event) => {
+          if (disabled) return;
           const raw = event.target.value;
           const clean = format ? sanitizeField(format, raw) : raw;
           if (fieldError && format && !validateField(format, clean)) setFieldError("");
           onChange(clean);
         }}
         onBlur={(event) => {
-          if (!format) return;
+          if (disabled || !format) return;
           const val = event.target.value;
           if (!val && required) setFieldError(`${label} is required`);
           else setFieldError(validateField(format, val));
         }}
-        className={`w-full rounded-xl border bg-slate-50/80 px-3.5 py-2.5 text-xs font-semibold text-slate-900 shadow-sm transition-all focus:bg-white focus:outline-none ${
-          fieldError
-            ? "border-red-300 bg-red-50/50 text-red-900 focus:border-red-600 focus:ring-2 focus:ring-red-500/20"
-            : "border-slate-200/80 focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20"
+        className={`w-full rounded-xl border px-3.5 py-2.5 text-xs font-semibold shadow-sm transition-all focus:bg-white focus:outline-none ${
+          disabled
+            ? "bg-slate-100/90 border-slate-200 text-slate-600 cursor-not-allowed select-none font-mono"
+            : fieldError
+            ? "bg-red-50/50 border-red-300 text-red-900 focus:border-red-600 focus:ring-2 focus:ring-red-500/20"
+            : "bg-slate-50/80 border-slate-200/80 text-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20"
         }`}
       />
       {fieldError && <span className="text-[10px] font-bold text-red-600 mt-0.5">{fieldError}</span>}
@@ -758,7 +772,30 @@ function parseApiError(err: any) {
 
 export function CompanyOnboardingStep() {
   const router = useRouter();
-  const [step, setStep] = useState<"profile" | "compliance" | "documents" | "preferences" | "declaration">("profile");
+  const [step, setStepState] = useState<"profile" | "compliance" | "documents" | "preferences" | "declaration">(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const urlStep = params.get("step");
+      if (urlStep && ["profile", "compliance", "documents", "preferences", "declaration"].includes(urlStep)) {
+        return urlStep as any;
+      }
+      const saved = sessionStorage.getItem("company_onboarding_step");
+      if (saved && ["profile", "compliance", "documents", "preferences", "declaration"].includes(saved)) {
+        return saved as any;
+      }
+    }
+    return "profile";
+  });
+
+  const setStep = (newStep: "profile" | "compliance" | "documents" | "preferences" | "declaration") => {
+    setStepState(newStep);
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("company_onboarding_step", newStep);
+      const url = new URL(window.location.href);
+      url.searchParams.set("step", newStep);
+      window.history.replaceState({}, "", url.toString());
+    }
+  };
   const { organization, profile, setOrganization, setProfile, error, setError, load } = useEntityProfile("company");
   const [saving, setSaving] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -924,8 +961,22 @@ export function CompanyOnboardingStep() {
             <Field label="Legal company name" required value={data.legalName || data.name} onChange={(value) => setData("legalName", value)} />
             <Field label="Brand / display name" value={data.displayName} onChange={(value) => setData("displayName", value)} />
             <SelectField label="Organization type" required value={data.companyType} onChange={(value) => setData("companyType", value)} options={["Public Limited Company", "Private Limited Company", "Section 8 Company", "Government Company / PSU", "LLP", "Foreign Company", "Other"]} />
-            <Field label="CIN / LLPIN" required format="cin" value={data.cin || data.llpin} onChange={(value) => data.companyType === "LLP" ? setData("llpin", value) : setData("cin", value)} />
-            <Field label="PAN" required format="pan" value={data.pan} onChange={(value) => setData("pan", value)} />
+            <Field
+              label="MCA21 CIN / LLPIN Number"
+              required
+              format="cin"
+              disabled={Boolean(data.cin || data.llpin || org.cin || org.llpin)}
+              value={data.cin || data.llpin || org.cin || org.llpin}
+              onChange={(value) => data.companyType === "LLP" ? setData("llpin", value) : setData("cin", value)}
+            />
+            <Field
+              label="PAN Card Number"
+              required
+              format="pan"
+              disabled={Boolean(data.pan || org.pan)}
+              value={data.pan || org.pan}
+              onChange={(value) => setData("pan", value)}
+            />
             <div className="md:col-span-2">
               <GstVerificationField
                 value={data.gstin || ""}
@@ -933,7 +984,7 @@ export function CompanyOnboardingStep() {
                   setData("gstin", value);
                   if (value && value.length >= 12) {
                     const panFromGstin = value.substring(2, 12).toUpperCase();
-                    if (/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(panFromGstin)) {
+                    if (/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(panFromGstin) && !data.pan && !org.pan) {
                       setData("pan", panFromGstin);
                     }
                   }
@@ -943,7 +994,7 @@ export function CompanyOnboardingStep() {
                 source="onboarding"
                 onVerified={(result) => {
                   const extractedPan = result.data.pan || (data.gstin && data.gstin.length >= 12 ? data.gstin.substring(2, 12).toUpperCase() : "");
-                  if (extractedPan) setData("pan", extractedPan);
+                  if (extractedPan && !data.pan && !org.pan) setData("pan", extractedPan);
                   if (result.data.legalName) setData("legalName", result.data.legalName);
                   if (result.data.tradeName) setData("displayName", result.data.tradeName);
                   const incorporationYear = yearFromGstRegistrationDate(result.data.registrationDate);
@@ -1471,7 +1522,30 @@ function DocumentsStep({
 
 export function DepartmentOnboardingStep() {
   const router = useRouter();
-  const [step, setStep] = useState<"profile" | "nodal-officer" | "authorization" | "jurisdiction" | "documents" | "declaration">("profile");
+  const [step, setStepState] = useState<"profile" | "nodal-officer" | "authorization" | "jurisdiction" | "documents" | "declaration">(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const urlStep = params.get("step");
+      if (urlStep && ["profile", "nodal-officer", "authorization", "jurisdiction", "documents", "declaration"].includes(urlStep)) {
+        return urlStep as any;
+      }
+      const saved = sessionStorage.getItem("dept_onboarding_step");
+      if (saved && ["profile", "nodal-officer", "authorization", "jurisdiction", "documents", "declaration"].includes(saved)) {
+        return saved as any;
+      }
+    }
+    return "profile";
+  });
+
+  const setStep = (newStep: "profile" | "nodal-officer" | "authorization" | "jurisdiction" | "documents" | "declaration") => {
+    setStepState(newStep);
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("dept_onboarding_step", newStep);
+      const url = new URL(window.location.href);
+      url.searchParams.set("step", newStep);
+      window.history.replaceState({}, "", url.toString());
+    }
+  };
   const { organization, profile, setOrganization, setProfile, error, setError, load } = useEntityProfile("department");
   const [saving, setSaving] = useState(false);
   const [clarificationResponseNotes, setClarificationResponseNotes] = useState("");

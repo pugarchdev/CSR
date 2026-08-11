@@ -41,7 +41,33 @@ const MAX_RESENDS = 5;
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [step, setStep] = useState(1);
+  const [step, setStepState] = useState<number>(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const stepParam = params.get("step");
+      if (stepParam && [1, 2, 3].includes(Number(stepParam))) {
+        return Number(stepParam);
+      }
+      const saved = sessionStorage.getItem("register_step");
+      if (saved && [1, 2, 3].includes(Number(saved))) {
+        return Number(saved);
+      }
+    }
+    return 1;
+  });
+
+  const setStep = (newStep: number | ((prev: number) => number)) => {
+    setStepState((prev) => {
+      const nextStep = typeof newStep === "function" ? newStep(prev) : newStep;
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("register_step", String(nextStep));
+        const url = new URL(window.location.href);
+        url.searchParams.set("step", String(nextStep));
+        window.history.replaceState({}, "", url.toString());
+      }
+      return nextStep;
+    });
+  };
   const [role, setRole] = useState<"GOV_ENTITY" | "CORPORATE">("CORPORATE");
   const [otp, setOtp] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
@@ -1069,6 +1095,35 @@ export default function RegisterPage() {
                           </div>
 
                           <div className="flex flex-col gap-1">
+                            <label className="text-xs font-bold text-slate-800">State *</label>
+                            <select
+                              name="state"
+                              value={formData.state}
+                              onChange={(e) => handleStateChange(e.target.value)}
+                              className={getInputClassName("state")}
+                            >
+                              {allStatesList.map((st) => (
+                                <option key={st} value={st}>{st}</option>
+                              ))}
+                              <option value="Other">Other</option>
+                            </select>
+                            {renderFieldError("state")}
+                          </div>
+
+                          {formData.state === "Other" && (
+                            <div className="flex flex-col gap-1">
+                              <label className="text-xs font-bold text-slate-800">Specify Custom State *</label>
+                              <input
+                                type="text"
+                                value={customState}
+                                onChange={(e) => setCustomState(e.target.value)}
+                                placeholder="Enter State Name"
+                                className={getInputClassName("customState")}
+                              />
+                            </div>
+                          )}
+
+                          <div className="flex flex-col gap-1">
                             <label className="text-xs font-bold text-slate-800">District *</label>
                             <select
                               name="district"
@@ -1084,21 +1139,18 @@ export default function RegisterPage() {
                             {renderFieldError("district")}
                           </div>
 
-                          <div className="flex flex-col gap-1">
-                            <label className="text-xs font-bold text-slate-800">State *</label>
-                            <select
-                              name="state"
-                              value={formData.state}
-                              onChange={(e) => handleStateChange(e.target.value)}
-                              className={getInputClassName("state")}
-                            >
-                              {allStatesList.map((st) => (
-                                <option key={st} value={st}>{st}</option>
-                              ))}
-                              <option value="Other">Other</option>
-                            </select>
-                            {renderFieldError("state")}
-                          </div>
+                          {formData.district === "Other" && (
+                            <div className="flex flex-col gap-1">
+                              <label className="text-xs font-bold text-slate-800">Specify Custom District *</label>
+                              <input
+                                type="text"
+                                value={customDistrict}
+                                onChange={(e) => setCustomDistrict(e.target.value)}
+                                placeholder="Enter District Name"
+                                className={getInputClassName("customDistrict")}
+                              />
+                            </div>
+                          )}
 
                           <div className="flex flex-col gap-1 md:col-span-2">
                             <label className="text-xs font-bold text-slate-800">PIN Code *</label>
@@ -1303,7 +1355,7 @@ export default function RegisterPage() {
                           value={formData.email}
                           onChange={handleChange}
                           onBlur={handleBlurValidate}
-                          placeholder="e.g. csr@company.com"
+                          placeholder="e.g. abc@company.com"
                           className={getInputClassName("email")}
                         />
                         {renderFieldError("email")}
@@ -1340,7 +1392,7 @@ export default function RegisterPage() {
                           onChange={handleChange}
                           onBlur={handleBlurValidate}
                           maxLength={21}
-                          placeholder="L72200MH2018PLC309876"
+                          placeholder="U99999MH2099PTC999999"
                           className={getInputClassName("cin", "uppercase")}
                         />
                         {renderFieldError("cin")}
@@ -1377,6 +1429,19 @@ export default function RegisterPage() {
                         {renderFieldError("state")}
                       </div>
 
+                      {formData.state === "Other" && (
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs font-bold text-slate-800">Specify Custom State *</label>
+                          <input
+                            type="text"
+                            value={customState}
+                            onChange={(e) => setCustomState(e.target.value)}
+                            placeholder="Enter State Name"
+                            className={getInputClassName("customState")}
+                          />
+                        </div>
+                      )}
+
                       <div className="flex flex-col gap-1 md:col-span-2">
                         <label className="text-xs font-bold text-slate-800">District *</label>
                         <select
@@ -1392,6 +1457,19 @@ export default function RegisterPage() {
                         </select>
                         {renderFieldError("district")}
                       </div>
+
+                      {formData.district === "Other" && (
+                        <div className="flex flex-col gap-1 md:col-span-2">
+                          <label className="text-xs font-bold text-slate-800">Specify Custom District *</label>
+                          <input
+                            type="text"
+                            value={customDistrict}
+                            onChange={(e) => setCustomDistrict(e.target.value)}
+                            placeholder="Enter District Name"
+                            className={getInputClassName("customDistrict")}
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
 

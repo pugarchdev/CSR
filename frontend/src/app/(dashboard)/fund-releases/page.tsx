@@ -136,12 +136,12 @@ export default function FundReleasesPage() {
           />
           <StatCard
             label="Empaneled Escrow Banks"
-            value="4 Banks"
+            value="0 Banks"
             icon={Landmark}
             index={2}
             colorTheme="amber"
             badge="Escrow Gateway"
-            sublabel="SBI, HDFC, ICICI, BOB"
+            sublabel="No banks empaneled"
           />
         </div>
 

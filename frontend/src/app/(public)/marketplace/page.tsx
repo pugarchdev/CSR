@@ -7,7 +7,7 @@ import {
   Search, MapPin, Tag, Compass, Landmark, Coins, Star,
   List, Grid, FileText, CheckCircle2, Bookmark,
   BookmarkCheck, ShieldCheck, Building2, ExternalLink, Filter,
-  Eye, X, Calendar, Info, Phone, Mail, Globe, Target
+  Eye, X, Calendar, Info, Phone, Mail, Globe, Target, ShieldAlert, AlertCircle
 } from "lucide-react";
 import { StatCard } from "@/components/ui/StatCard";
 import { GovPageHeader } from "@/components/layout/GovPageHeader";
@@ -15,6 +15,7 @@ import { ViewToggle, ViewMode } from "@/components/ui/ViewToggle";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { apiFetch } from "@/lib/api";
+import { useAuthStore } from "@/store/authStore";
 
 type DirectoryTab = "projects" | "ngos" | "companies";
 
@@ -388,12 +389,51 @@ const fallbackCompanies: Company[] = [
 
 export default function ProjectMarketplace({ params }: { params?: { tab?: string } }) {
   const router = useRouter();
+  const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState<DirectoryTab>("projects");
   const [projects, setProjects] = useState<Project[]>([]);
   const [ngos, setNgos] = useState<NGO[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>("list");
+
+  const [showOnboardingModal, setShowOnboardingModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [userOnboardingStatus, setUserOnboardingStatus] = useState<string>("");
+  const [selectedProjectForAction, setSelectedProjectForAction] = useState<Project | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      apiFetch<any>("/onboarding/status")
+        .then((res) => {
+          const st = (res?.onboardingStatus || res?.status || user?.organization?.onboardingStatus || "").toUpperCase();
+          setUserOnboardingStatus(st);
+        })
+        .catch(() => {
+          setUserOnboardingStatus((user?.organization?.onboardingStatus || (user as any)?.status || "").toUpperCase());
+        });
+    }
+  }, [user]);
+
+  const handleFundInitiative = (project: Project) => {
+    setSelectedProjectForAction(project);
+
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+
+    const statusUpper = (userOnboardingStatus || user?.organization?.onboardingStatus || (user as any)?.status || "").toUpperCase();
+    const isApproved = statusUpper === "APPROVED" || statusUpper === "ACTIVE";
+
+    if (!isApproved) {
+      setShowOnboardingModal(true);
+      return;
+    }
+
+    setSelectedProjectDetail(null);
+    router.push(`/partner/enquiries/new?project=${encodeURIComponent(project.id)}&title=${encodeURIComponent(project.title)}`);
+  };
 
   useEffect(() => {
     if (params?.tab && ["projects", "ngos", "companies"].includes(params.tab)) {
@@ -1000,7 +1040,8 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
                   <Button
                     variant="primary"
                     size="sm"
-                    className="w-full font-bold text-xs py-2 bg-gradient-to-r from-blue-700 to-indigo-700 text-white"
+                    onClick={() => handleFundInitiative(project)}
+                    className="w-full font-bold text-xs py-2 bg-gradient-to-r from-blue-700 to-indigo-700 text-white hover:from-blue-800 hover:to-indigo-800 cursor-pointer shadow-sm"
                   >
                     Fund Initiative
                   </Button>
@@ -1255,13 +1296,114 @@ export default function ProjectMarketplace({ params }: { params?: { tab?: string
               <Button
                 variant="primary"
                 size="sm"
-                className="font-extrabold bg-gradient-to-r from-blue-900 to-indigo-900 text-white px-6 shadow-md"
+                onClick={() => selectedProjectDetail && handleFundInitiative(selectedProjectDetail)}
+                className="font-extrabold bg-gradient-to-r from-blue-900 to-indigo-900 text-white px-6 shadow-md hover:scale-105 transition-transform cursor-pointer"
               >
                 Fund Initiative Now
               </Button>
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* ONBOARDING REQUIRED POPUP MODAL */}
+      <Modal
+        isOpen={showOnboardingModal}
+        onClose={() => setShowOnboardingModal(false)}
+        title="Complete Organization Onboarding Required"
+        className="max-w-lg"
+      >
+        <div className="flex flex-col items-center text-center gap-5 py-2">
+          <div className="w-16 h-16 rounded-full bg-amber-100 border-2 border-amber-300 flex items-center justify-center text-amber-700 shadow-md">
+            <ShieldAlert size={32} />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <div className="inline-flex items-center justify-center gap-1.5 self-center bg-amber-50 border border-amber-200 text-amber-900 text-[11px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
+              <AlertCircle size={13} className="text-amber-600" />
+              <span>Status: {userOnboardingStatus || "Onboarding Incomplete"}</span>
+            </div>
+            <h3 className="text-lg font-heading font-extrabold text-slate-900">
+              Complete Organization Onboarding
+            </h3>
+            <p className="text-xs text-slate-600 font-medium leading-relaxed max-w-sm">
+              Your organization onboarding profile is incomplete or pending approval. To fund CSR initiatives, submit corporate proposals, or execute MoUs on the MahaCSR Setu platform, please complete your onboarding workspace application.
+            </p>
+          </div>
+
+          <div className="w-full flex flex-col gap-2.5 pt-3 border-t border-slate-100">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                setShowOnboardingModal(false);
+                setSelectedProjectDetail(null);
+                router.push("/onboarding");
+              }}
+              className="w-full font-bold text-xs py-3 bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 text-white shadow-md hover:scale-[1.01] cursor-pointer"
+            >
+              Complete Onboarding Application
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowOnboardingModal(false)}
+              className="w-full font-bold text-xs py-2.5 text-slate-600 cursor-pointer"
+            >
+              Close Window
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* AUTH REQUIRED POPUP MODAL */}
+      <Modal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        title="Sign In to Fund CSR Initiative"
+        className="max-w-lg"
+      >
+        <div className="flex flex-col items-center text-center gap-5 py-2">
+          <div className="w-16 h-16 rounded-full bg-blue-100 border-2 border-blue-300 flex items-center justify-center text-blue-900 shadow-md">
+            <Building2 size={32} />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <h3 className="text-lg font-heading font-extrabold text-slate-900">
+              Organization Sign In Required
+            </h3>
+            <p className="text-xs text-slate-600 font-medium leading-relaxed max-w-sm">
+              Please sign in with your corporate partner or government entity credentials to submit CSR funding commitments for <strong>{selectedProjectForAction?.title || "this initiative"}</strong>.
+            </p>
+          </div>
+
+          <div className="w-full flex flex-col gap-2.5 pt-3 border-t border-slate-100">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                setShowAuthModal(false);
+                setSelectedProjectDetail(null);
+                router.push("/login?next=/marketplace");
+              }}
+              className="w-full font-bold text-xs py-3 bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 text-white shadow-md cursor-pointer"
+            >
+              Sign In to Your Account
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setShowAuthModal(false);
+                setSelectedProjectDetail(null);
+                router.push("/register");
+              }}
+              className="w-full font-bold text-xs py-2.5 text-blue-900 border-blue-200 hover:bg-blue-50 cursor-pointer"
+            >
+              Register New Organization
+            </Button>
+          </div>
+        </div>
       </Modal>
 
       <Modal
