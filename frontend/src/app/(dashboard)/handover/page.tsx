@@ -60,29 +60,29 @@ export default function HandoverPage() {
         eyebrow="Asset Transfer Desk"
       />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-amber-200/80 bg-amber-50/50 p-5 backdrop-blur-xl">
-          <span className="text-xs font-extrabold uppercase tracking-wider text-amber-700">Pending Department Sign-Off</span>
-          <p className="mt-2 text-3xl font-extrabold text-amber-950">
+      <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-3 xl:w-3/4">
+        <div className="rounded-xl border border-amber-200/80 bg-amber-50/50 p-4 backdrop-blur-xl">
+          <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-amber-700">Pending Department Sign-Off</span>
+          <p className="mt-1 text-2xl font-extrabold text-amber-950">
             {items.filter(i => i.handoverCertificateStatus === "PENDING_DEPARTMENT_SIGNATURE").length}
           </p>
-          <span className="text-[11px] text-amber-700 font-medium">Completed assets ready for takeover</span>
+          <span className="text-[10px] sm:text-[11px] text-amber-700 font-medium">Completed assets ready for takeover</span>
         </div>
 
-        <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/50 p-5 backdrop-blur-xl">
-          <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-700">Transferred Assets</span>
-          <p className="mt-2 text-3xl font-extrabold text-emerald-950">
+        <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/50 p-4 backdrop-blur-xl">
+          <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-emerald-700">Transferred Assets</span>
+          <p className="mt-1 text-2xl font-extrabold text-emerald-950">
             {items.filter(i => i.handoverCertificateStatus === "SIGNED").length}
           </p>
-          <span className="text-[11px] text-emerald-700 font-medium">Handover certificate executed</span>
+          <span className="text-[10px] sm:text-[11px] text-emerald-700 font-medium">Handover certificate executed</span>
         </div>
 
-        <div className="rounded-2xl border border-blue-200/80 bg-blue-50/50 p-5 backdrop-blur-xl">
-          <span className="text-xs font-extrabold uppercase tracking-wider text-blue-700">Total Transferred Asset Value</span>
-          <p className="mt-2 text-3xl font-extrabold text-blue-950">
+        <div className="rounded-xl border border-blue-200/80 bg-blue-50/50 p-4 backdrop-blur-xl">
+          <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-blue-700">Total Transferred Asset Value</span>
+          <p className="mt-1 text-2xl font-extrabold text-blue-950">
             ₹{items.reduce((acc, curr) => acc + curr.assetValueCr, 0).toFixed(1)} Cr
           </p>
-          <span className="text-[11px] text-blue-700 font-medium">Public infrastructure value</span>
+          <span className="text-[10px] sm:text-[11px] text-blue-700 font-medium">Public infrastructure value</span>
         </div>
       </div>
 
@@ -100,7 +100,7 @@ export default function HandoverPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500 font-bold">
               <tr>
@@ -123,12 +123,12 @@ export default function HandoverPage() {
                   </td>
                   <td className="px-4 py-3.5 font-bold text-blue-900">₹{item.assetValueCr} Cr</td>
                   <td className="px-4 py-3.5">
-                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap ${
                       item.handoverCertificateStatus === "SIGNED"
                         ? "bg-emerald-100 text-emerald-800"
                         : "bg-amber-100 text-amber-800"
                     }`}>
-                      {item.handoverCertificateStatus}
+                      {item.handoverCertificateStatus === "PENDING_DEPARTMENT_SIGNATURE" ? "PENDING SIGN-OFF" : item.handoverCertificateStatus}
                     </span>
                   </td>
                   <td className="px-4 py-3.5 text-right">
@@ -149,6 +149,58 @@ export default function HandoverPage() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Cards View */}
+        <div className="flex flex-col gap-4 md:hidden">
+          {filtered.map((item) => (
+            <div key={item.id} className="flex flex-col gap-3 rounded-xl border border-slate-100 bg-slate-50 p-4 shadow-xs">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center">
+                  <span className={`px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider shrink-0 ${
+                    item.handoverCertificateStatus === "SIGNED"
+                      ? "bg-emerald-100 text-emerald-800"
+                      : "bg-amber-100 text-amber-800"
+                  }`}>
+                    {item.handoverCertificateStatus === "PENDING_DEPARTMENT_SIGNATURE" ? "Pending Sign-Off" : item.handoverCertificateStatus}
+                  </span>
+                </div>
+                <h4 className="font-bold text-slate-900 text-sm leading-tight">{item.projectName}</h4>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <span className="block text-[10px] font-bold text-slate-400 uppercase">Department</span>
+                  <span className="font-medium text-slate-700">{item.department}</span>
+                </div>
+                <div>
+                  <span className="block text-[10px] font-bold text-slate-400 uppercase">Asset Outlay</span>
+                  <span className="font-bold text-blue-900">₹{item.assetValueCr} Cr</span>
+                </div>
+              </div>
+
+              <div>
+                <span className="block text-[10px] font-bold text-slate-400 uppercase">Donor & Implementer</span>
+                <span className="font-semibold text-slate-800">{item.donorCompany}</span>
+                <span className="text-[10px] text-slate-500 block mt-0.5">NGO: {item.implementingNgo}</span>
+              </div>
+
+              <div className="pt-3 border-t border-slate-200 mt-1 flex justify-end">
+                {item.handoverCertificateStatus !== "SIGNED" ? (
+                  <button
+                    onClick={() => handleSignCertificate(item.id)}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-blue-900 px-4 py-2 text-xs font-bold text-white hover:bg-blue-800 transition-colors w-full justify-center sm:w-auto"
+                  >
+                    <CheckCircle2 size={14} /> Sign Handover Doc
+                  </button>
+                ) : (
+                  <span className="text-emerald-700 font-bold text-xs flex items-center justify-center sm:justify-end gap-1.5 py-1 w-full sm:w-auto bg-emerald-50 sm:bg-transparent rounded-lg">
+                    <Award size={14} /> Transferred
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

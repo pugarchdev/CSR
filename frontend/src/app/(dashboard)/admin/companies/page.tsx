@@ -82,85 +82,93 @@ return (
       {/* Force reduced padding on mobile container */}
       <div className="gov-container !px-2 sm:!px-4 md:!px-6">
         
-        {/* Stats Cards - Updated grid for better mobile stacking */}
-        <div className="gov-grid gov-grid-cols-2 md:gov-grid-cols-4 gov-gap-3 md:gov-gap-6 gov-mb-6">
-          <GovCard>
-            <GovCardBody className="!p-3 md:!p-5">
-              <div className="gov-text-xs md:gov-text-sm gov-text-muted gov-mb-1">Total Companies</div>
-              <div className="gov-text-2xl md:gov-text-3xl gov-font-bold gov-text-primary">{loading ? "…" : pagination.total}</div>
-              <div className="gov-text-[10px] md:gov-text-xs gov-text-muted gov-mt-1">Registered corporate partners</div>
-            </GovCardBody>
-          </GovCard>
-          <GovCard>
-            <GovCardBody className="!p-3 md:!p-5">
-              <div className="gov-text-xs md:gov-text-sm gov-text-muted gov-mb-1">Active</div>
-              <div className="gov-text-2xl md:gov-text-3xl gov-font-bold" style={{ color: "#166534" }}>
-                {loading ? "…" : (pagination.active || 0)}
-              </div>
-              <div className="gov-text-[10px] md:gov-text-xs gov-text-muted gov-mt-1">Currently operational</div>
-            </GovCardBody>
-          </GovCard>
-          <GovCard>
-            <GovCardBody className="!p-3 md:!p-5">
-              <div className="gov-text-xs md:gov-text-sm gov-text-muted gov-mb-1">Under Review</div>
-              <div className="gov-text-2xl md:gov-text-3xl gov-font-bold" style={{ color: "#005ea8" }}>
-                {loading ? "…" : (pagination.pending || 0)}
-              </div>
-              <div className="gov-text-[10px] md:gov-text-xs gov-text-muted gov-mt-1">Pending verification</div>
-            </GovCardBody>
-          </GovCard>
-          <GovCard>
-            <GovCardBody className="!p-3 md:!p-5">
-              <div className="gov-text-xs md:gov-text-sm gov-text-muted gov-mb-1">Suspended</div>
-              <div className="gov-text-2xl md:gov-text-3xl gov-font-bold" style={{ color: "#b91c1c" }}>
-                {loading ? "…" : (pagination.suspended || 0)}
-              </div>
-              <div className="gov-text-[10px] md:gov-text-xs gov-text-muted gov-mt-1">Compliance issues</div>
-            </GovCardBody>
-          </GovCard>
-        </div>
-
-        {/* Filters */}
-        <GovCard className="gov-mb-6">
-          <GovCardBody className="!p-3 md:!p-5">
-            <div className="gov-grid gov-grid-cols-1 sm:gov-grid-cols-3 gov-gap-3 md:gov-gap-4">
-              <GovInput
-                label="Search Company"
-                placeholder="Search by name or CIN..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <GovSelect
-                label="Status"
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  setPage(1);
-                }}
-              >
-                <option value="all">All Status</option>
-                <option value="Active">Active</option>
-                <option value="Under Review">Under Review</option>
-                <option value="Suspended">Suspended</option>
-              </GovSelect>
-              <GovSelect
-                label="Sector"
-                value={sectorFilter}
-                onChange={(e) => {
-                  setSectorFilter(e.target.value);
-                  setPage(1);
-                }}
-              >
-                <option value="all">All Sectors</option>
-                <option value="Automotive">Automotive</option>
-                <option value="IT Services">IT Services</option>
-                <option value="Conglomerate">Conglomerate</option>
-                <option value="Manufacturing">Manufacturing</option>
-                <option value="Banking">Banking</option>
-              </GovSelect>
+    {/* Compact KPI Cards */}
+   <div className="gov-grid gov-grid-cols-4 gov-gap-3 gov-mb-4">
+        <GovCard>
+          <GovCardBody className="!p-3 flex items-center justify-between">
+            <div>
+              <div className="gov-text-xs gov-text-muted">Total Companies</div>
+              <div className="gov-text-xl gov-font-bold gov-text-primary">{loading ? "…" : pagination.total}</div>
             </div>
+            <div className="gov-text-[10px] gov-text-muted text-right">Registered</div>
           </GovCardBody>
         </GovCard>
+        <GovCard>
+          <GovCardBody className="!p-3 flex items-center justify-between">
+            <div>
+              <div className="gov-text-xs gov-text-muted">Active</div>
+              <div className="gov-text-xl gov-font-bold" style={{ color: "#166534" }}>
+                {loading ? "…" : (pagination.active || 0)}
+              </div>
+            </div>
+            <div className="gov-text-[10px] gov-text-muted text-right">Operational</div>
+          </GovCardBody>
+        </GovCard>
+        <GovCard>
+          <GovCardBody className="!p-3 flex items-center justify-between">
+            <div>
+              <div className="gov-text-xs gov-text-muted">Under Review</div>
+              <div className="gov-text-xl gov-font-bold" style={{ color: "#005ea8" }}>
+                {loading ? "…" : (pagination.pending || 0)}
+              </div>
+            </div>
+            <div className="gov-text-[10px] gov-text-muted text-right">Pending</div>
+          </GovCardBody>
+        </GovCard>
+        <GovCard>
+          <GovCardBody className="!p-3 flex items-center justify-between">
+            <div>
+              <div className="gov-text-xs gov-text-muted">Suspended</div>
+              <div className="gov-text-xl gov-font-bold" style={{ color: "#b91c1c" }}>
+                {loading ? "…" : (pagination.suspended || 0)}
+              </div>
+            </div>
+            <div className="gov-text-[10px] gov-text-muted text-right">Issues</div>
+          </GovCardBody>
+        </GovCard>
+      </div>
+
+      {/* Compact Filters - Side by Side on One Line */}
+     <GovCard className="gov-mb-4">
+        <GovCardBody className="!p-3">
+          <div className="gov-grid gov-grid-cols-3 gov-gap-3 items-center">
+            <GovInput
+              label="Search Company"
+              placeholder="Search by name or CIN..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <GovSelect
+              label="Status"
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="all">All Status</option>
+              <option value="Active">Active</option>
+              <option value="Under Review">Under Review</option>
+              <option value="Suspended">Suspended</option>
+            </GovSelect>
+            <GovSelect
+              label="Sector"
+              value={sectorFilter}
+              onChange={(e) => {
+                setSectorFilter(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="all">All Sectors</option>
+              <option value="Automotive">Automotive</option>
+              <option value="IT Services">IT Services</option>
+              <option value="Conglomerate">Conglomerate</option>
+              <option value="Manufacturing">Manufacturing</option>
+              <option value="Banking">Banking</option>
+            </GovSelect>
+          </div>
+        </GovCardBody>
+      </GovCard>
 
         {/* Companies List */}
         <GovCard>

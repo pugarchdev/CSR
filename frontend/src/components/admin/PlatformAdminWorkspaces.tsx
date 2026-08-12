@@ -3086,19 +3086,33 @@ return (
                     <td data-label="Status" className="flex md:table-cell justify-between items-center px-4 md:px-5 py-3.5 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-bold before:text-slate-400 before:md:hidden text-right md:text-left">
                       <Badge>{item.status || "ACTIVE"}</Badge>
                     </td>
-                    <td className="block md:table-cell px-4 md:px-5 py-3.5 md:py-4 text-right bg-slate-50/50 md:bg-transparent">
-                      <div className="flex flex-wrap md:flex-nowrap justify-end gap-2">
-                        <Button size="sm" className="flex-1 md:flex-none justify-center text-xs" onClick={() => action(item.id, "approve")}>
-                          Approve
-                        </Button>
-                        <Button size="sm" variant="secondary" className="flex-1 md:flex-none justify-center text-xs" onClick={() => action(item.id, "request-clarification")}>
-                          Clarify
-                        </Button>
-                        <Button size="sm" variant="danger" className="w-full sm:flex-1 md:flex-none justify-center text-xs mt-1 sm:mt-0" onClick={() => action(item.id, "suspend")}>
-                          Suspend
-                        </Button>
-                      </div>
-                    </td>
+                 <td className="block md:table-cell px-4 md:px-5 py-3.5 md:py-4 text-right bg-slate-50/50 md:bg-transparent">
+  <div className="flex flex-wrap md:flex-nowrap justify-end items-center gap-2 md:min-w-max">
+    <Button 
+      size="sm" 
+      className="w-full md:w-auto justify-center text-xs whitespace-nowrap" 
+      onClick={() => action(item.id, "approve")}
+    >
+      Approve
+    </Button>
+    <Button 
+      size="sm" 
+      variant="secondary" 
+      className="w-full md:w-auto justify-center text-xs whitespace-nowrap" 
+      onClick={() => action(item.id, "request-clarification")}
+    >
+      Clarify
+    </Button>
+    <Button 
+      size="sm" 
+      variant="danger" 
+      className="w-full md:w-auto justify-center text-xs whitespace-nowrap" 
+      onClick={() => action(item.id, "suspend")}
+    >
+      Suspend
+    </Button>
+  </div>
+</td>
                   </tr>
                 ))
               )}

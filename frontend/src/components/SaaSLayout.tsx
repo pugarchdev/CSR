@@ -330,8 +330,8 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
         ((pathname === "/company" || pathname.startsWith("/company/")) && hasAnyAllowedRole(["COMPANY_ADMIN", "COMPANY_MEMBER", "SUPER_ADMIN", "CORPORATE_USER"])) ||
         ((pathname === "/ngo" || pathname.startsWith("/ngo/")) && hasAnyAllowedRole(["NGO_ADMIN", "NGO_MEMBER", "SUPER_ADMIN"])) ||
         (pathname.startsWith("/district") && hasAnyAllowedRole(["DISTRICT_ADMIN", "SUPER_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN"])) ||
-        (pathname.startsWith("/organization") && hasAnyAllowedRole(["GOVERNMENT_OFFICER", "BENEFICIARY_AGENCY", "COMPANY_ADMIN", "COMPANY_MEMBER", "CORPORATE_USER", "NGO_ADMIN", "NGO_MEMBER", "DISTRICT_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN", "SUPER_ADMIN"])) ||
-        (pathname.startsWith("/admin") && hasAnyAllowedRole(["SUPER_ADMIN", "DISTRICT_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN"])) ||
+        (pathname.startsWith("/organization") && hasAnyAllowedRole(["GOVERNMENT_OFFICER", "BENEFICIARY_AGENCY", "COMPANY_ADMIN", "COMPANY_MEMBER", "CORPORATE_USER", "NGO_ADMIN", "NGO_MEMBER", "DISTRICT_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN", "SUPER_ADMIN", "JOINT_SECRETARY", "PLANNING_SECRETARY", "CSR_RELATIONSHIP_MANAGER", "DISTRICT_NODAL_OFFICER", "NODAL_OFFICER", "STATE_CSR_CELL"])) ||
+        (pathname.startsWith("/admin") && hasAnyAllowedRole(["SUPER_ADMIN", "DISTRICT_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN", "JOINT_SECRETARY", "PLANNING_SECRETARY"])) ||
         ((pathname.startsWith("/beneficiary") || pathname.startsWith("/department")) && hasAnyAllowedRole(["GOVERNMENT_OFFICER", "BENEFICIARY_AGENCY", "SUPER_ADMIN"])) ||
         (pathname.startsWith("/rm") && hasAnyAllowedRole(["CSR_RELATIONSHIP_MANAGER", "JOINT_SECRETARY", "PLANNING_SECRETARY", "SUPER_ADMIN"])) ||
         (pathname.startsWith("/js") && hasAnyAllowedRole(["JOINT_SECRETARY", "PLANNING_SECRETARY", "SUPER_ADMIN"])) ||
@@ -514,10 +514,10 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                   <path d="M42,80 L58,80" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round" />
                 </svg>
                 <div className="flex min-w-0 flex-col leading-none">
-                  <span className="font-heading font-bold text-base text-slate-900">
+                  <span className="font-heading font-bold text-base text-slate-900 whitespace-nowrap">
                     Maha<span className="text-blue-600">CSR</span> Setu
                   </span>
-                  <span className="text-[9px] text-slate-400 font-semibold mt-1 uppercase tracking-wider">
+                  <span className="text-[9px] text-slate-400 font-semibold mt-1 uppercase tracking-wider whitespace-nowrap hidden sm:block">
                     Smart CSR Platform
                   </span>
                 </div>
@@ -559,7 +559,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                 </button>
 
                 {notificationsOpen && (
-                  <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white backdrop-blur-xl border border-slate-200/80 rounded-2xl p-4 z-50 flex flex-col gap-3 shadow-xl">
+                  <div className="absolute -right-12 sm:right-0 mt-3 w-[calc(100vw-32px)] max-w-[340px] sm:max-w-none sm:w-96 bg-white backdrop-blur-xl border border-slate-200/80 rounded-2xl p-4 z-50 flex flex-col gap-3 shadow-xl">
                     <div className="flex justify-between items-center pb-2 border-b border-slate-100">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-extrabold text-slate-900">Notifications</span>

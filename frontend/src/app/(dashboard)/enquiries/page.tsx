@@ -103,19 +103,19 @@ export default function EnquiriesPage() {
     );
   }, [isAdmin, isRM, tokens]);
 
-const canSubmitEnquiry = useMemo(() => {
-  // 1. If they explicitly have the permission assigned, always show the button
-  if (hasPermission("enquiry:create")) return true;
+  const canSubmitEnquiry = useMemo(() => {
+    // 1. If they explicitly have the permission assigned, always show the button
+    if (hasPermission("enquiry:create")) return true;
 
-  // 2. If they don't have explicit permission and are Gov/Admin, block them
-  if (isGovOrAdmin) return false;
+    // 2. If they don't have explicit permission and are Gov/Admin, block them
+    if (isGovOrAdmin) return false;
 
-  // 3. Fallback for Corporate/Company roles based on tokens
-  return tokens.some((t: string) => {
-    const upper = t.toUpperCase();
-    return upper.includes("CORPORATE") || upper.includes("COMPANY");
-  });
-}, [isGovOrAdmin, hasPermission, tokens]);
+    // 3. Fallback for Corporate/Company roles based on tokens
+    return tokens.some((t: string) => {
+      const upper = t.toUpperCase();
+      return upper.includes("CORPORATE") || upper.includes("COMPANY");
+    });
+  }, [isGovOrAdmin, hasPermission, tokens]);
 
   const handleSubmitEnquiryClick = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -130,7 +130,7 @@ const canSubmitEnquiry = useMemo(() => {
           const profileRes = await apiFetch<any>("/onboarding/company");
           org = profileRes?.organization || profileRes?.data?.organization || profileRes || org;
           profile = profileRes?.profile || profileRes?.data?.profile || org?.csrCompanyProfile || profile;
-        } catch {}
+        } catch { }
       }
 
       if (!org || !user?.organizationId) {
@@ -178,12 +178,12 @@ const canSubmitEnquiry = useMemo(() => {
   const rawEnquiries = Array.isArray(envelope?.data?.enquiries)
     ? envelope.data.enquiries
     : Array.isArray(envelope?.data)
-    ? envelope.data
-    : Array.isArray(envelope?.enquiries)
-    ? envelope.enquiries
-    : Array.isArray(envelope)
-    ? envelope
-    : [];
+      ? envelope.data
+      : Array.isArray(envelope?.enquiries)
+        ? envelope.enquiries
+        : Array.isArray(envelope)
+          ? envelope
+          : [];
 
   const items: Enquiry[] = rawEnquiries.map((e: any) => ({
     id: e.id || e.trackingId,
@@ -197,8 +197,8 @@ const canSubmitEnquiry = useMemo(() => {
 
   const filtered = items.filter(item => {
     const matchesSearch = item.companyName.toLowerCase().includes(search.toLowerCase()) ||
-                          item.trackingId.toLowerCase().includes(search.toLowerCase()) ||
-                          item.sector.toLowerCase().includes(search.toLowerCase());
+      item.trackingId.toLowerCase().includes(search.toLowerCase()) ||
+      item.sector.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = filterStatus === "ALL" || item.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
@@ -285,36 +285,51 @@ const canSubmitEnquiry = useMemo(() => {
         </div>
       </Modal>
 
-      {/* 3D Compact Metrics */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard
-          label="Total Enquiries"
-          value={items.length}
-          icon={Building2}
-          index={0}
-          badge="Corporate Desk"
-          sublabel="Received submissions"
-        />
-        <StatCard
-          label="Indicative Outlay"
-          value={`₹${items.reduce((acc, curr) => acc + (curr.indicativeBudgetCr || 0), 0).toFixed(1)} Cr`}
-          icon={Coins}
-          index={1}
-          badge="Pledged Budget"
-          sublabel="Aggregated outlay"
-        />
-        <StatCard
-          label="Under Review"
-          value={items.filter(e => e.status === "UNDER_ASSESSMENT" || e.status === "SUBMITTED").length}
-          icon={Clock}
-          index={2}
-          badge="Pending Review"
-          sublabel="Active verification queue"
-        />
+
+  {/* 
+        Mobile: Flex row with horizontal scroll (overflow-x-auto) and snapping. 
+        Tablet/Desktop (sm+): Reverts to your standard 3-column CSS grid.
+      */}
+      <div className="flex snap-x gap-4 overflow-x-auto pb-4 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0">
+        
+        {/* Wrapper ensures cards take up 85% of the mobile screen so the next card peeks in */}
+        <div className="w-[85%] min-w-[260px] shrink-0 snap-start sm:w-auto sm:min-w-0">
+          <StatCard
+            label="Total Enquiries"
+            value={items.length}
+            icon={Building2}
+            index={0}
+            badge="Corporate Desk"
+            sublabel="Received submissions"
+          />
+        </div>
+
+        <div className="w-[85%] min-w-[260px] shrink-0 snap-start sm:w-auto sm:min-w-0">
+          <StatCard
+            label="Indicative Outlay"
+            value={`₹${items.reduce((acc, curr) => acc + (curr.indicativeBudgetCr || 0), 0).toFixed(1)} Cr`}
+            icon={Coins}
+            index={1}
+            badge="Pledged Budget"
+            sublabel="Aggregated outlay"
+          />
+        </div>
+
+        <div className="w-[85%] min-w-[260px] shrink-0 snap-start sm:w-auto sm:min-w-0">
+          <StatCard
+            label="Under Review"
+            value={items.filter(e => e.status === "UNDER_ASSESSMENT" || e.status === "SUBMITTED").length}
+            icon={Clock}
+            index={2}
+            badge="Pending Review"
+            sublabel="Active verification queue"
+          />
+        </div>
+
       </div>
 
       {/* Main Content Register */}
-<div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
           <div className="relative flex-1 max-w-md">
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -373,8 +388,8 @@ const canSubmitEnquiry = useMemo(() => {
               </thead>
               <tbody className="block md:table-row-group divide-y-0 md:divide-y md:divide-slate-100">
                 {filtered.map((item) => (
-                  <tr 
-                    key={item.id} 
+                  <tr
+                    key={item.id}
                     className="block md:table-row mb-4 md:mb-0 bg-white border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-sm md:shadow-none hover:bg-slate-50/80 transition-colors overflow-hidden"
                   >
                     <td data-label="Tracking ID" className="flex md:table-cell justify-between items-center px-4 py-3 md:py-3.5 border-b border-slate-100 md:border-none font-mono font-bold text-blue-950 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden">
@@ -390,11 +405,10 @@ const canSubmitEnquiry = useMemo(() => {
                       {item.indicativeBudgetCr == null ? "—" : `₹${item.indicativeBudgetCr} Cr`}
                     </td>
                     <td data-label="Status" className="flex md:table-cell justify-between items-center px-4 py-3 md:py-3.5 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
-                        item.status === "APPROVED" ? "bg-emerald-50 text-emerald-800 border border-emerald-200" :
-                        item.status === "UNDER_ASSESSMENT" ? "bg-blue-50 text-blue-800 border border-blue-200" :
-                        "bg-amber-50 text-amber-800 border border-amber-200"
-                      }`}>
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${item.status === "APPROVED" ? "bg-emerald-50 text-emerald-800 border border-emerald-200" :
+                          item.status === "UNDER_ASSESSMENT" ? "bg-blue-50 text-blue-800 border border-blue-200" :
+                            "bg-amber-50 text-amber-800 border border-amber-200"
+                        }`}>
                         {item.status.replace(/_/g, " ")}
                       </span>
                     </td>

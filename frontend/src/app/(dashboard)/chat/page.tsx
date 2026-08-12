@@ -560,15 +560,15 @@ export default function ChatSystem() {
           <Button
             onClick={() => setNewChatModalOpen(true)}
             variant="primary"
-            className="flex items-center gap-1.5 shadow-md"
+            className="flex items-center gap-1.5 shadow-md px-3 sm:px-4"
           >
-            <Plus size={15} /> New Conversation
+            <Plus size={15} /> <span className="hidden sm:inline">New Conversation</span><span className="sm:hidden">New</span>
           </Button>
         }
       />
 
       {/* Main 3D Glassmorphism Chat Card Container */}
-      <div className="flex flex-col md:flex-row rounded-3xl border border-white/80 bg-white/90 backdrop-blur-2xl shadow-glass overflow-hidden h-[700px] w-full border-slate-200/80">
+      <div className="flex flex-col md:flex-row rounded-3xl border border-white/80 bg-white/90 backdrop-blur-2xl shadow-glass overflow-hidden h-[calc(100vh-180px)] md:h-[700px] w-full border-slate-200/80">
 
         {/* Left Panel: Conversations Index */}
         <div className={`w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-slate-200/80 flex flex-col h-full bg-slate-50/50 shrink-0 ${
@@ -656,24 +656,25 @@ export default function ChatSystem() {
         }`}>
 
           {/* Active Room Header */}
-          <div className="p-4 border-b border-slate-200/80 flex justify-between items-center bg-white shadow-xs z-10 shrink-0">
-            <div className="flex items-center gap-3">
+          <div className="p-3 sm:p-4 border-b border-slate-200/80 flex justify-between items-center bg-white shadow-xs z-10 shrink-0">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <button
                 onClick={() => setMobileTab("list")}
-                className="md:hidden text-slate-500 hover:text-slate-800 p-1 rounded-lg"
+                className="md:hidden text-slate-500 hover:text-slate-800 p-1 rounded-lg shrink-0 flex items-center gap-1"
               >
-                ← Channels
+                <span className="text-lg leading-none">←</span>
+                <span className="hidden sm:inline text-sm font-medium">Channels</span>
               </button>
-              <div className={`w-10 h-10 rounded-2xl bg-gradient-to-br ${activeChat.avatarColor} text-white flex items-center justify-center font-bold text-xs shadow-md shrink-0`}>
-                {activeChat.partnerType === "NGO" ? <Landmark size={18} /> : activeChat.partnerType === "GOVT" ? <ShieldCheck size={18} /> : <Building2 size={18} />}
+              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-br ${activeChat.avatarColor} text-white flex items-center justify-center font-bold text-xs shadow-md shrink-0`}>
+                {activeChat.partnerType === "NGO" ? <Landmark size={16} /> : activeChat.partnerType === "GOVT" ? <ShieldCheck size={16} /> : <Building2 size={16} />}
               </div>
-              <div>
+              <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-heading font-extrabold text-sm text-slate-900">{activeChat.partnerName}</h3>
-                  {activeChat.pinned && <Pin size={12} className="text-blue-600 fill-blue-600/10" />}
+                  <h3 className="font-heading font-extrabold text-xs sm:text-sm text-slate-900 truncate">{activeChat.partnerName}</h3>
+                  {activeChat.pinned && <Pin size={12} className="text-blue-600 fill-blue-600/10 shrink-0" />}
                 </div>
                 {activeChat.projectTitle && (
-                  <p className="text-xs font-semibold text-blue-800">Proposal: {activeChat.projectTitle}</p>
+                  <p className="text-[10px] sm:text-xs font-semibold text-blue-800 truncate">Proposal: {activeChat.projectTitle}</p>
                 )}
               </div>
             </div>
@@ -705,11 +706,11 @@ export default function ChatSystem() {
 
               <a
                 href={`tel:${activeChat.phone || '+91 98230 41102'}`}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 font-mono font-bold text-xs hover:bg-slate-200 transition-colors shadow-2xs"
+                className="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 font-mono font-bold text-xs hover:bg-slate-200 transition-colors shadow-2xs shrink-0"
                 title="Contact Phone Number"
               >
                 <Phone size={13} className="text-blue-600" />
-                <span>{activeChat.phone || "+91 98230 41102"}</span>
+                <span className="hidden sm:inline">{activeChat.phone || "+91 98230 41102"}</span>
               </a>
 
               <span className="hidden sm:flex items-center gap-1.5 text-[11px] font-extrabold text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full shadow-2xs">

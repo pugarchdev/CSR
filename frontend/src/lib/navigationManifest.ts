@@ -378,7 +378,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-organizations",
     showInSidebar: true,
-    requiredAnyPermissions: ["organization:approve"],
+    requiredAnyPermissions: ["organization:approve", "organization:view"],
     ordering: 10,
     breadcrumbMetadata: { title: "Organizations", parentRoute: "/dashboard" }
   },
@@ -392,7 +392,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-organizations",
     showInSidebar: true,
-    requiredAnyPermissions: ["organization:approve"],
+    requiredAnyPermissions: ["organization:approve", "organization:view"],
     ordering: 20,
     breadcrumbMetadata: { title: "Corporate Partners", parentRoute: "/admin/organizations" }
   },
@@ -406,7 +406,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-organizations",
     showInSidebar: true,
-    requiredAnyPermissions: ["organization:approve"],
+    requiredAnyPermissions: ["organization:approve", "organization:view"],
     ordering: 30,
     breadcrumbMetadata: { title: "Implementing Agencies", parentRoute: "/admin/organizations" }
   },
@@ -420,7 +420,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-organizations",
     showInSidebar: true,
-    requiredAnyPermissions: ["company_profile:manage", "ngo_profile:manage", "organization:onboard", "organization:update"],
+    requiredAnyPermissions: ["company_profile:manage", "ngo_profile:manage", "organization:onboard", "organization:update", "organization:view", "organization:approve", "dashboard:view"],
     ordering: 40,
     breadcrumbMetadata: { title: "Onboarding Status", parentRoute: "/dashboard" }
   },
