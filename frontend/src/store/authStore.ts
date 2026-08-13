@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, clearApiCache, getAccessToken } from "@/lib/api";
 
 export interface PermissionData {
   permissions: string[];
@@ -55,6 +55,7 @@ interface AuthState {
   fetchStatus: FetchStatus;
   fetchError: string | null;
   isLoadingPermissions: boolean;
+  permissionsFetchedAt: number;
 
   // Actions
   login: (user: UserProfile, permissionData?: PermissionData) => void;
@@ -62,7 +63,7 @@ interface AuthState {
   setPermissions: (data: PermissionData) => void;
   clearPermissions: () => void;
   setLoadingPermissions: (loading: boolean) => void;
-  fetchEffectivePermissions: () => Promise<void>;
+  fetchEffectivePermissions: (background?: boolean) => Promise<void>;
 
   // Permission checkers
   hasPermission: (permission: string) => boolean;
@@ -85,6 +86,7 @@ export const useAuthStore = create<AuthState>()(
       fetchStatus: "IDLE",
       fetchError: null,
       isLoadingPermissions: false,
+      permissionsFetchedAt: 0,
 
       login: (user, permissionData) => {
         if (permissionData && Array.isArray(permissionData.permissions)) {
@@ -99,6 +101,7 @@ export const useAuthStore = create<AuthState>()(
             fetchError: null,
             accessVersion: get().accessVersion + 1,
             isLoadingPermissions: false,
+            permissionsFetchedAt: Date.now(),
           });
         } else {
           set({
@@ -110,13 +113,20 @@ export const useAuthStore = create<AuthState>()(
             isAdmin: false,
             fetchStatus: "IDLE",
             fetchError: null,
-            isLoadingPermissions: true,
+            isLoadingPermissions: false,
+            permissionsFetchedAt: 0,
           });
-          get().fetchEffectivePermissions();
         }
       },
 
-      logout: () =>
+      logout: () => {
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("accessToken");
+          localStorage.removeItem("token");
+          localStorage.removeItem("mahacsr_access_token");
+          localStorage.removeItem("user");
+          clearApiCache();
+        }
         set({
           user: null,
           isAuthenticated: false,
@@ -128,7 +138,9 @@ export const useAuthStore = create<AuthState>()(
           fetchError: null,
           accessVersion: get().accessVersion + 1,
           isLoadingPermissions: false,
-        }),
+          permissionsFetchedAt: 0,
+        });
+      },
 
       setPermissions: (data) =>
         set({
@@ -140,6 +152,7 @@ export const useAuthStore = create<AuthState>()(
           fetchError: null,
           accessVersion: get().accessVersion + 1,
           isLoadingPermissions: false,
+          permissionsFetchedAt: Date.now(),
         }),
 
       clearPermissions: () =>
@@ -151,18 +164,23 @@ export const useAuthStore = create<AuthState>()(
           fetchStatus: "IDLE",
           fetchError: null,
           accessVersion: get().accessVersion + 1,
+          permissionsFetchedAt: 0,
         }),
 
       setLoadingPermissions: (loading) => set({ isLoadingPermissions: loading }),
 
-      fetchEffectivePermissions: async () => {
+      fetchEffectivePermissions: async (background = false) => {
         const state = get();
-        if (!state.isAuthenticated || !state.user?.id) {
-          set({ fetchStatus: "IDLE", permissions: [], isAdmin: false });
+        if (!state.isAuthenticated || !state.user?.id || !getAccessToken()) {
+          get().logout();
           return;
         }
 
-        set({ fetchStatus: "LOADING", isLoadingPermissions: true, fetchError: null });
+        const shouldBlock = !background || state.permissions.length === 0;
+        set({
+          ...(shouldBlock ? { fetchStatus: "LOADING" as const, isLoadingPermissions: true } : {}),
+          fetchError: null,
+        });
 
         try {
           const payload: any = await apiFetch("/auth/me");
@@ -177,13 +195,18 @@ export const useAuthStore = create<AuthState>()(
               fetchError: null,
               accessVersion: state.accessVersion + 1,
               isLoadingPermissions: false,
+              permissionsFetchedAt: Date.now(),
             });
           }
         } catch (error: any) {
+          if (error?.status === 401 || error?.status === 403) {
+            get().logout();
+            return;
+          }
           set({
             fetchStatus: "ERROR",
             fetchError: error?.response?.data?.error || "Failed to load authorization permissions",
-            isLoadingPermissions: false,
+              isLoadingPermissions: false,
           });
         }
       },
@@ -225,6 +248,12 @@ export const useAuthStore = create<AuthState>()(
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,
+        permissions: state.permissions,
+        roles: state.roles,
+        roleDetails: state.roleDetails,
+        isAdmin: state.isAdmin,
+        fetchStatus: state.fetchStatus,
+        permissionsFetchedAt: state.permissionsFetchedAt,
       }),
     }
   )

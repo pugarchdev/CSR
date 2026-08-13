@@ -180,7 +180,7 @@ export function StatCard({
       }}
       transition={{ duration: 0.25, delay: index * 0.04 }}
       className={cn(
-        "group relative rounded-xl border border-slate-200/90 bg-gradient-to-br p-3.5 shadow-xs hover:shadow-lg transition-all duration-200 cursor-pointer transform-gpu flex flex-col justify-between h-[105px] overflow-hidden",
+        "group relative rounded-xl border border-slate-200/90 bg-gradient-to-br p-3.5 shadow-xs hover:shadow-lg transition-all duration-200 cursor-pointer transform-gpu flex flex-col justify-between min-h-[112px] h-full overflow-hidden",
         theme.bgTint,
         theme.borderHover,
         className
@@ -192,12 +192,12 @@ export function StatCard({
 
       {/* Header Row with 3D Depth */}
       <div className="flex items-center justify-between relative z-10 pt-0.5" style={{ transform: "translateZ(8px)" }}>
-        <div className="flex flex-col min-w-0 pr-2">
-          <span className="text-[11px] font-bold text-slate-800 group-hover:text-slate-950 transition-colors truncate">
+        <div className="flex flex-col min-w-0 pr-1 flex-1">
+          <span className="text-xs font-bold text-slate-900 group-hover:text-slate-950 transition-colors leading-tight line-clamp-2">
             {label}
           </span>
           {sublabel && (
-            <span className="text-[9px] text-slate-500 font-medium truncate">
+            <span className="text-[9.5px] text-slate-500 font-medium line-clamp-1 mt-0.5">
               {sublabel}
             </span>
           )}

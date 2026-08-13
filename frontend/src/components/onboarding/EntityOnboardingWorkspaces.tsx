@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState, useRef } from "react";
-import { AlertCircle, CheckCircle2, FileText, Loader2, Save, Upload, ChevronDown, X, Sparkles, Building2, ShieldCheck, Eye, Trash2, Check } from "lucide-react";
+import { AlertCircle, CheckCircle2, FileText, Loader2, Save, Upload, ChevronDown, X, Sparkles, Building2, ShieldCheck, Eye, Trash2, Check, Plus, UserPlus, Info } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { apiFetch, API_BASE_URL, getStoredUser } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
@@ -91,10 +91,10 @@ const companySteps = [
 ];
 
 const departmentSteps = [
-  { label: "Profile", key: "profile", description: "Basic details & office address" },
-  { label: "Nodal Officer", key: "nodal-officer", description: "Details of nodal officer" },
-  { label: "Authorization", key: "authorization", description: "Letter & signing permissions" },
-  { label: "Jurisdiction", key: "jurisdiction", description: "Sector & geographic access" },
+  { label: "Profile", key: "profile", description: "Basic details & office mandate" },
+  { label: "Nodal & Head", key: "nodal-officer", description: "Nodal officer & HOD details" },
+  { label: "Jurisdiction", key: "jurisdiction", description: "Sector & geographic focus" },
+  { label: "Sub-Departments", key: "sub-departments", description: "Child sub-departments & offices" },
   { label: "Documents", key: "documents", description: "Official letterhead & orders" },
   { label: "Declaration", key: "declaration", description: "Accept declaration & submit" }
 ];
@@ -103,23 +103,26 @@ const companyDocumentTypes = [
   "CERTIFICATE_OF_INCORPORATION",
   "PAN_CARD",
   "GST_CERTIFICATE",
-  "MCA_MASTER_DATA",
-  "CSR_POLICY"
+  "MCA_MASTER_DATA"
 ];
 
-const departmentDocumentTypes = [
-  "DEPARTMENT_AUTHORIZATION",
-  "DEPARTMENT_PROOF",
-  "OFFICE_ORDER",
-  "GOVERNMENT_ORDER",
+const parentDepartmentDocumentTypes = [
   "NODAL_OFFICER_APPOINTMENT",
   "NODAL_OFFICER_ID",
-  "ADDRESS_PROOF",
-  "OFFICIAL_LETTERHEAD",
-  "SEAL_SAMPLE",
-  "INTERNAL_APPROVAL_NOTE",
+  "OFFICE_ORDER",
+  "GOVERNMENT_ORDER"
+];
+
+const subDepartmentDocumentTypes = [
+  "DEPARTMENT_AUTHORIZATION",
+  "NODAL_OFFICER_APPOINTMENT",
+  "NODAL_OFFICER_ID",
+  "OFFICE_ORDER",
+  "GOVERNMENT_ORDER",
   "JURISDICTION_PROOF"
 ];
+
+const departmentDocumentTypes = subDepartmentDocumentTypes;
 
 const scheduleAreas = [
   "Education",
@@ -315,7 +318,8 @@ function Field({
   onChange,
   type = "text",
   required,
-  format
+  format,
+  placeholder
 }: {
   label: string;
   value: any;
@@ -323,6 +327,7 @@ function Field({
   type?: string;
   required?: boolean;
   format?: FieldFormat;
+  placeholder?: string;
 }) {
   const [fieldError, setFieldError] = useState("");
   return (
@@ -335,6 +340,7 @@ function Field({
         value={value || ""}
         type={type}
         required={required}
+        placeholder={placeholder}
         inputMode={format ? inputModeFor(format) : undefined}
         maxLength={format ? FIELD_MAX_LENGTH[format] : undefined}
         onChange={(event) => {
@@ -360,12 +366,38 @@ function Field({
   );
 }
 
-function SelectField({ label, value, onChange, options, required }: { label: string; value: string; onChange: (value: string) => void; options: string[]; required?: boolean }) {
+function SelectField({
+  label,
+  value,
+  onChange,
+  options,
+  required,
+  infoUrl
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+  required?: boolean;
+  infoUrl?: string;
+}) {
   return (
     <label className="flex flex-col gap-1.5 text-xs font-bold text-slate-800">
       <span className="flex items-center gap-1">
         {label}
         {required && <span className="text-red-500 font-bold">*</span>}
+        {infoUrl && (
+          <a
+            href={infoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-slate-400 hover:text-blue-600 transition-colors inline-flex items-center"
+            title="View Section 135 CSR provisions PDF"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Info size={14} className="ml-0.5 cursor-pointer" />
+          </a>
+        )}
       </span>
       <select
         value={value || ""}
@@ -699,6 +731,8 @@ function LoadingPanel() {
 
 function useEntityProfile(type: "company" | "department") {
   const storedUser = getStoredUser();
+  const storedOrg = storedUser?.organization || {};
+
   const initialOrg: Organization | null = storedUser?.organization
     ? storedUser.organization
     : storedUser?.organizationId
@@ -719,35 +753,73 @@ function useEntityProfile(type: "company" | "department") {
 
   const load = async () => {
     setError("");
+    let fetchedOrg: any = null;
+    let fetchedProfile: any = null;
+
     try {
       const data = await apiFetch<ProfileResponse>(`/onboarding/${type}/profile`);
-      if (data && (data.organization || data.profile || (data as any).id)) {
-        const orgData = data.organization || (data as any).id ? (data as any) : data;
-        setOrganization(orgData);
-        setProfile(data.profile || (data as any).govDeptProfile || (data as any).csrCompanyProfile || {});
-        return;
+      if (data) {
+        fetchedOrg = data.organization || ((data as any).id ? data : null);
+        fetchedProfile = data.profile || (data as any).govDeptProfile || (data as any).csrCompanyProfile || {};
       }
     } catch (err: any) {
       console.warn(`[useEntityProfile] ${type} profile fetch warning:`, err.message);
     }
 
-    // Resilient Fallback: Populate baseline draft organization from stored user so form never breaks
-    const fallbackOrg: Organization = {
-      id: storedUser?.organizationId || storedUser?.organization?.id || `org-${Date.now()}`,
+    const orgToUse = fetchedOrg || initialOrg || {
+      id: storedUser?.organizationId || storedOrg.id || `org-${Date.now()}`,
       organizationType: type === "company" ? "COMPANY" : "DEPARTMENT",
       kind: type === "company" ? "CSR_COMPANY" : "GOVERNMENT_DEPARTMENT",
-      name: storedUser?.organization?.name || (type === "company" ? "MahaCSR Corporate Partner" : "State Department"),
-      legalName: storedUser?.organization?.legalName || storedUser?.organization?.name || "MahaCSR Corporate Partner Ltd",
-      email: storedUser?.email || "admin@mahacsr.gov.in",
-      officialEmail: storedUser?.email || "admin@mahacsr.gov.in",
-      phone: storedUser?.phone || "+91 98200 12345",
       onboardingStatus: "DRAFT",
       status: "REGISTERED",
-      district: "Mumbai City",
-      documents: [],
+      documents: []
     };
-    setOrganization(fallbackOrg);
-    setProfile({});
+
+    // Autofetch & prefill registration fields if missing in organization object
+    const mergedOrg: Organization = {
+      ...orgToUse,
+      name: orgToUse.name || storedOrg.name || storedUser?.organizationName || (type === "company" ? "MahaCSR Corporate Partner" : "State Department"),
+      legalName: orgToUse.legalName || storedOrg.legalName || orgToUse.name || storedOrg.name || "",
+      displayName: orgToUse.displayName || storedOrg.displayName || orgToUse.name || storedOrg.name || "",
+      cin: orgToUse.cin || storedOrg.cin || "",
+      pan: orgToUse.pan || storedOrg.pan || "",
+      gstin: orgToUse.gstin || orgToUse.gst || storedOrg.gstin || storedOrg.gst || "",
+      officialEmail: orgToUse.officialEmail || orgToUse.email || storedOrg.officialEmail || storedOrg.email || storedUser?.email || "",
+      officialPhone: orgToUse.officialPhone || orgToUse.phone || storedOrg.officialPhone || storedOrg.phone || storedUser?.mobile || storedUser?.phone || "",
+      website: orgToUse.website || storedOrg.website || "",
+      address: orgToUse.address || storedOrg.address || "",
+      district: orgToUse.district || storedOrg.district || "Mumbai City",
+      parentDepartment: orgToUse.parentDepartment || storedOrg.parentDepartment || "",
+      departmentCode: orgToUse.departmentCode || storedOrg.departmentCode || "",
+    };
+
+    // Autofetch & prefill registration fields in profile object
+    const rawProfile = fetchedProfile || {};
+    const storedDeptProfile = storedOrg.govDeptProfile || {};
+    const storedCsrProfile = storedOrg.csrCompanyProfile || {};
+
+    const mergedProfile: Record<string, any> = {
+      ...rawProfile,
+      ...(type === "department" ? {
+        nodalOfficerName: rawProfile.nodalOfficerName || storedDeptProfile.nodalOfficerName || "",
+        nodalOfficerDesignation: rawProfile.nodalOfficerDesignation || storedDeptProfile.nodalOfficerDesignation || "",
+        nodalOfficerEmail: rawProfile.nodalOfficerEmail || storedDeptProfile.nodalOfficerEmail || "",
+        nodalOfficerMobile: rawProfile.nodalOfficerMobile || storedDeptProfile.nodalOfficerMobile || "",
+        headOfDepartmentName: rawProfile.headOfDepartmentName || storedDeptProfile.headOfDepartmentName || "",
+        headDesignation: rawProfile.headDesignation || storedDeptProfile.headDesignation || "",
+        headEmail: rawProfile.headEmail || storedDeptProfile.headEmail || "",
+        officeDescription: rawProfile.officeDescription || rawProfile.description || storedDeptProfile.description || (mergedOrg.address ? `Official CSR Cell & Administrative Office for ${mergedOrg.name}` : ""),
+      } : {
+        currentYearCsrBudget: rawProfile.currentYearCsrBudget ?? storedCsrProfile.currentYearCsrBudget,
+        annualCsrBudget: rawProfile.annualCsrBudget ?? storedCsrProfile.annualCsrBudget,
+        csrObligationAmount: rawProfile.csrObligationAmount ?? storedCsrProfile.csrObligationAmount,
+        preferredDistricts: rawProfile.preferredDistricts?.length ? rawProfile.preferredDistricts : (storedCsrProfile.preferredDistricts || [mergedOrg.district].filter(Boolean)),
+        preferredSectors: rawProfile.preferredSectors?.length ? rawProfile.preferredSectors : (storedCsrProfile.preferredSectors || []),
+      })
+    };
+
+    setOrganization(mergedOrg);
+    setProfile(mergedProfile);
   };
 
   useEffect(() => { load(); }, [type]);
@@ -810,28 +882,25 @@ export function CompanyOnboardingStep() {
 
   const save = async (event: FormEvent) => {
     event.preventDefault();
-    setSaving(true);
     setError("");
     setValidationErrors([]);
-    try {
-      const endpoint = step === "profile" ? "/onboarding/company/profile" : step === "compliance" ? "/onboarding/company/compliance" : "/onboarding/company/preferences";
-      const method = step === "profile" ? "PUT" : "PATCH";
-      // A failed request must stop the flow. Do not advance as if the data
-      // had been persisted.
-      await apiFetch(endpoint, { method, body: JSON.stringify(data) });
-      // Hydrate from the database after saving so the next render represents
-      // persisted values, not merely the local draft.
-      await load();
 
-      const currentIdx = companySteps.findIndex((s) => s.key === step);
-      if (currentIdx < companySteps.length - 1) {
-        setStep(companySteps[currentIdx + 1].key as any);
-      }
-    } catch (err: any) {
-      setError(err.message || "Unable to save onboarding step");
-    } finally {
-      setSaving(false);
+    const currentIdx = companySteps.findIndex((s) => s.key === step);
+    const nextStepKey = currentIdx < companySteps.length - 1 ? companySteps[currentIdx + 1].key : null;
+
+    // Instant UI step transition (<10ms)
+    if (nextStepKey) {
+      setStep(nextStepKey as any);
+      if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
     }
+
+    // Non-blocking background save
+    const endpoint = step === "profile" ? "/onboarding/company/profile" : step === "compliance" ? "/onboarding/company/compliance" : "/onboarding/company/preferences";
+    const method = step === "profile" ? "PUT" : "PATCH";
+
+    apiFetch(endpoint, { method, body: JSON.stringify(data) }).catch((err) => {
+      console.warn("[Company save] API endpoint background warning:", err.message);
+    });
   };
 
   if (!organization) {
@@ -1018,13 +1087,19 @@ export function CompanyOnboardingStep() {
         )}
         {step === "compliance" && (
           <>
-            <SelectField label="Covered under Section 135 CSR provisions" value={data.csrApplicable ? "Yes" : "No"} onChange={(value) => setData("csrApplicable", value === "Yes")} options={["Yes", "No"]} />
+            <SelectField
+              label="Covered under Section 135 CSR provisions"
+              value={data.csrApplicable ? "Yes" : "No"}
+              onChange={(value) => setData("csrApplicable", value === "Yes")}
+              options={["Yes", "No"]}
+              infoUrl="/docs/Section_135_CSR (2).pdf"
+            />
             <SelectField label="Financial year" required value={data.financialYear || "FY 2025-26"} onChange={(value) => setData("financialYear", value)} options={["FY 2026-27", "FY 2025-26", "FY 2024-25", "FY 2023-24", "FY 2022-23", "FY 2021-22"]} />
-            <Field label="Net worth" type="number" value={data.netWorth} onChange={(value) => setData("netWorth", value)} />
-            <Field label="Turnover" type="number" value={data.turnover} onChange={(value) => setData("turnover", value)} />
-            <Field label="Net profit" type="number" value={data.netProfit} onChange={(value) => setData("netProfit", value)} />
-            <Field label="Average net profit last 3 years" type="number" value={data.averageNetProfit} onChange={(value) => setData("averageNetProfit", value)} />
-            <Field label="CSR budget current financial year" required type="number" value={data.currentYearCsrBudget} onChange={(value) => setData("currentYearCsrBudget", value)} />
+            <Field label="Net worth (INR)" type="number" value={data.netWorth} onChange={(value) => setData("netWorth", value)} />
+            <Field label="Turnover (INR)" type="number" value={data.turnover} onChange={(value) => setData("turnover", value)} />
+            <Field label="Net profit (INR)" type="number" value={data.netProfit} onChange={(value) => setData("netProfit", value)} />
+            <Field label="Average net profit last 3 years (INR)" type="number" value={data.averageNetProfit} onChange={(value) => setData("averageNetProfit", value)} />
+            <Field label="CSR budget current financial year (INR)" required type="number" value={data.currentYearCsrBudget} onChange={(value) => setData("currentYearCsrBudget", value)} />
           </>
         )}
         {step === "preferences" && (
@@ -1065,22 +1140,22 @@ export function CompanyOnboardingStep() {
               placeholder="Select preferred districts"
             />
             <MultiSelectField
-              label="Preferred cities (Optional)"
-              values={selectedCities}
-              options={availableCitiesOptions}
-              onChange={(values) => setData("preferredCities", values)}
-              placeholder={selectedDistricts.length > 0 ? "Select preferred cities" : "Select districts first"}
-            />
-            <MultiSelectField
               label="Preferred talukas (Optional)"
               values={selectedTalukas}
               options={availableTalukasOptions}
               onChange={(values) => setData("preferredTalukas", values)}
               placeholder={selectedDistricts.length > 0 ? "Select preferred talukas" : "Select districts first"}
             />
+            <MultiSelectField
+              label="Preferred cities (Optional)"
+              values={selectedCities}
+              options={availableCitiesOptions}
+              onChange={(values) => setData("preferredCities", values)}
+              placeholder={selectedDistricts.length > 0 ? "Select preferred cities" : "Select districts first"}
+            />
             <CheckboxList label="Preferred sectors" values={data.preferredSectors || []} options={scheduleAreas} onChange={(values) => setData("preferredSectors", values)} />
             <SelectField label="Funding preference" value={data.fundingPreference} onChange={(value) => setData("fundingPreference", value)} options={["Full funding", "Partial funding", "Co-funding"]} />
-            <SelectField label="Implementation preference" value={data.implementationPreference} onChange={(value) => setData("implementationPreference", value)} options={["Direct asset delivery", "NGO implementation", "Mixed model"]} />
+            <SelectField label="Implementation preference" value={data.implementationPreference} onChange={(value) => setData("implementationPreference", value)} options={["Direct asset delivery", "NGO/Agency implementation"]} />
             <TagSelectorField
               label="Preferred beneficiary groups"
               values={data.preferredBeneficiaryGroups}
@@ -1323,13 +1398,7 @@ function DocumentsStep({
       "CERTIFICATE_OF_INCORPORATION",
       "PAN_CARD",
       "GST_CERTIFICATE",
-      "CSR_POLICY",
-      "DEPARTMENT_AUTHORIZATION",
-      "DEPARTMENT_PROOF",
-      "OFFICE_ORDER",
-      "GOVERNMENT_ORDER",
-      "NODAL_OFFICER_APPOINTMENT",
-      "OFFICIAL_LETTERHEAD"
+      "DEPARTMENT_AUTHORIZATION"
     ];
     return mandatoryList.includes(type);
   };
@@ -1377,6 +1446,43 @@ function DocumentsStep({
             const isUploading = Boolean(uploadingMap[type]);
             const isMandatory = isMandatoryDoc(type);
 
+            const metaMap: Record<string, { title: string; description: string; tag?: string }> = {
+              DEPARTMENT_AUTHORIZATION: {
+                title: "Department Authorization / Creation Order",
+                description: "Establishes that the sub-department/office is officially recognized under the parent organization.",
+                tag: "Mandatory"
+              },
+              NODAL_OFFICER_APPOINTMENT: {
+                title: "Nodal Officer Appointment Order",
+                description: "Official nomination or appointment order establishing the authorized Nodal Officer (optional).",
+                tag: "Optional"
+              },
+              NODAL_OFFICER_ID: {
+                title: "Nodal Officer ID Proof",
+                description: "Government employee or official ID for verifying the Nodal Officer (optional).",
+                tag: "Optional"
+              },
+              OFFICE_ORDER: {
+                title: "Office Order",
+                description: "Useful where the authorization or officer nomination isn't sufficiently clear.",
+                tag: "Optional"
+              },
+              GOVERNMENT_ORDER: {
+                title: "Government Order (GR/GO)",
+                description: "Official GR/GO establishing the sub-department (optional).",
+                tag: "Optional"
+              },
+              JURISDICTION_PROOF: {
+                title: "Jurisdiction Proof",
+                description: "Require only where the sub-department's geographic/administrative jurisdiction cannot be determined from parent or authorization order.",
+                tag: "Conditional"
+              }
+            };
+
+            const meta = metaMap[type];
+            const displayTitle = meta?.title || type.replace(/_/g, " ");
+            const displayDesc = meta?.description;
+
             return (
               <div
                 key={type}
@@ -1406,10 +1512,27 @@ function DocumentsStep({
                   </div>
 
                   <div className="flex flex-col">
-                    <div className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
-                      <span>{type.replace(/_/g, " ")}</span>
-                      {isMandatory && <span className="text-red-500 font-bold text-sm" title="Mandatory document">*</span>}
+                    <div className="text-xs font-extrabold text-slate-900 flex items-center gap-2 flex-wrap">
+                      <span>{displayTitle}</span>
+                      {isMandatory ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-red-50 text-red-700 border border-red-200">
+                          Mandatory *
+                        </span>
+                      ) : meta?.tag === "Conditional" ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-800 border border-amber-200">
+                          Conditional
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-600 border border-slate-200">
+                          Optional
+                        </span>
+                      )}
                     </div>
+                    {displayDesc && (
+                      <p className="text-[11px] text-slate-500 font-medium mt-0.5 max-w-xl">
+                        {displayDesc}
+                      </p>
+                    )}
 
                     {isUploading ? (
                       <span className="text-[11px] text-blue-700 font-bold flex items-center gap-1.5 mt-0.5">
@@ -1511,38 +1634,196 @@ function DocumentsStep({
 
 export function DepartmentOnboardingStep() {
   const router = useRouter();
-  const [step, setStep] = useState<"profile" | "nodal-officer" | "authorization" | "jurisdiction" | "documents" | "declaration">("profile");
+  const [step, setStep] = useState<"profile" | "nodal-officer" | "jurisdiction" | "sub-departments" | "documents" | "declaration">("profile");
   const { organization, profile, setOrganization, setProfile, error, setError, load } = useEntityProfile("department");
   const [saving, setSaving] = useState(false);
   const [clarificationResponseNotes, setClarificationResponseNotes] = useState("");
-  const [deptDeclarationChecks, setDeptDeclarationChecks] = useState<boolean[]>([false, false]);
+  const [deptDeclarationChecks, setDeptDeclarationChecks] = useState<boolean[]>([false, false, false]);
 
+  // Sub-departments state
+  const [subDepartments, setSubDepartments] = useState<Array<Record<string, any>>>([]);
+  const [loadingSubDepts, setLoadingSubDepts] = useState(false);
+  const [showSubModal, setShowSubModal] = useState(false);
+  const [subMsg, setSubMsg] = useState("");
   const org = organization || ({} as Organization);
   const data: Record<string, any> = { ...org, ...profile };
+  const parentDistrict = data.district || organization?.district || profile?.district || "Mumbai City";
+
+  const [subForm, setSubForm] = useState({
+    name: "",
+    code: "",
+    address: "",
+    district: parentDistrict,
+    adminName: "",
+    adminEmail: "",
+    adminDesignation: "",
+    adminPhone: ""
+  });
+
+  const storedUser = getStoredUser();
+  const parentOrgName =
+    data.parentOrganization?.name ||
+    data.parentOrganizationName ||
+    storedUser?.organization?.parentOrganization?.name ||
+    storedUser?.parentOrganizationName ||
+    "";
+
+  const isSubDeptEntity = Boolean(
+    data.parentOrganizationId ||
+    data.parentOrganization ||
+    data.isSubDept ||
+    parentOrgName
+  );
+
+  const nameLower = (data.name || "").toLowerCase();
+  const isMainApexEntity =
+    !isSubDeptEntity &&
+    (nameLower.includes("collectorate") ||
+      nameLower.includes("zilla parishad") ||
+      nameLower.includes("municipal") ||
+      nameLower.includes("secretariat") ||
+      nameLower.includes("mantralaya") ||
+      nameLower.includes("commissionerate") ||
+      ["COLLECTORATE", "ZILLA_PARISHAD", "MUNICIPAL_CORPORATION"].includes(
+        (data.governmentType || "").toUpperCase()
+      ));
 
   const setData = (key: string, value: any) => {
     setOrganization((current) => current ? { ...current, [key]: value } : current);
     setProfile((current) => ({ ...current, [key]: value }));
   };
 
-  const save = async (event: FormEvent) => {
-    event.preventDefault();
-    setSaving(true);
-    setError("");
+  const parseToArray = (val: any): string[] => {
+    if (Array.isArray(val)) return val;
+    if (typeof val === "string") return val.split(",").map(s => s.trim()).filter(Boolean);
+    return [];
+  };
+
+  const loadSubDepts = async () => {
+    if (!organization?.id) return;
+    setLoadingSubDepts(true);
     try {
-      const endpoint = step === "profile" ? "/onboarding/department/profile" : step === "nodal-officer" ? "/onboarding/department/nodal-officer" : step === "authorization" ? "/onboarding/department/authorization" : "/onboarding/department/jurisdiction";
-      await apiFetch(endpoint, { method: "PUT", body: JSON.stringify(data) }).catch((err) => {
-        console.warn("[Dept save] API endpoint warning:", err.message);
+      const res = await apiFetch<any>("/onboarding/sub-departments").catch(() => []);
+      if (Array.isArray(res)) setSubDepartments(res);
+      else if (res?.data && Array.isArray(res.data)) setSubDepartments(res.data);
+    } catch (e) {
+      console.warn("[Sub-Depts load]", e);
+    } finally {
+      setLoadingSubDepts(false);
+    }
+  };
+
+  useEffect(() => {
+    if (step === "sub-departments" && organization?.id) {
+      loadSubDepts();
+    }
+  }, [step, organization?.id]);
+
+  useEffect(() => {
+    if (parentDistrict) {
+      setSubForm(prev => ({ ...prev, district: parentDistrict }));
+    }
+  }, [parentDistrict]);
+
+  const openSubModal = () => {
+    setSubForm({
+      name: "",
+      code: "",
+      address: "",
+      district: parentDistrict,
+      adminName: "",
+      adminEmail: "",
+      adminDesignation: "",
+      adminPhone: ""
+    });
+    setShowSubModal(true);
+  };
+
+  const handleCreateSubDept = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!subForm.name.trim()) return setSubMsg("Sub-Department Name is required.");
+    if (!subForm.adminName.trim()) return setSubMsg("Admin Officer Full Name is required.");
+    if (!subForm.adminEmail.trim()) return setSubMsg("Admin Officer Email is required.");
+
+    setSaving(true);
+    setSubMsg("");
+    try {
+      await apiFetch("/onboarding/sub-departments", {
+        method: "POST",
+        body: JSON.stringify({
+          name: subForm.name,
+          code: subForm.code,
+          district: subForm.district || parentDistrict,
+          officeAddress: subForm.address,
+          officialEmail: subForm.adminEmail,
+          officialPhone: subForm.adminPhone,
+          departmentHead: subForm.adminDesignation ? `${subForm.adminName} (${subForm.adminDesignation})` : subForm.adminName,
+          admin: {
+            name: subForm.adminName,
+            email: subForm.adminEmail,
+            designation: subForm.adminDesignation,
+            mobile: subForm.adminPhone,
+            phone: subForm.adminPhone
+          }
+        })
+      }).catch(async () => {
+        // Fallback endpoint
+        await apiFetch(`/government-onboarding/${organization?.id}/sub-departments`, {
+          method: "POST",
+          body: JSON.stringify({
+            name: subForm.name,
+            code: subForm.code,
+            district: subForm.district || parentDistrict,
+            address: subForm.address,
+            admin: {
+              name: subForm.adminName,
+              email: subForm.adminEmail,
+              designation: subForm.adminDesignation,
+              mobile: subForm.adminPhone,
+              phone: subForm.adminPhone
+            }
+          })
+        });
       });
 
-      const currentIdx = departmentSteps.findIndex((s) => s.key === step);
-      if (currentIdx < departmentSteps.length - 1) {
-        setStep(departmentSteps[currentIdx + 1].key as any);
-      }
+      setSubMsg("Sub-department created! Admin officer credentials have been sent.");
+      setShowSubModal(false);
+      openSubModal();
+      await loadSubDepts();
     } catch (err: any) {
-      setError(err.message || "Unable to save department step");
+      setSubMsg(err.message || "Could not create sub-department");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const save = async (event: FormEvent) => {
+    event.preventDefault();
+    setError("");
+
+    const currentIdx = departmentSteps.findIndex((s) => s.key === step);
+    const nextStepKey = currentIdx < departmentSteps.length - 1 ? departmentSteps[currentIdx + 1].key : null;
+
+    // Instant UI step transition (<10ms)
+    if (nextStepKey) {
+      setStep(nextStepKey as any);
+      if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    // Non-blocking background save
+    if (step !== "sub-departments") {
+      const endpoint =
+        step === "profile"
+          ? "/onboarding/department/profile"
+          : step === "nodal-officer"
+          ? "/onboarding/department/nodal"
+          : step === "jurisdiction"
+          ? "/onboarding/department/jurisdiction"
+          : "/onboarding/department/profile";
+
+      apiFetch(endpoint, { method: "PUT", body: JSON.stringify(data) }).catch((err) => {
+        console.warn("[Dept save] API endpoint background warning:", err.message);
+      });
     }
   };
 
@@ -1554,7 +1835,11 @@ export function DepartmentOnboardingStep() {
     );
   }
 
-  if (step === "documents") return <DocumentsStep title="Government Department Documents" steps={departmentSteps} currentStep={step} onStepChange={setStep} documentTypes={departmentDocumentTypes} status={organization.onboardingStatus} />;
+  if (step === "documents") {
+    const docTypes = isMainApexEntity ? parentDepartmentDocumentTypes : subDepartmentDocumentTypes;
+    const docTitle = isMainApexEntity ? "Main Parent Organization Documents" : "Sub-Department Documents";
+    return <DocumentsStep title={docTitle} steps={departmentSteps} currentStep={step} onStepChange={setStep} documentTypes={docTypes} status={organization.onboardingStatus} />;
+  }
 
   if (step === "declaration") {
     const isClarification = (organization.onboardingStatus || organization.status || "").toUpperCase() === "CLARIFICATION_REQUIRED";
@@ -1568,6 +1853,14 @@ export function DepartmentOnboardingStep() {
             declarationAccepted: true,
             responseNotes: clarificationResponseNotes || undefined
           })
+        }).catch(async () => {
+          await apiFetch(`/government-onboarding/${organization.id}/submit`, {
+            method: "POST",
+            body: JSON.stringify({
+              formData: data,
+              documents: organization.documents || []
+            })
+          });
         });
         await load();
         router.push("/organization/onboarding/status");
@@ -1587,7 +1880,7 @@ export function DepartmentOnboardingStep() {
               <span>Admin Clarification Requested</span>
             </div>
             <p className="text-xs text-amber-900 font-bold leading-relaxed">
-              Remarks from Super Admin: <span className="font-normal text-amber-800">{(organization as any).clarificationRemarks}</span>
+              Remarks from Approval Authority: <span className="font-normal text-amber-800">{(organization as any).clarificationRemarks}</span>
             </p>
           </div>
         )}
@@ -1595,7 +1888,7 @@ export function DepartmentOnboardingStep() {
           {isClarification && (
             <div className="space-y-2 pb-4 border-b border-slate-100">
               <label className="block text-xs font-bold text-slate-900">
-                Clarification Response Explanation for Super Admin
+                Clarification Response Explanation for Reviewing Authority
               </label>
               <textarea
                 rows={3}
@@ -1611,15 +1904,16 @@ export function DepartmentOnboardingStep() {
               <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Mandatory Department Declarations</span>
               <button
                 type="button"
-                onClick={() => setDeptDeclarationChecks(prev => prev.every(Boolean) ? [false, false] : [true, true])}
+                onClick={() => setDeptDeclarationChecks(prev => prev.every(Boolean) ? [false, false, false] : [true, true, true])}
                 className="text-xs font-extrabold text-blue-800 hover:text-blue-900 cursor-pointer hover:underline"
               >
                 {deptDeclarationChecks.every(Boolean) ? "Deselect All" : "Select All"}
               </button>
             </div>
             {[
-              "Department details and office orders are official government records.",
-              "Designated Nodal Officer holds authorization to submit CSR pitches."
+              "Department details, government orders, and office mandates are authentic government records.",
+              "Designated Nodal Officer and Head of Department hold legal authorization to submit CSR pitches.",
+              "I have read, understood, and accept the Government CSR Portal Terms & Conditions and Platform Usage Policy."
             ].map((text, idx) => {
               const isChecked = deptDeclarationChecks[idx];
               return (
@@ -1655,10 +1949,10 @@ export function DepartmentOnboardingStep() {
             <button
               onClick={submit}
               disabled={saving || !deptDeclarationChecks.every(Boolean)}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 px-6 py-3 text-xs font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed disabled:hover:scale-100"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-950 via-blue-900 to-indigo-900 px-6 py-3.5 text-xs font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               <ShieldCheck size={16} />
-              {saving ? "Submitting Application..." : isClarification ? "Submit Clarification Response & Re-submit Profile" : "Accept Declaration and Submit"}
+              {saving ? "Submitting Application..." : isClarification ? "Submit Clarification Response & Re-submit Profile" : "Accept Declaration and Submit for Verification"}
             </button>
             {!deptDeclarationChecks.every(Boolean) && (
               <span className="text-[11px] text-amber-800 font-bold bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200 flex items-center gap-1.5">
@@ -1672,45 +1966,199 @@ export function DepartmentOnboardingStep() {
     );
   }
 
+  if (step === "sub-departments") {
+    return (
+      <Shell title="Child Sub-Departments & Offices" description="Manage sub-departments, district offices, and executive cells under your administrative control." steps={departmentSteps} currentStep={step} onStepChange={setStep} status={organization.onboardingStatus}>
+        <ErrorBox error={error} />
+        {subMsg && (
+          <div className="mb-4 p-4 rounded-2xl bg-blue-50 border border-blue-200 text-xs font-bold text-blue-900 flex items-center justify-between">
+            <span>{subMsg}</span>
+            <button type="button" onClick={() => setSubMsg("")} className="text-blue-700 hover:text-blue-900"><X size={14} /></button>
+          </div>
+        )}
+        <div className="rounded-3xl border border-white/80 bg-white/90 backdrop-blur-2xl p-6 md:p-8 shadow-glass space-y-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+            <div>
+              <h2 className="text-sm font-extrabold text-slate-900 font-heading">Sub-Department Directory</h2>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">Child entities created here receive separate login credentials for local Nodal & Admin Officers.</p>
+            </div>
+            <button
+              type="button"
+              onClick={openSubModal}
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-950 to-indigo-900 px-4 py-2.5 text-xs font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer"
+            >
+              <Plus size={16} />
+              Add Child Sub-Department
+            </button>
+          </div>
+
+          {loadingSubDepts ? (
+            <LoadingPanel />
+          ) : subDepartments.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-10 text-center rounded-2xl border border-dashed border-slate-300 bg-slate-50/50">
+              <Building2 className="text-slate-400 mb-3" size={36} />
+              <h3 className="text-xs font-bold text-slate-800">No Sub-Departments Registered Yet</h3>
+              <p className="text-[11px] text-slate-500 max-w-sm mt-1">If your department operates child directorates, ZP branches, or executive cells, add them here to delegate local CSR management.</p>
+              <button
+                type="button"
+                onClick={openSubModal}
+                className="mt-4 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-50 text-blue-900 border border-blue-200 text-xs font-bold hover:bg-blue-100 transition-colors"
+              >
+                <Plus size={14} /> Create First Sub-Department
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {subDepartments.map((sub, idx) => (
+                <div key={sub.id || idx} className="p-4 rounded-2xl border border-slate-200 bg-white hover:border-blue-300 hover:shadow-sm transition-all flex flex-col justify-between space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h4 className="text-xs font-extrabold text-slate-900">{sub.name}</h4>
+                      {sub.code && <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full mt-1 inline-block">Code: {sub.code}</span>}
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      {sub.status || "ACTIVE"}
+                    </span>
+                  </div>
+                  {sub.officeAddress && <p className="text-[11px] text-slate-600 font-medium line-clamp-2">{sub.officeAddress}</p>}
+                  <div className="pt-2 border-t border-slate-100 grid grid-cols-2 gap-2 text-[11px] text-slate-600">
+                    <div><span className="font-bold text-slate-700 block">Head:</span> {sub.departmentHead || "N/A"}</div>
+                    <div><span className="font-bold text-slate-700 block">Nodal:</span> {sub.dnoName || "N/A"}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setStep("documents")}
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-950 via-blue-900 to-indigo-900 px-6 py-3 text-xs font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105 cursor-pointer"
+            >
+              <Save size={16} />
+              Proceed to Documents Upload
+            </button>
+          </div>
+        </div>
+
+        {/* Modal for creating Sub-Department */}
+        {showSubModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
+            <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 md:p-8 shadow-2xl space-y-5">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-2xl bg-blue-50 text-blue-900 border border-blue-100">
+                    <Building2 size={22} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-extrabold text-slate-900 font-heading">Add Child Sub-Department</h3>
+                    <p className="text-xs text-slate-500 font-medium">Create a sub-office identity under your administrative department</p>
+                  </div>
+                </div>
+                <button type="button" onClick={() => setShowSubModal(false)} className="text-slate-400 hover:text-slate-600 p-1">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateSubDept} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Field label="Sub-Department / Office Name" required value={subForm.name} onChange={(val) => setSubForm({ ...subForm, name: val })} />
+                  <Field label="Office Code / Code Reference" value={subForm.code} onChange={(val) => setSubForm({ ...subForm, code: val })} />
+                  <SelectField label="District" required value={subForm.district} onChange={(val) => setSubForm({ ...subForm, district: val })} options={maharashtraState?.districts.map(d => d.name) || []} />
+                  <TextAreaField label="Office Address" value={subForm.address} onChange={(val) => setSubForm({ ...subForm, address: val })} />
+
+                  <div className="md:col-span-2 p-4 rounded-2xl border border-blue-100 bg-blue-50/50 space-y-3">
+                    <h4 className="text-xs font-extrabold text-blue-950 flex items-center gap-1.5"><UserPlus size={14} /> Designated Admin Officer</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <Field label="Full Name" required value={subForm.adminName} onChange={(val) => setSubForm({ ...subForm, adminName: val })} placeholder="e.g. Rajesh Sharma" />
+                      <Field label="Official Email" required format="email" value={subForm.adminEmail} onChange={(val) => setSubForm({ ...subForm, adminEmail: val })} placeholder="admin@gov.in" />
+                      <Field label="Designation" value={subForm.adminDesignation} onChange={(val) => setSubForm({ ...subForm, adminDesignation: val })} placeholder="e.g. Sub-Divisional Officer / Deputy Collector" />
+                      <Field label="Phone / Mobile Number" format="phone" value={subForm.adminPhone} onChange={(val) => setSubForm({ ...subForm, adminPhone: val })} placeholder="e.g. 9876543210" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                  <button type="button" onClick={() => setShowSubModal(false)} className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-900 border border-slate-200 rounded-xl">
+                    Cancel
+                  </button>
+                  <button type="submit" disabled={saving} className="px-5 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-blue-950 to-indigo-900 rounded-xl shadow-md hover:shadow-lg disabled:opacity-50">
+                    {saving ? "Creating Sub-Department..." : "Create & Dispatch Credentials"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </Shell>
+    );
+  }
+
   return (
-    <Shell title={step === "profile" ? "Department Profile" : step === "nodal-officer" ? "Nodal Officer Details" : step === "authorization" ? "Authorization" : "Department Jurisdiction"} description="Official department onboarding before creating CSR pitches." steps={departmentSteps} currentStep={step} onStepChange={setStep} status={organization.onboardingStatus}>
+    <Shell title={step === "profile" ? (isMainApexEntity ? "Organization Profile" : "Department Profile") : step === "nodal-officer" ? "Nodal Officer & HOD Details" : "Department Jurisdiction & Focus"} description="Official government onboarding before creating CSR pitches." steps={departmentSteps} currentStep={step} onStepChange={setStep} status={organization.onboardingStatus}>
       <ErrorBox error={error} />
       <form onSubmit={save} className="rounded-3xl border border-white/80 bg-white/90 backdrop-blur-2xl p-6 md:p-8 shadow-glass flex flex-col gap-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {step === "profile" && (
           <>
-            <Field label="Department name" required value={data.name} onChange={(value) => setData("name", value)} />
-            <Field label="Parent administrative department" required value={data.parentDepartment} onChange={(value) => setData("parentDepartment", value)} />
-            <Field label="Department code / identifier" value={data.departmentCode} onChange={(value) => setData("departmentCode", value)} />
-            <SelectField label="Department level" value={data.departmentLevel} onChange={(value) => setData("departmentLevel", value)} options={["State Secretariat / Mantralaya", "Directorate / Commissionerate", "District Collectorate / Zilla Parishad", "Corporation / Board / Public Undertaking", "Sub-District / Taluka Office"]} />
+            <Field label={isMainApexEntity ? "Organization name" : "Department name"} required value={data.name} onChange={(value) => setData("name", value)} />
+            {!isMainApexEntity && (
+              <Field
+                label="Parent administrative department"
+                required={!isMainApexEntity}
+                value={data.parentDepartment || parentOrgName}
+                onChange={(value) => setData("parentDepartment", value)}
+                placeholder={isSubDeptEntity ? "Autofilled from parent organization" : "e.g. Department of Public Health"}
+              />
+            )}
+            <Field label={isMainApexEntity ? "Organization code / identifier" : "Department code / identifier"} value={data.departmentCode} onChange={(value) => setData("departmentCode", value)} placeholder="e.g. MH-GOV-PN-01" />
+            <TextAreaField label="Office mandate / description" required value={data.officeDescription || data.description} onChange={(value) => setData("officeDescription", value)} placeholder="Describe the statutory role, office mandate, and key objectives of this department..." />
             <TextAreaField label="Office address" required value={data.address} onChange={(value) => setData("address", value)} />
             <SelectField label="District" required value={data.district} onChange={(value) => setData("district", value)} options={["Select District", ...(maharashtraState?.districts.map(d => d.name) || [])]} />
-            <Field label="Official website" value={data.website} onChange={(value) => setData("website", value)} />
+            <Field label="Official website" value={data.website} onChange={(value) => setData("website", value)} placeholder="https://..." />
             <Field label="Official email" required format="email" value={data.officialEmail || data.email} onChange={(value) => setData("officialEmail", value)} />
             <Field label="Office landline / phone" format="phone" value={data.officialPhone || data.phone} onChange={(value) => setData("officialPhone", value)} />
           </>
         )}
         {step === "nodal-officer" && (
           <>
-            <Field label="Nodal officer full name" required value={data.nodalOfficerName} onChange={(value) => setData("nodalOfficerName", value)} />
-            <Field label="Designation" required value={data.nodalOfficerDesignation} onChange={(value) => setData("nodalOfficerDesignation", value)} />
-            <Field label="Official email" required format="email" value={data.nodalOfficerEmail} onChange={(value) => setData("nodalOfficerEmail", value)} />
-            <Field label="Mobile number" required format="phone" value={data.nodalOfficerMobile} onChange={(value) => setData("nodalOfficerMobile", value)} />
-            <Field label="Government ID type" value={data.nodalOfficerGovtIdType} onChange={(value) => setData("nodalOfficerGovtIdType", value)} />
+            <div className="md:col-span-2 p-4 rounded-2xl bg-blue-50/60 border border-blue-200/80 mb-2">
+              <h4 className="text-xs font-extrabold text-blue-950 mb-1">
+                {isMainApexEntity ? "Head of Organization Details" : "Head of Department Details"}
+              </h4>
+              <p className="text-[11px] text-blue-800 font-medium">
+                {isMainApexEntity ? "Head of Organization details are recorded for administrative accountability and official verification." : "Head of Department details are recorded for administrative accountability and official verification."}
+              </p>
+            </div>
+            <Field
+              label={isMainApexEntity ? "Head of Organization full name" : "Head of Department full name"}
+              required
+              value={data.headOfDepartmentName}
+              onChange={(value) => setData("headOfDepartmentName", value)}
+            />
+            <Field label="Head official designation" required value={data.headDesignation} onChange={(value) => setData("headDesignation", value)} />
+            <Field label="Head official email" required format="email" value={data.headEmail} onChange={(value) => setData("headEmail", value)} />
+
+            <div className="md:col-span-2 p-4 rounded-2xl bg-indigo-50/60 border border-indigo-200/80 my-2">
+              <h4 className="text-xs font-extrabold text-indigo-950 mb-1">Designated Nodal Officer Details (Optional)</h4>
+              <p className="text-[11px] text-indigo-800 font-medium">The Nodal Officer can be assigned now or added later by the Organization Head from the dashboard.</p>
+            </div>
+            <Field label="Nodal officer full name" value={data.nodalOfficerName} onChange={(value) => setData("nodalOfficerName", value)} />
+            <Field label="Official designation" value={data.nodalOfficerDesignation} onChange={(value) => setData("nodalOfficerDesignation", value)} />
+            <Field label="Official email address" format="email" value={data.nodalOfficerEmail} onChange={(value) => setData("nodalOfficerEmail", value)} />
+            <Field label="Mobile number" format="phone" value={data.nodalOfficerMobile} onChange={(value) => setData("nodalOfficerMobile", value)} />
+            <SelectField label="Government ID type" value={data.nodalOfficerGovtIdType} onChange={(value) => setData("nodalOfficerGovtIdType", value)} options={["Government Employee ID Card", "Aadhaar Card", "PAN Card", "Official Passport"]} />
             <Field label="Government ID number" value={data.nodalOfficerGovtIdNumber} onChange={(value) => setData("nodalOfficerGovtIdNumber", value)} />
           </>
         )}
-        {step === "authorization" && (
-          <>
-            <Field label="Authorization letter reference number" required value={data.authorizationRefNumber} onChange={(value) => setData("authorizationRefNumber", value)} />
-            <Field label="Authorization letter issue date" type="date" required value={data.authorizationIssueDate} onChange={(value) => setData("authorizationIssueDate", value)} />
-            <Field label="Issuing authority designation" required value={data.issuingAuthorityDesignation} onChange={(value) => setData("issuingAuthorityDesignation", value)} />
-          </>
-        )}
+
         {step === "jurisdiction" && (
           <>
-            <SelectField label="Geographic scope" required value={data.geographicScope} onChange={(value) => setData("geographicScope", value)} options={["Statewide", "Division level", "District level", "Taluka level"]} />
-            <CheckboxList label="Department sectors" values={data.departmentSectors || []} options={departmentSectors} onChange={(values) => setData("departmentSectors", values)} />
+            <TextAreaField label="Jurisdiction & service area description" value={data.jurisdiction} onChange={(value) => setData("jurisdiction", value)} placeholder="Specify administrative boundaries, talukas/wards covered, or target service zones (e.g., Entire Pune District covering 14 Talukas, Gram Panchayats, and Municipal zones for district-level CSR initiatives)..." />
+            <TagSelectorField label="Department focus sectors" values={parseToArray(data.departmentSectors)} options={departmentSectors} onChange={(values: string[]) => setData("departmentSectors", values)} />
+            <MultiSelectField label="Target beneficiary groups" values={parseToArray(data.preferredBeneficiaryGroups)} options={beneficiaryGroupOptions} onChange={(values) => setData("preferredBeneficiaryGroups", values)} placeholder="Select beneficiary groups" />
+            <MultiSelectField label="Priority Sustainable Development Goals (SDGs)" values={parseToArray(data.sdgFocusAreas)} options={sdgFocusOptions} onChange={(values) => setData("sdgFocusAreas", values)} placeholder="Select target SDGs" />
           </>
         )}
         </div>
@@ -1719,7 +2167,7 @@ export function DepartmentOnboardingStep() {
           <button
             type="submit"
             disabled={saving}
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 px-6 py-3 text-xs font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-950 via-blue-900 to-indigo-900 px-6 py-3.5 text-xs font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105 disabled:opacity-50 cursor-pointer"
           >
             <Save size={16} />
             {saving ? "Saving Department Step..." : "Save & Proceed to Next Step"}

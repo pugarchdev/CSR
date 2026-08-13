@@ -2,7 +2,7 @@ import { Response, NextFunction } from "express";
 import prisma from "../config/db";
 import { AuthenticatedRequest } from "../middlewares/authMiddleware";
 import { notFoundResponse } from "../utils/apiResponse";
-import { selectLeastLoadedRm } from "../services/rmAssignmentService";
+import { RmAssignmentService } from "../services/rmAssignmentService";
 import { ROLE_ID } from "../types/role";
 import { notifyHierarchy } from "../services/hierarchyNotificationService";
 import { generateCorporateEnquiryTrackingId } from "../services/trackingIdService";
@@ -10,6 +10,8 @@ import { createSLAEscalation } from "../services/slaEscalationService";
 import { calculateSlaDueDate } from "../services/slaConfigService";
 import { dispatchNotification, dispatchToContact } from "../services/notificationOrchestrator";
 import { validateCorporateEnquirySubmission } from "../utils/workflowValidation";
+import { PortalCaseType } from "@prisma/client";
+import { PortalCaseService } from "../services/portalCaseService";
 
 export const submitCorporateEnquiry = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
@@ -51,12 +53,6 @@ export const submitCorporateEnquiry = async (req: AuthenticatedRequest, res: Res
 
     const preferredDistrict = submission.district;
 
-    // Auto-assign RM via round-robin least loaded algorithm
-    const assignedRmId = await selectLeastLoadedRm(preferredDistrict);
-    if (!assignedRmId) {
-      return res.status(503).json({ error: "No active Relationship Manager is available. Please retry shortly; your enquiry was not submitted." });
-    }
-
     // Persist the complete submitted application. The tracking code is generated
     // before saving and retried on a unique collision so it remains safe to share.
     let enquiry;
@@ -80,7 +76,7 @@ export const submitCorporateEnquiry = async (req: AuthenticatedRequest, res: Res
         proposedCSRWork: submission.proposedCSRWork,
         documents: submission.documents,
         submittedByUserId: userId,
-        assignedRelationshipManagerId: assignedRmId,
+        assignedRelationshipManagerId: null,
         status: "SUBMITTED"
           }
         });
@@ -90,6 +86,27 @@ export const submitCorporateEnquiry = async (req: AuthenticatedRequest, res: Res
       }
     }
     if (!enquiry) throw new Error("Unable to generate a unique enquiry tracking code");
+
+    const trackedCase = await PortalCaseService.createForLegacyEntity({
+      type: PortalCaseType.CORPORATE_ENQUIRY,
+      sourceEntityId: enquiry.id,
+      trackingId: enquiry.trackingId || enquiry.id,
+      submittingOrganizationId: enquiry.organizationId,
+      submittedByUserId: userId,
+      targetDistricts: enquiry.preferredDistricts,
+      currentStage: "RM_ALLOCATION",
+      status: "SUBMITTED",
+      actorUserId: userId,
+      metadata: { targetDepartmentId: targetDepartment.id },
+    });
+    const assignedRmId = await RmAssignmentService.autoAssignRm({ caseId: trackedCase.id });
+    enquiry = await prisma.corporateEnquiry.update({
+      where: { id: enquiry.id },
+      data: {
+        assignedRelationshipManagerId: assignedRmId,
+        status: assignedRmId ? "SUBMITTED" : "UNASSIGNED",
+      },
+    });
 
     await prisma.auditLog.create({
       data: {
@@ -109,9 +126,11 @@ export const submitCorporateEnquiry = async (req: AuthenticatedRequest, res: Res
       }
     });
 
-    await createSLAEscalation({ entityType: "CORPORATE_ENQUIRY", entityId: enquiry.id, stage: "RM_RESPONSE", responsibleUserId: assignedRmId, dueAt: await calculateSlaDueDate("RM_RESPONSE") });
+    if (assignedRmId) {
+      await createSLAEscalation({ entityType: "CORPORATE_ENQUIRY", entityId: enquiry.id, stage: "RM_RESPONSE", responsibleUserId: assignedRmId, dueAt: await calculateSlaDueDate("RM_RESPONSE") });
+    }
     await Promise.all([
-      dispatchNotification({
+      ...(assignedRmId ? [dispatchNotification({
         recipientId: assignedRmId,
         templateName: "CORPORATE_ENQUIRY_ASSIGNED",
         channels: ["IN_APP", "SOCKET", "EMAIL", "SMS"],
@@ -119,13 +138,15 @@ export const submitCorporateEnquiry = async (req: AuthenticatedRequest, res: Res
         actionButtonUrl: `/enquiries/${enquiry.id}`,
         correlationId: enquiry.id,
         notificationType: "CORPORATE_ENQUIRY_ASSIGNED"
-      }),
+      })] : []),
       dispatchToContact({
         referenceId: enquiry.trackingId || enquiry.id,
         email: enquiry.contactEmail,
         phone: enquiry.mobile,
         title: "Corporate enquiry received",
-        message: `Your corporate enquiry has been received. Your tracking ID is ${enquiry.trackingId}. Use it to follow progress.`,
+        message: assignedRmId
+          ? `Your corporate enquiry has been received. Your tracking ID is ${enquiry.trackingId}. Use it to follow progress.`
+          : `Your corporate enquiry has been received with tracking ID ${enquiry.trackingId} and is queued for Relationship Manager allocation.`,
         trackingId: enquiry.trackingId || undefined,
         currentStatus: enquiry.status,
         actionButtonUrl: `/track?trackingId=${encodeURIComponent(enquiry.trackingId || enquiry.id)}`,
@@ -141,7 +162,8 @@ export const submitCorporateEnquiry = async (req: AuthenticatedRequest, res: Res
       assignedRmId: enquiry.assignedRelationshipManagerId,
       district: preferredDistrict,
       includePortalAdmins: true,
-      includeRms: true,
+      includeRms: Boolean(assignedRmId),
+      includeStateOfficers: !assignedRmId,
       includeDistrictOfficers: true,
       actionButtonUrl: `/enquiries`
     }).catch(err => console.error("Notification dispatch failed:", err));

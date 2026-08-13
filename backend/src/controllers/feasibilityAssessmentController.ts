@@ -132,6 +132,7 @@ export const submitJSDecision = async (req: AuthenticatedRequest, res: Response,
 
     const assessment = await prisma.feasibilityAssessment.findUnique({ where: { id } });
     if (!assessment) return res.status(404).json({ error: "Feasibility assessment not found" });
+    if (!assessment.enquiryId) return res.status(409).json({ error: "This legacy endpoint can decide only Corporate Enquiry assessments." });
     if (assessment.status !== "SUBMITTED_TO_JS") return res.status(409).json({ error: "A Joint Secretary decision has already been recorded for this assessment." });
 
     const isApproved = decision === "PROCEED" || decision === "PROCEED_WITH_CONDITIONS";

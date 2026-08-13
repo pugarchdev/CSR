@@ -18,6 +18,7 @@ const projectCode = () => `PRJ-MH-${new Date().getFullYear()}-${randomUUID().sli
 export async function routeApprovedCorporateEnquiry(input: ApprovedProjectInput) {
   const assessment = await prisma.feasibilityAssessment.findUnique({ where: { id: input.assessmentId } });
   if (!assessment) throw new Error("Feasibility assessment not found");
+  if (!assessment.enquiryId) throw new Error("Corporate enquiry linkage is required for this legacy routing path");
 
   const districts = [...new Set(assessment.targetDistricts.map((district) => district.trim()).filter(Boolean))];
   if (!assessment.targetDepartmentId || districts.length === 0) {

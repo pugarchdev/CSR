@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { apiFetch, getStoredUser } from "@/lib/api";
 
 export default function OrganizationOnboardingPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const user = getStoredUser();
@@ -40,7 +39,7 @@ export default function OrganizationOnboardingPage() {
         [2, 3, 4, 5, 7].includes(numericRoleId);
 
       if (isGov) {
-        router.replace("/organization/onboarding/department");
+        router.replace("/organization/onboarding/government");
         return true;
       }
 
@@ -62,7 +61,7 @@ export default function OrganizationOnboardingPage() {
         return true;
       }
 
-      router.replace("/organization/onboarding/department");
+      router.replace("/organization/onboarding/government");
       return true;
     };
 
@@ -74,9 +73,7 @@ export default function OrganizationOnboardingPage() {
       .catch(() => {
         routeToTypeForm(storedOrgKind);
       })
-      .finally(() => {
-        setLoading(false);
-      });
+      .finally(() => undefined);
   }, [router]);
 
   return (

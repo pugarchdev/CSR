@@ -195,22 +195,7 @@ const initialForm: FormState = {
 };
 
 export default function OnboardingPage() {
-  const [currentStep, setCurrentStepState] = useState<number>(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const stepParam = params.get("step");
-      if (stepParam !== null && !isNaN(Number(stepParam))) {
-        const idx = Number(stepParam);
-        if (idx >= 0 && idx < onboardingSteps.length) return idx;
-      }
-      const saved = sessionStorage.getItem("ngo_onboarding_step");
-      if (saved !== null && !isNaN(Number(saved))) {
-        const idx = Number(saved);
-        if (idx >= 0 && idx < onboardingSteps.length) return idx;
-      }
-    }
-    return 0;
-  });
+  const [currentStep, setCurrentStepState] = useState<number>(0);
 
   const setCurrentStep = (indexOrFn: number | ((prev: number) => number)) => {
     const index = typeof indexOrFn === "function" ? indexOrFn(currentStep) : indexOrFn;
@@ -227,6 +212,27 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const stepParam = params.get("step");
+      let initialStep = 0;
+      if (stepParam !== null && !isNaN(Number(stepParam))) {
+        const idx = Number(stepParam);
+        if (idx >= 0 && idx < onboardingSteps.length) {
+          initialStep = idx;
+        }
+      } else {
+        const saved = sessionStorage.getItem("ngo_onboarding_step");
+        if (saved !== null && !isNaN(Number(saved))) {
+          const idx = Number(saved);
+          if (idx >= 0 && idx < onboardingSteps.length) {
+            initialStep = idx;
+          }
+        }
+      }
+      if (initialStep !== 0) {
+        setCurrentStepState(initialStep);
+      }
+
       const storedUser = localStorage.getItem("user");
       if (storedUser) {
         try {

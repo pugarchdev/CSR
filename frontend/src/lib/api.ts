@@ -120,8 +120,8 @@ const networkFetch = async <T>(path: string, init: RequestInit, isCacheable: boo
     response.status === 401 ||
     (response.status === 403 && /invalid or expired/i.test(errorMessage));
 
-  // If 401 occurs on an authenticated route, attempt silent token refresh using HTTP-only cookie.
-  if (response.status === 401 && path !== "/auth/refresh" && path !== "/auth/login" && typeof window !== "undefined") {
+  // If 401 occurs on an authenticated route and user had a token, attempt silent token refresh.
+  if (response.status === 401 && Boolean(token) && path !== "/auth/refresh" && path !== "/auth/login" && typeof window !== "undefined") {
     try {
       const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh`, {
         method: "POST",
@@ -155,6 +155,8 @@ const networkFetch = async <T>(path: string, init: RequestInit, isCacheable: boo
     const hadToken = Boolean(token);
     localStorage.removeItem("accessToken");
     localStorage.removeItem("user");
+    localStorage.removeItem("auth-storage");
+    clearApiCache();
     if (hadToken) {
       window.dispatchEvent(new CustomEvent("auth:session-expired"));
     }

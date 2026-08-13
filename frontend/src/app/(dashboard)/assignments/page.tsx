@@ -4,10 +4,18 @@ import Link from "next/link";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import GovPageHeader from "@/components/layout/GovPageHeader";
 import AssignmentTabs from "@/components/assignments/AssignmentTabs";
-import { UserCheck, ShieldCheck, Building2, ChevronRight, Layers } from "lucide-react";
+import { ShieldCheck, Building2, Landmark } from "lucide-react";
 import "@/styles/gov-theme.css";
 
 const QUEUE_CARDS = [
+  {
+    title: "Government Ownership & Acceptance",
+    description: "Assign JS-approved cases to the correct State or District CSR Cell, record Nodal acceptance, Head reassignment, and district correction escalation.",
+    href: "/assignments/government",
+    icon: Landmark,
+    badge: "Role-scoped workflow",
+    color: "blue" as const,
+  },
   {
     title: "DNC Delegation Queue",
     description: "Manage project delegation to District Nodal Officers (DNO) for your assigned district.",

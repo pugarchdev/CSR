@@ -29,6 +29,8 @@ export const ROUTE_POLICY_REGISTRY: RoutePolicy[] = [
 
   // Public Endpoints
   { method: "GET", path: "/api/public/requirements", controller: "getPublicRequirements", classification: "PUBLIC", auditRequired: false },
+  { method: "GET", path: "/api/public/requirements/:id", controller: "getRequirementById", classification: "PUBLIC", auditRequired: false },
+  { method: "GET", path: "/api/csr-requirements/:id", controller: "getRequirementById", classification: "PUBLIC", auditRequired: false },
   { method: "GET", path: "/api/public/stats", controller: "getPublicStats", classification: "PUBLIC", auditRequired: false },
   { method: "GET", path: "/api/public/districts", controller: "getPublicDistricts", classification: "PUBLIC", auditRequired: false },
 

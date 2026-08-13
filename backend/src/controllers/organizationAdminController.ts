@@ -756,7 +756,34 @@ export const submitCompanyOnboarding = async (req: AuthenticatedRequest, res: Re
 export const getDepartmentOnboardingProfile = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const org = await getOwnedOrganization(req, "GOVERNMENT_DEPARTMENT", true);
-    return res.json({ organization: org, profile: org.govDeptProfile });
+    
+    // Fetch latest onboarding application to pull registration head and nodal details
+    const app = await prisma.governmentOnboardingApplication.findFirst({
+      where: { organizationId: org.id },
+      orderBy: { createdAt: "desc" }
+    });
+
+    const [headUser, nodalUser] = await Promise.all([
+      org.departmentHeadUserId ? prisma.user.findUnique({ where: { id: org.departmentHeadUserId } }) : null,
+      org.operationalNodalUserId ? prisma.user.findUnique({ where: { id: org.operationalNodalUserId } }) : null
+    ]);
+
+    const regData = (app?.formData as Record<string, any>) || {};
+
+    const govDept = (org.govDeptProfile || {}) as Record<string, any>;
+    const profileData = {
+      ...govDept,
+      headOfDepartmentName: govDept.headOfDepartmentName || regData.head?.name || (headUser ? `${headUser.firstName} ${headUser.lastName || ""}`.trim() : ""),
+      headDesignation: govDept.headDesignation || regData.head?.designation || headUser?.designation || "",
+      headEmail: govDept.headEmail || regData.head?.email || headUser?.email || "",
+      headMobile: govDept.headMobile || regData.head?.mobile || headUser?.mobile || "",
+      nodalOfficerName: govDept.nodalOfficerName || regData.nodal?.name || (nodalUser ? `${nodalUser.firstName} ${nodalUser.lastName || ""}`.trim() : ""),
+      nodalOfficerDesignation: govDept.nodalOfficerDesignation || regData.nodal?.designation || nodalUser?.designation || "",
+      nodalOfficerEmail: govDept.nodalOfficerEmail || regData.nodal?.email || nodalUser?.email || "",
+      nodalOfficerMobile: govDept.nodalOfficerMobile || regData.nodal?.mobile || nodalUser?.mobile || ""
+    };
+
+    return res.json({ organization: org, profile: profileData });
   } catch (error: any) {
     return res.json({
       organization: {
@@ -774,10 +801,42 @@ export const getDepartmentOnboardingProfile = async (req: AuthenticatedRequest, 
 export const updateDepartmentOnboardingProfile = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const org = await getOwnedOrganization(req, "GOVERNMENT_DEPARTMENT");
+    const body = req.body || {};
+
+    // Update main organization fields if provided
+    if (body.name || body.address || body.district || body.officialEmail || body.officialPhone || body.website) {
+      await prisma.organization.update({
+        where: { id: org.id },
+        data: {
+          ...(body.name ? { name: String(body.name).trim() } : {}),
+          ...(body.address ? { address: String(body.address).trim() } : {}),
+          ...(body.district ? { district: String(body.district).trim() } : {}),
+          ...(body.officialEmail ? { officialEmail: String(body.officialEmail).trim().toLowerCase() } : {}),
+          ...(body.officialPhone ? { officialPhone: String(body.officialPhone).trim() } : {}),
+          ...(body.website ? { website: String(body.website).trim() } : {}),
+        }
+      });
+    }
+
     const profile = await prisma.govDepartmentProfile.upsert({
       where: { organizationId: org.id },
-      create: { organizationId: org.id },
-      update: {}
+      create: {
+        organizationId: org.id,
+        parentDepartment: body.parentDepartment || null,
+        departmentCode: body.departmentCode || null,
+        nodalOfficerName: body.nodalOfficerName || null,
+        nodalOfficerDesignation: body.nodalOfficerDesignation || null,
+        nodalOfficerEmail: body.nodalOfficerEmail || null,
+        nodalOfficerMobile: body.nodalOfficerMobile || null,
+      },
+      update: {
+        ...(body.parentDepartment !== undefined ? { parentDepartment: body.parentDepartment } : {}),
+        ...(body.departmentCode !== undefined ? { departmentCode: body.departmentCode } : {}),
+        ...(body.nodalOfficerName !== undefined ? { nodalOfficerName: body.nodalOfficerName } : {}),
+        ...(body.nodalOfficerDesignation !== undefined ? { nodalOfficerDesignation: body.nodalOfficerDesignation } : {}),
+        ...(body.nodalOfficerEmail !== undefined ? { nodalOfficerEmail: body.nodalOfficerEmail } : {}),
+        ...(body.nodalOfficerMobile !== undefined ? { nodalOfficerMobile: body.nodalOfficerMobile } : {}),
+      }
     });
     return res.json(profile);
   } catch (error: any) {
@@ -788,10 +847,26 @@ export const updateDepartmentOnboardingProfile = async (req: AuthenticatedReques
 export const updateDepartmentNodalOfficer = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const org = await getOwnedOrganization(req, "GOVERNMENT_DEPARTMENT");
+    const body = req.body || {};
     const profile = await prisma.govDepartmentProfile.upsert({
       where: { organizationId: org.id },
-      create: { organizationId: org.id },
-      update: {}
+      create: {
+        organizationId: org.id,
+        nodalOfficerName: body.nodalOfficerName || null,
+        nodalOfficerDesignation: body.nodalOfficerDesignation || null,
+        nodalOfficerEmail: body.nodalOfficerEmail || null,
+        nodalOfficerMobile: body.nodalOfficerMobile || null,
+      },
+      update: {
+        ...(body.nodalOfficerName !== undefined ? { nodalOfficerName: body.nodalOfficerName } : {}),
+        ...(body.nodalOfficerDesignation !== undefined ? { nodalOfficerDesignation: body.nodalOfficerDesignation } : {}),
+        ...(body.nodalOfficerEmail !== undefined ? { nodalOfficerEmail: body.nodalOfficerEmail } : {}),
+        ...(body.nodalOfficerMobile !== undefined ? { nodalOfficerMobile: body.nodalOfficerMobile } : {}),
+        ...(body.headOfDepartmentName !== undefined ? { headOfDepartmentName: body.headOfDepartmentName } : {}),
+        ...(body.headDesignation !== undefined ? { headDesignation: body.headDesignation } : {}),
+        ...(body.headEmail !== undefined ? { headEmail: body.headEmail } : {}),
+        ...(body.headMobile !== undefined ? { headMobile: body.headMobile } : {}),
+      }
     });
     return res.json(profile);
   } catch (error: any) {
@@ -929,8 +1004,12 @@ export const createSubDepartment = async (req: AuthenticatedRequest, res: Respon
     const orgId = req.params.organizationId || req.user?.organizationId;
     if (!orgId) return res.status(400).json({ error: "Organization ID required" });
 
-    const { name, code, type, description, officeAddress, officialEmail, officialPhone, departmentHead, dnoName, status } = req.body;
+    const { name, code, type, description, officeAddress, officialEmail, officialPhone, departmentHead, dnoName, admin, status } = req.body;
     if (!name || !name.trim()) return res.status(400).json({ error: "Department Name is required" });
+
+    const adminEmail = officialEmail || admin?.email || null;
+    const adminPhone = officialPhone || admin?.phone || admin?.mobile || null;
+    const headName = departmentHead || (admin?.name ? `${admin.name}${admin.designation ? ` (${admin.designation})` : ""}` : null);
 
     const dept = await prisma.subDepartment.create({
       data: {
@@ -940,9 +1019,11 @@ export const createSubDepartment = async (req: AuthenticatedRequest, res: Respon
         type: type?.trim() || null,
         description: description?.trim() || null,
         officeAddress: officeAddress?.trim() || null,
-        officialEmail: officialEmail?.trim() || null,
-        officialPhone: officialPhone?.trim() || null,
-        departmentHead: departmentHead?.trim() || null,
+        officialEmail: adminEmail?.trim() || null,
+        officialPhone: adminPhone?.trim() || null,
+        departmentHead: headName?.trim() || null,
+        departmentHeadEmail: admin?.email?.trim() || adminEmail?.trim() || null,
+        departmentHeadMobile: adminPhone?.trim() || null,
         dnoName: dnoName?.trim() || null,
         status: status || "ACTIVE"
       }

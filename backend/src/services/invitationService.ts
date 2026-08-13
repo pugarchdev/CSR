@@ -100,9 +100,12 @@ export async function acceptInvitation(input: { token: string; password: string 
     const createdUser = await tx.user.create({
       data: {
         email: invitation.email,
+        loginIdentifier: invitation.email,
         passwordHash,
         accountStatus: "ACTIVE",
         isVerified: true,
+        passwordChangedAt: new Date(),
+        invitationAcceptedAt: new Date(),
         roleId: invitation.roleId,
         organizationId: invitation.organizationId,
         parentUserId: invitation.parentUserId

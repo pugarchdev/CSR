@@ -1,7 +1,7 @@
 "use client";
 
-import ProjectMarketplace from "../page";
+import CSRRequirementDetail from "../../csr-marketplace/[id]/page";
 
-export default function MarketplacePageTab({ params }: { params: { tab: string } }) {
-  return <ProjectMarketplace params={params} />;
+export default function MarketplacePageTab() {
+  return <CSRRequirementDetail />;
 }

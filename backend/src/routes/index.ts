@@ -39,6 +39,9 @@ import implementingAgencyRoutes from "./implementingAgencyRoutes";
 import helpdeskRoutes from "./helpdeskRoutes";
 import secretaryRoutes from "./secretaryRoutes";
 import assignmentRoutes from "./assignmentRoutes";
+import governmentOnboardingRoutes from "./governmentOnboardingRoutes";
+import governmentAssignmentRoutes from "./governmentAssignmentRoutes";
+import caseWorkflowRoutes from "./caseWorkflowRoutes";
 
 import departmentRoutes from "./departmentRoutes";
 import dnoRoutes from "./dnoRoutes";
@@ -95,6 +98,9 @@ router.use("/implementing-agency", implementingAgencyRoutes);
 router.use("/helpdesk", helpdeskRoutes);
 router.use("/secretary", secretaryRoutes);
 router.use("/assignments", assignmentRoutes);
+router.use("/government-onboarding", governmentOnboardingRoutes);
+router.use("/government-assignments", governmentAssignmentRoutes);
+router.use("/cases", caseWorkflowRoutes);
 router.use("/verification", verificationRoutes);
 
 export default router;

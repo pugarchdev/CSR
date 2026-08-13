@@ -1,24 +1,15 @@
 import nodemailer from "nodemailer";
 import { getAbsoluteUrl } from "../services/emailService";
 
-const smtpHost = process.env.SMTP_HOST || "smtp.gmail.com";
+const smtpHost = process.env.SMTP_HOST;
 const smtpPort = parseInt(process.env.SMTP_PORT || "587", 10);
 const smtpSecure = process.env.SMTP_SECURE === "true";
-const smtpUser = process.env.SMTP_USER || "agadge797@gmail.com";
-const smtpPass = process.env.SMTP_PASS || "wrmq ifol neuq vznp";
+const smtpUser = process.env.SMTP_USER;
+const smtpPass = process.env.SMTP_PASS;
 
-const transporter = nodemailer.createTransport({
-  host: smtpHost,
-  port: smtpPort,
-  secure: smtpSecure,
-  auth: {
-    user: smtpUser,
-    pass: smtpPass,
-  },
-  tls: {
-    rejectUnauthorized: false
-  }
-});
+const transporter = smtpHost && smtpUser && smtpPass
+  ? nodemailer.createTransport({ host: smtpHost, port: smtpPort, secure: smtpSecure, auth: { user: smtpUser, pass: smtpPass } })
+  : nodemailer.createTransport({ jsonTransport: true });
 
 export const sendOtpEmail = async (toEmail: string, otp: string) => {
   const htmlContent = `

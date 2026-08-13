@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter, useParams, usePathname } from "next/navigation";
+import Link from "next/link";
 import { apiFetch, API_BASE_URL, getAccessToken } from "@/lib/api";
 import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
@@ -458,15 +459,15 @@ export default function CSRRequirementDetail() {
         <div className="space-y-1.5">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
-              {requirement.category.replace(/_/g, " ")}
+              {(requirement.category || requirement.sector || "DEVELOPMENT").replace(/_/g, " ")}
             </span>
-            <GovStatusBadge variant={getStatusVariant(requirement.status)}>
-              {requirement.status.replace(/_/g, " ")}
+            <GovStatusBadge variant={getStatusVariant(requirement.status || "MARKETPLACE_LISTED")}>
+              {(requirement.status || "MARKETPLACE_LISTED").replace(/_/g, " ")}
             </GovStatusBadge>
           </div>
           <h1 className="text-xl font-bold text-slate-900 leading-snug">{requirement.title}</h1>
           <p className="text-xs text-slate-500">
-            Department: <strong className="text-slate-800">{requirement.beneficiaryProfile.agencyName}</strong> ({requirement.beneficiaryProfile.agencyType})
+            Department: <strong className="text-slate-800">{requirement.beneficiaryProfile?.agencyName || requirement.organization?.name || "Government Department"}</strong> ({requirement.beneficiaryProfile?.agencyType || "State Development Office"})
           </p>
         </div>
 
@@ -481,13 +482,22 @@ export default function CSRRequirementDetail() {
             </Button>
           )}
 
-          {user?.role === "COMPANY_ADMIN" && !requirement.companyInterests?.some((i: any) => i.companyId === user.companyId) && (
+          {(user?.role === "COMPANY_ADMIN" || user?.role === "COMPANY_MEMBER" || user?.role === "CORPORATE_USER" || user?.role === "CORPORATE_PARTNER" || user?.role === "CSR_ADMIN" || user?.companyId || user?.kind === "CSR_COMPANY") && !requirement.companyInterests?.some((i: any) => i.companyId === user.companyId) && (
             <Button
               onClick={() => setShowInterestModal(true)}
               className="bg-blue-900 hover:bg-blue-950 text-white font-bold px-6 shadow-sm"
             >
               Express CSR Interest
             </Button>
+          )}
+
+          {!user && (
+            <Link
+              href={`/login?next=${encodeURIComponent(pathname)}`}
+              className="inline-flex items-center justify-center rounded-lg bg-blue-900 px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-blue-950 hover:no-underline"
+            >
+              Sign in to Express CSR Interest
+            </Link>
           )}
         </div>
       </div>
@@ -579,11 +589,11 @@ export default function CSRRequirementDetail() {
                 <GovCardTitle>NGO Applications</GovCardTitle>
               </GovCardHeader>
               <GovCardBody className="p-0">
-                {requirement.ngoApplications?.length === 0 ? (
+                {(!requirement.ngoApplications || requirement.ngoApplications.length === 0) ? (
                   <div className="p-8 text-center text-slate-400 italic text-xs">No NGO applications submitted yet.</div>
                 ) : (
                   <div className="divide-y divide-slate-150">
-                    {requirement.ngoApplications.map((app: any) => (
+                    {(requirement.ngoApplications || []).map((app: any) => (
                       <div key={app.id} className="p-5 space-y-3">
                         <div className="flex justify-between items-start">
                           <div>
@@ -647,11 +657,11 @@ export default function CSRRequirementDetail() {
                 <GovCardTitle>Company Interests</GovCardTitle>
               </GovCardHeader>
               <GovCardBody className="p-0">
-                {requirement.companyInterests?.length === 0 ? (
+                {(!requirement.companyInterests || requirement.companyInterests.length === 0) ? (
                   <div className="p-8 text-center text-slate-400 italic text-xs">No CSR companies have expressed interest yet.</div>
                 ) : (
                   <div className="divide-y divide-slate-150 text-xs">
-                    {requirement.companyInterests.map((interest: any) => (
+                    {(requirement.companyInterests || []).map((interest: any) => (
                       <div key={interest.id} className="p-5 space-y-3">
                         <div className="flex justify-between items-start">
                           <div>
@@ -692,7 +702,7 @@ export default function CSRRequirementDetail() {
                 {user?.role === "BENEFICIARY_AGENCY" &&
                  requirement.status === "NGO_SELECTED" &&
                  !showAgreementForm &&
-                 requirement.agreements?.length === 0 && (
+                 (!requirement.agreements || requirement.agreements.length === 0) && (
                   <Button
                     onClick={() => setShowAgreementForm(true)}
                     className="bg-blue-900 text-white hover:bg-blue-950 text-xs font-bold"
@@ -769,11 +779,11 @@ export default function CSRRequirementDetail() {
                 )}
 
                 {/* Listing generated agreements */}
-                {requirement.agreements?.length === 0 ? (
+                {(!requirement.agreements || requirement.agreements.length === 0) ? (
                   <div className="p-6 text-center text-slate-400 italic">No agreements drafted yet.</div>
                 ) : (
                   <div className="space-y-4">
-                    {requirement.agreements.map((agr: any) => (
+                    {(requirement.agreements || []).map((agr: any) => (
                       <div key={agr.id} className="border p-4 rounded-xl space-y-4 bg-white shadow-sm">
                         <div className="flex justify-between items-start pb-2 border-b">
                           <div>
@@ -833,11 +843,11 @@ export default function CSRRequirementDetail() {
                 <GovCardTitle>Escrow Milestone Tranches</GovCardTitle>
               </GovCardHeader>
               <GovCardBody className="space-y-4 text-xs">
-                {requirement.fundMilestones?.length === 0 ? (
+                {(!requirement.fundMilestones || requirement.fundMilestones.length === 0) ? (
                   <div className="p-8 text-center text-slate-400 italic">No fund milestones configured. Generate tripartite agreement first.</div>
                 ) : (
                   <div className="space-y-3">
-                    {requirement.fundMilestones.map((ms: any) => (
+                    {(requirement.fundMilestones || []).map((ms: any) => (
                       <div key={ms.id} className="border p-4 rounded-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white shadow-sm hover:border-slate-300">
                         <div className="space-y-1">
                           <h4 className="font-bold text-slate-900">{ms.milestoneName}</h4>
@@ -1005,11 +1015,11 @@ export default function CSRRequirementDetail() {
                 )}
 
                 {/* Progress reports timeline */}
-                {requirement.progressReports?.length === 0 ? (
+                {(!requirement.progressReports || requirement.progressReports.length === 0) ? (
                   <div className="p-8 text-center text-slate-400 italic">No progress logs submitted yet.</div>
                 ) : (
                   <div className="relative border-l-2 border-slate-200 pl-6 ml-4 space-y-6">
-                    {requirement.progressReports.map((rep: any) => (
+                    {(requirement.progressReports || []).map((rep: any) => (
                       <div key={rep.id} className="relative space-y-2">
                         {/* Dot */}
                         <div className="absolute -left-[31px] top-1 bg-blue-900 h-4 h-4 rounded-full border-4 border-white shadow-sm" />

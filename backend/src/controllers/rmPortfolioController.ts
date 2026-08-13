@@ -19,6 +19,11 @@ export const listAvailableRelationshipManagers = async (
         roleId: ROLE_ID.RELATIONSHIP_MANAGER,
         accountStatus: "ACTIVE",
         deletedAt: null,
+        isVerified: true,
+        OR: [
+          { rmProfile: null },
+          { rmProfile: { isAvailable: true, isOutOfOffice: false, OR: [{ leaveStartsAt: null }, { leaveStartsAt: { gt: new Date() } }, { leaveEndsAt: { lt: new Date() } }] } },
+        ],
         ...(excludeId ? { id: { not: excludeId } } : {}),
       },
       select: {
@@ -35,6 +40,16 @@ export const listAvailableRelationshipManagers = async (
   } catch (error) {
     next(error);
   }
+};
+
+export const allocateUnassignedCases = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const cases = await prisma.portalCase.findMany({ where: { status: "UNASSIGNED", assignedRmId: null }, select: { id: true }, orderBy: { createdAt: "asc" }, take: 200 });
+    let assigned = 0;
+    for (const item of cases) if (await RmAssignmentService.autoAssignRm({ caseId: item.id })) assigned += 1;
+    await prisma.auditLog.create({ data: { actorUserId: req.user!.id, userId: req.user!.id, action: "UNASSIGNED_RM_QUEUE_PROCESSED", entityType: "PortalCase", details: { queued: cases.length, assigned, remaining: cases.length - assigned } } });
+    return res.json({ success: true, data: { queued: cases.length, assigned, remaining: cases.length - assigned } });
+  } catch (error) { next(error); }
 };
 
 export const transferRmPortfolio = async (

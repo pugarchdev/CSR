@@ -1,7 +1,5 @@
-"use client";
-
-import { DepartmentOnboardingStep } from "@/components/onboarding/EntityOnboardingWorkspaces";
+import { redirect } from "next/navigation";
 
 export default function DepartmentOnboardingPage() {
-  return <DepartmentOnboardingStep />;
+  redirect("/organization/onboarding/government");
 }

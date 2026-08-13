@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Download, Upload, FileSpreadsheet, Sparkles, AlertCircle, CheckCircle2, Users } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
 import { apiFetch } from "@/lib/api";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
@@ -99,8 +100,85 @@ export default function AdminUserManagementPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [roleCategoryFilter, setRoleCategoryFilter] = useState("ALL");
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+
+  // Bulk Import Modal State
+  const [bulkImportModalOpen, setBulkImportModalOpen] = useState(false);
+  const [bulkCsvText, setBulkCsvText] = useState("");
+  const [bulkImporting, setBulkImporting] = useState(false);
+  const [bulkResults, setBulkResults] = useState<{ imported: any[]; errors: any[] } | null>(null);
+  const [bulkError, setBulkError] = useState("");
+
+  const downloadSampleCsv = () => {
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      "FirstName,LastName,Email,Mobile,Designation,Role,District\n" +
+      "Rajesh,Sharma,rajesh.sharma@maharashtra.gov.in,9876543210,Senior Relationship Manager,RELATIONSHIP_MANAGER,Pune\n" +
+      "Priya,Deshmukh,priya.d@maharashtra.gov.in,9823012345,District Relationship Officer,RELATIONSHIP_MANAGER,Mumbai City\n" +
+      "Amit,Patil,amit.patil@maharashtra.gov.in,9970123456,Nodal Consultant,DISTRICT_NODAL_CONSULTANT,Nagpur\n";
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "MahaCSR_RM_Import_Template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleBulkImport = async () => {
+    setBulkError("");
+    setBulkResults(null);
+    if (!bulkCsvText.trim()) {
+      setBulkError("Please paste CSV data or upload a CSV file.");
+      return;
+    }
+
+    const lines = bulkCsvText.trim().split("\n").map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) {
+      setBulkError("No valid rows found in the CSV data.");
+      return;
+    }
+
+    const firstLine = lines[0].toLowerCase();
+    const hasHeader = firstLine.includes("email") || firstLine.includes("firstname");
+    const dataLines = hasHeader ? lines.slice(1) : lines;
+
+    const parsedUsers = dataLines.map((line) => {
+      const parts = line.split(",").map(p => p.trim().replace(/^["']|["']$/g, ''));
+      return {
+        firstName: parts[0] || "",
+        lastName: parts[1] || "",
+        email: parts[2] || "",
+        mobile: parts[3] || "",
+        designation: parts[4] || "Relationship Manager",
+        role: parts[5] || "RELATIONSHIP_MANAGER",
+        district: parts[6] || "",
+      };
+    }).filter(u => u.email || u.firstName);
+
+    if (parsedUsers.length === 0) {
+      setBulkError("No valid user records parsed from CSV.");
+      return;
+    }
+
+    setBulkImporting(true);
+    try {
+      const response = await apiFetch<any>("/admin/users/import", {
+        method: "POST",
+        body: JSON.stringify({ users: parsedUsers }),
+      });
+      const data = response?.data || response;
+      setBulkResults(data);
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      setSuccess(`Bulk import complete: ${data.imported?.length || 0} Relationship Managers / Users imported successfully!`);
+    } catch (err: any) {
+      setBulkError(err.message || "Failed to process bulk import.");
+    } finally {
+      setBulkImporting(false);
+    }
+  };
 
   // Debounce search
   useEffect(() => {
@@ -386,7 +464,11 @@ return (
         breadcrumb="Admin / Security / Users"
         description="Create platform users, manage their roles, districts and account status."
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <GovButton variant="secondary" onClick={() => setBulkImportModalOpen(true)}>
+              <Upload size={14} className="mr-1 inline" />
+              Bulk Import RMs / Users
+            </GovButton>
             <GovButton variant="secondary" onClick={() => setCustomRoleModalOpen(true)}>
               + Create Custom Role
             </GovButton>
@@ -1130,6 +1212,131 @@ return (
             </GovButton>
           </div>
         </form>
+      </GovModal>
+
+      {/* BULK IMPORT MODAL */}
+      <GovModal
+        open={bulkImportModalOpen}
+        onClose={() => {
+          setBulkImportModalOpen(false);
+          setBulkResults(null);
+          setBulkError("");
+          setBulkCsvText("");
+        }}
+        title="Bulk Import Relationship Managers & Officials"
+      >
+        <div className="space-y-4 text-xs">
+          <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3 text-blue-900 flex items-start gap-2.5">
+            <Sparkles size={18} className="text-blue-700 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-slate-900">Relationship Manager Batch Provisioning</p>
+              <p className="mt-0.5 text-[11px] text-slate-600 leading-normal">
+                Quickly import multiple Relationship Managers or State Cell officers. Paste CSV rows directly below or upload a CSV file. Each imported user receives an active account with an auto-generated temporary password.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="font-bold text-slate-800">CSV Data Format</span>
+            <button
+              type="button"
+              onClick={downloadSampleCsv}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-800 hover:text-blue-950 underline cursor-pointer"
+            >
+              <Download size={13} />
+              Download CSV Sample Template
+            </button>
+          </div>
+
+          <div>
+            <label className="block font-bold text-slate-700 mb-1">
+              Paste CSV Content (Headers: FirstName, LastName, Email, Mobile, Designation, Role, District)
+            </label>
+            <textarea
+              className="w-full h-36 rounded-xl border border-slate-300 p-3 font-mono text-[11px] text-slate-800 focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              placeholder={`FirstName,LastName,Email,Mobile,Designation,Role,District\nRajesh,Sharma,rajesh.sharma@maharashtra.gov.in,9876543210,Senior Relationship Manager,RELATIONSHIP_MANAGER,Pune\nPriya,Deshmukh,priya.d@maharashtra.gov.in,9823012345,District Relationship Officer,RELATIONSHIP_MANAGER,Mumbai City`}
+              value={bulkCsvText}
+              onChange={(e) => setBulkCsvText(e.target.value)}
+            />
+          </div>
+
+          {bulkError && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-bold text-rose-800 flex items-center gap-2">
+              <AlertCircle size={15} />
+              {bulkError}
+            </div>
+          )}
+
+          {bulkResults && (
+            <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-900">
+                  Import Summary: {bulkResults.imported.length} Succeeded | {bulkResults.errors.length} Failed
+                </span>
+              </div>
+
+              {bulkResults.imported.length > 0 && (
+                <div className="max-h-48 overflow-auto rounded-lg border border-emerald-200 bg-white p-2.5 text-[11px]">
+                  <p className="font-bold text-emerald-800 mb-1.5 flex items-center gap-1.5">
+                    <CheckCircle2 size={14} />
+                    Imported Accounts & Auto-Generated Temporary Passwords:
+                  </p>
+                  <ul className="divide-y divide-slate-100">
+                    {bulkResults.imported.map((item: any, idx: number) => (
+                      <li key={idx} className="py-1.5 flex items-center justify-between">
+                        <div>
+                          <span className="font-bold text-slate-900">{item.name}</span> ({item.email})
+                        </div>
+                        <span className="font-mono text-blue-900 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 font-bold">
+                          Pass: {item.tempPassword}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {bulkResults.errors.length > 0 && (
+                <div className="max-h-36 overflow-auto rounded-lg border border-rose-200 bg-white p-2.5 text-[11px]">
+                  <p className="font-bold text-rose-800 mb-1.5 flex items-center gap-1.5">
+                    <AlertCircle size={14} />
+                    Errors Encountered:
+                  </p>
+                  <ul className="divide-y divide-rose-50 text-rose-700">
+                    {bulkResults.errors.map((err: any, idx: number) => (
+                      <li key={idx} className="py-1">
+                        Row {err.row} ({err.email}): {err.error}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
+            <GovButton
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setBulkImportModalOpen(false);
+                setBulkResults(null);
+                setBulkError("");
+                setBulkCsvText("");
+              }}
+            >
+              Close
+            </GovButton>
+            <GovButton
+              type="button"
+              variant="primary"
+              disabled={bulkImporting || !bulkCsvText.trim()}
+              onClick={handleBulkImport}
+            >
+              {bulkImporting ? "Processing Batch Import..." : "Import Users"}
+            </GovButton>
+          </div>
+        </div>
       </GovModal>
     </GovPortalLayout>
   );

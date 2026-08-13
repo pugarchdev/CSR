@@ -1,1696 +1,411 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
-  Search, MapPin, Tag, Compass, Landmark, Coins, Star,
-  List, Grid, FileText, CheckCircle2, Bookmark,
-  BookmarkCheck, ShieldCheck, Building2, ExternalLink, Filter,
-  Eye, X, Calendar, Info, Phone, Mail, Globe, Target, ShieldAlert, AlertCircle
+  AlertCircle,
+  Building2,
+  CheckCircle2,
+  Coins,
+  Filter,
+  Grid,
+  List,
+  MapPin,
+  RefreshCcw,
+  Search,
+  ShieldCheck,
+  Target,
+  Users,
+  ArrowUpDown,
+  ArrowRight
 } from "lucide-react";
-import { StatCard } from "@/components/ui/StatCard";
+import { API_BASE_URL } from "@/lib/api";
 import { GovPageHeader } from "@/components/layout/GovPageHeader";
-import { ViewToggle, ViewMode } from "@/components/ui/ViewToggle";
-import { Button } from "@/components/ui/Button";
-import { Modal } from "@/components/ui/Modal";
-import { apiFetch } from "@/lib/api";
-import { useAuthStore } from "@/store/authStore";
+import { StatCard } from "@/components/ui/StatCard";
 
-type DirectoryTab = "projects" | "ngos" | "companies";
+const money = (value: unknown) => {
+  const amount = Number(value || 0);
+  if (!amount) return "Not specified";
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0
+  }).format(amount);
+};
 
-interface BudgetBreakdownItem {
-  category: string;
-  amount: number;
-  percentage: number;
-}
+const districtsOf = (item: any) =>
+  Array.isArray(item.districts) && item.districts.length
+    ? item.districts
+    : [item.district].filter(Boolean);
 
-interface Project {
-  id: string;
-  title: string;
-  description: string;
-  focusArea: string;
-  sdgGoal: string;
-  beneficiaryCount: number;
-  budgetRequested: number;
-  district: string;
-  taluka: string;
-  ngoName: string;
-  ngoRating: number;
-  matchScore: number;
-  status: string;
-  duration?: string;
-  impactGoals?: string;
-  deliverables?: string[];
-  budgetBreakdown?: BudgetBreakdownItem[];
-  ngoDarpanId?: string;
-  contactEmail?: string;
-  contactPhone?: string;
-}
+const getSectorBadgeStyle = (sector: string) => {
+  const s = (sector || "").toLowerCase();
+  if (s.includes("health") || s.includes("medical") || s.includes("icu"))
+    return "bg-rose-50 text-rose-700 border-rose-200/80";
+  if (s.includes("edu") || s.includes("school") || s.includes("solar") || s.includes("smart"))
+    return "bg-blue-50 text-blue-700 border-blue-200/80";
+  if (s.includes("water") || s.includes("envir") || s.includes("dam") || s.includes("soil"))
+    return "bg-emerald-50 text-emerald-700 border-emerald-200/80";
+  if (s.includes("women") || s.includes("skill") || s.includes("livelihood") || s.includes("food"))
+    return "bg-amber-50 text-amber-700 border-amber-200/80";
+  if (s.includes("agri") || s.includes("rural") || s.includes("farmer"))
+    return "bg-teal-50 text-teal-700 border-teal-200/80";
+  return "bg-slate-100 text-slate-700 border-slate-200/80";
+};
 
-interface NGO {
-  id: string;
-  name: string;
-  darpanId: string;
-  csr1Status: string;
-  rating: number;
-  district: string;
-  taluka: string;
-  category: string;
-  projectsCount: number;
-  totalFundingReceived: number;
-  contact: string;
-  about?: string;
-  establishedYear?: number;
-  tax12A?: boolean;
-  tax80G?: boolean;
-  fcraStatus?: string;
-  operatingDistricts?: string[];
-  leadership?: { name: string; title: string }[];
-  phone?: string;
-  email?: string;
-  website?: string;
-  address?: string;
-  completedProjectsCount?: number;
-}
-
-interface Company {
-  id: string;
-  name: string;
-  focusArea: string;
-  csrBudget: number;
-  district: string;
-  policyLink: string;
-  projectsFunded: number;
-  industry: string;
-  csrPledged?: number;
-  targetDistricts?: string[];
-  eligibilityCriteria?: string[];
-  contactPerson?: string;
-  contactEmail?: string;
-  contactPhone?: string;
-  csrPolicySummary?: string;
-  averageGrantSize?: string;
-}
-
-const fallbackProjects: Project[] = [
-  {
-    id: "demo-project-1",
-    title: "Digital Learning Lab for Zilla Parishad Schools",
-    description: "Smart classroom equipment, solar-powered tablets, interactive displays, and comprehensive teacher orientation for 15 rural government schools across Mulshi block.",
-    focusArea: "Education",
-    sdgGoal: "SDG 4: Quality Education",
-    beneficiaryCount: 4500,
-    budgetRequested: 7500000,
-    district: "Pune",
-    taluka: "Mulshi",
-    ngoName: "Verified Education Partner",
-    ngoRating: 4.6,
-    ngoDarpanId: "MH/2026/DEMO001",
-    matchScore: 92,
-    status: "PUBLISHED",
-    duration: "12 Months",
-    impactGoals: "Bridge the rural-urban digital divide, improve learning retention by 45%, and achieve 100% digital literacy for 4,500 students.",
-    deliverables: [
-      "15 Interactive Smart Board Displays installed",
-      "150 Solar-rechargeable Student Tablets deployed",
-      "Offline K-12 Regional Curriculum Content preloaded",
-      "30 Teacher Capacity Building & Digital Pedagogy Workshops"
-    ],
-    budgetBreakdown: [
-      { category: "Hardware & Smart Displays", amount: 3500000, percentage: 46.7 },
-      { category: "E-Learning Content & Software Licenses", amount: 1500000, percentage: 20.0 },
-      { category: "Teacher Capacity Building & Orientation", amount: 1000000, percentage: 13.3 },
-      { category: "Solar Power Infrastructure & Battery Backup", amount: 1000000, percentage: 13.3 },
-      { category: "Monitoring, Evaluation & Third-Party Audit", amount: 500000, percentage: 6.7 }
-    ],
-    contactEmail: "proposals@verifiededu.org.in",
-    contactPhone: "+91 98230 11223"
-  },
-  {
-    id: "demo-project-2",
-    title: "Primary Health Centre Diagnostic Equipment Package",
-    description: "Package of basic diagnostic equipment, solar cold-chain storage for vaccines, and telemedicine connectivity kiosks for high-footfall tribal healthcare facilities.",
-    focusArea: "Health",
-    sdgGoal: "SDG 3: Good Health & Well-Being",
-    beneficiaryCount: 18000,
-    budgetRequested: 12000000,
-    district: "Nandurbar",
-    taluka: "Akkalkuwa",
-    ngoName: "Verified Health Partner",
-    ngoRating: 4.4,
-    ngoDarpanId: "MH/2026/DEMO002",
-    matchScore: 88,
-    status: "PUBLISHED",
-    duration: "18 Months",
-    impactGoals: "Provide zero-cost point-of-care diagnostic screening for 18,000 tribal villagers and reduce emergency hospital transfer times by 60%.",
-    deliverables: [
-      "5 Portable ECG & Ultrasound units supplied",
-      "Automated Blood Hematology & Chemistry Analyzers",
-      "Solar Vaccine Refrigerators for remote PHCs",
-      "Tele-consultation Doctor Linkage Application"
-    ],
-    budgetBreakdown: [
-      { category: "Medical & Diagnostic Machinery", amount: 6500000, percentage: 54.2 },
-      { category: "Tele-Health Connectivity Infrastructure", amount: 2000000, percentage: 16.7 },
-      { category: "Healthcare Staff Training & Onboarding", amount: 1800000, percentage: 15.0 },
-      { category: "Solar Power Systems for 24/7 Operations", amount: 1200000, percentage: 10.0 },
-      { category: "Administrative & Audit Compliance", amount: 500000, percentage: 4.1 }
-    ],
-    contactEmail: "health.projects@verifiedhealth.org.in",
-    contactPhone: "+91 94221 55667"
-  },
-  {
-    id: "demo-project-3",
-    title: "Water Conservation and Check Dam Repair Initiative",
-    description: "Desilting, stonework repair, and hydrological finishing of community water conservation structures with Pani Samiti capacity building and geotagged evidence.",
-    focusArea: "Water Conservation",
-    sdgGoal: "SDG 6: Clean Water & Sanitation",
-    beneficiaryCount: 9000,
-    budgetRequested: 9800000,
-    district: "Gadchiroli",
-    taluka: "Aheri",
-    ngoName: "Verified Rural Partner",
-    ngoRating: 4.7,
-    ngoDarpanId: "MH/2026/DEMO003",
-    matchScore: 90,
-    status: "PUBLISHED",
-    duration: "9 Months",
-    impactGoals: "Recharge groundwater tables across 6 villages, secure year-round irrigation water for 9,000 farmers, and create 3.5 Crore liters storage capacity.",
-    deliverables: [
-      "Desilting of 4 Community Percolation Tanks",
-      "Masonry Repair of 6 Cement Nalla Bunds",
-      "12 Groundwater Artificial Recharge Wells",
-      "Pani Samiti Handover & Community Maintenance Plan"
-    ],
-    budgetBreakdown: [
-      { category: "Heavy Machinery & Earthmoving Work", amount: 4800000, percentage: 49.0 },
-      { category: "Masonry & Structural Reinforcement", amount: 2500000, percentage: 25.5 },
-      { category: "Community Pani Samiti Training & Mobilization", amount: 1200000, percentage: 12.2 },
-      { category: "Hydrological Survey & Geotagged Audit", amount: 800000, percentage: 8.2 },
-      { category: "Contingency & Project Management", amount: 500000, percentage: 5.1 }
-    ],
-    contactEmail: "projects@verifiedrural.org.in",
-    contactPhone: "+91 98902 44331"
-  },
-  {
-    id: "demo-project-4",
-    title: "Tribal Youth Skill Development & Micro-Enterprise Incubator",
-    description: "Vocational market-linked skill development, solar technician certification, and micro-grant seed capital for youth micro-entrepreneurs in tribal blocks.",
-    focusArea: "Skill Development",
-    sdgGoal: "SDG 8: Decent Work & Economic Growth",
-    beneficiaryCount: 1200,
-    budgetRequested: 8500000,
-    district: "Thane",
-    taluka: "Shahapur",
-    ngoName: "Maharashtra Kaushalya Foundation",
-    ngoRating: 4.8,
-    ngoDarpanId: "MH/2026/DEMO004",
-    matchScore: 95,
-    status: "PUBLISHED",
-    duration: "12 Months",
-    impactGoals: "Train 1,200 tribal youth, achieve 80%+ job placement, and incubate 40 sustainable micro-enterprises with local market linkages.",
-    deliverables: [
-      "Solar & Electrical Appliance Repair Certification",
-      "Organic Agriculture & Agribusiness Modules",
-      "Seed Capital Grants for 40 Micro-Enterprises",
-      "Industry Apprenticeship & Job Placement Drives"
-    ],
-    budgetBreakdown: [
-      { category: "Vocational Curriculum & Instructor Fees", amount: 3200000, percentage: 37.6 },
-      { category: "Practical Workshop Toolkits & Equipment", amount: 2500000, percentage: 29.4 },
-      { category: "Micro-Enterprise Incubation Seed Grants", amount: 1800000, percentage: 21.2 },
-      { category: "Placement Drives & Market Linkages", amount: 600000, percentage: 7.1 },
-      { category: "Administrative & Reporting Expenses", amount: 400000, percentage: 4.7 }
-    ],
-    contactEmail: "skill.incubation@kaushalya.org.in",
-    contactPhone: "+91 97654 32100"
-  }
-];
-
-const fallbackNgos: NGO[] = [
-  {
-    id: "demo-ngo-1",
-    name: "Verified Education Partner",
-    darpanId: "MH/2026/DEMO001",
-    csr1Status: "VERIFIED",
-    rating: 4.6,
-    district: "Pune",
-    taluka: "Mulshi",
-    category: "Education & Literacy",
-    projectsCount: 8,
-    completedProjectsCount: 24,
-    totalFundingReceived: 42000000,
-    contact: "contact@verifiededu.org.in",
-    about: "Empaneled non-profit focused on digital transformation of rural Zilla Parishad schools, teacher capacity building, and STEM education infrastructure across Western Maharashtra.",
-    establishedYear: 2012,
-    tax12A: true,
-    tax80G: true,
-    fcraStatus: "Approved for Foreign Contributions",
-    operatingDistricts: ["Pune", "Satara", "Solapur", "Ahmednagar", "Nashik"],
-    leadership: [
-      { name: "Dr. Aniket Deshmukh", title: "Founder & Executive Director" },
-      { name: "Mrs. Meenal Kulkarni", title: "Head of Academic Programs" }
-    ],
-    phone: "+91 98230 11223",
-    email: "contact@verifiededu.org.in",
-    website: "https://verifiededu.org.in",
-    address: "Plot 42, Baner IT Park Road, Pune, Maharashtra 411045"
-  },
-  {
-    id: "demo-ngo-2",
-    name: "Verified Health Partner",
-    darpanId: "MH/2026/DEMO002",
-    csr1Status: "VERIFIED",
-    rating: 4.4,
-    district: "Nandurbar",
-    taluka: "Akkalkuwa",
-    category: "Healthcare & Sanitation",
-    projectsCount: 5,
-    completedProjectsCount: 16,
-    totalFundingReceived: 31000000,
-    contact: "info@healthpartner.org.in",
-    about: "Dedicated healthcare foundation delivering mobile diagnostic clinics, maternal-child health screening, and primary health centre modernization in tribal regions of Maharashtra.",
-    establishedYear: 2015,
-    tax12A: true,
-    tax80G: true,
-    fcraStatus: "Registered",
-    operatingDistricts: ["Nandurbar", "Dhule", "Jalgaon", "Nashik", "Palghar"],
-    leadership: [
-      { name: "Dr. Sunita Kulkarni", title: "Managing Trustee" },
-      { name: "Dr. Prakash Varma", title: "Chief Medical Officer" }
-    ],
-    phone: "+91 94221 55667",
-    email: "info@healthpartner.org.in",
-    website: "https://healthpartner.org.in",
-    address: "Swasthya Bhavan, Civil Lines, Nandurbar, Maharashtra 425412"
-  },
-  {
-    id: "demo-ngo-3",
-    name: "Verified Rural Partner",
-    darpanId: "MH/2026/DEMO003",
-    csr1Status: "VERIFIED",
-    rating: 4.7,
-    district: "Gadchiroli",
-    taluka: "Aheri",
-    category: "Water & Environment",
-    projectsCount: 11,
-    completedProjectsCount: 32,
-    totalFundingReceived: 58000000,
-    contact: "trust@ruralpartner.org.in",
-    about: "Pioneering grassroots trust executing water conservation, check dam restoration, afforestation, and sustainable watershed management in Vidarbha's tribal districts.",
-    establishedYear: 2008,
-    tax12A: true,
-    tax80G: true,
-    fcraStatus: "Exempted",
-    operatingDistricts: ["Gadchiroli", "Chandrapur", "Gondia", "Bhandara", "Amravati"],
-    leadership: [
-      { name: "Rajeshwar Patil", title: "Chief Executive Officer" },
-      { name: "Suresh Gawande", title: "Director of Hydrology" }
-    ],
-    phone: "+91 98902 44331",
-    email: "trust@ruralpartner.org.in",
-    website: "https://ruralpartner.org.in",
-    address: "Jal Seva Sadan, Collectorate Road, Gadchiroli, Maharashtra 442605"
-  }
-];
-
-const fallbackCompanies: Company[] = [
-  {
-    id: "demo-company-1",
-    name: "Mahindra CSR Trust",
-    focusArea: "Education & Skill Development",
-    csrBudget: 50000000,
-    csrPledged: 38000000,
-    district: "Mumbai",
-    policyLink: "https://www.mahindra.com/csr-policy",
-    projectsFunded: 12,
-    industry: "Automotive & Manufacturing",
-    targetDistricts: ["Pune", "Nashik", "Thane", "Nagpur", "Chhatrapati Sambhajinagar"],
-    eligibilityCriteria: [
-      "Minimum 3 years active operational existence with NITI Aayog Darpan registration",
-      "Valid 12A and 80G Tax Exemption Certificates issued by Income Tax Dept.",
-      "Audited financial statements for past 3 consecutive fiscal years",
-      "Mandatory active CSR-1 filing with Ministry of Corporate Affairs (MCA)"
-    ],
-    contactPerson: "Rahul Shirke (Head of CSR - Maharashtra)",
-    contactEmail: "csr.trust@mahindra.example.com",
-    contactPhone: "+91 22 6677 8899",
-    csrPolicySummary: "Focuses on empowering youth and women through quality digital education, STEM learning labs, vocational skill centers, and sustainable rural livelihood initiatives across Maharashtra.",
-    averageGrantSize: "₹40 Lakhs - ₹1.2 Crore"
-  },
-  {
-    id: "demo-company-2",
-    name: "Tata Projects CSR Foundation",
-    focusArea: "Water Conservation & Environment",
-    csrBudget: 65000000,
-    csrPledged: 52000000,
-    district: "Mumbai",
-    policyLink: "https://www.tataprojects.com/csr-policy",
-    projectsFunded: 15,
-    industry: "Infrastructure & Engineering",
-    targetDistricts: ["Gadchiroli", "Nandurbar", "Palghar", "Yavatmal", "Nanded"],
-    eligibilityCriteria: [
-      "Empaneled Grassroots NGO with proven track record in water resource management",
-      "Direct ground presence and local community Pani Samiti engagement",
-      "Commitment to geotagged progress tracking and quarterly milestone reporting",
-      "CSR-1 registration with active MCA verification"
-    ],
-    contactPerson: "Priya Nambiar (General Manager - CSR)",
-    contactEmail: "csr@tataprojects.example.com",
-    contactPhone: "+91 22 6665 8282",
-    csrPolicySummary: "Dedicated to water security, check dam construction, solar drinking water systems, and environmental conservation in aspirational and tribal districts of Maharashtra.",
-    averageGrantSize: "₹50 Lakhs - ₹2.0 Crore"
-  },
-  {
-    id: "demo-company-3",
-    name: "Bajaj Auto Social Responsibility Trust",
-    focusArea: "Healthcare & Technical Skills",
-    csrBudget: 80000000,
-    csrPledged: 60000000,
-    district: "Pune",
-    policyLink: "https://www.bajajauto.com/csr",
-    projectsFunded: 22,
-    industry: "Consumer Mobility & Manufacturing",
-    targetDistricts: ["Pune", "Chhatrapati Sambhajinagar", "Wardha", "Raigad"],
-    eligibilityCriteria: [
-      "Registered NGO with valid NITI Aayog ID and clean compliance track record",
-      "Clear impact metrics with zero litigation or adverse regulatory findings",
-      "Capability to execute technical skill centers or healthcare equipment deployment",
-      "Quarterly transparent fund utilization reporting"
-    ],
-    contactPerson: "Amit Varma (CSR Lead Trustee)",
-    contactEmail: "csr@bajajauto.example.com",
-    contactPhone: "+91 20 6610 6500",
-    csrPolicySummary: "Priority funding for rural primary healthcare enhancement, ITI skill lab modernization, road safety education, and sustainable community infrastructure.",
-    averageGrantSize: "₹30 Lakhs - ₹1.5 Crore"
-  }
-];
-
-export default function ProjectMarketplace({ params }: { params?: { tab?: string } }) {
-  const router = useRouter();
-  const { user } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<DirectoryTab>("projects");
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [ngos, setNgos] = useState<NGO[]>([]);
-  const [companies, setCompanies] = useState<Company[]>([]);
+export default function MarketplacePage() {
+  const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [district, setDistrict] = useState("");
+  const [sector, setSector] = useState("");
+  const [budgetRange, setBudgetRange] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
+  const [view, setView] = useState<"grid" | "list">("list");
 
-  const [showOnboardingModal, setShowOnboardingModal] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [userOnboardingStatus, setUserOnboardingStatus] = useState<string>("");
-  const [selectedProjectForAction, setSelectedProjectForAction] = useState<Project | null>(null);
-
-  useEffect(() => {
-    if (user) {
-      apiFetch<any>("/onboarding/status")
-        .then((res) => {
-          const st = (res?.onboardingStatus || res?.status || user?.organization?.onboardingStatus || "").toUpperCase();
-          setUserOnboardingStatus(st);
-        })
-        .catch(() => {
-          setUserOnboardingStatus((user?.organization?.onboardingStatus || (user as any)?.status || "").toUpperCase());
-        });
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch(`${API_BASE_URL}/public/requirements`, { cache: "no-store" });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "Marketplace could not be loaded");
+      const value = body.data ?? body;
+      setItems(Array.isArray(value) ? value : value.requirements || value.items || []);
+    } catch (e: any) {
+      setError(e.message || "Marketplace could not be loaded");
+    } finally {
+      setLoading(false);
     }
-  }, [user]);
-
-  const handleFundInitiative = (project: Project) => {
-    setSelectedProjectForAction(project);
-
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
-
-    const statusUpper = (userOnboardingStatus || user?.organization?.onboardingStatus || (user as any)?.status || "").toUpperCase();
-    const isApproved = statusUpper === "APPROVED" || statusUpper === "ACTIVE";
-
-    if (!isApproved) {
-      setShowOnboardingModal(true);
-      return;
-    }
-
-    setSelectedProjectDetail(null);
-    router.push(`/partner/enquiries/new?project=${encodeURIComponent(project.id)}&title=${encodeURIComponent(project.title)}`);
-  };
-
-  useEffect(() => {
-    if (params?.tab && ["projects", "ngos", "companies"].includes(params.tab)) {
-      setActiveTab(params.tab as DirectoryTab);
-    }
-  }, [params?.tab]);
-
-  useEffect(() => {
-    const loadDirectories = async () => {
-      setLoading(true);
-      try {
-        const [projectRows, pitchRows, ngoRows, companyRows] = await Promise.all([
-          apiFetch<any[]>("/projects").catch(() => []),
-          apiFetch<any[]>("/government-pitches/public").catch(() => []),
-          apiFetch<any[]>("/ngos").catch(() => []),
-          apiFetch<any[]>("/companies").catch(() => [])
-        ]);
-
-        const mappedPitches = Array.isArray(pitchRows) ? pitchRows.map((pitch: any) => ({
-          id: pitch.id || pitch.pitchReferenceId,
-          title: pitch.title || pitch.csrRequirement?.slice(0, 100) || "Live Government Development Need",
-          description: pitch.csrRequirement || pitch.title || "Government department requirement open for CSR partnership.",
-          focusArea: pitch.sector || pitch.department || "Government Development Need",
-          sdgGoal: "SDG Goal",
-          beneficiaryCount: pitch.beneficiaryCount || 2500,
-          budgetRequested: Number(pitch.estimatedCost || pitch.budget || 0),
-          district: Array.isArray(pitch.districts) && pitch.districts.length > 0 ? pitch.districts[0] : (pitch.district || "Maharashtra"),
-          taluka: Array.isArray(pitch.talukas) && pitch.talukas.length > 0 ? pitch.talukas[0] : "Statewide",
-          ngoName: pitch.department || pitch.officeName || "Government Department Need",
-          ngoRating: 5.0,
-          ngoDarpanId: pitch.pitchReferenceId || "GOV-MH-NEED",
-          matchScore: 95,
-          status: "PUBLIC_LISTED",
-          duration: "12 Months",
-          impactGoals: "Direct community infrastructure and public development impact.",
-          deliverables: [
-            "Government Department Requirement",
-            "Verified Site Geotagging & Approval",
-            "Joint Secretariat MoU Alignment"
-          ],
-          budgetBreakdown: [
-            { category: "Capital Outlay & Works", amount: Number(pitch.estimatedCost || 0) * 0.8, percentage: 80 },
-            { category: "Supervision & Quality Inspection", amount: Number(pitch.estimatedCost || 0) * 0.2, percentage: 20 }
-          ],
-          contactEmail: pitch.email || "partner@mahacsr.gov.in",
-          contactPhone: pitch.mobile || "+91 22 2202 5500"
-        })) : [];
-
-        const mappedProjects = Array.isArray(projectRows) ? projectRows.map((project) => ({
-          id: project.id,
-          title: project.title,
-          description: project.description,
-          focusArea: project.focusArea || "Education",
-          sdgGoal: project.sdgGoal || "SDG Goal",
-          beneficiaryCount: project.beneficiaryCount || 1500,
-          budgetRequested: Number(project.budgetRequested || project.budget || 0),
-          district: project.district || "Maharashtra",
-          taluka: project.taluka || "Statewide",
-          ngoName: project.ngo?.name || project.ngoName || "Empaneled Partner",
-          ngoRating: project.ngoRating || 4.5,
-          ngoDarpanId: project.ngo?.darpanNumber || project.ngoDarpanId || "MH/2026/REG",
-          matchScore: project.matchScore || 90,
-          status: project.status || "PUBLISHED",
-          duration: project.duration || "12 Months",
-          impactGoals: project.impactGoals || "Improve community indicators and sustainable outcome metrics.",
-          deliverables: project.deliverables || [
-            "Equipment procurement & installation",
-            "Community stakeholder orientation",
-            "Milestone execution & geotagged audit"
-          ],
-          budgetBreakdown: project.budgetBreakdown || [
-            { category: "Equipment & Hardware", amount: Number(project.budgetRequested || 0) * 0.5, percentage: 50 },
-            { category: "Implementation & Operations", amount: Number(project.budgetRequested || 0) * 0.3, percentage: 30 },
-            { category: "Capacity Building & Orientation", amount: Number(project.budgetRequested || 0) * 0.15, percentage: 15 },
-            { category: "Audit & Administration", amount: Number(project.budgetRequested || 0) * 0.05, percentage: 5 }
-          ],
-          contactEmail: project.contactEmail || "proposals@mahacsr.gov.in",
-          contactPhone: project.contactPhone || "+91 22 2202 5500"
-        })) : [];
-
-        const combinedProjects = [...mappedPitches, ...mappedProjects];
-        if (combinedProjects.length > 0) {
-          setProjects(combinedProjects);
-        } else {
-          setProjects(fallbackProjects);
-        }
-
-        if (Array.isArray(ngoRows) && ngoRows.length > 0) {
-          setNgos(ngoRows.map((ngo) => ({
-            id: ngo.id,
-            name: ngo.name,
-            darpanId: ngo.darpanNumber || ngo.darpanId || "MH/2026/REG",
-            csr1Status: ngo.status || "VERIFIED",
-            rating: ngo.rating || 4.5,
-            district: ngo.district || "Maharashtra",
-            taluka: ngo.taluka || "Statewide",
-            category: ngo.impactStatistics?.category || ngo.category || "Education & Literacy",
-            projectsCount: ngo.projects?.length || 4,
-            completedProjectsCount: ngo.completedProjectsCount || 12,
-            totalFundingReceived: Number(ngo.impactStatistics?.totalFundingReceived || 25000000),
-            contact: ngo.website || ngo.email || "contact@ngo.org.in",
-            about: ngo.about || "Empaneled non-profit working on rural development and CSR implementation in Maharashtra.",
-            establishedYear: ngo.establishedYear || 2012,
-            tax12A: true,
-            tax80G: true,
-            fcraStatus: ngo.fcraStatus || "Registered",
-            operatingDistricts: ngo.operatingDistricts || [ngo.district || "Pune", "Thane", "Nashik"],
-            leadership: ngo.leadership || [{ name: "Managing Trustee", title: "Head of Operations" }],
-            phone: ngo.phone || "+91 98200 12345",
-            email: ngo.email || "info@ngo.org.in",
-            website: ngo.website || "https://ngo.org.in",
-            address: ngo.address || "Maharashtra, India"
-          })));
-        } else {
-          setNgos(fallbackNgos);
-        }
-
-        if (Array.isArray(companyRows) && companyRows.length > 0) {
-          setCompanies(companyRows.map((company) => ({
-            id: company.id,
-            name: company.name,
-            focusArea: company.focusAreas?.join(", ") || company.focusArea || "CSR Development",
-            csrBudget: Number(company.csrBudget || 50000000),
-            csrPledged: Number(company.csrPledged || 35000000),
-            district: company.contactInfo?.district || company.district || "Mumbai",
-            policyLink: company.csrPolicyUrl || "#",
-            projectsFunded: company.projectsFunded || 8,
-            industry: company.contactInfo?.industry || company.industry || "Corporate",
-            targetDistricts: company.targetDistricts || ["Pune", "Thane", "Nagpur"],
-            eligibilityCriteria: company.eligibilityCriteria || [
-              "Registered NGO with active NITI Aayog Darpan ID",
-              "Valid 12A and 80G Tax Exemption Certificates",
-              "Active CSR-1 filing with Ministry of Corporate Affairs"
-            ],
-            contactPerson: company.contactPerson || "CSR Officer",
-            contactEmail: company.contactEmail || "csr@company.com",
-            contactPhone: company.contactPhone || "+91 22 2200 0000",
-            csrPolicySummary: company.csrPolicySummary || "Dedicated to impactful community development and sustainable CSR initiatives across Maharashtra.",
-            averageGrantSize: company.averageGrantSize || "₹25 Lakhs - ₹1.0 Crore"
-          })));
-        } else {
-          setCompanies(fallbackCompanies);
-        }
-      } catch {
-        setProjects(fallbackProjects);
-        setNgos(fallbackNgos);
-        setCompanies(fallbackCompanies);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadDirectories();
   }, []);
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedDistrict, setSelectedDistrict] = useState("All");
-  const [selectedFocus, setSelectedFocus] = useState("All");
-  const [budgetFilter, setBudgetFilter] = useState("All");
-  const [bookmarkedIds, setBookmarkedIds] = useState<string[]>([]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  const [selectedProjectDetail, setSelectedProjectDetail] = useState<Project | null>(null);
-  const [selectedNgoDetail, setSelectedNgoDetail] = useState<NGO | null>(null);
-  const [selectedCompanyDetail, setSelectedCompanyDetail] = useState<Company | null>(null);
+  const districts = useMemo(
+    () => Array.from(new Set<string>(items.flatMap(districtsOf).filter(Boolean))).sort(),
+    [items]
+  );
 
-  const activeFilterCount = (searchTerm ? 1 : 0) + (selectedDistrict !== "All" ? 1 : 0) + (selectedFocus !== "All" ? 1 : 0) + (budgetFilter !== "All" ? 1 : 0);
+  const sectors = useMemo(
+    () => Array.from(new Set<string>(items.map((item) => item.sector || item.focusArea).filter(Boolean))).sort(),
+    [items]
+  );
 
-  const resetAllFilters = () => {
-    setSearchTerm("");
-    setSelectedDistrict("All");
-    setSelectedFocus("All");
-    setBudgetFilter("All");
-  };
+  const visible = useMemo(() => {
+    return items
+      .filter((item) => {
+        const text = JSON.stringify(item).toLowerCase();
+        const matchesSearch = text.includes(search.toLowerCase());
+        const matchesDistrict = !district || districtsOf(item).includes(district);
+        const matchesSector = !sector || (item.sector || item.focusArea) === sector;
 
-  const filteredProjects = projects.filter((proj) => {
-    const matchesSearch = proj.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          proj.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          proj.ngoName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDistrict = selectedDistrict === "All" || proj.district === selectedDistrict;
-    const matchesFocus = selectedFocus === "All" || proj.focusArea.includes(selectedFocus) || selectedFocus.includes(proj.focusArea);
-    
-    let matchesBudget = true;
-    if (budgetFilter === "under50L") matchesBudget = proj.budgetRequested < 5000000;
-    else if (budgetFilter === "50Lto1Cr") matchesBudget = proj.budgetRequested >= 5000000 && proj.budgetRequested <= 10000000;
-    else if (budgetFilter === "above1Cr") matchesBudget = proj.budgetRequested > 10000000;
+        const budget = Number(item.approvedBudget || item.budgetRequested || item.estimatedBudget || 0);
+        let matchesBudget = true;
+        if (budgetRange === "under25") matchesBudget = budget > 0 && budget < 2500000;
+        else if (budgetRange === "25to100") matchesBudget = budget >= 2500000 && budget <= 10000000;
+        else if (budgetRange === "above100") matchesBudget = budget > 10000000;
 
-    return matchesSearch && matchesDistrict && matchesFocus && matchesBudget;
-  });
+        return matchesSearch && matchesDistrict && matchesSector && matchesBudget;
+      })
+      .sort((a, b) => {
+        const budgetA = Number(a.approvedBudget || a.budgetRequested || a.estimatedBudget || 0);
+        const budgetB = Number(b.approvedBudget || b.budgetRequested || b.estimatedBudget || 0);
+        const benA = Number(a.beneficiaryCount || a.expectedBeneficiaries || 0);
+        const benB = Number(b.beneficiaryCount || b.expectedBeneficiaries || 0);
 
-  const filteredNGOs = ngos.filter((ngo) => {
-    const matchesSearch = ngo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          ngo.darpanId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (ngo.about && ngo.about.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesDistrict = selectedDistrict === "All" || ngo.district === selectedDistrict || (ngo.operatingDistricts && ngo.operatingDistricts.includes(selectedDistrict));
-    const matchesCategory = selectedFocus === "All" || ngo.category.includes(selectedFocus) || selectedFocus.includes(ngo.category);
-    return matchesSearch && matchesDistrict && matchesCategory;
-  });
+        if (sortBy === "budget-desc") return budgetB - budgetA;
+        if (sortBy === "beneficiaries-desc") return benB - benA;
+        return 0; // default newest/order
+      });
+  }, [items, search, district, sector, budgetRange, sortBy]);
 
-  const filteredCompanies = companies.filter((comp) => {
-    const matchesSearch = comp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          comp.industry.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDistrict = selectedDistrict === "All" || comp.district === selectedDistrict || (comp.targetDistricts && comp.targetDistricts.includes(selectedDistrict));
-    const matchesFocus = selectedFocus === "All" || comp.focusArea.includes(selectedFocus) || selectedFocus.includes(comp.focusArea);
-    return matchesSearch && matchesDistrict && matchesFocus;
-  });
-
-  const handleToggleBookmark = (id: string) => {
-    if (bookmarkedIds.includes(id)) {
-      setBookmarkedIds(bookmarkedIds.filter(bid => bid !== id));
-    } else {
-      setBookmarkedIds([...bookmarkedIds, id]);
-    }
-  };
+  const totalBudget = items.reduce(
+    (sum, item) => sum + Number(item.approvedBudget || item.budgetRequested || item.estimatedBudget || 0),
+    0
+  );
+  const beneficiaries = items.reduce(
+    (sum, item) => sum + Number(item.beneficiaryCount || item.expectedBeneficiaries || 0),
+    0
+  );
 
   return (
-    <div className="space-y-6 pb-12">
-
-      <GovPageHeader
-        breadcrumb="Home / Marketplace Directory"
-        title="Marketplace Directory"
-        description="Search verified project proposals, empaneled Grassroots NGOs, and registered corporate CSR donors in Maharashtra."
-      />
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          label="Active Project Proposals"
-          value={projects.length}
-          icon={Compass}
-          index={0}
-          colorTheme="blue"
-          sublabel="Statewide Development Needs"
-          badge="Live Proposals"
+    <main className="min-h-screen bg-[#f8fafc] px-3 py-4 text-[#14274e] sm:px-6 md:py-6">
+      <div className="mx-auto max-w-7xl">
+        <GovPageHeader
+          title="Maharashtra CSR Development Marketplace"
+          eyebrow="Verified Convergence Opportunities"
+          description="Explore Government development needs that have completed RM feasibility review and Joint Secretary publication approval."
         />
-        <StatCard
-          label="Verified Grassroots NGOs"
-          value={ngos.length}
-          icon={Landmark}
-          index={1}
-          colorTheme="emerald"
-          sublabel="Empaneled & Verified"
-          badge="NITI Aayog Verified"
-        />
-        <StatCard
-          label="Registered Corporate Donors"
-          value={companies.length}
-          icon={Building2}
-          index={2}
-          colorTheme="purple"
-          sublabel="Active CSR Foundations"
-          badge="Corporate Partners"
-        />
-        <StatCard
-          label="Total CSR Allocation"
-          value="₹141.5 Cr"
-          icon={Coins}
-          index={3}
-          colorTheme="amber"
-          sublabel="Pledged CSR Capital"
-          badge="Statewide Budget"
-        />
-      </div>
 
-      {/* Tabs Container: Added overflow-x-auto to prevent squishing on mobile */}
-      <div className="rounded-2xl border border-slate-200/90 bg-white p-2 shadow-xs flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-        {[
-          { id: "projects", label: "Active Project Proposals", icon: Compass, count: projects.length },
-          { id: "ngos", label: "Verified Grassroots NGOs", icon: Landmark, count: ngos.length },
-          { id: "companies", label: "Registered Corporate Donors", icon: Building2, count: companies.length }
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => {
-                setActiveTab(tab.id as DirectoryTab);
-                resetAllFilters();
-                window.history.replaceState(null, "", `/marketplace/${tab.id}`);
-              }}
-              className={`shrink-0 flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap cursor-pointer ${
-                isActive
-                  ? "bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-950 text-white shadow-md"
-                  : "text-slate-600 hover:text-blue-900 hover:bg-slate-100/80 font-bold"
-              }`}
-            >
-              <Icon size={16} />
-              <span>{tab.label}</span>
-              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black ${
-                isActive ? "bg-white/20 text-white" : "bg-slate-200/80 text-slate-700"
-              }`}>
-                {tab.count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+        {!error && (
+          <section className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard
+              label="Published Opportunities"
+              value={items.length}
+              icon={ShieldCheck}
+              badge="JS Approved"
+              colorTheme="blue"
+              index={0}
+            />
+            <StatCard
+              label="District Coverage"
+              value={districts.length || 1}
+              icon={MapPin}
+              badge="Maharashtra"
+              colorTheme="purple"
+              index={1}
+            />
+            <StatCard
+              label="Recorded Project Outlay"
+              value={totalBudget ? money(totalBudget) : "—"}
+              icon={Coins}
+              badge="Live Total"
+              colorTheme="emerald"
+              index={2}
+            />
+            <StatCard
+              label="Expected Beneficiaries"
+              value={beneficiaries ? beneficiaries.toLocaleString("en-IN") : "—"}
+              icon={Users}
+              badge="Recorded"
+              colorTheme="amber"
+              index={3}
+            />
+          </section>
+        )}
 
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col gap-4">
-        {/* Filters Container: Allowed inputs to stack full-width on mobile */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-4">
-          
-          <div className="w-full md:flex-1 md:min-w-[200px] flex flex-col gap-1.5">
-            <label className="text-slate-700 text-xs font-bold flex items-center gap-1.5">
-              <Search size={13} className="text-blue-600" />
-              <span>Search Keywords / Name</span>
-            </label>
-            <div className="relative">
+        <section className="mt-4 rounded-xl border border-slate-200/80 bg-white p-3 shadow-xs">
+          <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center">
+            {/* Search input */}
+            <div className="relative min-w-0 flex-1">
+              <Search className="absolute left-3 top-2.5 text-slate-400" size={15} />
               <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder={
-                  activeTab === "projects"
-                    ? "Search proposal title, NGO..."
-                    : activeTab === "ngos"
-                    ? "Search NGO name, Darpan ID..."
-                    : "Search corporate, industry..."
-                }
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-9 pr-8 text-xs text-slate-900 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all font-semibold placeholder:text-slate-400 shadow-2xs"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search opportunities, sectors, districts or departments…"
+                className="w-full rounded-lg border border-slate-200/90 bg-slate-50/60 py-2 pl-9 pr-3 text-xs font-medium outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10"
               />
-              <Search size={14} className="absolute left-3 top-2.5 text-slate-400" />
-              {searchTerm && (
-                <button onClick={() => setSearchTerm("")} className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600">
-                  <X size={14} />
-                </button>
-              )}
             </div>
-          </div>
 
-          <div className="w-full md:w-auto md:min-w-[160px] flex flex-col gap-1.5">
-            <label className="text-slate-700 text-xs font-bold flex items-center gap-1.5">
-              <MapPin size={13} className="text-blue-600" />
-              <span>District (Maharashtra)</span>
-            </label>
-            <select
-              value={selectedDistrict}
-              onChange={(e) => setSelectedDistrict(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs text-slate-900 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all font-semibold cursor-pointer shadow-2xs"
-            >
-              <option value="All">All Districts</option>
-              <option value="Pune">Pune</option>
-              <option value="Nandurbar">Nandurbar</option>
-              <option value="Gadchiroli">Gadchiroli</option>
-              <option value="Thane">Thane</option>
-              <option value="Mumbai">Mumbai</option>
-              <option value="Nagpur">Nagpur</option>
-              <option value="Nashik">Nashik</option>
-              <option value="Palghar">Palghar</option>
-              <option value="Chhatrapati Sambhajinagar">Chhatrapati Sambhajinagar</option>
-            </select>
-          </div>
+            {/* Filter controls */}
+            <div className="flex flex-wrap gap-2 items-center">
+              <label className="relative">
+                <Filter className="pointer-events-none absolute left-3 top-2 text-slate-400" size={13} />
+                <select
+                  aria-label="Filter by district"
+                  value={district}
+                  onChange={(e) => setDistrict(e.target.value)}
+                  className="appearance-none rounded-lg border border-slate-200/90 bg-white py-2 pl-8 pr-7 text-xs font-bold text-slate-600 outline-none hover:border-slate-300 transition sm:w-36"
+                >
+                  <option value="">All districts</option>
+                  {districts.map((val) => (
+                    <option key={val}>{val}</option>
+                  ))}
+                </select>
+              </label>
 
-          <div className="w-full md:w-auto md:min-w-[160px] flex flex-col gap-1.5">
-            <label className="text-slate-700 text-xs font-bold flex items-center gap-1.5">
-              <Tag size={13} className="text-blue-600" />
-              <span>Sector Focus Area</span>
-            </label>
-            <select
-              value={selectedFocus}
-              onChange={(e) => setSelectedFocus(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs text-slate-900 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all font-semibold cursor-pointer shadow-2xs"
-            >
-              <option value="All">All Focus Sectors</option>
-              <option value="Education">Education & Literacy</option>
-              <option value="Health">Healthcare & Sanitation</option>
-              <option value="Water Conservation">Water Conservation</option>
-              <option value="Skill Development">Skill Development</option>
-              <option value="Environment">Environment & Forestry</option>
-              <option value="Rural Infrastructure">Rural Infrastructure</option>
-            </select>
-          </div>
-
-          <div className="w-full md:w-auto md:min-w-[150px] flex flex-col gap-1.5">
-            <label className="text-slate-700 text-xs font-bold flex items-center gap-1.5">
-              <Coins size={13} className="text-blue-600" />
-              <span>Budget Scope</span>
-            </label>
-            <select
-              value={budgetFilter}
-              onChange={(e) => setBudgetFilter(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs text-slate-900 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all font-semibold cursor-pointer shadow-2xs"
-            >
-              <option value="All">All Budget Ranges</option>
-              <option value="under50L">Under ₹50 Lakhs</option>
-              <option value="50Lto1Cr">₹50 Lakhs - ₹1 Crore</option>
-              <option value="above1Cr">Above ₹1 Crore</option>
-            </select>
-          </div>
-
-          <div className="flex items-center justify-between md:justify-end gap-2 pt-2 md:pt-0 w-full md:w-auto">
-            <ViewToggle view={viewMode} onChange={setViewMode} />
-
-            {activeFilterCount > 0 && (
-              <button
-                onClick={resetAllFilters}
-                className="text-xs text-slate-700 hover:text-red-600 font-bold flex items-center justify-center gap-1 bg-slate-100 hover:bg-red-50 px-3 py-2 rounded-xl border border-slate-200 transition-all h-[36px] flex-1 md:flex-none"
-                title="Reset filters"
+              <select
+                aria-label="Filter by sector"
+                value={sector}
+                onChange={(e) => setSector(e.target.value)}
+                className="rounded-lg border border-slate-200/90 bg-white px-2.5 py-2 text-xs font-bold text-slate-600 outline-none hover:border-slate-300 transition sm:w-32"
               >
-                <X size={14} /> <span>Reset</span>
-              </button>
-            )}
-          </div>
-
-        </div>
-
-        <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-bold text-slate-700">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-            <span className="text-slate-900 font-extrabold text-xs sm:text-sm">
-              {activeTab === "projects" && `${filteredProjects.length} Project Proposals Found`}
-              {activeTab === "ngos" && `${filteredNGOs.length} Empaneled Grassroots NGOs Registered`}
-              {activeTab === "companies" && `${filteredCompanies.length} Corporate Donors Found`}
-            </span>
-            <span className="text-slate-400 font-medium text-[11px] hidden sm:inline">| Showing verified Maharashtra directory listings</span>
-          </div>
-
-          {activeFilterCount > 0 && (
-            <div className="flex items-center gap-2 flex-wrap">
-              {selectedDistrict !== "All" && (
-                <span className="inline-flex items-center gap-1 bg-blue-50 border border-blue-200 text-blue-800 text-[11px] font-bold px-2 py-0.5 rounded-lg">
-                  District: {selectedDistrict}
-                  <button onClick={() => setSelectedDistrict("All")} className="hover:text-blue-950"><X size={12} /></button>
-                </span>
-              )}
-              {selectedFocus !== "All" && (
-                <span className="inline-flex items-center gap-1 bg-indigo-50 border border-indigo-200 text-indigo-800 text-[11px] font-bold px-2 py-0.5 rounded-lg">
-                  Sector: {selectedFocus}
-                  <button onClick={() => setSelectedFocus("All")} className="hover:text-indigo-950"><X size={12} /></button>
-                </span>
-              )}
-              {budgetFilter !== "All" && (
-                <span className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-900 text-[11px] font-bold px-2 py-0.5 rounded-lg">
-                  Budget: {budgetFilter === "under50L" ? "< ₹50L" : budgetFilter === "50Lto1Cr" ? "₹50L - ₹1Cr" : "> ₹1Cr"}
-                  <button onClick={() => setBudgetFilter("All")} className="hover:text-amber-950"><X size={12} /></button>
-                </span>
-              )}
-              {searchTerm && (
-                <span className="inline-flex items-center gap-1 bg-slate-100 border border-slate-300 text-slate-800 text-[11px] font-bold px-2 py-0.5 rounded-lg">
-                  Search: "{searchTerm}"
-                  <button onClick={() => setSearchTerm("")} className="hover:text-black"><X size={12} /></button>
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-4 w-full bg-white border border-slate-200/90 rounded-2xl shadow-xs">
-          <div className="w-10 h-10 rounded-full border-3 border-blue-900 border-t-transparent animate-spin" />
-          <span className="text-xs text-slate-500 font-semibold">Loading public directory records...</span>
-        </div>
-      ) : viewMode === "list" ? (
-        // List View: Updated for mobile stacked cards
-        <div className="w-full md:rounded-2xl md:border md:border-slate-200/90 md:bg-white overflow-hidden md:shadow-xs">
-          <div className="w-full">
-            <table className="w-full block md:table text-left text-xs border-collapse">
-              <thead className="hidden md:table-header-group bg-slate-900 text-white font-extrabold uppercase tracking-wider text-[11px]">
-                <tr>
-                  <th className="py-4 px-4">{activeTab === "projects" ? "Proposal Title" : activeTab === "ngos" ? "NGO Legal Name" : "Corporate Donor Name"}</th>
-                  <th className="py-4 px-4">{activeTab === "projects" ? "Focus Sector" : activeTab === "ngos" ? "Darpan ID" : "Industry Sector"}</th>
-                  <th className="py-4 px-4">District Scope</th>
-                  <th className="py-4 px-4">{activeTab === "projects" ? "Budget Requested" : activeTab === "ngos" ? "Total CSR Sourced" : "Active CSR Budget Limit"}</th>
-                  <th className="py-4 px-4">{activeTab === "projects" ? "Match Score" : "Compliance Status"}</th>
-                  <th className="py-4 px-4 text-right md:text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="block md:table-row-group divide-y-0 md:divide-y md:divide-slate-150">
-                {activeTab === "projects" && filteredProjects.map((p) => (
-                  <tr key={p.id} className="block md:table-row mb-4 md:mb-0 bg-white border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-sm md:shadow-none hover:bg-blue-50/50 transition-colors overflow-hidden">
-                    <td data-label="Proposal Title" className="flex md:table-cell flex-col md:flex-row items-start md:items-center py-3.5 px-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden before:mb-1">
-                      <div className="font-extrabold text-slate-900 text-sm md:text-sm">{p.title}</div>
-                      <div className="text-[11px] text-slate-500 font-medium">NGO: {p.ngoName} • {p.ngoRating} ★</div>
-                    </td>
-                    <td data-label="Focus Sector" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none font-bold text-slate-700 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
-                      <span className="bg-blue-50 text-blue-800 border border-blue-200 px-2 py-0.5 rounded text-[10px] font-extrabold">
-                        {p.focusArea}
-                      </span>
-                    </td>
-                    <td data-label="District Scope" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none text-slate-700 font-semibold before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
-                      {p.district}, {p.taluka}
-                    </td>
-                    <td data-label="Budget Requested" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none font-black text-amber-700 text-sm before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
-                      ₹{p.budgetRequested.toLocaleString("en-IN")}
-                    </td>
-                    <td data-label="Match Score" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
-                      <span className="font-mono font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded text-[11px]">
-                        {p.matchScore}% Match
-                      </span>
-                    </td>
-                    <td className="block md:table-cell py-3.5 px-4 text-right md:text-center bg-slate-50/50 md:bg-transparent">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setSelectedProjectDetail(p)}
-                        className="w-full md:w-auto bg-blue-900 hover:bg-blue-950 text-white text-xs font-bold py-2 md:py-1.5 px-3 shadow-2xs justify-center"
-                      >
-                        <Eye size={14} className="mr-1" /> View Details
-                      </Button>
-                    </td>
-                  </tr>
+                <option value="">All sectors</option>
+                {sectors.map((val) => (
+                  <option key={val}>{val}</option>
                 ))}
+              </select>
 
-                {activeTab === "ngos" && filteredNGOs.map((n) => (
-                  <tr key={n.id} className="block md:table-row mb-4 md:mb-0 bg-white border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-sm md:shadow-none hover:bg-emerald-50/50 transition-colors overflow-hidden">
-                    <td data-label="NGO Legal Name" className="flex md:table-cell flex-col md:flex-row items-start md:items-center py-3.5 px-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden before:mb-1">
-                      <div className="font-extrabold text-slate-900 text-sm">{n.name}</div>
-                      <div className="text-[11px] text-slate-500 font-medium">{n.category} • Est. {n.establishedYear || 2012}</div>
-                    </td>
-                    <td data-label="Darpan ID" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none font-mono font-bold text-blue-900 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
-                      {n.darpanId}
-                    </td>
-                    <td data-label="District Scope" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none text-slate-700 font-semibold before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
-                      {n.district} ({n.taluka})
-                    </td>
-                    <td data-label="Total CSR Sourced" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none font-black text-slate-900 text-sm before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
-                      ₹{(n.totalFundingReceived / 100000).toFixed(1)} Lakhs
-                    </td>
-                    <td data-label="Compliance Status" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
-                      <span className="font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded text-[11px] flex items-center gap-1 w-fit ml-auto md:ml-0">
-                        <ShieldCheck size={13} /> {n.csr1Status}
-                      </span>
-                    </td>
-                    <td className="block md:table-cell py-3.5 px-4 text-right md:text-center bg-slate-50/50 md:bg-transparent">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setSelectedNgoDetail(n)}
-                        className="w-full md:w-auto bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold py-2 md:py-1.5 px-3 shadow-2xs justify-center"
-                      >
-                        <Eye size={14} className="mr-1" /> View Details
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
+              <select
+                aria-label="Filter by budget range"
+                value={budgetRange}
+                onChange={(e) => setBudgetRange(e.target.value)}
+                className="rounded-lg border border-slate-200/90 bg-white px-2.5 py-2 text-xs font-bold text-slate-600 outline-none hover:border-slate-300 transition sm:w-36"
+              >
+                <option value="">All budgets</option>
+                <option value="under25">Under ₹25 Lakh</option>
+                <option value="25to100">₹25 Lakh - ₹1 Crore</option>
+                <option value="above100">Above ₹1 Crore</option>
+              </select>
 
-                {activeTab === "companies" && filteredCompanies.map((c) => (
-                  <tr key={c.id} className="block md:table-row mb-4 md:mb-0 bg-white border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-sm md:shadow-none hover:bg-purple-50/50 transition-colors overflow-hidden">
-                    <td data-label="Corporate Donor Name" className="flex md:table-cell flex-col md:flex-row items-start md:items-center py-3.5 px-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden before:mb-1">
-                      <div className="font-extrabold text-slate-900 text-sm">{c.name}</div>
-                      <div className="text-[11px] text-slate-500 font-medium">{c.focusArea}</div>
-                    </td>
-                    <td data-label="Industry Sector" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none font-semibold text-slate-800 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
-                      {c.industry}
-                    </td>
-                    <td data-label="District Scope" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none text-slate-700 font-semibold before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
-                      {c.district}
-                    </td>
-                    <td data-label="Active CSR Budget Limit" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none font-black text-purple-950 text-sm before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
-                      ₹{(c.csrBudget / 10000000).toFixed(1)} Cr
-                    </td>
-                    <td data-label="Compliance Status" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none font-bold text-indigo-700 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
-                      <span className="bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded text-[11px] font-mono">
-                        Active Donor
-                      </span>
-                    </td>
-                    <td className="block md:table-cell py-3.5 px-4 text-right md:text-center bg-slate-50/50 md:bg-transparent">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setSelectedCompanyDetail(c)}
-                        className="w-full md:w-auto bg-purple-900 hover:bg-purple-950 text-white text-xs font-bold py-2 md:py-1.5 px-3 shadow-2xs justify-center"
-                      >
-                        <Eye size={14} className="mr-1" /> View Details
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {activeTab === "projects" && filteredProjects.map((project) => (
-            <motion.div
-              key={project.id}
-              whileHover={{ y: -5, scale: 1.01 }}
-              transition={{ duration: 0.2 }}
-              className="group relative rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50/50 to-blue-50/20 p-4 sm:p-5 shadow-xs hover:shadow-xl transition-all duration-200 flex flex-col justify-between gap-5 overflow-hidden"
-            >
-              <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-800" />
-              <div className="flex flex-col gap-3">
-                <div className="flex justify-between items-center gap-2 flex-wrap">
-                  <span className="text-[10px] bg-blue-50 border border-blue-200 text-blue-800 px-2.5 py-0.5 rounded-md font-extrabold uppercase tracking-wider">
-                    {project.focusArea}
-                  </span>
-                  <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md font-mono font-extrabold">
-                    {project.matchScore}% Match
-                  </span>
-                </div>
-                <h3 className="font-heading font-extrabold text-base text-slate-900 leading-snug group-hover:text-blue-900 transition-colors">
-                  {project.title}
-                </h3>
-                <p className="text-xs text-slate-600 font-semibold flex items-start gap-1.5">
-                  <Landmark size={14} className="text-blue-700 shrink-0 mt-0.5" />
-                  <span>NGO: <strong className="text-slate-900">{project.ngoName}</strong> • {project.ngoRating} ★</span>
-                </p>
-                <p className="text-slate-600 text-xs leading-relaxed line-clamp-3 font-medium">
-                  {project.description}
-                </p>
-              </div>
-              <div className="flex flex-col gap-3.5 pt-2 border-t border-slate-200/80">
-                <div className="flex justify-between items-center text-xs font-semibold gap-2 flex-wrap">
-                  <span className="text-slate-600 flex items-center gap-1 font-medium">
-                    <MapPin size={13} className="text-slate-400 shrink-0" /> {project.district}, {project.taluka}
-                  </span>
-                  <span className="text-amber-700 font-black text-sm flex items-center gap-1">
-                    <Coins size={14} className="text-amber-600 shrink-0" /> ₹{project.budgetRequested.toLocaleString("en-IN")}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setSelectedProjectDetail(project)}
-                    className="w-full bg-blue-900 hover:bg-blue-950 text-white font-extrabold text-xs py-2 shadow-2xs justify-center"
-                  >
-                    <Eye size={14} className="mr-1 hidden sm:inline-block" /> Details
-                  </Button>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    className="w-full font-bold text-xs py-2 bg-gradient-to-r from-blue-700 to-indigo-700 text-white justify-center"
-                  >
-                    Fund Now
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-
-          {activeTab === "ngos" && filteredNGOs.map((ngo) => (
-            <motion.div
-              key={ngo.id}
-              whileHover={{ y: -5, scale: 1.01 }}
-              transition={{ duration: 0.2 }}
-              className="group relative rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50/50 to-emerald-50/20 p-4 sm:p-5 shadow-xs hover:shadow-xl transition-all duration-200 flex flex-col justify-between gap-5 overflow-hidden"
-            >
-              <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-800" />
-              <div className="flex flex-col gap-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-[10px] bg-emerald-50 border border-emerald-200 text-emerald-800 px-2.5 py-0.5 rounded-md font-extrabold uppercase tracking-wider">
-                    {ngo.category}
-                  </span>
-                </div>
-                <h3 className="font-heading font-extrabold text-base text-slate-900 leading-snug group-hover:text-emerald-950 transition-colors">
-                  {ngo.name}
-                </h3>
-                <p className="text-slate-600 text-xs leading-relaxed line-clamp-2 font-medium">
-                  {ngo.about || "Empaneled Grassroots NGO partner implementing high-impact CSR projects across Maharashtra."}
-                </p>
-              </div>
-              <div className="flex flex-col gap-3 pt-2 border-t border-slate-200/80">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setSelectedNgoDetail(ngo)}
-                  className="w-full bg-emerald-800 hover:bg-emerald-900 text-white font-extrabold text-xs py-2 shadow-2xs justify-center"
+              <label className="relative">
+                <ArrowUpDown className="pointer-events-none absolute left-3 top-2 text-slate-400" size={13} />
+                <select
+                  aria-label="Sort marketplace list"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="appearance-none rounded-lg border border-slate-200/90 bg-white py-2 pl-8 pr-7 text-xs font-bold text-slate-600 outline-none hover:border-slate-300 transition sm:w-36"
                 >
-                  <Eye size={14} className="mr-1" /> View Details
-                </Button>
-              </div>
-            </motion.div>
-          ))}
+                  <option value="newest">Newest First</option>
+                  <option value="budget-desc">Highest Budget</option>
+                  <option value="beneficiaries-desc">Most Beneficiaries</option>
+                </select>
+              </label>
 
-          {activeTab === "companies" && filteredCompanies.map((comp) => (
-            <motion.div
-              key={comp.id}
-              whileHover={{ y: -5, scale: 1.01 }}
-              transition={{ duration: 0.2 }}
-              className="group relative rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50/50 to-purple-50/20 p-4 sm:p-5 shadow-xs hover:shadow-xl transition-all duration-200 flex flex-col justify-between gap-5 overflow-hidden"
-            >
-              <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-800" />
-              <div className="flex flex-col gap-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-[10px] bg-purple-50 border border-purple-200 text-purple-800 px-2.5 py-0.5 rounded-md font-extrabold uppercase tracking-wider">
-                    {comp.industry}
-                  </span>
-                </div>
-                <h3 className="font-heading font-extrabold text-base text-slate-900 leading-snug group-hover:text-purple-950 transition-colors">
-                  {comp.name}
-                </h3>
-                <p className="text-slate-600 text-xs leading-relaxed line-clamp-2 font-medium">
-                  {comp.csrPolicySummary || "Active corporate CSR donor committing capital to verified grassroots initiatives in Maharashtra."}
-                </p>
-              </div>
-              <div className="flex flex-col gap-3 pt-2 border-t border-slate-200/80">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setSelectedCompanyDetail(comp)}
-                  className="w-full bg-purple-900 hover:bg-purple-950 text-white font-extrabold text-xs py-2 shadow-2xs justify-center"
+              <div className="flex rounded-lg border border-slate-200/90 bg-slate-100/70 p-0.5">
+                <button
+                  aria-label="Grid view"
+                  onClick={() => setView("grid")}
+                  className={`rounded-md p-1.5 transition ${view === "grid" ? "bg-white text-blue-900 shadow-xs" : "text-slate-500 hover:text-slate-700"}`}
                 >
-                  <Eye size={14} className="mr-1" /> View Details
-                </Button>
-              </div>
-            </motion.div>
-          ))}
-
-          {((activeTab === "projects" && filteredProjects.length === 0) ||
-            (activeTab === "ngos" && filteredNGOs.length === 0) ||
-            (activeTab === "companies" && filteredCompanies.length === 0)) && (
-            <div className="col-span-1 sm:col-span-2 lg:col-span-3 border border-slate-200 bg-white p-6 sm:p-10 rounded-2xl text-center shadow-xs flex flex-col items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
-                <Search size={22} />
-              </div>
-              <h3 className="font-heading font-extrabold text-base text-slate-900">No matching records found</h3>
-              <p className="text-xs text-slate-500 max-w-xl mx-auto font-medium px-4">
-                Try broadening your search query or clearing district/sector filters. All marketplace listings undergo administrative verification before public publishing.
-              </p>
-              <Button variant="outline" size="sm" onClick={resetAllFilters} className="mt-2 font-bold text-xs">
-                Reset All Filters
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Modals - Content is responsive via internal flex/grid classes */}
-      <Modal
-        isOpen={!!selectedProjectDetail}
-        onClose={() => setSelectedProjectDetail(null)}
-        title="Project Proposal Detail Overview"
-        className="max-w-4xl"
-      >
-        {selectedProjectDetail && (
-          <div className="flex flex-col gap-6 text-xs text-slate-700">
-            <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 p-4 sm:p-5 rounded-2xl text-white flex flex-col gap-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="bg-blue-500/30 text-blue-200 border border-blue-400/40 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
-                    {selectedProjectDetail.focusArea}
-                  </span>
-                  <span className="bg-white/20 text-white text-[10px] font-bold px-2.5 py-1 rounded-full">
-                    {selectedProjectDetail.sdgGoal}
-                  </span>
-                </div>
-                <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 font-mono font-extrabold text-xs px-3 py-1 rounded-full">
-                  {selectedProjectDetail.matchScore}% Match Score
-                </span>
-              </div>
-              <h2 className="text-lg sm:text-xl font-heading font-black leading-snug">
-                {selectedProjectDetail.title}
-              </h2>
-              <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3 sm:gap-4 text-xs text-slate-300 font-medium pt-3 sm:pt-1 border-t border-white/10">
-                <span className="flex items-start sm:items-center gap-1.5">
-                  <MapPin size={14} className="text-blue-400 shrink-0 mt-0.5 sm:mt-0" />
-                  <span><strong>District Scope:</strong> {selectedProjectDetail.district}, {selectedProjectDetail.taluka}</span>
-                </span>
-                <span className="flex items-start sm:items-center gap-1.5">
-                  <Landmark size={14} className="text-blue-400 shrink-0 mt-0.5 sm:mt-0" />
-                  <span><strong>Empaneled NGO:</strong> {selectedProjectDetail.ngoName} ({selectedProjectDetail.ngoRating} ★)</span>
-                </span>
-                <span className="flex items-start sm:items-center gap-1.5">
-                  <Calendar size={14} className="text-blue-400 shrink-0 mt-0.5 sm:mt-0" />
-                  <span><strong>Duration:</strong> {selectedProjectDetail.duration || "12 Months"}</span>
-                </span>
+                  <Grid size={14} />
+                </button>
+                <button
+                  aria-label="List view"
+                  onClick={() => setView("list")}
+                  className={`rounded-md p-1.5 transition ${view === "list" ? "bg-white text-blue-900 shadow-xs" : "text-slate-500 hover:text-slate-700"}`}
+                >
+                  <List size={14} />
+                </button>
               </div>
             </div>
+          </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200/90 text-center">
-              <div>
-                <span className="text-slate-500 text-[10px] uppercase font-bold block">Total Budget Requested</span>
-                <span className="text-amber-700 text-sm sm:text-base font-black mt-0.5 block break-all">
-                  ₹{selectedProjectDetail.budgetRequested.toLocaleString("en-IN")}
-                </span>
+          {/* <div className="mt-2.5 flex items-center justify-between border-t border-slate-100 pt-2">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Showing {visible.length} of {items.length} live opportunities
+            </p>
+            <Link
+              href="/directory"
+              className="inline-flex items-center gap-1 text-xs font-bold text-blue-900 hover:text-blue-700 hover:no-underline transition"
+            >
+              <Building2 size={13} />
+              Verified organization directory
+            </Link>
+          </div> */}
+        </section>
+
+        {error ? (
+          <div role="alert" className="mt-4 rounded-xl border border-red-200 bg-gradient-to-r from-red-50 to-white p-5 shadow-xs">
+            <div className="flex gap-3">
+              <div className="h-fit rounded-lg border border-red-200 bg-white p-2 text-red-600">
+                <AlertCircle size={18} />
               </div>
               <div>
-                <span className="text-slate-500 text-[10px] uppercase font-bold block">Target Beneficiaries</span>
-                <span className="text-slate-900 text-sm sm:text-base font-extrabold mt-0.5 block">
-                  {selectedProjectDetail.beneficiaryCount.toLocaleString()}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-500 text-[10px] uppercase font-bold block">Verification Status</span>
-                <span className="text-emerald-700 text-xs font-bold mt-1 block flex items-center justify-center gap-1">
-                  <CheckCircle2 size={14} /> Verified
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-500 text-[10px] uppercase font-bold block">Cost Per Beneficiary</span>
-                <span className="text-indigo-900 text-sm sm:text-base font-extrabold mt-0.5 block">
-                  ₹{Math.round(selectedProjectDetail.budgetRequested / selectedProjectDetail.beneficiaryCount).toLocaleString()}
-                </span>
+                <h2 className="text-sm font-extrabold text-red-950">Marketplace unavailable</h2>
+                <p className="mt-1 text-xs font-medium text-red-700">
+                  {error}. No demonstration projects have been substituted.
+                </p>
+                <button
+                  onClick={load}
+                  className="mt-3 inline-flex items-center gap-2 rounded-lg bg-red-700 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-red-800 transition"
+                >
+                  <RefreshCcw size={13} />
+                  Retry
+                </button>
               </div>
             </div>
+          </div>
+        ) : loading ? (
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div key={index} className="h-48 animate-pulse rounded-xl border border-slate-200/80 bg-white shadow-xs" />
+            ))}
+          </div>
+        ) : visible.length === 0 ? (
+          <div className="mt-4 rounded-xl border border-slate-200/80 bg-white p-12 text-center shadow-xs">
+            <CheckCircle2 className="mx-auto text-emerald-600" size={32} />
+            <h2 className="mt-3 text-sm font-extrabold text-slate-900">No published needs match this view</h2>
+            <p className="mt-1 text-xs text-slate-500">Adjust the search or filters. Only approved public records are displayed.</p>
+          </div>
+        ) : (
+          <div className={`mt-4 grid gap-3.5 ${view === "grid" ? "md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1"}`}>
+            {visible.map((item, index) => {
+              const itemSector = item.sector || item.focusArea || item.category || "Development";
+              const sectorStyle = getSectorBadgeStyle(itemSector);
+              const districtNames = districtsOf(item).join(", ") || "Maharashtra";
+              const deptName = item.organization?.name ||
+                item.department?.name ||
+                item.governmentOrganization?.name ||
+                "Government Development Need";
+              const reqCode = item.trackingId || item.projectCode || `MH-CSR-2026-${String(index + 1).padStart(3, "0")}`;
+              const title = item.title || item.csrRequirement || "Published Development Requirement";
+              const desc = item.description || item.csrRequirement || "Open this opportunity to review its verified scope and supporting details.";
+              const budgetVal = item.approvedBudget || item.budgetRequested || item.estimatedBudget;
+              const benCount = Number(item.beneficiaryCount || item.expectedBeneficiaries || 0);
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="md:col-span-2 flex flex-col gap-5">
-                <div className="flex flex-col gap-2">
-                  <h4 className="font-heading font-extrabold text-sm text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <FileText size={16} className="text-blue-700" /> Project Objective & Scope
-                  </h4>
-                  <p className="text-xs text-slate-700 leading-relaxed font-medium bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs">
-                    {selectedProjectDetail.description}
-                  </p>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <h4 className="font-heading font-extrabold text-sm text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <Target size={16} className="text-emerald-700" /> Target Social Impact Goals
-                  </h4>
-                  <p className="text-xs text-slate-700 leading-relaxed font-medium bg-emerald-50/50 p-3.5 rounded-xl border border-emerald-200/80">
-                    {selectedProjectDetail.impactGoals || "Comprehensive social transformation, community empowerment, and measurable outcome indicators."}
-                  </p>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <h4 className="font-heading font-extrabold text-sm text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <CheckCircle2 size={16} className="text-indigo-700" /> Key Project Deliverables
-                  </h4>
-                  <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs">
-                    <ul className="flex flex-col gap-2.5">
-                      {(selectedProjectDetail.deliverables || [
-                        "Equipment procurement and ground deployment",
-                        "Community orientation and training workshops",
-                        "Geotagged execution audit and completion certificate"
-                      ]).map((item, idx) => (
-                        <li key={idx} className="flex items-start gap-2.5 text-xs text-slate-800 font-semibold">
-                          <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
-                            {idx + 1}
-                          </span>
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-                {selectedProjectDetail.budgetBreakdown && selectedProjectDetail.budgetBreakdown.length > 0 && (
-                  <div className="flex flex-col gap-2">
-                    <h4 className="font-heading font-extrabold text-sm text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                      <Coins size={16} className="text-amber-600" /> Budget Allocation Breakdown
-                    </h4>
-                    <div className="bg-white rounded-xl border border-slate-200/80 overflow-x-auto shadow-2xs">
-                      <table className="w-full text-left text-xs whitespace-nowrap min-w-[400px]">
-                        <thead className="bg-slate-100 text-slate-800 font-bold uppercase text-[10px]">
-                          <tr>
-                            <th className="p-3">Cost Component</th>
-                            <th className="p-3 text-right">Amount (INR)</th>
-                            <th className="p-3 text-right">Share %</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-150 font-medium">
-                          {selectedProjectDetail.budgetBreakdown.map((item, idx) => (
-                            <tr key={idx} className="hover:bg-slate-50">
-                              <td className="p-3 font-semibold text-slate-900">{item.category}</td>
-                              <td className="p-3 text-right font-bold text-amber-800">₹{item.amount.toLocaleString("en-IN")}</td>
-                              <td className="p-3 text-right font-mono font-bold text-slate-700">{item.percentage}%</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+              return (
+                <article
+                  key={item.id || index}
+                  className="group relative overflow-hidden rounded-xl border border-slate-200/80 bg-white p-4 sm:p-5 shadow-xs transition-all duration-200 hover:border-blue-400/80 hover:shadow-sm"
+                >
+                  <div className="flex flex-col gap-3">
+                    {/* Top Row: Sector Pill, Code & Status Badge */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${sectorStyle}`}>
+                          {itemSector.replace(/_/g, " ")}
+                        </span>
+                        <span className="text-[11px] font-bold text-slate-400 font-mono">
+                          {reqCode}
+                        </span>
+                      </div>
+                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                        <CheckCircle2 size={11} className="text-emerald-600" />
+                        JS APPROVED
+                      </span>
+                    </div>
+
+                    {/* Main Content Area */}
+                    <div className="space-y-1.5">
+                      <Link href={`/csr-marketplace/${item.id}`} className="hover:no-underline group-hover:text-blue-800 transition-colors">
+                        <h2 className="text-sm font-bold text-slate-900 group-hover:text-blue-800 transition-colors leading-snug">
+                          {title}
+                        </h2>
+                      </Link>
+                      <p className="text-xs font-normal leading-relaxed text-slate-600">
+                        {desc}
+                      </p>
+                    </div>
+
+                    {/* Location & Department Chips (Fully Visible, No Truncation) */}
+                    <div className="flex flex-wrap gap-y-1.5 gap-x-4 text-xs font-medium text-slate-700 pt-0.5">
+                      <div className="flex items-center gap-1.5">
+                        <MapPin size={13} className="text-slate-400 shrink-0" />
+                        <span className="font-semibold text-slate-800">{districtNames}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Building2 size={13} className="text-slate-400 shrink-0" />
+                        <span className="font-semibold text-slate-800">{deptName}</span>
+                      </div>
+                    </div>
+
+                    {/* Bottom Metrics Bar & CTA Button */}
+                    <div className="mt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-slate-100 bg-slate-50/70 p-2.5 sm:px-4 sm:py-2.5">
+                      <div className="flex items-center gap-5">
+                        <div>
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Requested Outlay</p>
+                          <p className="mt-0.5 text-xs sm:text-sm font-extrabold text-slate-900">
+                            {money(budgetVal)}
+                          </p>
+                        </div>
+                        <div className="h-7 w-px bg-slate-200" />
+                        <div>
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Beneficiaries</p>
+                          <p className="mt-0.5 text-xs sm:text-sm font-extrabold text-slate-900">
+                            {benCount ? benCount.toLocaleString("en-IN") : "—"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <Link
+                        href={`/csr-marketplace/${item.id}`}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#14274e] px-4 py-2 text-xs font-bold text-white shadow-xs transition-all hover:bg-blue-900 hover:shadow-xs hover:no-underline shrink-0"
+                      >
+                        <span>View verified requirement</span>
+                        <ArrowRight size={13} />
+                      </Link>
                     </div>
                   </div>
-                )}
-              </div>
-              <div className="flex flex-col gap-5">
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/90 flex flex-col gap-3">
-                  <h4 className="font-heading font-extrabold text-xs text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-2">
-                    Empaneled Implementing NGO
-                  </h4>
-                  <div>
-                    <span className="font-bold text-slate-900 text-sm block break-words">{selectedProjectDetail.ngoName}</span>
-                    <span className="text-slate-500 text-[11px] block mt-0.5">Rating: {selectedProjectDetail.ngoRating} ★ Rating</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-200">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedProjectDetail(null)}
-                className="w-full sm:w-auto font-bold text-slate-700 justify-center"
-              >
-                Close Window
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                className="w-full sm:w-auto font-extrabold bg-gradient-to-r from-blue-900 to-indigo-900 text-white px-6 shadow-md justify-center"
-              >
-                Fund Initiative Now
-              </Button>
-            </div>
+                </article>
+              );
+            })}
           </div>
         )}
-      </Modal>
-
-      {/* ONBOARDING REQUIRED POPUP MODAL */}
-      <Modal
-        isOpen={showOnboardingModal}
-        onClose={() => setShowOnboardingModal(false)}
-        title="Complete Organization Onboarding Required"
-        className="max-w-lg"
-      >
-        <div className="flex flex-col items-center text-center gap-5 py-2">
-          <div className="w-16 h-16 rounded-full bg-amber-100 border-2 border-amber-300 flex items-center justify-center text-amber-700 shadow-md">
-            <ShieldAlert size={32} />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <div className="inline-flex items-center justify-center gap-1.5 self-center bg-amber-50 border border-amber-200 text-amber-900 text-[11px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
-              <AlertCircle size={13} className="text-amber-600" />
-              <span>Status: {userOnboardingStatus || "Onboarding Incomplete"}</span>
-            </div>
-            <h3 className="text-lg font-heading font-extrabold text-slate-900">
-              Complete Organization Onboarding
-            </h3>
-            <p className="text-xs text-slate-600 font-medium leading-relaxed max-w-sm">
-              Your organization onboarding profile is incomplete or pending approval. To fund CSR initiatives, submit corporate proposals, or execute MoUs on the MahaCSR Setu platform, please complete your onboarding workspace application.
-            </p>
-          </div>
-
-          <div className="w-full flex flex-col gap-2.5 pt-3 border-t border-slate-100">
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => {
-                setShowOnboardingModal(false);
-                setSelectedProjectDetail(null);
-                router.push("/onboarding");
-              }}
-              className="w-full font-bold text-xs py-3 bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 text-white shadow-md hover:scale-[1.01] cursor-pointer"
-            >
-              Complete Onboarding Application
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowOnboardingModal(false)}
-              className="w-full font-bold text-xs py-2.5 text-slate-600 cursor-pointer"
-            >
-              Close Window
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* AUTH REQUIRED POPUP MODAL */}
-      <Modal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        title="Sign In to Fund CSR Initiative"
-        className="max-w-lg"
-      >
-        <div className="flex flex-col items-center text-center gap-5 py-2">
-          <div className="w-16 h-16 rounded-full bg-blue-100 border-2 border-blue-300 flex items-center justify-center text-blue-900 shadow-md">
-            <Building2 size={32} />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <h3 className="text-lg font-heading font-extrabold text-slate-900">
-              Organization Sign In Required
-            </h3>
-            <p className="text-xs text-slate-600 font-medium leading-relaxed max-w-sm">
-              Please sign in with your corporate partner or government entity credentials to submit CSR funding commitments for <strong>{selectedProjectForAction?.title || "this initiative"}</strong>.
-            </p>
-          </div>
-
-          <div className="w-full flex flex-col gap-2.5 pt-3 border-t border-slate-100">
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => {
-                setShowAuthModal(false);
-                setSelectedProjectDetail(null);
-                router.push("/login?next=/marketplace");
-              }}
-              className="w-full font-bold text-xs py-3 bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 text-white shadow-md cursor-pointer"
-            >
-              Sign In to Your Account
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setShowAuthModal(false);
-                setSelectedProjectDetail(null);
-                router.push("/register");
-              }}
-              className="w-full font-bold text-xs py-2.5 text-blue-900 border-blue-200 hover:bg-blue-50 cursor-pointer"
-            >
-              Register New Organization
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      <Modal
-        isOpen={!!selectedNgoDetail}
-        onClose={() => setSelectedNgoDetail(null)}
-        title="Implementing Agency (NGO) Compliance Ledger"
-        className="max-w-4xl"
-      >
-        {selectedNgoDetail && (
-          <div className="flex flex-col gap-6 text-xs text-slate-700">
-            <div className="bg-gradient-to-r from-emerald-950 via-teal-900 to-slate-900 p-4 sm:p-5 rounded-2xl text-white flex flex-col gap-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
-                    {selectedNgoDetail.category}
-                  </span>
-                  <span className="bg-white/20 text-white text-[10px] font-extrabold px-2.5 py-1 rounded-full flex items-center gap-1 font-mono">
-                    <ShieldCheck size={12} /> {selectedNgoDetail.csr1Status} MCA
-                  </span>
-                </div>
-                <span className="bg-amber-500/20 text-amber-300 border border-amber-400/40 font-mono font-extrabold text-xs px-3 py-1 rounded-full flex items-center gap-1">
-                  <Star size={13} className="fill-amber-400 text-amber-400" /> Rated {selectedNgoDetail.rating} ★
-                </span>
-              </div>
-              <h2 className="text-lg sm:text-xl font-heading font-black leading-snug">
-                {selectedNgoDetail.name}
-              </h2>
-              <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3 sm:gap-4 text-xs text-slate-300 font-medium pt-3 sm:pt-1 border-t border-white/10">
-                <span>NITI Darpan ID: <strong className="text-white font-mono break-all">{selectedNgoDetail.darpanId}</strong></span>
-                <span>District HQ: <strong className="text-white">{selectedNgoDetail.district}</strong></span>
-                <span>Established: <strong className="text-white">{selectedNgoDetail.establishedYear || 2012}</strong></span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200/90 text-center">
-              <div>
-                <span className="text-slate-500 text-[10px] uppercase font-bold block">Total CSR Funds</span>
-                <span className="text-emerald-800 text-sm sm:text-base font-black mt-0.5 block break-all">
-                  ₹{(selectedNgoDetail.totalFundingReceived / 100000).toFixed(1)}L
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-500 text-[10px] uppercase font-bold block">Completed Projects</span>
-                <span className="text-slate-900 text-sm sm:text-base font-extrabold mt-0.5 block">
-                  {selectedNgoDetail.completedProjectsCount || 24}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-500 text-[10px] uppercase font-bold block">Active Proposals</span>
-                <span className="text-blue-900 text-sm sm:text-base font-extrabold mt-0.5 block">
-                  {selectedNgoDetail.projectsCount} Active
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-500 text-[10px] uppercase font-bold block">FCRA Status</span>
-                <span className="text-slate-900 font-bold text-xs mt-1 block">
-                  {selectedNgoDetail.fcraStatus || "Approved"}
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="md:col-span-2 flex flex-col gap-5">
-                <div className="flex flex-col gap-2">
-                  <h4 className="font-heading font-extrabold text-xs text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <Info size={15} className="text-emerald-700 shrink-0" /> Organizational Profile & Background
-                  </h4>
-                  <p className="text-xs text-slate-700 leading-relaxed font-medium bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs">
-                    {selectedNgoDetail.about || "Empaneled Grassroots NGO implementing high-impact CSR projects in digital education, rural health, and water conservation across Maharashtra."}
-                  </p>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <h4 className="font-heading font-extrabold text-xs text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <ShieldCheck size={15} className="text-emerald-700 shrink-0" /> Mandatory Audit Checkpoints Ledger
-                  </h4>
-                  <div className="bg-white rounded-xl border border-slate-200/80 p-3 shadow-2xs">
-                    <ul className="flex flex-col gap-2">
-                      <li className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-200/80 gap-1 sm:gap-0">
-                        <span className="font-bold text-slate-800">12A Tax Exemption</span>
-                        <span className="text-emerald-700 font-bold flex items-center gap-1"><CheckCircle2 size={14} /> Verified Active</span>
-                      </li>
-                      <li className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-200/80 gap-1 sm:gap-0">
-                        <span className="font-bold text-slate-800">80G Tax Exemption</span>
-                        <span className="text-emerald-700 font-bold flex items-center gap-1"><CheckCircle2 size={14} /> Verified Active</span>
-                      </li>
-                      <li className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-200/80 gap-1 sm:gap-0">
-                        <span className="font-bold text-slate-800">CSR-1 MCA Filing</span>
-                        <span className="text-emerald-700 font-bold flex items-center gap-1"><CheckCircle2 size={14} /> MCA Approved</span>
-                      </li>
-                      <li className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-200/80 gap-1 sm:gap-0">
-                        <span className="font-bold text-slate-800">3-Year Audited Balance Sheet</span>
-                        <span className="text-emerald-700 font-bold flex items-center gap-1"><CheckCircle2 size={14} /> Verified</span>
-                      </li>
-                      <li className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-200/80 gap-1 sm:gap-0">
-                        <span className="font-bold text-slate-800">NITI Darpan Empanelment</span>
-                        <span className="text-emerald-700 font-bold flex items-center gap-1"><CheckCircle2 size={14} /> Empaneled</span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <h4 className="font-heading font-extrabold text-xs text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <MapPin size={15} className="text-blue-700 shrink-0" /> Operational Districts in Maharashtra
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {(selectedNgoDetail.operatingDistricts || [selectedNgoDetail.district, "Pune", "Thane", "Nashik"]).map((d, i) => (
-                      <span key={i} className="bg-slate-100 border border-slate-200/90 text-slate-800 font-bold px-3 py-1 rounded-lg text-xs">
-                        📍 {d}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className="flex flex-col gap-5">
-                <div className="bg-emerald-50/60 p-4 rounded-xl border border-emerald-200 flex flex-col gap-3">
-                  <h4 className="font-heading font-extrabold text-xs text-emerald-950 uppercase tracking-wider border-b border-emerald-200 pb-2">
-                    Leadership & Management
-                  </h4>
-                  <ul className="flex flex-col gap-2 text-xs">
-                    {(selectedNgoDetail.leadership || [
-                      { name: "Executive Director", title: "Head of Operations" }
-                    ]).map((l, i) => (
-                      <li key={i} className="flex flex-col">
-                        <strong className="text-slate-900 font-bold">{l.name}</strong>
-                        <span className="text-slate-500 text-[11px]">{l.title}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-200">
-              <Button variant="outline" size="sm" onClick={() => setSelectedNgoDetail(null)} className="w-full sm:w-auto font-bold text-slate-700 justify-center">
-                Close Window
-              </Button>
-              <Button variant="primary" size="sm" className="w-full sm:w-auto font-extrabold bg-emerald-800 hover:bg-emerald-900 text-white px-6 shadow-md justify-center">
-                Request Proposal / Contact
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      <Modal
-        isOpen={!!selectedCompanyDetail}
-        onClose={() => setSelectedCompanyDetail(null)}
-        title="Corporate CSR Donor Profile"
-        className="max-w-4xl"
-      >
-        {selectedCompanyDetail && (
-          <div className="flex flex-col gap-6 text-xs text-slate-700">
-            <div className="bg-gradient-to-r from-purple-950 via-indigo-950 to-slate-900 p-4 sm:p-5 rounded-2xl text-white flex flex-col gap-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="bg-purple-500/30 text-purple-200 border border-purple-400/40 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
-                  {selectedCompanyDetail.industry} Industry
-                </span>
-                <span className="bg-indigo-500/20 text-indigo-200 border border-indigo-400/40 font-mono font-extrabold text-xs px-3 py-1 rounded-full">
-                  Corporate CSR Partner
-                </span>
-              </div>
-              <h2 className="text-lg sm:text-xl font-heading font-black leading-snug">
-                {selectedCompanyDetail.name}
-              </h2>
-              <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3 sm:gap-4 text-xs text-slate-300 font-medium pt-3 sm:pt-1 border-t border-white/10">
-                <span>Corporate HQ: <strong className="text-white">{selectedCompanyDetail.district}</strong></span>
-                <span>Primary Sector: <strong className="text-white">{selectedCompanyDetail.focusArea}</strong></span>
-                <span>Funded Initiatives: <strong className="text-white">{selectedCompanyDetail.projectsFunded} Projects</strong></span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200/90 text-center">
-              <div>
-                <span className="text-slate-500 text-[10px] uppercase font-bold block">CSR Budget Limit</span>
-                <span className="text-purple-950 text-sm sm:text-base font-black mt-0.5 block break-all">
-                  ₹{(selectedCompanyDetail.csrBudget / 10000000).toFixed(1)} Cr
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-500 text-[10px] uppercase font-bold block">Pledged CSR Capital</span>
-                <span className="text-indigo-900 text-sm sm:text-base font-extrabold mt-0.5 block break-all">
-                  ₹{((selectedCompanyDetail.csrPledged || 35000000) / 10000000).toFixed(1)} Cr
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-500 text-[10px] uppercase font-bold block">Average Grant Size</span>
-                <span className="text-slate-900 font-extrabold text-xs mt-1 block">
-                  {selectedCompanyDetail.averageGrantSize || "₹40L - ₹1.2 Cr"}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-500 text-[10px] uppercase font-bold block">Funded Projects</span>
-                <span className="text-slate-900 font-extrabold text-sm sm:text-base mt-0.5 block">
-                  {selectedCompanyDetail.projectsFunded}
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="md:col-span-2 flex flex-col gap-5">
-                <div className="flex flex-col gap-2">
-                  <h4 className="font-heading font-extrabold text-xs text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <FileText size={15} className="text-purple-700 shrink-0" /> CSR Vision & Policy
-                  </h4>
-                  <p className="text-xs text-slate-700 leading-relaxed font-medium bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs">
-                    {selectedCompanyDetail.csrPolicySummary || "Committed to driving sustainable social impact in Maharashtra through strategic grants in education, healthcare, and water security."}
-                  </p>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <h4 className="font-heading font-extrabold text-xs text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <CheckCircle2 size={15} className="text-purple-700 shrink-0" /> Mandatory NGO Eligibility
-                  </h4>
-                  <div className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-2xs">
-                    <ul className="flex flex-col gap-2.5">
-                      {(selectedCompanyDetail.eligibilityCriteria || [
-                        "Minimum 3 years operational existence with NITI Aayog Darpan registration",
-                        "Valid 12A and 80G Tax Exemption Certificates issued by Income Tax Dept.",
-                        "Mandatory active CSR-1 filing with Ministry of Corporate Affairs"
-                      ]).map((item, idx) => (
-                        <li key={idx} className="flex items-start gap-2.5 text-xs text-slate-800 font-semibold">
-                          <span className="w-5 h-5 rounded-full bg-purple-100 text-purple-900 text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
-                            ✓
-                          </span>
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <h4 className="font-heading font-extrabold text-xs text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <MapPin size={15} className="text-blue-700 shrink-0" /> Priority Target Districts
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {(selectedCompanyDetail.targetDistricts || [selectedCompanyDetail.district, "Pune", "Thane", "Nagpur"]).map((d, i) => (
-                      <span key={i} className="bg-slate-100 border border-slate-200/90 text-slate-800 font-bold px-3 py-1 rounded-lg text-xs">
-                        🎯 {d}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className="flex flex-col gap-5">
-                <div className="bg-purple-50/60 p-4 rounded-xl border border-purple-200 flex flex-col gap-3">
-                  <h4 className="font-heading font-extrabold text-xs text-purple-950 uppercase tracking-wider border-b border-purple-200 pb-2">
-                    CSR Officer & Contact
-                  </h4>
-                  <div className="flex flex-col gap-2 text-xs text-slate-800 font-medium">
-                    <strong className="text-slate-900 font-bold">{selectedCompanyDetail.contactPerson || "CSR Head"}</strong>
-                    <span className="flex items-center gap-2 break-all">
-                      <Mail size={14} className="text-purple-700 shrink-0" />
-                      {selectedCompanyDetail.contactEmail || "csr@company.com"}
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <Phone size={14} className="text-purple-700 shrink-0" />
-                      {selectedCompanyDetail.contactPhone || "+91 22 2200 0000"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-200">
-              <Button variant="outline" size="sm" onClick={() => setSelectedCompanyDetail(null)} className="w-full sm:w-auto font-bold text-slate-700 justify-center">
-                Close Window
-              </Button>
-              <Button variant="primary" size="sm" className="w-full sm:w-auto font-extrabold bg-purple-900 hover:bg-purple-950 text-white px-6 shadow-md justify-center">
-                Submit Proposal
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
-    </div>
+      </div>
+    </main>
   );
 }

@@ -4,7 +4,7 @@ import { ROLE_ID } from "../types/role";
 export class ScopedAssignmentService {
   /**
    * 1. Assign District Nodal Consultant (DNC) for a district.
-   * Constraint: Exactly one active DNC per district.
+   * One or more DNC supporters may be active for a district/organization.
    */
   public static async assignDistrictDnc(district: string, dncUserId: string, assignedById: string) {
     const normalizedDistrict = district.trim();
@@ -32,28 +32,23 @@ export class ScopedAssignmentService {
     }
 
     return await prisma.$transaction(async (tx) => {
-      // Deactivate any existing active DNC for this district
-      await tx.districtDncAssignment.updateMany({
-        where: { district: normalizedDistrict, isActive: true },
-        data: { isActive: false },
+      const existing = await tx.districtDncAssignment.findFirst({
+        where: { district: normalizedDistrict, organizationId: user.organizationId || null, dncUserId }
       });
-
-      // Upsert/Create active DNC assignment
-      const assignment = await tx.districtDncAssignment.upsert({
-        where: { district: normalizedDistrict },
-        update: {
-          dncUserId,
-          assignedById,
-          isActive: true,
-          updatedAt: new Date(),
-        },
-        create: {
-          district: normalizedDistrict,
-          dncUserId,
-          assignedById,
-          isActive: true,
-        },
-      });
+      const assignment = existing
+        ? await tx.districtDncAssignment.update({
+            where: { id: existing.id },
+            data: { assignedById, isActive: true, updatedAt: new Date() },
+          })
+        : await tx.districtDncAssignment.create({
+            data: {
+              district: normalizedDistrict,
+              organizationId: user.organizationId || null,
+              dncUserId,
+              assignedById,
+              isActive: true,
+            },
+          });
 
       // Also ensure user officer profile specifies district
       if (user.officerProfile) {

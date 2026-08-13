@@ -1,11 +1,23 @@
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import prisma from "../config/db";
+import { generateNumericOtp } from "../utils/security";
+import { sendOtpEmail } from "../utils/mailer";
 
-export type OtpPurpose = "CORPORATE_ENQUIRY" | "GOVERNMENT_PITCH" | "CORPORATE_INTEREST";
+export type OtpPurpose = "CORPORATE_ENQUIRY" | "GOVERNMENT_PITCH" | "CORPORATE_INTEREST" | "GOVERNMENT_ONBOARDING";
 export type OtpChannel = "EMAIL" | "MOBILE";
 
 const OTP_TTL_MINUTES = 10;
+const OTP_RESEND_COOLDOWN_SECONDS = 60;
+const OTP_MAX_SENDS_PER_HOUR = 5;
+
+export class OtpSendLimitError extends Error {
+  statusCode = 429;
+  constructor(message: string, public retryAfterSeconds: number, public sendsRemaining: number) {
+    super(message);
+    this.name = "OtpSendLimitError";
+  }
+}
 
 function normalizeTarget(channel: OtpChannel, target: string): string {
   return channel === "EMAIL" ? target.trim().toLowerCase() : target.replace(/\D/g, "");
@@ -29,11 +41,27 @@ export async function sendOtp(purpose: OtpPurpose, channel: OtpChannel, target: 
     },
   });
 
-  if (recentCount >= 500) {
-    throw new Error("OTP send limit reached. Please try again later.");
+  if (recentCount >= OTP_MAX_SENDS_PER_HOUR) {
+    throw new OtpSendLimitError("OTP hourly limit reached. Please try again after one hour.", 3600, 0);
   }
 
-  const otp = "123456";
+  const latest = await prisma.otpVerification.findFirst({
+    where: { identifier: `${purpose}:${channel}:${normalizedTarget}` },
+    orderBy: { createdAt: "desc" },
+    select: { createdAt: true },
+  });
+  if (latest) {
+    const elapsedSeconds = Math.floor((Date.now() - latest.createdAt.getTime()) / 1000);
+    if (elapsedSeconds < OTP_RESEND_COOLDOWN_SECONDS) {
+      throw new OtpSendLimitError(
+        `Please wait ${OTP_RESEND_COOLDOWN_SECONDS - elapsedSeconds} seconds before requesting another OTP.`,
+        OTP_RESEND_COOLDOWN_SECONDS - elapsedSeconds,
+        OTP_MAX_SENDS_PER_HOUR - recentCount,
+      );
+    }
+  }
+
+  const otp = generateNumericOtp(6);
   const otpHash = await bcrypt.hash(otp, 10);
   const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
 
@@ -45,21 +73,36 @@ export async function sendOtp(purpose: OtpPurpose, channel: OtpChannel, target: 
     },
   });
 
+  if (channel === "EMAIL") {
+    await sendOtpEmail(normalizedTarget, otp);
+  }
+
   if (process.env.NODE_ENV !== "production") {
     console.info(`[DEV OTP] ${purpose} ${channel} ${normalizedTarget}: ${otp}`);
   }
 
-  return { expiresInMinutes: OTP_TTL_MINUTES };
+  return {
+    expiresInMinutes: OTP_TTL_MINUTES,
+    resendAfterSeconds: OTP_RESEND_COOLDOWN_SECONDS,
+    sendsRemaining: Math.max(0, OTP_MAX_SENDS_PER_HOUR - recentCount - 1),
+    maxSendsPerHour: OTP_MAX_SENDS_PER_HOUR,
+  };
 }
 
-export async function verifyOtp(purpose: OtpPurpose, channel: OtpChannel, target: string, otp: string) {
+export async function verifyOtp(
+  purpose: OtpPurpose,
+  channel: OtpChannel,
+  target: string,
+  otp: string,
+  options: { allowVerifiedReplay?: boolean } = {},
+) {
   const normalizedTarget = normalizeTarget(channel, target);
   const identifier = `${purpose}:${channel}:${normalizedTarget}`;
 
   const record = await prisma.otpVerification.findFirst({
     where: {
       identifier,
-      verified: false,
+      ...(options.allowVerifiedReplay ? {} : { verified: false }),
       expiresAt: { gt: new Date() },
     },
     orderBy: { createdAt: "desc" },
@@ -82,10 +125,18 @@ export async function verifyOtp(purpose: OtpPurpose, channel: OtpChannel, target
     throw new Error("Invalid OTP.");
   }
 
+  // A registration transaction can fail after OTP verification (for example, a
+  // temporary database timeout). Allow that same code to retry only when the
+  // caller explicitly opts in and the latest verified record is still valid.
+  if (record.verified && options.allowVerifiedReplay) {
+    return { verificationToken: crypto.randomBytes(32).toString("hex"), expiresInMinutes: OTP_TTL_MINUTES, replayed: true };
+  }
+
   const verificationToken = crypto.randomBytes(32).toString("hex");
+  const verificationTokenHash = crypto.createHash("sha256").update(verificationToken).digest("hex");
   await prisma.otpVerification.update({
     where: { id: record.id },
-    data: { verified: true },
+    data: { verified: true, verificationTokenHash, verifiedAt: new Date() },
   });
 
   return { verificationToken, expiresInMinutes: OTP_TTL_MINUTES };
@@ -103,11 +154,14 @@ export async function assertOtpVerified(
 
   const normalizedTarget = normalizeTarget(channel, target);
   const identifier = `${purpose}:${channel}:${normalizedTarget}`;
+  const verificationTokenHash = crypto.createHash("sha256").update(verificationToken).digest("hex");
 
   const record = await prisma.otpVerification.findFirst({
     where: {
       identifier,
-      verified: true
+      verified: true,
+      verificationTokenHash,
+      expiresAt: { gt: new Date() },
     },
     orderBy: { createdAt: "desc" },
   });

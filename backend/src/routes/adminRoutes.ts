@@ -15,8 +15,9 @@ import {
 } from "../controllers/organizationAdminController";
 import { Role } from "../types/role";
 import { getSlaConfiguration, saveSlaConfiguration } from "../controllers/slaAdminController";
-import { transferRmPortfolio } from "../controllers/rmPortfolioController";
+import { transferRmPortfolio, allocateUnassignedCases } from "../controllers/rmPortfolioController";
 import { listPendingRelationships, verifyRelationship } from "../controllers/relationshipController";
+import { transferUserResponsibilities } from "../controllers/responsibilityTransferController";
 
 const router = Router();
 
@@ -30,7 +31,9 @@ router.post("/users", requirePermission("user:create"), createAdminUser);
 router.post("/users/import", requirePermission("user:create"), importAdminUsers);
 router.patch("/users/:id", requirePermission("user:update"), updateUser);
 router.delete("/users/:id", requirePermission("user:suspend"), deleteUser);
+router.post("/users/:id/transfer-responsibilities", requirePermission("user:update"), transferUserResponsibilities);
 router.post("/rm/transfer-portfolio", authorizeRoles([Role.SUPER_ADMIN]), transferRmPortfolio);
+router.post("/rm/allocate-unassigned", authorizeRoles([Role.SUPER_ADMIN, Role.JOINT_SECRETARY]), allocateUnassignedCases);
 router.get("/sla/config", authorizeRoles([Role.SUPER_ADMIN]), getSlaConfiguration);
 router.put("/sla/config", authorizeRoles([Role.SUPER_ADMIN]), saveSlaConfiguration);
 

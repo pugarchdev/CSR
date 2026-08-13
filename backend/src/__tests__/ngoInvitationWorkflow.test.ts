@@ -1,23 +1,32 @@
 import fs from "fs";
 import path from "path";
 
-describe("NGO invitation workflow guards", () => {
+describe("Reusable Corporate–NGO governance guards", () => {
   const controller = fs.readFileSync(path.join(__dirname, "../controllers/implementingAgencyController.ts"), "utf8");
-  const invitationService = fs.readFileSync(path.join(__dirname, "../services/invitationService.ts"), "utf8");
+  const auth = fs.readFileSync(path.join(__dirname, "../middlewares/authMiddleware.ts"), "utf8");
 
-  it("creates invited NGOs as incomplete and without an assigned project", () => {
+  it("creates or reuses an NGO master and keeps Corporate membership approval separate", () => {
     expect(controller).toContain('status: "PROFILE_INCOMPLETE"');
-    expect(controller).toContain('status: "INVITE_SENT"');
-    expect(controller).not.toMatch(/status: "INVITE_SENT"[\s\S]{0,400}assignedProjectId/);
+    expect(controller).toContain("corporateNgoMembership.upsert");
+    expect(controller).toContain('status: "PENDING_CORPORATE_REVIEW"');
+    expect(controller).toContain('status: "APPROVED"');
   });
 
-  it("requires an active NGO before project assignment", () => {
-    expect(controller).toContain('kind: "NGO", status: "ACTIVE"');
-    expect(controller).toContain("Project assignment is locked until Super Admin approves");
+  it("uses a corporate-specific login identifier and project allow-list", () => {
+    expect(controller).toContain("loginIdentifier: identifier");
+    expect(controller).toContain("projectIds: [projectId]");
+    expect(controller).toContain("id: { in: access.projectIds }");
   });
 
-  it("keeps an activated invitation in onboarding-required state", () => {
-    expect(invitationService).toContain('status: "ONBOARDING_REQUIRED"');
-    expect(invitationService).not.toContain('data: { userId: createdUser.id, status: "ACTIVE" }');
+  it("validates the active access and approved membership on every NGO context token", () => {
+    expect(auth).toContain('access.status !== "ACTIVE"');
+    expect(auth).toContain('access.membership.status !== "APPROVED"');
+    expect(auth).toContain("NGO access context is inactive or revoked");
+  });
+
+  it("activates only the Corporate–NGO relationship after Corporate approval", () => {
+    expect(controller).toContain('action === "APPROVE" ? "ACTIVE"');
+    expect(controller).toContain("membershipId: membership.id");
+    expect(controller).not.toContain("Project assignment is locked until Super Admin approves");
   });
 });

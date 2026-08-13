@@ -263,6 +263,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
     const cleanPath = pathname.endsWith("/") && pathname !== "/" ? pathname.slice(0, -1) : pathname;
 
     const publicPrefixes = [
+      "/register",
       "/about",
       "/partner-with-maharashtra",
       "/pitch-development-need",
@@ -288,6 +289,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
       "/faq-news-recognition",
       "/knowledge",
       "/marketplace",
+      "/csr-marketplace",
       "/circulars",
       "/news",
       "/contact",
@@ -369,6 +371,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
         pathname.startsWith("/milestones") ||
         pathname.startsWith("/requirements") ||
         pathname.startsWith("/marketplace") ||
+        pathname.startsWith("/csr-marketplace") ||
         pathname.startsWith("/escalations") ||
         pathname.startsWith("/decisions") ||
         pathname.startsWith("/nodal-appointments") ||

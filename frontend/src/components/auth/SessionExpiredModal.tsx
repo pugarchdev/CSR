@@ -59,7 +59,7 @@ export default function SessionExpiredModal() {
       const isPublicRoute =
         cleanPath === "/" ||
         cleanPath === "/login" ||
-        cleanPath === "/register" ||
+        cleanPath.startsWith("/register") ||
         publicPrefixes.some(prefix => cleanPath === prefix || cleanPath.startsWith(prefix + "/"));
 
       if (!isPublicRoute) {

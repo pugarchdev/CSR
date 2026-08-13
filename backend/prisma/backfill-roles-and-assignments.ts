@@ -47,7 +47,7 @@ export async function runBackfill(): Promise<{ rolesUpdated: number; assignments
   // 2. Backfill UserRoleAssignment from User.roleId
   const usersWithRole = await prisma.user.findMany({
     where: { roleId: { not: null }, deletedAt: null },
-    include: { dncDistrict: true }
+    include: { dncDistricts: true }
   });
 
   for (const user of usersWithRole) {
@@ -63,7 +63,7 @@ export async function runBackfill(): Promise<{ rolesUpdated: number; assignments
     });
 
     if (!existingAssignment) {
-      const assignedDistrict = user.dncDistrict?.district || null;
+      const assignedDistrict = user.dncDistricts.find((assignment) => assignment.isActive)?.district || null;
       await prisma.userRoleAssignment.create({
         data: {
           userId: user.id,

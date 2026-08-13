@@ -18,6 +18,13 @@ jest.mock("../config/db", () => {
       findMany: jest.fn(),
       updateMany: jest.fn(),
     },
+    portalCase: {
+      findMany: jest.fn(),
+      updateMany: jest.fn(),
+    },
+    rmAllocationEvent: {
+      createMany: jest.fn(),
+    },
     auditLog: {
       createMany: jest.fn(),
     },
@@ -53,8 +60,10 @@ describe("RM portfolio transfer", () => {
       { id: "enquiry-2" },
     ]);
     mockedPrisma.governmentPitch.findMany.mockResolvedValue([{ id: "pitch-1" }]);
+    mockedPrisma.portalCase.findMany.mockResolvedValue([]);
     mockedPrisma.corporateEnquiry.updateMany.mockResolvedValue({ count: 2 });
     mockedPrisma.governmentPitch.updateMany.mockResolvedValue({ count: 1 });
+    mockedPrisma.portalCase.updateMany.mockResolvedValue({ count: 0 });
     mockedPrisma.auditLog.createMany.mockResolvedValue({ count: 3 });
     mockedPrisma.notification.create.mockResolvedValue({ id: "notification-1" });
   });
@@ -108,7 +117,7 @@ describe("RM portfolio transfer", () => {
       data: expect.objectContaining({
         userId: "rm-target",
         recipientId: "rm-target",
-        message: expect.stringContaining("2 corporate enquiries and 1 government pitches"),
+        message: expect.stringContaining("3 active tracked cases"),
       }),
     });
     expect(result).toEqual(expect.objectContaining({

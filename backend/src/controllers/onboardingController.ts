@@ -177,14 +177,48 @@ export const getApplicationStatus = async (req: AuthenticatedRequest, res: Respo
         csrCompanyProfile: true,
         ngoProfile: true,
         govDeptProfile: true,
-        documents: true
+        documents: true,
+        subDepartments: true,
+        parentOrganization: { select: { id: true, name: true } },
+        onboardingApplications: { orderBy: { createdAt: "desc" }, take: 1 }
       }
     });
 
     if (!org) return res.status(404).json({ error: "Organization not found" });
 
+    const [headUser, nodalUser] = await Promise.all([
+      org.departmentHeadUserId ? prisma.user.findUnique({ where: { id: org.departmentHeadUserId } }) : null,
+      org.operationalNodalUserId ? prisma.user.findUnique({ where: { id: org.operationalNodalUserId } }) : null
+    ]);
+
+    const latestApp = org.onboardingApplications?.[0];
+    const formData = (latestApp?.formData as Record<string, any>) || {};
+
+    const govDept = (org.govDeptProfile || {}) as Record<string, any>;
+    const mergedGovProfile = {
+      ...formData,
+      ...govDept,
+      headOfDepartmentName: govDept.headOfDepartmentName || formData.headOfDepartmentName || formData.head?.name || (headUser ? `${headUser.firstName} ${headUser.lastName || ""}`.trim() : ""),
+      headDesignation: govDept.headDesignation || formData.headDesignation || formData.head?.designation || headUser?.designation || "",
+      headEmail: govDept.headEmail || formData.headEmail || formData.head?.email || headUser?.email || "",
+      nodalOfficerName: govDept.nodalOfficerName || formData.nodalOfficerName || formData.nodal?.name || (nodalUser ? `${nodalUser.firstName} ${nodalUser.lastName || ""}`.trim() : ""),
+      nodalOfficerDesignation: govDept.nodalOfficerDesignation || formData.nodalOfficerDesignation || formData.nodal?.designation || nodalUser?.designation || "",
+      nodalOfficerEmail: govDept.nodalOfficerEmail || formData.nodalOfficerEmail || formData.nodal?.email || nodalUser?.email || "",
+      nodalOfficerMobile: govDept.nodalOfficerMobile || formData.nodalOfficerMobile || formData.nodal?.mobile || nodalUser?.mobile || "",
+      nodalOfficerGovtIdType: govDept.nodalOfficerGovtIdType || formData.nodalOfficerGovtIdType || "",
+      nodalOfficerGovtIdNumber: govDept.nodalOfficerGovtIdNumber || formData.nodalOfficerGovtIdNumber || "",
+      jurisdiction: govDept.jurisdiction || formData.jurisdiction || "",
+      departmentSectors: govDept.departmentSectors || formData.departmentSectors || [],
+      preferredBeneficiaryGroups: govDept.preferredBeneficiaryGroups || formData.preferredBeneficiaryGroups || [],
+      sdgFocusAreas: govDept.sdgFocusAreas || formData.sdgFocusAreas || []
+    };
+
     const payload = {
       ...org,
+      parentDepartment: (org as any).parentDepartment || org.parentOrganization?.name || formData.parentDepartment || "",
+      officeDescription: (org as any).officeDescription || formData.officeDescription || (org.govDeptProfile as any)?.description || "",
+      govDeptProfile: mergedGovProfile,
+      governmentDepartmentProfile: mergedGovProfile,
       organizationType: org.kind,
       onboardingStatus: org.status
     };

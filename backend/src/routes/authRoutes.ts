@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { register, login, verifyOtp, resendOtp, refreshToken, logout, me, searchParentOrganizations } from "../controllers/authController";
+import { register, login, verifyOtp, resendOtp, refreshToken, logout, me, searchParentOrganizations, completeFirstLoginReset } from "../controllers/authController";
 import { getInvitation, acceptInvitation } from "../controllers/invitationController";
 import { getCurrentUserPermissions, getModulePermissions, checkUserPermission } from "../controllers/permissionController";
 import { validateRequest } from "../middlewares/validationMiddleware";
@@ -30,9 +30,10 @@ const registerSchema = z.object({
 
 const loginSchema = z.object({
   body: z.object({
-    email: z.string().email("Invalid email format"),
+    email: z.string().optional(),
+    identifier: z.string().optional(),
     password: z.string().min(1, "Password is required")
-  })
+  }).refine(data => data.email || data.identifier, { message: "Login identifier is required" })
 });
 
 const verifyOtpSchema = z.object({
@@ -60,6 +61,10 @@ router.post("/register", authRateLimit, validateRequest(registerSchema), asyncHa
 router.post("/verify-otp", otpRateLimit, validateRequest(verifyOtpSchema), asyncHandler(verifyOtp));
 router.post("/resend-otp", otpRateLimit, validateRequest(resendOtpSchema), asyncHandler(resendOtp));
 router.post("/login", authRateLimit, validateRequest(loginSchema), asyncHandler(login));
+router.post("/first-login-reset", strictRateLimiter, validateRequest(z.object({ body: z.object({
+  resetToken: z.string().min(20),
+  newPassword: z.string().min(6, "Password must be at least 6 characters")
+}) })), asyncHandler(completeFirstLoginReset));
 router.post("/refresh", asyncHandler(refreshToken));
 router.post("/logout", asyncHandler(logout));
 

@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Allows CI/verification builds to avoid colliding with a running local dev
+  // server's .next directory.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   reactStrictMode: true,
   swcMinify: true,
   outputFileTracing: true,

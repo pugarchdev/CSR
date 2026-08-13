@@ -2341,7 +2341,7 @@ export function OrganizationOnboardingStatusWorkspace() {
     try {
       await apiFetch("/onboarding/reapply", { method: "POST" });
       const targetRoute = organization?.organizationType === "GOVERNMENT_DEPARTMENT" || organization?.kind === "GOVERNMENT_DEPARTMENT"
-        ? "/organization/onboarding/department"
+        ? "/organization/onboarding/government"
         : "/organization/onboarding/company";
       router.push(targetRoute);
     } catch (err: any) {
@@ -2349,20 +2349,20 @@ export function OrganizationOnboardingStatusWorkspace() {
       setReapplying(false);
     }
   };
-
   const onboardingStatus = (organization?.onboardingStatus || organization?.status || "REGISTERED").toUpperCase();
   const isApproved = onboardingStatus === "APPROVED" || onboardingStatus === "VERIFIED" || onboardingStatus === "ACTIVE";
   const isClarification = onboardingStatus === "CLARIFICATION_REQUIRED";
   const isRejected = onboardingStatus === "REJECTED";
   const isSuspended = onboardingStatus === "SUSPENDED";
 
-  const editRoute = organization?.organizationType === "GOVERNMENT_DEPARTMENT" || organization?.kind === "GOVERNMENT_DEPARTMENT"
-    ? "/organization/onboarding/department"
+  const isGovDept = organization?.organizationType === "GOVERNMENT_DEPARTMENT" || organization?.kind === "GOVERNMENT_DEPARTMENT";
+  const editRoute = isGovDept
+    ? "/organization/onboarding/government"
     : "/organization/onboarding/company";
 
   const existingDocs = organization?.documents || [];
 
-  const requiredDocTypes = organization?.kind === "GOVERNMENT_DEPARTMENT" || organization?.organizationType === "GOVERNMENT_DEPARTMENT"
+  const requiredDocTypes = isGovDept
     ? [
         { type: "OFFICE_ORDER", label: "Nodal Officer Appointment / Office Order" },
         { type: "DEPT_AUTHORIZATION", label: "Department CSR Authorization Letter" },
@@ -2374,7 +2374,6 @@ export function OrganizationOnboardingStatusWorkspace() {
         { type: "GST_CERTIFICATE", label: "GSTIN Certificate" },
         { type: "EIGHTY_G", label: "80G Tax Exemption Certificate" },
         { type: "TWELVE_A", label: "12A Registration Certificate" },
-        { type: "CSR_POLICY", label: "Board Approved CSR Policy Document" },
       ];
 
   return (
@@ -2739,18 +2738,37 @@ export function OrganizationOnboardingStatusWorkspace() {
                     {organization.email || organization.officialEmail || "—"}
                   </div>
                 </div>
-                <div>
-                  <div className="text-[11px] font-bold text-slate-400 uppercase">Registration / CIN</div>
-                  <div className="text-xs font-bold text-slate-800 mt-0.5">
-                    {organization.registrationNumber || organization.cin || "—"}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[11px] font-bold text-slate-400 uppercase">PAN / GSTIN</div>
-                  <div className="text-xs font-bold text-slate-800 mt-0.5">
-                    {[organization.pan, organization.gst].filter(Boolean).join(" / ") || "—"}
-                  </div>
-                </div>
+                {isGovDept ? (
+                  <>
+                    <div>
+                      <div className="text-[11px] font-bold text-slate-400 uppercase">Office / Department Code</div>
+                      <div className="text-xs font-bold text-slate-800 mt-0.5 font-mono">
+                        {(organization as any).departmentCode || (organization as any).organizationCode || "—"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-bold text-slate-400 uppercase">Government Scope / Level</div>
+                      <div className="text-xs font-bold text-slate-800 mt-0.5">
+                        {((organization as any).governmentLevel || (organization as any).governmentType || "Apex Organization").replace(/_/g, " ")}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <div className="text-[11px] font-bold text-slate-400 uppercase">Registration / CIN</div>
+                      <div className="text-xs font-bold text-slate-800 mt-0.5">
+                        {organization.registrationNumber || organization.cin || "—"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-bold text-slate-400 uppercase">PAN / GSTIN</div>
+                      <div className="text-xs font-bold text-slate-800 mt-0.5">
+                        {[organization.pan, organization.gst].filter(Boolean).join(" / ") || "—"}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}

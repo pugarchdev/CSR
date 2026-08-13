@@ -20,6 +20,7 @@ jest.mock("../config/db", () => {
       findFirst: jest.fn(),
       findUnique: jest.fn(),
       updateMany: jest.fn(),
+      update: jest.fn(),
       upsert: jest.fn(),
       create: jest.fn(),
     },
@@ -46,6 +47,13 @@ jest.mock("../config/db", () => {
       findUnique: jest.fn(),
       update: jest.fn(),
     },
+    portalCase: {
+      groupBy: jest.fn(),
+    },
+    rmAllocationCursor: {
+      findUnique: jest.fn(),
+      upsert: jest.fn(),
+    },
     organization: {
       findUnique: jest.fn(),
     },
@@ -65,9 +73,9 @@ describe("Scoped Role Assignments & Delegation Workflow Test Suite", () => {
   });
 
   // ---------------------------------------------------------------------------
-  // Test 1: One-DNC-per-district constraint
+  // Test 1: One-or-many DNC support links
   // ---------------------------------------------------------------------------
-  test("1. Enforces exactly one active DNC per district and deactivates previous assignment", async () => {
+  test("1. Adds a DNC link without deactivating other supporters in the district", async () => {
     (prisma.user.findFirst as jest.Mock).mockResolvedValue({
       id: "usr-dnc-new",
       accountStatus: "ACTIVE",
@@ -77,7 +85,8 @@ describe("Scoped Role Assignments & Delegation Workflow Test Suite", () => {
     });
 
     (prisma.districtDncAssignment.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
-    (prisma.districtDncAssignment.upsert as jest.Mock).mockResolvedValue({
+    (prisma.districtDncAssignment.findFirst as jest.Mock).mockResolvedValue(null);
+    (prisma.districtDncAssignment.create as jest.Mock).mockResolvedValue({
       id: "dnc-asgn-100",
       district: "Nagpur",
       dncUserId: "usr-dnc-new",
@@ -86,10 +95,7 @@ describe("Scoped Role Assignments & Delegation Workflow Test Suite", () => {
 
     const result = await ScopedAssignmentService.assignDistrictDnc("Nagpur", "usr-dnc-new", "usr-admin");
 
-    expect(prisma.districtDncAssignment.updateMany).toHaveBeenCalledWith({
-      where: { district: "Nagpur", isActive: true },
-      data: { isActive: false },
-    });
+    expect(prisma.districtDncAssignment.updateMany).not.toHaveBeenCalled();
     expect(result.dncUserId).toBe("usr-dnc-new");
     expect(result.isActive).toBe(true);
   });
@@ -277,7 +283,7 @@ describe("Scoped Role Assignments & Delegation Workflow Test Suite", () => {
   // ---------------------------------------------------------------------------
   // Test 8: Concurrent & deterministic RM assignment
   // ---------------------------------------------------------------------------
-  test("8. Deterministic RM auto-assignment balances workload and matches preferences", async () => {
+  test("8. Deterministic RM auto-assignment uses lowest active case workload and ignores district preferences", async () => {
     (prisma.user.findMany as jest.Mock).mockResolvedValue([
       {
         id: "rm-1",
@@ -295,15 +301,15 @@ describe("Scoped Role Assignments & Delegation Workflow Test Suite", () => {
       },
     ]);
 
-    (prisma.corporateEnquiry.groupBy as jest.Mock).mockResolvedValue([
-      { assignedRelationshipManagerId: "rm-1", _count: { id: 5 } },
-      { assignedRelationshipManagerId: "rm-2", _count: { id: 1 } },
+    (prisma.portalCase.groupBy as jest.Mock).mockResolvedValue([
+      { assignedRmId: "rm-1", _count: { id: 5 } },
+      { assignedRmId: "rm-2", _count: { id: 1 } },
     ]);
-    (prisma.governmentPitch.groupBy as jest.Mock).mockResolvedValue([]);
+    (prisma.rmAllocationCursor.findUnique as jest.Mock).mockResolvedValue(null);
+    (prisma.rmAllocationCursor.upsert as jest.Mock).mockResolvedValue({ poolKey: "GLOBAL" });
 
-    // For Pune project, rm-1 has preference match score (+10) vs rm-2 workload (1 vs 5)
     const rmId = await RmAssignmentService.autoAssignRm({ district: "Pune" });
-    expect(rmId).toBe("rm-1");
+    expect(rmId).toBe("rm-2");
   });
 
   // ---------------------------------------------------------------------------

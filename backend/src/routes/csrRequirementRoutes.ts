@@ -25,7 +25,7 @@ router.use(authenticateToken);
 
 router.post("/", requirePermission("requirement:create"), createRequirement);
 router.get("/", requirePermission("requirement:view"), getRequirements);
-router.get("/:id", requirePermission("requirement:view"), getRequirementById);
+router.get("/:id", getRequirementById);
 router.put("/:id", requirePermission("requirement:update"), updateRequirement);
 router.delete("/:id", requirePermission("requirement:delete"), deleteRequirement);
 router.post("/:id/verify", requirePermission("requirement:verify"), verifyRequirement);

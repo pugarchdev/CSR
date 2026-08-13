@@ -192,7 +192,7 @@ export default function PitchesPage() {
                 className="bg-blue-900 hover:bg-blue-950 text-white"
                 onClick={() => {
                   setModalState("NONE");
-                  router.push("/organization/onboarding/department");
+                  router.push("/organization/onboarding/government");
                 }}
               >
                 Complete Onboarding

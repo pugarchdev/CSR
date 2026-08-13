@@ -42,8 +42,12 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
   const [loading, setLoading] = useState(false);
   const [loginSuccess, setLoginSuccess] = useState(false);
+  const [resetToken, setResetToken] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   useEffect(() => {
     // Keep login page lightweight - do not trigger heavy multi-route prefetching on mount
@@ -53,12 +57,14 @@ function LoginForm() {
     setEmail(demoEmail);
     setPassword("111111");
     setError("");
+    setSuccessMsg("");
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setSuccessMsg("");
 
     if (!email || !password) {
       setError("Please fill out all required fields.");
@@ -75,6 +81,14 @@ function LoginForm() {
 
       const data = await response.json();
       if (!response.ok) {
+        if (response.status === 428 && data.passwordResetRequired && data.resetToken) {
+          console.log("[LOGIN] 428 received — switching to password reset form", { resetToken: data.resetToken.substring(0, 20) + "..." });
+          setResetToken(data.resetToken);
+          setError("");
+          setSuccessMsg("");
+          setLoading(false);
+          return;
+        }
         if (response.status === 403 && data.error && typeof data.error === "string" && data.error.toLowerCase().includes("verify")) {
           setError("Account not verified. Redirecting to OTP verification...");
           setTimeout(() => {
@@ -134,6 +148,39 @@ function LoginForm() {
     } catch (err: any) {
       const msg = typeof err === "string" ? err : err?.message || "An error occurred during authentication";
       setError(typeof msg === "string" ? msg : JSON.stringify(msg));
+      setLoading(false);
+    }
+  };
+
+  const handleFirstLoginReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccessMsg("");
+    if (newPassword.length < 6 || newPassword !== confirmPassword) {
+      return setError("Use at least 6 characters and ensure both passwords match.");
+    }
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/first-login-reset`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resetToken, newPassword })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        const msg = typeof data.error === "string"
+          ? data.error
+          : data.error?.message || data.error?.details?.[0]?.message || data.message || "Password reset failed";
+        throw new Error(msg);
+      }
+      setResetToken("");
+      setPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setSuccessMsg("Password updated successfully. Sign in with your new password.");
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
       setLoading(false);
     }
   };
@@ -240,6 +287,17 @@ function LoginForm() {
             </div>
           )}
 
+          {successMsg && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-5 bg-emerald-50 border border-emerald-200 p-3.5 rounded-2xl text-emerald-800 text-xs flex items-center gap-3 font-bold shadow-sm"
+            >
+              <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+              <span>{successMsg}</span>
+            </motion.div>
+          )}
+
           {error && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -251,70 +309,121 @@ function LoginForm() {
             </motion.div>
           )}
 
-          <form onSubmit={handleLogin} className="flex flex-col gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-800 mb-1.5">
-                Corporate / Official Email Address *
-              </label>
-              <div className="relative">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g. admin@mahacsr.gov.in"
-                  disabled={loading}
-                  required
-                  className="w-full pl-10 pr-4 py-3 bg-slate-50/80 border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-700 focus:bg-white transition-all disabled:opacity-50 shadow-2xs"
-                />
-                <Mail size={17} className="absolute left-3.5 top-3.5 text-slate-400" />
+          {resetToken ? (
+            <form onSubmit={handleFirstLoginReset} className="flex flex-col gap-4">
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs font-semibold text-amber-900">
+                A password change is mandatory before this account can access the portal.
               </div>
-            </div>
 
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-bold text-slate-800">
-                  Password *
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                  New Password *
                 </label>
-              </div>
-              <div className="relative">
                 <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••••"
-                  disabled={loading}
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Min 6 characters"
                   required
-                  className="w-full pl-10 pr-10 py-3 bg-slate-50/80 border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-700 focus:bg-white transition-all disabled:opacity-50 shadow-2xs"
+                  className="w-full px-4 py-3 bg-slate-50/80 border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-700 focus:bg-white transition-all shadow-2xs"
                 />
-                <Lock size={17} className="absolute left-3.5 top-3.5 text-slate-400" />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
-                >
-                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
-                </button>
               </div>
-            </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="mt-2 w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#0f2142] via-[#14274e] to-[#1e3a8a] hover:from-[#0a162d] hover:to-[#172e6b] text-white font-extrabold text-xs shadow-lg shadow-blue-950/20 hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 group disabled:opacity-50 hover:scale-[1.01] cursor-pointer"
-            >
-              {loading ? (
-                <>
-                  <Loader2 size={16} className="animate-spin text-white shrink-0" />
-                  <span>Signing in to Workspace...</span>
-                </>
-              ) : (
-                <>
-                  <span>Sign In to Workspace</span>
-                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                </>
-              )}
-            </button>
-          </form>
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                  Confirm New Password *
+                </label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Re-enter password"
+                  required
+                  className="w-full px-4 py-3 bg-slate-50/80 border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-700 focus:bg-white transition-all shadow-2xs"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="mt-2 w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#0f2142] via-[#14274e] to-[#1e3a8a] hover:from-[#0a162d] hover:to-[#172e6b] text-white font-extrabold text-xs shadow-lg shadow-blue-950/20 hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 hover:scale-[1.01] cursor-pointer"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin text-white shrink-0" />
+                    <span>Updating Password...</span>
+                  </>
+                ) : (
+                  <span>Set Password</span>
+                )}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleLogin} className="flex flex-col gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                  Corporate / Official Email Address *
+                </label>
+                <div className="relative">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="e.g. admin@mahacsr.gov.in"
+                    disabled={loading}
+                    required
+                    className="w-full pl-10 pr-4 py-3 bg-slate-50/80 border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-700 focus:bg-white transition-all disabled:opacity-50 shadow-2xs"
+                  />
+                  <Mail size={17} className="absolute left-3.5 top-3.5 text-slate-400" />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-800">
+                    Password *
+                  </label>
+                </div>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••••••"
+                    disabled={loading}
+                    required
+                    className="w-full pl-10 pr-10 py-3 bg-slate-50/80 border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-700 focus:bg-white transition-all disabled:opacity-50 shadow-2xs"
+                  />
+                  <Lock size={17} className="absolute left-3.5 top-3.5 text-slate-400" />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                  >
+                    {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="mt-2 w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#0f2142] via-[#14274e] to-[#1e3a8a] hover:from-[#0a162d] hover:to-[#172e6b] text-white font-extrabold text-xs shadow-lg shadow-blue-950/20 hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 group disabled:opacity-50 hover:scale-[1.01] cursor-pointer"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin text-white shrink-0" />
+                    <span>Signing in to Workspace...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Sign In to Workspace</span>
+                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
+              </button>
+            </form>
+          )}
 
           <div className="text-center text-xs text-slate-500 mt-6 pt-5 border-t border-slate-100 font-semibold">
             New corporate or government entity?{" "}

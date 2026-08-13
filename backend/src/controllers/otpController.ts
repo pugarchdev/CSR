@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { sendOtp, verifyOtp, OtpChannel, OtpPurpose } from "../services/otpService";
+import { sendOtp, verifyOtp, OtpChannel, OtpPurpose, OtpSendLimitError } from "../services/otpService";
 
 const purposes = ["CORPORATE_ENQUIRY", "GOVERNMENT_PITCH", "CORPORATE_INTEREST"];
 const channels = ["EMAIL", "MOBILE"];
@@ -17,7 +17,7 @@ export async function sendOtpController(req: Request, res: Response) {
     const result = await sendOtp(purpose, channel, target);
     res.json({ success: true, message: "OTP sent", ...result });
   } catch (error: any) {
-    res.status(400).json({ success: false, error: error.message || "Failed to send OTP" });
+    res.status(error instanceof OtpSendLimitError ? 429 : 400).json({ success: false, error: error.message || "Failed to send OTP", retryAfterSeconds: error.retryAfterSeconds, sendsRemaining: error.sendsRemaining });
   }
 }
 

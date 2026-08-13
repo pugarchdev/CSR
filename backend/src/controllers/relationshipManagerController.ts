@@ -8,13 +8,39 @@ import { calculateSlaDueDate } from "../services/slaConfigService";
 import { ROLE_ID } from "../types/role";
 import { dispatchNotification, dispatchToContact } from "../services/notificationOrchestrator";
 import { validatePitchVerificationChecklist } from "../utils/workflowValidation";
+import { PortalCaseType } from "@prisma/client";
+import { PortalCaseService } from "../services/portalCaseService";
+
+function normalizeInteractionType(value: unknown): "CALL" | "VIDEO_CALL" | "PHYSICAL_MEETING" | "MESSAGE" {
+  const normalized = String(value || "MESSAGE").trim().toUpperCase().replace(/[ -]+/g, "_");
+  if (normalized === "CALL" || normalized === "VIDEO_CALL" || normalized === "PHYSICAL_MEETING") return normalized;
+  return "MESSAGE";
+}
+
+function normalizeParticipants(value: unknown, fallbackSide: "CORPORATE" | "GOVERNMENT") {
+  if (Array.isArray(value) && value.length > 0) {
+    return value.slice(0, 50).map((participant: any) => ({
+      name: participant?.name ? String(participant.name).slice(0, 160) : undefined,
+      userId: participant?.userId ? String(participant.userId) : undefined,
+      organizationId: participant?.organizationId ? String(participant.organizationId) : undefined,
+      side: ["CORPORATE", "GOVERNMENT", "PORTAL"].includes(String(participant?.side).toUpperCase())
+        ? String(participant.side).toUpperCase() as "CORPORATE" | "GOVERNMENT" | "PORTAL"
+        : fallbackSide,
+    }));
+  }
+  return [{ side: fallbackSide }];
+}
 
 export const getRMOverview = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const [assignedEnquiries, assignedPitches] = await Promise.all([
-      prisma.corporateEnquiry.count({ where: { assignedRelationshipManagerId: userId } }),
-      prisma.governmentPitch.count({ where: { assignedRelationshipManagerId: userId } })
+    const [assignedEnquiries, assignedPitches, assignedInterests, activeWorkload, uncontacted, clarifications] = await Promise.all([
+      prisma.portalCase.count({ where: { assignedRmId: userId, type: "CORPORATE_ENQUIRY" } }),
+      prisma.portalCase.count({ where: { assignedRmId: userId, type: "GOVERNMENT_PITCH" } }),
+      prisma.portalCase.count({ where: { assignedRmId: userId, type: "CORPORATE_PITCH_INTEREST" } }),
+      prisma.portalCase.count({ where: { assignedRmId: userId, status: { notIn: ["APPROVED", "JS_APPROVED", "JS_REJECTED", "REJECTED", "RESOLVED", "CLOSED", "CANCELLED", "COMPLETED"] } } }),
+      prisma.portalCase.count({ where: { assignedRmId: userId, firstContactedAt: null, status: { notIn: ["REJECTED", "CLOSED", "CANCELLED", "COMPLETED"] } } }),
+      prisma.portalCase.count({ where: { assignedRmId: userId, currentStage: "RM_CLARIFICATION" } }),
     ]);
 
     return res.json({
@@ -22,7 +48,10 @@ export const getRMOverview = async (req: AuthenticatedRequest, res: Response, ne
       data: {
         assignedEnquiries,
         assignedPitches,
-        activeWorkload: assignedEnquiries + assignedPitches
+        assignedInterests,
+        activeWorkload,
+        uncontacted,
+        clarifications,
       }
     });
   } catch (error) {
@@ -100,6 +129,7 @@ export const getRMEscalations = async (req: AuthenticatedRequest, res: Response,
 export const getCorporateInterests = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const interests = await prisma.corporatePitchInterest.findMany({
+      where: { assignedRelationshipManagerId: req.user!.id },
       orderBy: { createdAt: "desc" }
     });
     return res.json({ success: true, data: interests });
@@ -114,8 +144,10 @@ export const updateCorporateInterest = async (req: AuthenticatedRequest, res: Re
     const { id } = req.params;
     const { status } = req.body;
 
+    const assignedInterest = await prisma.corporatePitchInterest.findFirst({ where: { id, assignedRelationshipManagerId: userId } });
+    if (!assignedInterest) return res.status(404).json({ error: "Corporate interest not found in your assigned portfolio" });
     const interest = await prisma.corporatePitchInterest.update({
-      where: { id },
+      where: { id: assignedInterest.id },
       data: { ...(status ? { status } : {}) }
     });
 
@@ -153,6 +185,22 @@ export const verifyGovernmentPitch = async (req: AuthenticatedRequest, res: Resp
       where: { id },
       data: { status: nextStatus }
     });
+    const trackedCase = await PortalCaseService.getByLegacyEntity(PortalCaseType.GOVERNMENT_PITCH, pitch.id);
+    if (trackedCase) {
+      await PortalCaseService.transition({
+        caseId: trackedCase.id,
+        toStatus: nextStatus,
+        stage: "JS_REVIEW",
+        action: "RM_VERIFICATION_SUBMITTED",
+        actorUserId: userId,
+        metadata: {
+          checklist: verification.value.checklist,
+          recommendation: verification.value.recommendation,
+          summary: verification.value.summary,
+          conditions: req.body.conditions || null,
+        },
+      });
+    }
 
     if (jointSecretary && nextStatus === "JS_APPROVAL_PENDING") {
       const existingEscalation = await prisma.sLAEscalation.findFirst({
@@ -204,7 +252,12 @@ export const verifyGovernmentPitch = async (req: AuthenticatedRequest, res: Resp
 
 export const getRMAssessments = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    return res.json({ success: true, data: [] });
+    const data = await prisma.caseFeasibilityAssessment.findMany({
+      where: { case: { assignedRmId: req.user!.id } },
+      include: { case: { select: { id: true, trackingId: true, type: true, status: true, currentStage: true } } },
+      orderBy: [{ submittedAt: "desc" }, { createdAt: "desc" }],
+    });
+    return res.json({ success: true, data });
   } catch (error) {
     next(error);
   }
@@ -228,7 +281,21 @@ export const logEnquiryInteraction = async (req: AuthenticatedRequest, res: Resp
     const interaction = await prisma.applicationInteraction.create({
       data: { entityType: "CORPORATE_ENQUIRY", entityId: id, actorUserId: userId, channel: String(channel).slice(0, 40), note: note.trim(), occurredAt: occurredAt ? new Date(occurredAt) : new Date() }
     });
-    await prisma.corporateEnquiry.update({ where: { id }, data: { firstContactedAt: new Date() } });
+    const trackedCase = await PortalCaseService.getByLegacyEntity(PortalCaseType.CORPORATE_ENQUIRY, id);
+    if (trackedCase) {
+      await PortalCaseService.addInteraction({
+        caseId: trackedCase.id,
+        actorUserId: userId,
+        interactionType: normalizeInteractionType(channel),
+        participants: normalizeParticipants(req.body.participants, "CORPORATE"),
+        summary: note.trim(),
+        budgetDiscussion: req.body.budgetDiscussion || null,
+        notes: req.body.notes || null,
+        attachmentUrls: Array.isArray(req.body.attachmentUrls) ? req.body.attachmentUrls : [],
+        occurredAt: occurredAt ? new Date(occurredAt) : new Date(),
+      });
+    }
+    await prisma.corporateEnquiry.updateMany({ where: { id, firstContactedAt: null }, data: { firstContactedAt: new Date() } });
     await auditLog(userId, "ENQUIRY_INTERACTION_LOGGED", { enquiryId: id, interactionId: interaction.id, channel });
     return res.status(201).json({ success: true, message: "Interaction logged successfully", data: interaction });
   } catch (error) {
@@ -261,8 +328,8 @@ export const submitFeasibilityAssessment = async (req: AuthenticatedRequest, res
     }
 
     const districts = Array.isArray(targetDistricts) ? [...new Set(targetDistricts.map((district: unknown) => String(district).trim()).filter(Boolean))] : [];
-    if (!targetDepartmentId || districts.length !== 1) {
-      return res.status(400).json({ error: "Select exactly one target Government Department and one target district before sending the assessment to JS." });
+    if (!targetDepartmentId || districts.length < 1) {
+      return res.status(400).json({ error: "Select a target Government Department and at least one target district before sending the assessment to JS." });
     }
     if (typeof executiveSummary !== "string" || executiveSummary.trim().length < 20) {
       return res.status(400).json({ error: "Assessment summary must contain at least 20 characters." });
@@ -316,6 +383,39 @@ export const submitFeasibilityAssessment = async (req: AuthenticatedRequest, res
       }
     });
 
+    const trackedCase = await PortalCaseService.getByLegacyEntity(PortalCaseType.CORPORATE_ENQUIRY, id);
+    let caseAssessment = null;
+    if (trackedCase) {
+      const latest = await prisma.caseFeasibilityAssessment.findFirst({
+        where: { caseId: trackedCase.id },
+        orderBy: { version: "desc" },
+        select: { version: true },
+      });
+      caseAssessment = await prisma.caseFeasibilityAssessment.create({
+        data: {
+          caseId: trackedCase.id,
+          version: (latest?.version || 0) + 1,
+          checklist: normalizedChecklist,
+          recommendation: result,
+          executiveSummary: executiveSummary.trim(),
+          targetDistricts: districts,
+          targetDepartmentId,
+          conditions: normalisedConditions,
+          assessedByUserId: userId,
+          status: "SUBMITTED_TO_JS",
+          submittedAt: new Date(),
+        },
+      });
+      await PortalCaseService.transition({
+        caseId: trackedCase.id,
+        toStatus: "ASSESSMENT_SUBMITTED_TO_JS",
+        stage: "JS_REVIEW",
+        action: "FEASIBILITY_SUBMITTED",
+        actorUserId: userId,
+        metadata: { assessmentId: caseAssessment.id, assessmentVersion: caseAssessment.version },
+      });
+    }
+
     await prisma.corporateEnquiry.update({
       where: { id },
       data: { status: "ASSESSMENT_SUBMITTED_TO_JS" }
@@ -353,7 +453,7 @@ export const submitFeasibilityAssessment = async (req: AuthenticatedRequest, res
       });
     }
     await auditLog(userId, "FEASIBILITY_ASSESSMENT_SUBMITTED_TO_JS", { enquiryId: id, assessmentId: assessment.id, recommendation: result, criticalGapCount: criticalGaps.length });
-    return res.json({ success: true, message: jointSecretary ? "13-factor assessment submitted to the Joint Secretary." : "Assessment saved; no active Joint Secretary is currently configured.", data: assessment });
+    return res.json({ success: true, message: jointSecretary ? "13-factor assessment submitted to the Joint Secretary." : "Assessment saved; no active Joint Secretary is currently configured.", data: { ...assessment, caseAssessmentId: caseAssessment?.id || null, version: caseAssessment?.version || assessment.version } });
   } catch (error) {
     next(error);
   }
@@ -375,6 +475,20 @@ export const logPitchInteraction = async (req: AuthenticatedRequest, res: Respon
     const pitch = await prisma.governmentPitch.findFirst({ where: { id: req.params.id, assignedRelationshipManagerId: req.user!.id }, select: { id: true } });
     if (!pitch) return res.status(404).json({ error: "Pitch not found" });
     const interaction = await prisma.applicationInteraction.create({ data: { entityType: "GOVERNMENT_PITCH", entityId: pitch.id, actorUserId: req.user!.id, channel: String(req.body.channel || "PORTAL").slice(0, 40), note, occurredAt: req.body.occurredAt ? new Date(req.body.occurredAt) : new Date() } });
+    const trackedCase = await PortalCaseService.getByLegacyEntity(PortalCaseType.GOVERNMENT_PITCH, pitch.id);
+    if (trackedCase) {
+      await PortalCaseService.addInteraction({
+        caseId: trackedCase.id,
+        actorUserId: req.user!.id,
+        interactionType: normalizeInteractionType(req.body.channel),
+        participants: normalizeParticipants(req.body.participants, "GOVERNMENT"),
+        summary: note,
+        budgetDiscussion: req.body.budgetDiscussion || null,
+        notes: req.body.notes || null,
+        attachmentUrls: Array.isArray(req.body.attachmentUrls) ? req.body.attachmentUrls : [],
+        occurredAt: req.body.occurredAt ? new Date(req.body.occurredAt) : new Date(),
+      });
+    }
     return res.status(201).json({ success: true, data: interaction });
   } catch (error) { next(error); }
 };

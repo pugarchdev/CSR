@@ -6,7 +6,17 @@ import { dispatchNotification } from "../services/notificationOrchestrator";
 
 export const getAssignmentContext = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    return res.json({ success: true, context: {} });
+    const { entityType, entityId } = req.params;
+    if (!entityId) {
+      const [legacy, government] = await Promise.all([
+        prisma.projectAssignment.findMany({ where: { assignedToId: req.user!.id, status: "ACTIVE" }, orderBy: { assignedAt: "desc" } }),
+        prisma.governmentAssignment.findMany({ where: { OR: [{ primaryNodalUserId: req.user!.id }, { stateNodalUserId: req.user!.id }, { governmentOrganization: { departmentHeadUserId: req.user!.id } }, { dncLinks: { some: { dncUserId: req.user!.id, status: "ACTIVE" } } }], status: { notIn: ["CLOSED", "REVOKED"] } }, include: { case: true, governmentOrganization: true }, orderBy: { updatedAt: "desc" } }),
+      ]);
+      return res.json({ success: true, data: { projectAssignments: legacy, governmentAssignments: government } });
+    }
+    const legacy = await prisma.projectAssignment.findMany({ where: { entityType: String(entityType || "").toUpperCase(), entityId }, include: { assignedTo: { select: { id: true, firstName: true, lastName: true, designation: true, roleId: true } }, assignedBy: { select: { id: true, firstName: true, lastName: true } } }, orderBy: { assignedAt: "desc" } });
+    const government = entityType?.toLowerCase() === "case" ? await prisma.governmentAssignment.findMany({ where: { caseId: entityId }, include: { governmentOrganization: true, districtAssignments: true, dncLinks: true, events: { orderBy: { createdAt: "asc" } } } }) : [];
+    return res.json({ success: true, context: { entityType, entityId, projectAssignments: legacy, governmentAssignments: government } });
   } catch (error) {
     next(error);
   }
@@ -14,7 +24,18 @@ export const getAssignmentContext = async (req: AuthenticatedRequest, res: Respo
 
 export const assignExistingOfficerHandler = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    return res.json({ success: true, message: "Officer assigned" });
+    const { entityType, entityId, assignedToId, assignmentType, assignedRoleId } = req.body;
+    if (!entityType || !entityId || !assignedToId || !assignmentType) return res.status(400).json({ error: "Entity, assignee, and assignment type are required" });
+    const assignee = await prisma.user.findFirst({ where: { id: assignedToId, accountStatus: "ACTIVE", isVerified: true, deletedAt: null } });
+    if (!assignee) return res.status(400).json({ error: "Assignee must be active and verified" });
+    const existing = await prisma.projectAssignment.findFirst({ where: { entityType: String(entityType).toUpperCase(), entityId, assignedToId, assignmentType, status: "ACTIVE" } });
+    if (existing) return res.status(409).json({ error: "This active assignment already exists" });
+    const assignment = await prisma.$transaction(async tx => {
+      const created = await tx.projectAssignment.create({ data: { entityType: String(entityType).toUpperCase(), entityId, assignedToId, assignedById: req.user!.id, assignmentType, assignedRoleId: assignedRoleId || assignee.roleId, status: "ACTIVE" } });
+      await tx.auditLog.create({ data: { actorUserId: req.user!.id, userId: req.user!.id, action: "OFFICER_ASSIGNED", entityType: String(entityType).toUpperCase(), entityId, details: { assignmentId: created.id, assignedToId, assignmentType } } });
+      return created;
+    });
+    return res.status(201).json({ success: true, message: "Officer assigned", data: assignment });
   } catch (error) {
     next(error);
   }
@@ -22,7 +43,7 @@ export const assignExistingOfficerHandler = async (req: AuthenticatedRequest, re
 
 export const createAndAssignOfficerHandler = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    return res.json({ success: true, message: "Officer created and assigned" });
+    return res.status(410).json({ error: "Direct officer creation from an assignment is disabled. Invite the officer through User Management, complete first-login activation, then assign the active identity." });
   } catch (error) {
     next(error);
   }
@@ -47,30 +68,32 @@ export const getAssignableRolesHandler = async (req: AuthenticatedRequest, res: 
 };
 
 export const getDistrictsHandler = async (_req: AuthenticatedRequest, res: Response) => {
-  return res.json({ success: true, districts: [] });
+  const rows = await prisma.organization.findMany({ where: { district: { not: null }, deletedAt: null }, distinct: ["district"], select: { district: true }, orderBy: { district: "asc" } });
+  return res.json({ success: true, districts: rows.map(row => row.district).filter(Boolean) });
 };
 
-/** Super Admin maps the one DNC responsible for a district. The unique database
- * constraints prevent a DNC covering two districts or a district having two DNCs. */
+/** Super Admin links one of the active DNC supporters for a district/organization. */
 export const configureDistrictDnc = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const actorId = req.user!.id;
-    const { district, dncUserId } = req.body;
+    const { district, dncUserId, organizationId } = req.body;
     if (!district || !dncUserId) return res.status(400).json({ error: "District and DNC user are required." });
     const [actor, dnc] = await Promise.all([
       prisma.user.findUnique({ where: { id: actorId }, select: { roleId: true } }),
-      prisma.user.findFirst({ where: { id: dncUserId, roleId: ROLE_ID.DISTRICT_NODAL_CONSULTANT, accountStatus: "ACTIVE", isVerified: true }, select: { id: true } })
+      prisma.user.findFirst({ where: { id: dncUserId, roleId: ROLE_ID.DISTRICT_NODAL_CONSULTANT, accountStatus: "ACTIVE", isVerified: true }, select: { id: true, organizationId: true } })
     ]);
     if (actor?.roleId !== ROLE_ID.SUPER_ADMIN) return res.status(403).json({ error: "Only Super Admin can configure District DNCs." });
     if (!dnc) return res.status(400).json({ error: "Select an active, verified District Nodal Consultant." });
-    const existingForUser = await prisma.districtDncAssignment.findFirst({ where: { dncUserId, district: { not: String(district).trim() } } });
-    if (existingForUser) return res.status(409).json({ error: "This DNC is already tied to another district." });
-    const mapping = await prisma.districtDncAssignment.upsert({
-      where: { district: String(district).trim() },
-      create: { district: String(district).trim(), dncUserId, assignedById: actorId, isActive: true },
-      update: { dncUserId, assignedById: actorId, isActive: true }
+    const scopedOrganizationId = organizationId || dnc.organizationId;
+    const existing = await prisma.districtDncAssignment.findFirst({
+      where: { district: String(district).trim(), organizationId: scopedOrganizationId || null, dncUserId }
     });
-    return res.json({ success: true, message: "District DNC configured.", data: mapping });
+    const mapping = existing
+      ? await prisma.districtDncAssignment.update({ where: { id: existing.id }, data: { assignedById: actorId, isActive: true } })
+      : await prisma.districtDncAssignment.create({
+          data: { district: String(district).trim(), organizationId: scopedOrganizationId || null, dncUserId, assignedById: actorId, isActive: true }
+        });
+    return res.json({ success: true, message: "District DNC linked.", data: mapping });
   } catch (error) { next(error); }
 };
 

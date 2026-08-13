@@ -1,7 +1,7 @@
 import { Response, NextFunction } from "express";
 import prisma from "../config/db";
 import { AuthenticatedRequest } from "../middlewares/authMiddleware";
-import { selectLeastLoadedRm } from "../services/rmAssignmentService";
+import { RmAssignmentService } from "../services/rmAssignmentService";
 import { ROLE_ID } from "../types/role";
 import { notifyHierarchy } from "../services/hierarchyNotificationService";
 import { generateGovernmentPitchTrackingId } from "../services/trackingIdService";
@@ -11,6 +11,14 @@ import { dispatchNotification, dispatchToContact } from "../services/notificatio
 import { PUBLIC_PITCH_SELECT, validateGovernmentPitchSubmission } from "../utils/workflowValidation";
 import { generateInterestTrackingId } from "../services/trackingIdService";
 import { routeApprovedGovernmentPitch } from "../services/approvedProjectRoutingService";
+import { PortalCaseType } from "@prisma/client";
+import { PortalCaseService } from "../services/portalCaseService";
+
+const publishedStatusStage = (status: string) => {
+  if (status === "PUBLIC_LISTED") return "PUBLICATION";
+  if (status.includes("CLARIFICATION") || status.includes("CORRECTION")) return "RM_CLARIFICATION";
+  return "CLOSED";
+};
 
 export const submitGovernmentPitch = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
@@ -35,6 +43,13 @@ export const submitGovernmentPitch = async (req: AuthenticatedRequest, res: Resp
         error: "Organization onboarding must be completed and approved by Super Admin before submitting pitches."
       });
     }
+    if (
+      user?.roleId !== ROLE_ID.SUPER_ADMIN &&
+      (!user?.organization?.governmentLevel ||
+        !["COLLECTORATE", "ZILLA_PARISHAD", "MUNICIPAL_CORPORATION", "SUB_DEPARTMENT"].includes(user.organization.governmentType || ""))
+    ) {
+      return res.status(403).json({ error: "Pitches can be submitted only by an approved District CSR Cell organization or approved sub-department." });
+    }
 
     const validation = validateGovernmentPitchSubmission(req.body);
     if (!validation.ok) {
@@ -44,12 +59,6 @@ export const submitGovernmentPitch = async (req: AuthenticatedRequest, res: Resp
 
     const preferredDistrict = submission.district;
 
-    // Auto-assign Relationship Manager via round-robin least loaded algorithm
-    const assignedRmId = await selectLeastLoadedRm(preferredDistrict);
-    if (!assignedRmId) {
-      return res.status(503).json({ error: "No active Relationship Manager is available. Please retry shortly; your pitch was not submitted." });
-    }
-
     let pitch;
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
@@ -58,7 +67,7 @@ export const submitGovernmentPitch = async (req: AuthenticatedRequest, res: Resp
         pitchReferenceId: await generateGovernmentPitchTrackingId(),
         title: req.body.title || submission.csrRequirement.slice(0, 120),
         budget: submission.estimatedCost,
-        assignedRelationshipManagerId: assignedRmId,
+        assignedRelationshipManagerId: null,
         departmentId: req.body.departmentId || user?.organizationId || null,
         officialName: submission.officialName,
         designation: submission.designation,
@@ -90,9 +99,31 @@ export const submitGovernmentPitch = async (req: AuthenticatedRequest, res: Resp
     }
     if (!pitch) throw new Error("Unable to generate a unique pitch tracking code");
 
-    await createSLAEscalation({ entityType: "GOVERNMENT_PITCH", entityId: pitch.id, stage: "GOVERNMENT_PITCH_VERIFICATION", responsibleUserId: assignedRmId, dueAt: await calculateSlaDueDate("GOVERNMENT_PITCH_VERIFICATION") });
+    const trackedCase = await PortalCaseService.createForLegacyEntity({
+      type: PortalCaseType.GOVERNMENT_PITCH,
+      sourceEntityId: pitch.id,
+      trackingId: pitch.pitchReferenceId || pitch.id,
+      submittingOrganizationId: user?.organizationId || null,
+      submittedByUserId: userId,
+      targetDistricts: pitch.districts,
+      currentStage: "RM_ALLOCATION",
+      status: "SUBMITTED",
+      actorUserId: userId,
+    });
+    const assignedRmId = await RmAssignmentService.autoAssignRm({ caseId: trackedCase.id });
+    pitch = await prisma.governmentPitch.update({
+      where: { id: pitch.id },
+      data: {
+        assignedRelationshipManagerId: assignedRmId,
+        status: assignedRmId ? "SUBMITTED" : "UNASSIGNED",
+      },
+    });
+
+    if (assignedRmId) {
+      await createSLAEscalation({ entityType: "GOVERNMENT_PITCH", entityId: pitch.id, stage: "GOVERNMENT_PITCH_VERIFICATION", responsibleUserId: assignedRmId, dueAt: await calculateSlaDueDate("GOVERNMENT_PITCH_VERIFICATION") });
+    }
     await Promise.all([
-      dispatchNotification({
+      ...(assignedRmId ? [dispatchNotification({
         recipientId: assignedRmId,
         templateName: "GOVERNMENT_PITCH_ASSIGNED",
         channels: ["IN_APP", "SOCKET", "EMAIL", "SMS"],
@@ -100,13 +131,15 @@ export const submitGovernmentPitch = async (req: AuthenticatedRequest, res: Resp
         actionButtonUrl: `/pitches/${pitch.id}`,
         correlationId: pitch.id,
         notificationType: "GOVERNMENT_PITCH_ASSIGNED"
-      }),
+      })] : []),
       dispatchToContact({
         referenceId: pitch.pitchReferenceId || pitch.id,
         email: pitch.email,
         phone: pitch.mobile,
         title: "Government pitch received",
-        message: `Your pitch has been received. Your tracking ID is ${pitch.pitchReferenceId}. Use it to follow progress.`,
+        message: assignedRmId
+          ? `Your pitch has been received. Your tracking ID is ${pitch.pitchReferenceId}. Use it to follow progress.`
+          : `Your pitch has been received with tracking ID ${pitch.pitchReferenceId} and is queued for Relationship Manager allocation.`,
         trackingId: pitch.pitchReferenceId || undefined,
         currentStatus: pitch.status,
         actionButtonUrl: `/track?trackingId=${encodeURIComponent(pitch.pitchReferenceId || pitch.id)}`,
@@ -276,7 +309,7 @@ export const submitInterest = async (req: AuthenticatedRequest, res: Response, n
     const corporateOrg = await prisma.organization.findFirst({ where: { id: corporateId, status: "ACTIVE" } });
     if (!corporateOrg) return res.status(403).json({ error: "Your organization onboarding must be Super-Admin approved (status 'ACTIVE') before expressing interest in public government pitches." });
 
-    const pitch = await prisma.governmentPitch.findFirst({ where: { id: pitchId, status: "PUBLIC_LISTED" }, select: { id: true, pitchReferenceId: true } });
+    const pitch = await prisma.governmentPitch.findFirst({ where: { id: pitchId, status: "PUBLIC_LISTED" }, select: { id: true, pitchReferenceId: true, districts: true, district: true } });
     if (!pitch) return res.status(404).json({ error: "This public pitch is not available for expressions of interest." });
     const existing = await prisma.corporatePitchInterest.findFirst({ where: { pitchId, corporateId } });
     if (existing) return res.status(409).json({ error: "Your company has already expressed interest in this pitch.", data: existing });
@@ -287,15 +320,65 @@ export const submitInterest = async (req: AuthenticatedRequest, res: Response, n
     if (!Number.isFinite(indicativeBudget) || indicativeBudget <= 0 || !preferredStartPeriod || !implementationMode || message.length < 10 || req.body.declarationAccepted !== true) {
       return res.status(400).json({ error: "Complete the budget, start period, implementation mode, message, and declaration." });
     }
-    const interest = await prisma.corporatePitchInterest.create({
+    let interest = await prisma.corporatePitchInterest.create({
       data: {
         interestTrackingId: await generateInterestTrackingId(),
         pitchId,
         corporateId,
-        status: "INTERESTED"
+        submittedByUserId: req.user?.id || null,
+        indicativeBudget,
+        preferredStartPeriod,
+        implementationMode,
+        ngoOrFoundationDetails: req.body.ngoOrFoundationDetails || null,
+        message,
+        declarationAccepted: true,
+        assignedRelationshipManagerId: null,
+        status: "SUBMITTED"
       }
     });
-    await prisma.auditLog.create({ data: { actorUserId: req.user?.id || null, userId: req.user?.id || null, action: "PITCH_INTEREST_SUBMITTED", entityType: "CorporatePitchInterest", entityId: interest.id, details: { pitchId, pitchReferenceId: pitch.pitchReferenceId, corporateId, indicativeBudget, preferredStartPeriod, implementationMode, ngoOrFoundationDetails: req.body.ngoOrFoundationDetails || null, message, declarationAccepted: true } } });
+    const trackedCase = await PortalCaseService.createForLegacyEntity({
+      type: PortalCaseType.CORPORATE_PITCH_INTEREST,
+      sourceEntityId: interest.id,
+      sourcePitchId: pitch.id,
+      trackingId: interest.interestTrackingId || interest.id,
+      submittingOrganizationId: corporateId,
+      submittedByUserId: req.user?.id || null,
+      targetDistricts: pitch.districts.length ? pitch.districts : (pitch.district ? [pitch.district] : []),
+      currentStage: "RM_ALLOCATION",
+      status: "SUBMITTED",
+      actorUserId: req.user?.id || null,
+    });
+    const assignedRmId = await RmAssignmentService.autoAssignRm({ caseId: trackedCase.id });
+    interest = await prisma.corporatePitchInterest.update({
+      where: { id: interest.id },
+      data: {
+        portalCaseId: trackedCase.id,
+        assignedRelationshipManagerId: assignedRmId,
+        status: assignedRmId ? "SUBMITTED" : "UNASSIGNED",
+      },
+    });
+    if (assignedRmId) {
+      await createSLAEscalation({ entityType: "CORPORATE_PITCH_INTEREST", entityId: interest.id, stage: "RM_RESPONSE", responsibleUserId: assignedRmId, dueAt: await calculateSlaDueDate("RM_RESPONSE") });
+      await dispatchNotification({
+        recipientId: assignedRmId,
+        templateName: "PITCH_INTEREST_ASSIGNED",
+        channels: ["IN_APP", "SOCKET", "EMAIL", "SMS"],
+        variables: { title: "New corporate pitch interest assigned", message: `Interest ${interest.interestTrackingId} requires interaction logging and feasibility assessment.`, currentStatus: interest.status },
+        actionButtonUrl: `/interests`,
+        correlationId: interest.id,
+        notificationType: "PITCH_INTEREST_ASSIGNED",
+      });
+    } else {
+      notifyHierarchy({
+        title: "Corporate Pitch Interest Awaiting RM Allocation",
+        message: `Interest ${interest.interestTrackingId} is queued because no Relationship Manager is currently available.`,
+        organizationId: corporateId,
+        includePortalAdmins: true,
+        includeStateOfficers: true,
+        actionButtonUrl: "/interests",
+      }).catch(err => console.error("Notification dispatch failed:", err));
+    }
+    await prisma.auditLog.create({ data: { actorUserId: req.user?.id || null, userId: req.user?.id || null, action: "PITCH_INTEREST_SUBMITTED", entityType: "CorporatePitchInterest", entityId: interest.id, details: { pitchId, pitchReferenceId: pitch.pitchReferenceId, corporateId, indicativeBudget, preferredStartPeriod, implementationMode, ngoOrFoundationDetails: req.body.ngoOrFoundationDetails || null, message, declarationAccepted: true, trackingId: interest.interestTrackingId, assignedRmId } } });
     return res.status(201).json(interest);
   } catch (error) {
     next(error);
@@ -332,6 +415,17 @@ export const approvePitch = async (req: AuthenticatedRequest, res: Response, nex
     };
     // Approved pitches are published immediately through the public-safe field projection.
     const updated = await prisma.governmentPitch.update({ where: { id: pitch.id }, data: { status: statusByDecision[decision] } });
+    const trackedCase = await PortalCaseService.getByLegacyEntity(PortalCaseType.GOVERNMENT_PITCH, pitch.id);
+    if (trackedCase) {
+      await PortalCaseService.transition({
+        caseId: trackedCase.id,
+        toStatus: updated.status,
+        stage: publishedStatusStage(statusByDecision[decision]),
+        action: `JS_${decision}`,
+        actorUserId: req.user?.id || null,
+        remarks: reason || conditions || null,
+      });
+    }
     await prisma.sLAEscalation.updateMany({ where: { entityType: "GOVERNMENT_PITCH", entityId: pitch.id, stage: "JS_DECISION", isResolved: false }, data: { isResolved: true, resolvedAt: new Date() } });
     await prisma.auditLog.create({ data: { actorUserId: req.user?.id || null, userId: req.user?.id || null, action: "GOVERNMENT_PITCH_JS_DECISION", entityType: "GovernmentPitch", entityId: pitch.id, details: { decision, reason: reason || null, conditions: conditions || null, resultingStatus: updated.status } } });
     const published = updated.status === "PUBLIC_LISTED";

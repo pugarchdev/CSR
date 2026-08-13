@@ -3,7 +3,6 @@ import "./globals.css";
 import "@/styles/gov-theme.css";
 import { QueryProvider } from "@/lib/queryProvider";
 import { ToastProvider } from "@/components/ui/Toast";
-import { SmoothScrollProvider } from "@/hooks/useSmoothScroll";
 import SaaSLayout from "@/components/SaaSLayout";
 import SessionExpiredModal from "@/components/auth/SessionExpiredModal";
 import { PermissionInitializer } from "@/components/auth/PermissionInitializer";
@@ -43,7 +42,6 @@ export default function RootLayout({
         </Suspense>
         <QueryProvider>
           <ToastProvider>
-            <SmoothScrollProvider>
               {/* Fetches /auth/permissions once authenticated and hydrates the
                   auth store (isAdmin, permissions). Without this mounted, the
                   store's isAdmin stays false and permissions stays empty for the
@@ -53,7 +51,6 @@ export default function RootLayout({
                 <SaaSLayout>{children}</SaaSLayout>
               </PermissionInitializer>
               <SessionExpiredModal />
-            </SmoothScrollProvider>
           </ToastProvider>
         </QueryProvider>
       </body>

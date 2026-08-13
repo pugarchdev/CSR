@@ -65,22 +65,25 @@ export class EffectivePermissionService {
    * Compute effective access payload containing active permissions, roles, and contextual scopes.
    */
   public static async getEffectiveAccessPayload(userId: string, currentOrgIdContext?: string | null): Promise<EffectiveAccessPayload> {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        accountStatus: true,
-        isVerified: true,
-        deletedAt: true,
-        organizationId: true,
-        roleId: true,
-        role: {
-          include: {
-            rolePermissions: { include: { permission: true } }
+    const [user, assignments] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          accountStatus: true,
+          isVerified: true,
+          deletedAt: true,
+          organizationId: true,
+          roleId: true,
+          role: {
+            include: {
+              rolePermissions: { include: { permission: true } }
+            }
           }
         }
-      }
-    });
+      }),
+      this.getActiveAssignments(userId),
+    ]);
 
     if (!user || user.deletedAt || user.accountStatus === "SUSPENDED") {
       return {
@@ -100,7 +103,6 @@ export class EffectivePermissionService {
       };
     }
 
-    const assignments = await this.getActiveAssignments(userId);
     const permissionSet = new Set<string>();
     const orgScopeSet = new Set<string>();
     const childOrgScopeSet = new Set<string>();
@@ -196,26 +198,26 @@ export class EffectivePermissionService {
     }
 
     // Fetch child organizations & sub-departments for any parent organizations in scope
-    if (orgScopeSet.size > 0) {
-      if (prisma.organization?.findMany) {
-        const childOrgs = await prisma.organization.findMany({
+    // Global administrators do not need tenant hierarchy expansion.
+    if (orgScopeSet.size > 0 && !isSuperAdminUser) {
+      const [childOrgs, subDepts] = await Promise.all([
+        prisma.organization?.findMany ? prisma.organization.findMany({
           where: { parentOrganizationId: { in: Array.from(orgScopeSet) }, status: "ACTIVE" },
           select: { id: true }
-        });
-        childOrgs.forEach((co) => childOrgScopeSet.add(co.id));
-      }
-      if (prisma.subDepartment?.findMany) {
-        const subDepts = await prisma.subDepartment.findMany({
+        }) : Promise.resolve([]),
+        prisma.subDepartment?.findMany ? prisma.subDepartment.findMany({
           where: { organizationId: { in: Array.from(orgScopeSet) }, status: "ACTIVE" },
           select: { id: true }
-        });
-        subDepts.forEach((sd) => childOrgScopeSet.add(sd.id));
-      }
+        }) : Promise.resolve([]),
+      ]);
+      childOrgs.forEach((co) => childOrgScopeSet.add(co.id));
+      subDepts.forEach((sd) => childOrgScopeSet.add(sd.id));
     }
 
     if (isSuperAdminUser) {
-      const allPerms = await prisma.permission.findMany({ select: { key: true } });
-      allPerms.forEach((p) => permissionSet.add(p.key));
+      // The platform catalog is already loaded in memory and avoids another
+      // remote database round-trip during cold admin login.
+      resolveSeedRolePermissionKeys("SUPER_ADMIN").forEach((key) => permissionSet.add(key));
     }
 
     return {

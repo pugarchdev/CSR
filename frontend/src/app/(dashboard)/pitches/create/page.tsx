@@ -547,7 +547,7 @@ export default function CreatePitchDashboardPage() {
               <GovButton variant="secondary" onClick={() => router.push("/pitches")}>
                 Go Back
               </GovButton>
-              <GovButton variant="primary" onClick={() => router.push("/organization/onboarding/department")}>
+              <GovButton variant="primary" onClick={() => router.push("/organization/onboarding/government")}>
                 Complete Onboarding
               </GovButton>
             </div>

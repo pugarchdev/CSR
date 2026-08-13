@@ -1,6 +1,9 @@
 import { sendOtp, verifyOtp, assertOtpVerified } from "../services/otpService";
 import bcrypt from "bcryptjs";
 
+jest.mock("../utils/security", () => ({ generateNumericOtp: () => "123456" }));
+jest.mock("../utils/mailer", () => ({ sendOtpEmail: jest.fn().mockResolvedValue(undefined) }));
+
 jest.mock("../config/db", () => {
   const mockOtpStore: any[] = [];
   return {
@@ -33,6 +36,7 @@ jest.mock("../config/db", () => {
             .filter((o) => {
               if (o.identifier !== where.identifier) return false;
               if (where.verified !== undefined && o.verified !== where.verified) return false;
+              if (where.verificationTokenHash !== undefined && o.verificationTokenHash !== where.verificationTokenHash) return false;
               if (where.expiresAt?.gt && o.expiresAt <= where.expiresAt.gt) return false;
               return true;
             })
@@ -43,6 +47,8 @@ jest.mock("../config/db", () => {
           if (item) {
             if (data.attempts?.increment) item.attempts += data.attempts.increment;
             if (data.verified !== undefined) item.verified = data.verified;
+            if (data.verificationTokenHash !== undefined) item.verificationTokenHash = data.verificationTokenHash;
+            if (data.verifiedAt !== undefined) item.verifiedAt = data.verifiedAt;
           }
           return item;
         }),
@@ -83,6 +89,32 @@ describe("Auth & OTP Service Edge Cases Test Suite", () => {
   });
 
   describe("OTP Expiry & Attempt Lockout Controls", () => {
+    it("enforces the resend cooldown and reports the remaining hourly allowance", async () => {
+      const first = await sendOtp("GOVERNMENT_ONBOARDING", "EMAIL", "cooldown@example.com");
+      expect(first.resendAfterSeconds).toBe(60);
+      expect(first.sendsRemaining).toBe(4);
+      await expect(sendOtp("GOVERNMENT_ONBOARDING", "EMAIL", "cooldown@example.com")).rejects.toMatchObject({
+        statusCode: 429,
+        retryAfterSeconds: expect.any(Number),
+        sendsRemaining: 4,
+      });
+    });
+
+    it("enforces the five-send hourly limit even after each cooldown", async () => {
+      const { mockOtpStore } = require("../config/db");
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        const result = await sendOtp("GOVERNMENT_ONBOARDING", "EMAIL", "hourly-limit@example.com");
+        expect(result.sendsRemaining).toBe(4 - attempt);
+        const matching = mockOtpStore.filter((item: any) => item.identifier.endsWith("hourly-limit@example.com"));
+        const latest = matching[matching.length - 1];
+        latest.createdAt = new Date(Date.now() - 61_000);
+      }
+      await expect(sendOtp("GOVERNMENT_ONBOARDING", "EMAIL", "hourly-limit@example.com")).rejects.toMatchObject({
+        statusCode: 429,
+        sendsRemaining: 0,
+      });
+    });
+
     it("should reject verification when OTP record is expired", async () => {
       await expect(
         verifyOtp("CORPORATE_ENQUIRY", "EMAIL", "expired@example.com", "123456")
@@ -118,6 +150,15 @@ describe("Auth & OTP Service Edge Cases Test Suite", () => {
       expect(res).toHaveProperty("verificationToken");
       expect(typeof res.verificationToken).toBe("string");
       expect(res.verificationToken.length).toBe(64); // 32 hex bytes
+    });
+
+    it("allows an explicitly authorized registration retry with the same unexpired verified OTP", async () => {
+      await sendOtp("GOVERNMENT_ONBOARDING", "EMAIL", "transaction-retry@example.com");
+      await verifyOtp("GOVERNMENT_ONBOARDING", "EMAIL", "transaction-retry@example.com", "123456");
+
+      await expect(
+        verifyOtp("GOVERNMENT_ONBOARDING", "EMAIL", "transaction-retry@example.com", "123456", { allowVerifiedReplay: true })
+      ).resolves.toMatchObject({ replayed: true });
     });
   });
 

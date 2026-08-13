@@ -71,6 +71,7 @@ export type SLATimelineKey = keyof typeof SLA_TIMELINES;
 export type EscalationEntityType =
   | "CORPORATE_ENQUIRY"
   | "GOVERNMENT_PITCH"
+  | "CORPORATE_PITCH_INTEREST"
   | "GRIEVANCE"
   | "PROJECT_MILESTONE"
   | "UTILIZATION_CERTIFICATE"

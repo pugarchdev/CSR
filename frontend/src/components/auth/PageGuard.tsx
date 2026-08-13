@@ -73,7 +73,7 @@ export default function PageGuard({ children }: { children: React.ReactNode }) {
       "/dashboard",
       "/organization/onboarding",
       "/organization/onboarding/company",
-      "/organization/onboarding/department",
+      "/organization/onboarding/government",
       "/organization/onboarding/status",
       "/profile",
       "/settings",
