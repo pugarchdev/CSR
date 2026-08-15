@@ -242,6 +242,48 @@ export const SYSTEM_ROLE_IDS = {
 } as const;
 
 /**
+ * Protected Custom Role Templates mandated under static role families.
+ * Stored as custom roles but with platform-protected, immutable keys.
+ */
+export const PROTECTED_CUSTOM_ROLE_TEMPLATES = {
+  GOV_MAIN_ORG_HEAD: {
+    key: "GOV_MAIN_ORG_HEAD",
+    name: "Government Main Organization Head",
+    parentSystemRoleId: 7,
+    defaultScope: "ORGANIZATION_TREE",
+    description: "Administrative Head of one main government organization (Collectorate, Zilla Parishad, Municipal Corporation) and permitted descendants"
+  },
+  GOV_SUB_DEPARTMENT_HEAD: {
+    key: "GOV_SUB_DEPARTMENT_HEAD",
+    name: "Government Sub-Department Head",
+    parentSystemRoleId: 7,
+    defaultScope: "SUB_DEPARTMENT",
+    description: "Administrative Head of one approved sub-department"
+  },
+  STATE_NODAL_OFFICER: {
+    key: "STATE_NODAL_OFFICER",
+    name: "State Nodal Officer",
+    parentSystemRoleId: 7,
+    defaultScope: "ASSIGNED",
+    description: "State CSR Cell coordinator for multi-district project execution"
+  },
+  COMPANY_PRIMARY_ADMIN: {
+    key: "COMPANY_PRIMARY_ADMIN",
+    name: "Company Admin",
+    parentSystemRoleId: 8,
+    defaultScope: "ORGANIZATION",
+    description: "Primary Corporate CSR Administrator"
+  },
+  NGO_PRIMARY_ADMIN: {
+    key: "NGO_PRIMARY_ADMIN",
+    name: "NGO Admin",
+    parentSystemRoleId: 9,
+    defaultScope: "ORGANIZATION",
+    description: "Primary NGO Administrator"
+  }
+} as const;
+
+/**
  * Enterprise Permission Catalog Grants for all 9 System Roles.
  */
 export const SEED_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
@@ -311,8 +353,52 @@ export const SEED_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
     "verification:execute", "verification:reverify", "verification:view-history",
   ],
 
+  // 7a. Government Main Organization Head (Protected template under GOVERNMENT_OFFICER)
+  GOV_MAIN_ORG_HEAD: [
+    "dashboard:view", "dashboard:widget-kpis", "dashboard:widget-workqueue",
+    "user:view", "user:create", "user:update", "user:assign-role",
+    "role:view", "role:create", "role:configure",
+    "organization:view", "organization:create", "organization:update",
+    "pitch:view", "pitch:create", "pitch:edit_before_approval", "photo:upload",
+    "project:view_district", "project:view_assigned", "project:record_rejection_reason",
+    "status:track", "query:respond", "requirement:create", "requirement:view",
+    "report:view", "report:view_district", "report:generate",
+    "verification:execute", "verification:reverify", "verification:view-history",
+  ],
+
+  // 7b. Government Sub-Department Head (Protected template under GOVERNMENT_OFFICER)
+  GOV_SUB_DEPARTMENT_HEAD: [
+    "dashboard:view", "dashboard:widget-kpis", "dashboard:widget-workqueue",
+    "user:view", "user:create", "user:update",
+    "role:view", "role:create",
+    "organization:view",
+    "pitch:view", "pitch:create", "pitch:edit_before_approval",
+    "project:view_assigned", "milestone:view",
+    "status:track", "query:respond",
+    "report:view",
+    "verification:execute", "verification:reverify", "verification:view-history",
+  ],
+
+  // 7c. State Nodal Officer (Protected template under GOVERNMENT_OFFICER)
+  STATE_NODAL_OFFICER: [
+    "dashboard:view", "dashboard:widget-kpis",
+    "project:view", "project:view_assigned", "project:view_district",
+    "milestone:view", "escalation:resolve",
+    "report:view", "report:export",
+    "verification:execute", "verification:view-history",
+  ],
+
   // 8. Company Admin: Corporate CSR Head
   COMPANY_ADMIN: [
+    "dashboard:view", "dashboard:widget-kpis", "dashboard:widget-workqueue",
+    "user:view", "user:create", "user:update", "user:assign-role",
+    "role:view", "role:create", "role:configure",
+    "company_profile:manage", "company_role:assign", "enquiry:create", "interest:express",
+    "mou:sign", "ngo_login:create", "project:view", "project:close", "fund:view", "fund:commit",
+    "report:view",
+    "verification:execute", "verification:reverify", "verification:view-history",
+  ],
+  COMPANY_PRIMARY_ADMIN: [
     "dashboard:view", "dashboard:widget-kpis", "dashboard:widget-workqueue",
     "user:view", "user:create", "user:update", "user:assign-role",
     "role:view", "role:create", "role:configure",
@@ -324,6 +410,13 @@ export const SEED_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
 
   // 9. NGO Admin: Implementing Agency
   NGO_ADMIN: [
+    "dashboard:view", "dashboard:widget-kpis", "dashboard:widget-workqueue",
+    "user:view", "user:create", "user:update", "user:assign-role",
+    "project:view_assigned", "milestone:update", "photo:upload_geotagged", "bill:upload", "uc:upload",
+    "issue:raise", "query:respond", "fund:view", "report:view",
+    "verification:execute", "verification:reverify", "verification:view-history",
+  ],
+  NGO_PRIMARY_ADMIN: [
     "dashboard:view", "dashboard:widget-kpis", "dashboard:widget-workqueue",
     "user:view", "user:create", "user:update", "user:assign-role",
     "project:view_assigned", "milestone:update", "photo:upload_geotagged", "bill:upload", "uc:upload",
@@ -362,11 +455,31 @@ export const SEED_ROLE_PAGES: Record<string, readonly string[]> = {
     "dashboard", "profile", "reports", "admin/user-management", "admin/access-control",
     "organization/onboarding", "pitches", "requirements", "interests", "convergence-projects", "handover",
   ],
+  GOV_MAIN_ORG_HEAD: [
+    "dashboard", "profile", "reports", "admin/user-management", "admin/access-control",
+    "organization/onboarding", "pitches", "requirements", "convergence-projects", "escalations", "handover",
+  ],
+  GOV_SUB_DEPARTMENT_HEAD: [
+    "dashboard", "profile", "reports", "admin/user-management", "admin/access-control",
+    "pitches", "requirements", "convergence-projects", "milestones", "grievances",
+  ],
+  STATE_NODAL_OFFICER: [
+    "dashboard", "profile", "reports",
+    "convergence-projects", "assignments", "milestones", "escalations",
+  ],
   COMPANY_ADMIN: [
     "dashboard", "profile", "reports", "admin/user-management", "admin/access-control",
     "organization/onboarding", "sub-logins", "enquiries", "marketplace", "interests", "agencies", "convergence-projects", "fund-releases",
   ],
+  COMPANY_PRIMARY_ADMIN: [
+    "dashboard", "profile", "reports", "admin/user-management", "admin/access-control",
+    "organization/onboarding", "sub-logins", "enquiries", "marketplace", "interests", "agencies", "convergence-projects", "fund-releases",
+  ],
   NGO_ADMIN: [
+    "dashboard", "profile", "reports",
+    "organization/onboarding", "proposal-requests", "convergence-projects", "milestones", "fund-releases",
+  ],
+  NGO_PRIMARY_ADMIN: [
     "dashboard", "profile", "reports",
     "organization/onboarding", "proposal-requests", "convergence-projects", "milestones", "fund-releases",
   ],
@@ -378,8 +491,13 @@ export const SEED_ROLE_BULK_OPS: Record<string, readonly string[]> = {
   DISTRICT_NODAL_CONSULTANT: ["record:delete-single", "record:import-excel"],
   DISTRICT_NODAL_OFFICER: ["record:import-excel"],
   NGO_ADMIN: ["record:delete-single"],
+  NGO_PRIMARY_ADMIN: ["record:delete-single"],
   COMPANY_ADMIN: ["record:delete-single", "record:import-excel"],
+  COMPANY_PRIMARY_ADMIN: ["record:delete-single", "record:import-excel"],
   GOVERNMENT_OFFICER: ["record:delete-single", "record:import-excel"],
+  GOV_MAIN_ORG_HEAD: ["record:delete-single", "record:import-excel"],
+  GOV_SUB_DEPARTMENT_HEAD: ["record:delete-single"],
+  STATE_NODAL_OFFICER: ["record:import-excel"],
 };
 
 export function resolveSeedRolePermissionKeys(permKey: string): string[] {
@@ -393,3 +511,15 @@ export function resolveSeedRolePermissionKeys(permKey: string): string[] {
   const pages = (SEED_ROLE_PAGES[permKey] ?? []).map((slug) => pageViewKey(slug));
   return Array.from(new Set([...actions, ...bulk, ...pages]));
 }
+
+/**
+ * Validate that a proposed custom role's permissions do not exceed the static parent role ceiling.
+ */
+export function isPermissionInsideParentCeiling(parentRoleId: number, permissionKey: string): boolean {
+  if (parentRoleId === 1) return true; // SUPER_ADMIN
+  const systemRoleKey = Object.entries(SYSTEM_ROLE_IDS).find(([_, id]) => id === parentRoleId)?.[0];
+  if (!systemRoleKey) return false;
+  const parentCeiling = SEED_ROLE_PERMISSIONS[systemRoleKey] ?? [];
+  return parentCeiling.includes(permissionKey);
+}
+

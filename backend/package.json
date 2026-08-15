@@ -13,7 +13,7 @@
     "roles:migrate-to-9": "ts-node prisma/migrate-roles-to-9.ts",
     "worker:sla": "ts-node src/workers/slaWorker.ts",
     "typecheck": "tsc --noEmit",
-    "test": "jest --runInBand"
+    "test": "jest --runInBand --forceExit"
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",

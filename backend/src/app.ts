@@ -130,7 +130,9 @@ registerChatSocket(io);
 registerNotificationSocket(io);
 
 // Background Services
-startSlaScheduler();
+if (process.env.NODE_ENV !== "test") {
+  startSlaScheduler();
+}
 
 // Centralized Error Handler
 app.use(errorHandler);
@@ -146,9 +148,11 @@ server.on("error", (err: any) => {
   }
 });
 
-server.listen(PORT, () => {
-  console.log(`MahaCSR Server is running on port ${PORT}`);
-});
+if (process.env.NODE_ENV !== "test") {
+  server.listen(PORT, () => {
+    console.log(`MahaCSR Server is running on port ${PORT}`);
+  });
+}
 
 // Graceful shutdown handling for ts-node-dev / nodemon hot-reloads
 const gracefulShutdown = (signal: string) => {

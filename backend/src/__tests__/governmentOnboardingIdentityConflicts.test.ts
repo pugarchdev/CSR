@@ -6,6 +6,7 @@ jest.mock("../config/db", () => ({
   __esModule: true,
   default: {
     user: { findFirst: jest.fn() },
+    organization: { findFirst: jest.fn().mockResolvedValue(null) },
     $transaction: jest.fn(),
   },
 }));

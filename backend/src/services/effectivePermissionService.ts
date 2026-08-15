@@ -186,9 +186,16 @@ export class EffectivePermissionService {
         });
       }
 
+      // Add database role permissions
       role.rolePermissions.forEach((rp) => {
         permissionSet.add(rp.permission.key);
       });
+
+      // If role code matches a system role or protected custom role template, include seed permissions
+      if (role.code && SEED_ROLE_PERMISSIONS[role.code]) {
+        const seedKeys = resolveSeedRolePermissionKeys(role.code);
+        seedKeys.forEach((key) => permissionSet.add(key));
+      }
 
       if (assign.organizationId) orgScopeSet.add(assign.organizationId);
       if (assign.districtCode) districtScopeSet.add(assign.districtCode);

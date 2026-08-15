@@ -92,6 +92,24 @@ export const registerMainGovernmentOrganization = async (req: Request, res: Resp
     if (existing?.email && checkEmails.includes(existing.email)) return res.status(409).json({ error: `An account already exists for ${existing.email}. Sign in or use a different official email.` });
     if (existing?.mobile) return res.status(409).json({ error: "One of these mobile numbers is already linked to a portal account. Use a different official mobile number or leave the optional field blank." });
 
+    // Enforce at most 1 active/pending main organization for each of Collectorate, Zilla Parishad, Municipal Corporation per district
+    const normalizedDistrict = String(district || "").trim();
+    const existingMainOrg = await prisma.organization.findFirst({
+      where: {
+        governmentType,
+        governmentLevel: "MAIN",
+        district: { equals: normalizedDistrict, mode: "insensitive" },
+        status: { in: ["ACTIVE", "UNDER_VERIFICATION", "PROFILE_INCOMPLETE", "CLARIFICATION_REQUIRED"] },
+        deletedAt: null,
+      },
+      select: { id: true, name: true, status: true },
+    });
+    if (existingMainOrg) {
+      return res.status(409).json({
+        error: `A main ${governmentType.replace("_", " ")} already exists in ${normalizedDistrict} district (${existingMainOrg.name}). Only one active organization of this type is permitted per district.`
+      });
+    }
+
     // Verify only after all correctable conflicts have been checked so a failed registration does not consume the OTP.
     await verifyOtp("GOVERNMENT_ONBOARDING", "EMAIL", headEmail, String(otp), { allowVerifiedReplay: true });
 
@@ -232,7 +250,7 @@ export const createSubDepartment = async (req: AuthenticatedRequest, res: Respon
         membershipsData.push({ organizationId: organization.id, userId: nodalUser.id, roleId: 7, membershipType: "NODAL", status: "PENDING_FIRST_LOGIN", invitedByUserId: req.user!.id });
       }
       await tx.organizationMembership.createMany({ data: membershipsData });
-      const application = await tx.governmentOnboardingApplication.create({ data: { organizationId: organization.id, organizationLevel: "SUB_DEPARTMENT", reviewerRoleCode: "PLANNING_SECRETARY", formData: req.body, status: "DRAFT" } });
+      const application = await tx.governmentOnboardingApplication.create({ data: { organizationId: organization.id, organizationLevel: "SUB_DEPARTMENT", reviewerRoleCode: "JOINT_SECRETARY", formData: req.body, status: "DRAFT" } });
       await tx.auditLog.create({ data: { actorUserId: req.user!.id, userId: req.user!.id, action: "GOVERNMENT_SUBDEPARTMENT_CREATED", entityType: "Organization", entityId: organization.id, details: { parentId, adminUserId: adminUser.id, nodalUserId: nodalUser?.id || null } } });
       return { organization, application };
     });

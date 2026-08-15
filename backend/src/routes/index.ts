@@ -50,6 +50,12 @@ import accessControlRoutes from "./accessControlRoutes";
 import mouRoutes from "./mouRoutes";
 import milestoneRoutes from "./milestoneRoutes";
 
+import strategyRoutes from "./strategyRoutes";
+import fieldVisitRoutes from "./fieldVisitRoutes";
+import evidenceRoutes from "./evidenceRoutes";
+import issueRoutes from "./issueRoutes";
+import platformAdminRoutes from "./platformAdminRoutes";
+
 // Verification Module
 import verificationRoutes from "../modules/verification";
 
@@ -71,6 +77,11 @@ router.use("/reports", reportRoutes);
 router.use("/admin", adminRoutes);
 router.use("/org", organizationRoutes);
 router.use("/platform", platformRoutes);
+router.use("/platform-admin", platformAdminRoutes);
+router.use("/strategy", strategyRoutes);
+router.use("/field-visits", fieldVisitRoutes);
+router.use("/evidence", evidenceRoutes);
+router.use("/issues", issueRoutes);
 router.use("/government-departments", governmentDepartmentRoutes);
 router.use("/public", publicRoutes);
 router.use("/district", districtRoutes);
