@@ -5,19 +5,18 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Building2, Landmark, Search, Bell, Mail, ChevronLeft, ChevronRight,
-  Layers, Sparkles, Award, Coins, Compass, FileText, BarChart2,
-  HelpCircle, Menu, X, LogOut, ShieldCheck, BookOpen, ShieldAlert,
-  Clock, Users, Globe2, ChevronDown, ArrowUp, MapPin, Phone, CheckCircle2, Handshake,
+  Search, Bell, Mail,
+  Layers, Sparkles, Compass, FileText,
+  HelpCircle, Menu, X, LogOut, BookOpen,
+  ChevronDown, ArrowUp, MapPin, Phone, Handshake,
   User, Settings, LayoutDashboard
 } from "lucide-react";
-import { Button } from "./ui/Button";
 import { Loader } from "./ui/Loader";
 import { apiFetch, getStoredUser, getAccessToken } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import PageGuard from "@/components/auth/PageGuard";
 import { isNavItemVisible } from "@/lib/pageRegistry";
-import { resolveNavItems, normalizeRole, type NavItem } from "@/lib/navRegistry";
+import { resolveNavItems } from "@/lib/navRegistry";
 import { resolveDashboardPath } from "@/lib/roleRouting";
 import { resolveNotificationUrl } from "@/lib/notificationUtils";
 import { Sidebar, resolveNavIcon } from "@/components/layout/Sidebar";
@@ -359,22 +358,6 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
     );
 
   const storedUser = typeof window !== "undefined" ? getStoredUser() : null;
-  const activeRoles = (storeRoles || []).length > 0 ? storeRoles : (storedUser?.role ? [storedUser.role] : []);
-  const storedRole = activeRoles.find(r => r !== "GOVERNMENT_OFFICER" && r !== "CORPORATE_USER") || activeRoles[0];
-  const storedOrganizationType = storedUser?.organization?.organizationType as string | undefined;
-
-  const rawSidebarItems = resolveNavItems({
-    role: storedRole,
-    pathname,
-    hasPermission,
-    isSuperAdmin: storeIsAdmin
-  });
-
-  const filteredNavItems = rawSidebarItems
-    .filter((item) => !item.featureKey || tenantFeatures[item.featureKey] !== false)
-    .filter((item) => isNavItemVisible(item.href, hasPermission));
-
-  const dashboardNavigationItems = filteredNavItems;
   const routeFeatureKey =
     pathname.includes("/requirements") ? "enableRequirementCreation" :
     pathname.includes("/marketplace") ? "enableCSRMarketplace" :
