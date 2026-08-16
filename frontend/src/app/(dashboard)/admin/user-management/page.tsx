@@ -680,6 +680,7 @@ return (
               label="Mobile Number"
               required
               type="tel"
+              maxLength={10}
               value={userForm.mobile}
               onChange={(e) => setUserForm((prev) => ({ ...prev, mobile: e.target.value }))}
               placeholder="e.g. 9876543210"

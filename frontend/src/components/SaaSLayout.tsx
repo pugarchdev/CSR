@@ -350,6 +350,9 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
         pathname.startsWith("/audit-logs") ||
         pathname.startsWith("/profile") ||
         pathname.startsWith("/settings") ||
+        pathname.startsWith("/admin/organizations") ||
+        pathname.startsWith("/admin/companies") ||
+        pathname.startsWith("/admin/ngo-registry") ||
         pathname.startsWith("/admin/user-management") ||
         pathname.startsWith("/admin/access-control") ||
         pathname.startsWith("/chat") ||

@@ -420,7 +420,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-organizations",
     showInSidebar: true,
-    requiredAnyPermissions: ["company_profile:manage", "ngo_profile:manage", "organization:onboard", "organization:update", "organization:view", "organization:approve", "dashboard:view"],
+    requiredAnyPermissions: ["page:organization/onboarding:view"],
     ordering: 40,
     breadcrumbMetadata: { title: "Onboarding Status", parentRoute: "/dashboard" }
   },

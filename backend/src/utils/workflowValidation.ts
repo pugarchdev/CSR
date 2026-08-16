@@ -48,7 +48,7 @@ export function validateCorporateEnquirySubmission(body: unknown): ValidationRes
   if (!value.contactPersonName) errors.push("Contact person is required.");
   if (!/^[6-9]\d{9}$/.test(value.mobile)) errors.push("A valid 10-digit Indian mobile number is required.");
   if (!value.sector) errors.push("CSR sector is required.");
-  if (!Number.isFinite(budget) || budget <= 0) errors.push("Indicative budget must be greater than zero.");
+  // if (!Number.isFinite(budget) || budget <= 0) errors.push("Indicative budget must be greater than zero.");
   if (districts.length !== 1) errors.push("Select exactly one district for this case.");
   if (!value.departmentId) errors.push("Select exactly one government department for this case.");
   if (value.proposedCSRWork.length < 20) errors.push("Proposed CSR work must contain at least 20 characters.");

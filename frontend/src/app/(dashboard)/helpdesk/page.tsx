@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { HelpCircle, CheckCircle2, Clock, Search, MessageSquare, ShieldCheck } from "lucide-react";
 import { GovPageHeader } from "@/components/layout/GovPageHeader";
 
@@ -39,12 +39,33 @@ const mockTickets: Ticket[] = [
 ];
 
 export default function HelpdeskPage() {
-  const [items, setItems] = useState<Ticket[]>(mockTickets);
+  const [items, setItems] = useState<Ticket[]>([]);
   const [search, setSearch] = useState("");
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+    const saved = localStorage.getItem("helpdesk_tickets");
+    if (saved) {
+      try {
+        setItems(JSON.parse(saved));
+      } catch (e) {
+        setItems(mockTickets);
+      }
+    } else {
+      setItems(mockTickets);
+    }
+  }, []);
 
   const handleResolve = (id: string) => {
-    setItems(prev => prev.map(t => t.id === id ? { ...t, status: "RESOLVED" } : t));
+    setItems(prev => {
+      const updated = prev.map(t => t.id === id ? { ...t, status: "RESOLVED" } : t);
+      localStorage.setItem("helpdesk_tickets", JSON.stringify(updated));
+      return updated;
+    });
   };
+
+  if (!isMounted) return null;
 
   const filtered = items.filter(t =>
     t.ticketNo.toLowerCase().includes(search.toLowerCase()) ||

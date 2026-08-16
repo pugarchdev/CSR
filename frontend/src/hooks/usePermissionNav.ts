@@ -175,8 +175,8 @@ export const getDashboardNavItems = (userRole?: string): NavItem[] => {
   ];
 
   const departmentItems: NavItem[] = [
-    { label: "Organization Onboarding", href: "/organization/onboarding", permission: "organization:view" },
-    { label: "Onboarding Status", href: "/organization/onboarding/status", permission: "organization:view" },
+    { label: "Organization Onboarding", href: "/organization/onboarding", permission: "page:organization/onboarding:view" },
+    { label: "Onboarding Status", href: "/organization/onboarding/status", permission: "page:organization/onboarding:view" },
     { label: "Create Requirement", href: "/department/requirements/create", permission: "requirement:create", featureKey: "enableRequirementCreation" },
     { label: "My Requirements", href: "/department/requirements", permission: "requirement:view", featureKey: "enableRequirementCreation" },
     { label: "Company Interest", href: "/department/interests", permission: "interest:view", featureKey: "enableCompanyInterest" },
@@ -189,8 +189,8 @@ export const getDashboardNavItems = (userRole?: string): NavItem[] => {
   ];
 
   const companyItems: NavItem[] = [
-    { label: "Organization Onboarding", href: "/organization/onboarding", permission: "organization:view" },
-    { label: "Onboarding Status", href: "/organization/onboarding/status", permission: "organization:view" },
+    { label: "Organization Onboarding", href: "/organization/onboarding", permission: "page:organization/onboarding:view" },
+    { label: "Onboarding Status", href: "/organization/onboarding/status", permission: "page:organization/onboarding:view" },
     { label: "Project Marketplace", href: "/company/marketplace", permission: "marketplace:view", featureKey: "enableCSRMarketplace" },
     { label: "My Interests", href: "/company/interests", permission: "interest:view", featureKey: "enableCompanyInterest" },
     { label: "Funded Projects", href: "/convergence-projects", permission: "project:view" },
@@ -202,8 +202,8 @@ export const getDashboardNavItems = (userRole?: string): NavItem[] => {
   ];
 
   const ngoItems: NavItem[] = [
-    { label: "Organization Onboarding", href: "/organization/onboarding", permission: "organization:view" },
-    { label: "Onboarding Status", href: "/organization/onboarding/status", permission: "organization:view" },
+    { label: "Organization Onboarding", href: "/organization/onboarding", permission: "page:organization/onboarding:view" },
+    { label: "Onboarding Status", href: "/organization/onboarding/status", permission: "page:organization/onboarding:view" },
     { label: "Proposal Requests", href: "/ngo/proposal-requests", permission: "marketplace:view", featureKey: "enableCSRMarketplace" },
     { label: "Assigned Projects", href: "/ngo/assigned-projects", permission: "project:view" },
     { label: "Milestones", href: "/ngo/milestones", permission: "milestone:view", featureKey: "enableMilestoneMonitoring" },

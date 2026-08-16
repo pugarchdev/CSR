@@ -114,7 +114,7 @@ export const SECTIONS: SectionDef[] = [
 export const QUICK_ACTIONS: QuickActionDef[] = [
   { key: "enquiry_create", label: "Submit Corporate Enquiry", href: "/partner/enquiries/new", permission: "enquiry:create", icon: Send },
   { key: "pitches", label: "Submit Government Pitch", href: "/pitches/create", permission: "pitch:create", icon: Compass },
-  { key: "onboarding", label: "Organization Onboarding", href: "/organization/onboarding", permission: "dashboard:view", icon: FileCheck },
+  { key: "onboarding", label: "Organization Onboarding", href: "/organization/onboarding", permission: "page:organization/onboarding:view", icon: FileCheck },
   { key: "marketplace", label: "Explore Marketplace", href: "/marketplace", permission: "marketplace:view", icon: Building2 },
   { key: "projects", label: "Funded Projects", href: "/convergence-projects", permission: "project:view", icon: ShieldCheck },
   { key: "reports", label: "Reports", href: "/reports", permission: "report:view", icon: BarChart2 },
