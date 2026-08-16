@@ -3,14 +3,14 @@
 
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, RefreshCw, ChevronDown, ChevronRight, Clock, User, Activity, Filter } from "lucide-react";
+import { Search, RefreshCw, ChevronDown, ChevronRight, Clock, User, Activity } from "lucide-react";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import GovPageHeader from "@/components/layout/GovPageHeader";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { useAuditLogs } from "@/hooks/useAccessControl";
 import { cn } from "@/lib/utils";
-import type { AuditEntry } from "@/types/accessControl";
+
 import "@/styles/gov-theme.css";
 
 import AccessControlTabs from "@/components/access-control/AccessControlTabs";
@@ -21,19 +21,19 @@ export default function AuditPage() {
   const [search, setSearch] = useState("");
   const { data: auditData, isLoading, refetch } = useAuditLogs({ page, pageSize: 30, action: actionFilter || undefined });
 
-  const entries = auditData?.data ?? [];
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
-    if (!search) return entries;
+    const list = auditData?.data ?? [];
+    if (!search) return list;
     const term = search.toLowerCase();
-    return entries.filter((e) =>
+    return list.filter((e) =>
       (e.actorEmail || e.actor || "").toLowerCase().includes(term) ||
       e.action.toLowerCase().includes(term) ||
       (e.resourceLabel || "").toLowerCase().includes(term) ||
       (e.correlationId || "").toLowerCase().includes(term)
     );
-  }, [entries, search]);
+  }, [auditData, search]);
 
   const actionVariant = (action: string) => {
     if (action.includes("create") || action.includes("clone")) return "success" as const;

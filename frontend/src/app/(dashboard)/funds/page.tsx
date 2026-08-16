@@ -1,8 +1,7 @@
 "use client";
 
 import React from "react";
-import { Landmark, ArrowUpRight, CheckCircle2, TrendingUp, DollarSign, Clock } from "lucide-react";
-import { useApiQuery } from "@/lib/apiHooks";
+
 
 export default function CorporateFundsPage() {
   const formatCr = (val: number) => `₹${(Number(val || 0) / 10000000).toFixed(2)} Cr`;

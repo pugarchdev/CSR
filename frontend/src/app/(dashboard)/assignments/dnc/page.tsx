@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import GovPageHeader from "@/components/layout/GovPageHeader";
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { useToastActions } from "@/components/ui/Toast";
-import { Users, UserCheck, RefreshCw, AlertTriangle, ShieldCheck, History } from "lucide-react";
+import { UserCheck, RefreshCw, AlertTriangle, ShieldCheck, History } from "lucide-react";
 import "@/styles/gov-theme.css";
 
 import AssignmentTabs from "@/components/assignments/AssignmentTabs";
@@ -49,7 +49,7 @@ export default function DncAssignmentQueuePage() {
 
   const toast = useToastActions();
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const res = await apiFetch<any>("/assignments/dnc/queue");
@@ -72,11 +72,11 @@ export default function DncAssignmentQueuePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const handleDelegateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

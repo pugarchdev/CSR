@@ -5,13 +5,13 @@ import { motion } from "framer-motion";
 import { useApiQuery } from "@/lib/apiHooks";
 import { GovPageHeader } from "@/components/layout/GovPageHeader";
 import { StatCard } from "@/components/ui/StatCard";
-import { ViewToggle, ViewMode } from "@/components/ui/ViewToggle";
+
 import { DataView } from "@/components/ui/DataView";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import {
-  Building2, Search, Filter, ShieldCheck, CheckCircle2, Clock, Landmark, ArrowUpRight, Award,
-  MapPin, Mail, Phone, Globe, ExternalLink, FileText, Check, Shield, Star
+  Building2, ShieldCheck, CheckCircle2, Award,
+  MapPin, Mail, Phone, Globe, ExternalLink
 } from "lucide-react";
 
 interface AgencyItem {

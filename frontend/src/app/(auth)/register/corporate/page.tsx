@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ShieldAlert,
   FileCheck,
   Landmark,
   Building2,
@@ -17,7 +16,6 @@ import {
   CheckCircle2,
   Sparkles,
   KeyRound,
-  ShieldCheck,
   Loader2,
   Mail,
   RefreshCw,
@@ -108,21 +106,13 @@ export default function RegisterPage() {
     csrBudget: ""
   });
 
-  const [parentSearchQuery, setParentSearchQuery] = useState("");
-  const [parentSearchResults, setParentSearchResults] = useState<any[]>([]);
-  const [searchingParents, setSearchingParents] = useState(false);
-  const [selectedParentOrgName, setSelectedParentOrgName] = useState("");
-
   const [customState, setCustomState] = useState("");
   const [customDistrict, setCustomDistrict] = useState("");
-  const [customCity, setCustomCity] = useState("");
-  const [customTaluka, setCustomTaluka] = useState("");
+  const [customCity, _setCustomCity] = useState("");
+  const [customTaluka, _setCustomTaluka] = useState("");
 
   const selectedStateInfo = locationData.find((s) => s.name === formData.state);
   const availableDistricts = selectedStateInfo ? selectedStateInfo.districts : [];
-  const selectedDistrictInfo = selectedStateInfo ? selectedStateInfo.districts.find((d) => d.name === formData.district) : null;
-  const availableCities = selectedDistrictInfo ? selectedDistrictInfo.cities : [];
-  const availableTalukas = selectedDistrictInfo ? selectedDistrictInfo.talukas : [];
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -150,23 +140,7 @@ export default function RegisterPage() {
     }
   }, []);
 
-  useEffect(() => {
-    if (formData.registrationCategory !== "GOVT_DEPARTMENT") return;
-    const fetchParents = async () => {
-      setSearchingParents(true);
-      try {
-        const res = await fetch(`${API_BASE_URL}/auth/parent-organizations?q=${encodeURIComponent(parentSearchQuery)}`);
-        const data = await res.json();
-        if (res.ok) setParentSearchResults(data.data || []);
-      } catch (err) {
-        console.error("Failed to search parent organizations", err);
-      } finally {
-        setSearchingParents(false);
-      }
-    };
-    const timerId = setTimeout(fetchParents, 300);
-    return () => clearTimeout(timerId);
-  }, [parentSearchQuery, formData.registrationCategory]);
+
 
   // Timer countdown effect for Step 3
   useEffect(() => {

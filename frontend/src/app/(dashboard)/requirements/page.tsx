@@ -4,13 +4,13 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useApiQuery } from "@/lib/apiHooks";
-import { GovPageHeader } from "@/components/layout/GovPageHeader";
-import { StatCard } from "@/components/ui/StatCard";
-import { ViewToggle, ViewMode } from "@/components/ui/ViewToggle";
+import { StandardPageHeader } from "@/components/layout/StandardPageHeader";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
+import { ViewToggle } from "@/components/ui/ViewToggle";
 import { useResponsiveViewMode } from "@/hooks/useResponsiveViewMode";
 import { Loader } from "@/components/ui/Loader";
 import {
-  Plus, Search, Filter, MapPin, Coins, ArrowUpRight, CheckCircle2, FileText
+  Plus, Search, Filter, MapPin, Coins, ArrowUpRight, CheckCircle2, FileText, Landmark
 } from "lucide-react";
 
 interface Requirement {
@@ -64,52 +64,60 @@ export default function RequirementsPage() {
   });
 
   const uniqueDistricts = Array.from(new Set(reqsList.map(r => r.district).filter(Boolean)));
+  const totalCost = reqsList.reduce((acc, curr) => acc + curr.estimatedCostLakhs, 0);
+  const publishedCount = reqsList.filter(r => r.status === "PUBLISHED" || r.status === "APPROVED").length;
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-7xl flex-col gap-5 px-4 py-6 md:px-8">
-      <GovPageHeader
+    <div className="mx-auto flex min-h-screen max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 text-slate-900">
+      <StandardPageHeader
         title="Department CSR Requirements & Needs"
-        eyebrow="Requirements Hub"
+        category="Requirements Hub"
+        description="District development requirements published by Government Departments seeking Corporate CSR funding support."
         actions={
           <Link
             href="/requirements/create"
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 px-4 py-2 text-xs font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105"
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 px-4 py-2.5 text-xs font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105"
           >
             <Plus size={16} /> Create Requirement
           </Link>
         }
       />
 
-      {/* Modern Metrics Grid */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+      {/* Standard 4-Column Animated KPI Cards */}
+      <StatCardGroup columns={4}>
         <StatCard
           label="Total Requirements"
-          value={reqsList.length}
+          value={isLoading ? "…" : reqsList.length}
           icon={FileText}
           index={0}
           colorTheme="blue"
-          badge="CSR Needs"
-          sublabel="Departmental CSR Needs"
+          sublabel="Departmental CSR needs"
         />
         <StatCard
-          label="Total Funding Needed"
-          value={`₹${(reqsList.reduce((acc, curr) => acc + curr.estimatedCostLakhs, 0) / 100).toFixed(2)} Cr`}
+          label="Funding Needed"
+          value={isLoading ? "…" : `₹${(totalCost / 100).toFixed(2)} Cr`}
           icon={Coins}
           index={1}
           colorTheme="amber"
-          badge="Gap Funding"
           sublabel="Gap funding requirement"
         />
         <StatCard
           label="Published Needs"
-          value={reqsList.filter(r => r.status === "PUBLISHED" || r.status === "APPROVED").length}
+          value={isLoading ? "…" : publishedCount}
           icon={CheckCircle2}
           index={2}
           colorTheme="emerald"
-          badge="Open Pledges"
           sublabel="Open for CSR pledges"
         />
-      </div>
+        <StatCard
+          label="Districts Covered"
+          value={isLoading ? "…" : uniqueDistricts.length}
+          icon={Landmark}
+          index={3}
+          colorTheme="purple"
+          sublabel="Active districts in scope"
+        />
+      </StatCardGroup>
 
       {/* Main Content Area */}
       <div className="rounded-2xl border border-white/80 bg-white/90 backdrop-blur-2xl p-6 shadow-glass">

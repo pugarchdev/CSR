@@ -15,7 +15,6 @@ import {
   Users,
   Sparkles,
   ExternalLink,
-  ShieldCheck,
 } from "lucide-react";
 import HeroSection from "@/components/HeroSection";
 import { GisMap } from "@/components/LazyComponents";
@@ -494,7 +493,7 @@ export default function LandingPageClient() {
                       </tr>
                     </thead>
                     <tbody className="text-slate-600">
-                      {notices.map(([title, category, type, date]) => (
+                      {notices.map(([title, category, _type, date]) => (
                         <tr key={title} className="hover:bg-blue-50/40 transition-colors border-b border-slate-100/80">
                           <td className="px-3.5 py-3.5 font-bold text-slate-800">{title}</td>
                           <td className="px-3.5 py-3.5 font-semibold text-blue-600">{category}</td>

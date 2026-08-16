@@ -2,8 +2,8 @@
 "use client";
 
 import { motion, HTMLMotionProps, AnimatePresence } from "framer-motion";
-import { ReactNode, useEffect, useState, useRef } from "react";
-import { pageTransition, fadeInUp, fadeIn, staggerContainer, staggerItem } from "./variants";
+import { ReactNode, useEffect, useState } from "react";
+import { pageTransition, fadeInUp, fadeIn } from "./variants";
 import { cn } from "@/lib/utils";
 
 // ============================================

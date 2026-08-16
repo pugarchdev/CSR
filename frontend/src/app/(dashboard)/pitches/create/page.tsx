@@ -13,10 +13,9 @@ import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import GovPageHeader from "@/components/layout/GovPageHeader";
 import { Modal } from "@/components/ui/Modal";
 import {
-  Building2, CheckCircle, Loader2, Camera, ArrowLeft, ChevronDown, X,
-  FileText, Trash2, Paperclip, Search, Landmark, MapPin, Coins, Sparkles, ShieldCheck, CheckCircle2, AlertCircle, Clock
+  CheckCircle, Camera, ArrowLeft, ChevronDown, X,
+  FileText, Paperclip, Search, Sparkles, ShieldCheck, CheckCircle2, AlertCircle, Clock
 } from "lucide-react";
-import Link from "next/link";
 import { locationData } from "@/lib/locationData";
 import { useAuthStore } from "@/store/authStore";
 

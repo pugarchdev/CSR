@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { apiFetch } from "@/lib/api";
@@ -10,7 +9,7 @@ import { useResponsiveViewMode } from "@/hooks/useResponsiveViewMode";
 import { ViewToggle } from "@/components/ui/ViewToggle";
 import {
   HeartHandshake, MapPin, Search, Filter, Loader2, Eye, CheckCircle2,
-  Building2, ArrowUpRight, ChevronLeft, ChevronRight, X, LogIn, UserPlus, Lock, ShieldCheck
+  X, LogIn, UserPlus, Lock
 } from "lucide-react";
 
 interface DevelopmentNeed {
@@ -48,7 +47,6 @@ const DISTRICTS = [
 const ITEMS_PER_PAGE = 12;
 
 export default function PublicDevelopmentNeedsPage() {
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [needs, setNeeds] = useState<DevelopmentNeed[]>([]);
@@ -172,7 +170,7 @@ export default function PublicDevelopmentNeedsPage() {
         }
       }
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDistrictChange = (district: string) => {
     setSelectedDistrict(district);

@@ -1,26 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import {
   ShieldCheck,
-  Building2,
   CheckCircle2,
   AlertCircle,
-  Clock,
   Loader2,
-  Check,
   Send,
   Camera,
   FileText,
   AlertTriangle,
   MessageSquare,
-  Users,
-  Calendar,
   Layers,
   Archive,
-  ChevronRight,
-  Upload,
   CheckSquare
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
@@ -61,7 +54,7 @@ export default function ProjectExecutionPage() {
   const [siteStatus, setSiteStatus] = useState("VERIFIED");
   const [siteRemarks, setSiteRemarks] = useState("");
 
-  const fetchProjectData = async () => {
+  const fetchProjectData = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
@@ -84,11 +77,11 @@ export default function ProjectExecutionPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
 
   useEffect(() => {
     if (projectId) fetchProjectData();
-  }, [projectId]);
+  }, [projectId, fetchProjectData]);
 
   const handleDnoAccept = async () => {
     try {

@@ -4,8 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ShieldCheck,
-  Building2,
-  FileCheck,
   Upload,
   CheckCircle2,
   AlertCircle,

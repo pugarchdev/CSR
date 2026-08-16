@@ -1,16 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { motion } from "framer-motion";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import { GovPageHeader } from "@/components/layout/GovPageHeader";
 import { useAuthStore } from "@/store/authStore";
 import { useApiQuery } from "@/lib/apiHooks";
-import { Loader } from "@/components/ui/Loader";
 import {
-  User, Building2, ShieldCheck, Key, CheckCircle2, Clock, Lock, Copy, Check,
-  RefreshCw, Search, Sparkles, MapPin, Mail, Phone, Briefcase, Award, FileText,
-  Layers, ChevronRight, ShieldAlert, CheckCircle
+  User, Building2, ShieldCheck, Key, CheckCircle2, Lock, Copy, Check,
+  RefreshCw, Search, Sparkles, MapPin, Mail, Phone, Briefcase, Award,
+  Layers, ChevronRight, CheckCircle
 } from "lucide-react";
 
 export default function ProfilePage() {
@@ -21,7 +19,7 @@ export default function ProfilePage() {
   const fetchEffectivePermissions = useAuthStore((s) => s.fetchEffectivePermissions);
   const isLoadingPermissions = useAuthStore((s) => s.isLoadingPermissions);
 
-  const { data: meEnvelope, isLoading: isMeLoading, refetch } = useApiQuery<any>(
+  const { data: meEnvelope, refetch } = useApiQuery<any>(
     ["auth-me-profile"],
     "/auth/me"
   );

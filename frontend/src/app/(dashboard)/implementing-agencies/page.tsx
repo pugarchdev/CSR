@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
-import { Users, Building2, Plus, Search, CheckCircle2, ShieldCheck, ArrowRight, ExternalLink } from "lucide-react";
-import { useApiQuery } from "@/lib/apiHooks";
+import { Plus, CheckCircle2, ArrowRight } from "lucide-react";
 
 interface NgoMembership {
   id: string;
@@ -17,7 +16,7 @@ interface NgoMembership {
 }
 
 export default function ImplementingAgenciesPage() {
-  const [searchTerm, setSearchTerm] = useState("");
+
 
   const partnerships: NgoMembership[] = [
     {
@@ -42,10 +41,7 @@ export default function ImplementingAgenciesPage() {
     }
   ];
 
-  const filtered = partnerships.filter((p) =>
-    p.ngoName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.darpanId.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filtered = partnerships;
 
   return (
     <div className="space-y-6">

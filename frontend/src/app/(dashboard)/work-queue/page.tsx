@@ -3,8 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import {
-  FileText, Compass, HeartHandshake, Clock, Search, Filter,
-  ArrowRight, CheckCircle2, ShieldAlert, Sparkles, UserCheck
+  FileText, Compass, HeartHandshake, ArrowRight
 } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
 
@@ -21,9 +20,8 @@ interface CaseItem {
 
 export default function RmWorkQueuePage() {
   const [activeTab, setActiveTab] = useState<"ALL" | "CORPORATE_ENQUIRY" | "GOVERNMENT_PITCH" | "CORPORATE_PITCH_INTEREST">("ALL");
-  const [search, setSearch] = useState("");
 
-  const { data: response, isLoading } = useApiQuery<{ success: boolean; data: any }>(
+  const { data: response } = useApiQuery<{ success: boolean; data: any }>(
     ["rm", "cases"],
     "/dashboard/summary"
   );
@@ -34,11 +32,7 @@ export default function RmWorkQueuePage() {
     { id: "case-3", trackingId: "INT-2026-088", type: "CORPORATE_PITCH_INTEREST", currentStage: "JS_REVIEW", status: "SUBMITTED_TO_JS", createdAt: new Date().toISOString(), firstContactedAt: new Date().toISOString(), lastInteractionAt: new Date().toISOString() }
   ];
 
-  const filteredCases = cases.filter((c) => {
-    const matchesTab = activeTab === "ALL" || c.type === activeTab;
-    const matchesSearch = c.trackingId.toLowerCase().includes(search.toLowerCase()) || (c.type || "").toLowerCase().includes(search.toLowerCase());
-    return matchesTab && matchesSearch;
-  });
+  const filteredCases = cases.filter((c) => activeTab === "ALL" || c.type === activeTab);
 
   return (
     <div className="space-y-6">

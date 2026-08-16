@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { MessageSquare, Phone, Mail, Calendar, Plus, Clock, Search, CheckCircle2 } from "lucide-react";
-import { useApiQuery } from "@/lib/apiHooks";
+import { MessageSquare, Phone, Mail, Calendar, Plus } from "lucide-react";
 
 interface Interaction {
   id: string;

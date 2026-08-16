@@ -15,8 +15,6 @@ import { Loader } from "./ui/Loader";
 import { apiFetch, getStoredUser, getAccessToken } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import PageGuard from "@/components/auth/PageGuard";
-import { isNavItemVisible } from "@/lib/pageRegistry";
-import { resolveNavItems } from "@/lib/navRegistry";
 import { resolveDashboardPath } from "@/lib/roleRouting";
 import { resolveNotificationUrl } from "@/lib/notificationUtils";
 import { Sidebar, resolveNavIcon } from "@/components/layout/Sidebar";
@@ -78,7 +76,7 @@ const publicNavGroups = [
 export default function SaaSLayout({ children }: SaaSLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user: storeUser, roles: storeRoles = [], isAdmin: storeIsAdmin, hasPermission, isLoadingPermissions } = useAuthStore();
+  const { roles: storeRoles = [], isAdmin: storeIsAdmin, hasPermission, isLoadingPermissions } = useAuthStore();
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("mahacsr_sidebar_collapsed");
@@ -169,7 +167,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
 
   const isLoggedIn = mounted && typeof window !== "undefined" && !!getAccessToken();
 
-  const usesGovPortalShell =
+  const _usesGovPortalShell =
     pathname.startsWith("/admin") ||
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/onboarding") ||

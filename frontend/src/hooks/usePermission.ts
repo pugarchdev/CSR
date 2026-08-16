@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useAuthStore, PermissionData } from "@/store/authStore";
+import { useAuthStore } from "@/store/authStore";
 import { fetchUserPermissions, fetchModulePermissions, checkPermission } from "@/lib/api";
 
 interface UsePermissionReturn {
@@ -91,7 +91,7 @@ export function usePermission(): UsePermissionReturn {
  * Returns boolean indicating if user has the permission
  */
 export function useHasPermission(permission: string): boolean {
-  const { hasPermission, isLoading } = usePermission();
+  const { hasPermission } = usePermission();
   return hasPermission(permission);
 }
 

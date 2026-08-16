@@ -5,7 +5,7 @@ import { apiFetch } from "@/lib/api";
 import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
 import { Button } from "@/components/ui/Button";
-import { Check, X, HelpCircle, Eye, ShieldCheck, MapPin, AlertTriangle, FileText } from "lucide-react";
+import { X, HelpCircle, ShieldCheck, MapPin, AlertTriangle, FileText } from "lucide-react";
 
 export default function ProjectVerificationQueue() {
   const [queue, setQueue] = useState<any[]>([]);

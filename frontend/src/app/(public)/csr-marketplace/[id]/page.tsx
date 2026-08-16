@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import { apiFetch, API_BASE_URL, getAccessToken } from "@/lib/api";
@@ -8,8 +8,7 @@ import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
 import { Button } from "@/components/ui/Button";
 import {
-  Building2, Landmark, Coins, Users, Clock, FileText, Compass, AlertTriangle,
-  MapPin, CheckCircle2, ChevronRight, User, PlusCircle, ArrowLeft, UploadCloud, Target, ShieldCheck,
+  Landmark, ArrowLeft, UploadCloud, Target,
   XCircle
 } from "lucide-react";
 
@@ -96,16 +95,7 @@ export default function CSRRequirementDetail() {
     certificateUrls: [] as string[]
   });
   const [submittingCompletion, setSubmittingCompletion] = useState(false);
-
-  useEffect(() => {
-    // Get user info
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) setUser(JSON.parse(storedUser));
-
-    fetchRequirementDetails();
-  }, [id]);
-
-  const fetchRequirementDetails = async () => {
+  const fetchRequirementDetails = useCallback(async () => {
     setLoading(true);
     try {
       const data = await apiFetch<any>(`/csr-requirements/${id}`);
@@ -132,7 +122,15 @@ export default function CSRRequirementDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    // Get user info
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) setUser(JSON.parse(storedUser));
+
+    fetchRequirementDetails();
+  }, [id, fetchRequirementDetails]);
 
   const getStatusVariant = (status: string) => {
     switch (status) {
@@ -1146,8 +1144,8 @@ export default function CSRRequirementDetail() {
                       <Button type="button" onClick={() => setShowCompletionForm(false)} className="bg-slate-200 text-slate-800">
                         Cancel
                       </Button>
-                      <Button type="submit" className="bg-blue-900 text-white font-bold">
-                        Submit Report
+                      <Button type="submit" disabled={submittingCompletion} className="bg-blue-900 text-white font-bold">
+                        {submittingCompletion ? "Submitting..." : "Submit Report"}
                       </Button>
                     </div>
                   </form>

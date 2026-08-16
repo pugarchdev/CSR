@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { AlertCircle, AlertTriangle, Plus, Search, CheckCircle2, ShieldAlert, ArrowRight } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -31,7 +31,7 @@ export default function ProjectIssuesPage() {
   const [severity, setSeverity] = useState<"LOW" | "MEDIUM" | "HIGH" | "CRITICAL">("HIGH");
   const [projectId, setProjectId] = useState("");
 
-  const { data: response, isLoading, refetch } = useApiQuery<{ success: boolean; data: IssueItem[] }>(
+  const { data: response, refetch } = useApiQuery<{ success: boolean; data: IssueItem[] }>(
     ["issues"],
     "/issues"
   );
@@ -75,7 +75,7 @@ export default function ProjectIssuesPage() {
       queryClient.invalidateQueries({ queryKey: ["issues"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard", "summary"] });
       refetch();
-    } catch (err) {
+    } catch {
       setShowAddModal(false);
     }
   };

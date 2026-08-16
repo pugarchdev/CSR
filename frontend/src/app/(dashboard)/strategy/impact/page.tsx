@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Award, TrendingUp, Target, CheckCircle2, ShieldCheck, ArrowUpRight } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
 
 interface ImpactResponse {
@@ -22,7 +22,7 @@ interface ImpactResponse {
 }
 
 export default function ImpactIndicatorsPage() {
-  const { data: response, isLoading } = useApiQuery<ImpactResponse>(
+  const { data: response } = useApiQuery<ImpactResponse>(
     ["strategy", "impact"],
     "/strategy/impact"
   );

@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Search, Building2, Send, CheckCircle2, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Send, CheckCircle2 } from "lucide-react";
 
 export default function InviteNgoPage() {
   const router = useRouter();

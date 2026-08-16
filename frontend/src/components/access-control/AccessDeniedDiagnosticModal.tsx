@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, Lock, ShieldAlert, Mail, UserCheck, ChevronRight } from "lucide-react";
+import { Lock, Mail } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 

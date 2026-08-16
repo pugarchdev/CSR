@@ -2,7 +2,6 @@ import {
   NAVIGATION_GROUPS,
   NAVIGATION_MANIFEST,
   isNavItemAllowed,
-  getNavItemForRoute,
   NavItemDef
 } from "../lib/navigationManifest";
 import { getActiveNavContext } from "../components/layout/Sidebar";

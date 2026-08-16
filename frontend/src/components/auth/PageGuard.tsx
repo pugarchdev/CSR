@@ -4,7 +4,6 @@ import React, { useMemo, useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { getNavItemForRoute, isNavItemAllowed, isInternalAuthorityUser } from "@/lib/navigationManifest";
-import { AccessRestricted } from "./AccessRestricted";
 import { Loader2, RefreshCw, AlertCircle } from "lucide-react";
 
 export default function PageGuard({ children }: { children: React.ReactNode }) {
@@ -15,7 +14,6 @@ export default function PageGuard({ children }: { children: React.ReactNode }) {
     isAdmin,
     roles,
     user,
-    permissions,
     fetchStatus,
     fetchError,
     isLoadingPermissions,
@@ -23,12 +21,13 @@ export default function PageGuard({ children }: { children: React.ReactNode }) {
     fetchEffectivePermissions
   } = useAuthStore();
 
-  const userRoles = roles?.length > 0 ? roles : (user?.role ? [user.role] : []);
+
 
   const [lastAllowedChildren, setLastAllowedChildren] = useState<React.ReactNode>(null);
   const [hasNavigatedBack, setHasNavigatedBack] = useState(false);
 
   const decision = useMemo(() => {
+    const userRoles = roles?.length > 0 ? roles : (user?.role ? [user.role] : []);
     // Universal public routes or root
     const publicPrefixes = [
       "/",
@@ -118,7 +117,7 @@ export default function PageGuard({ children }: { children: React.ReactNode }) {
     const requiredPerm = manifestItem.requiredAnyPermissions?.join(" or ") || manifestItem.requiredAllPermissions?.join(" and ");
 
     return { allowed, requiredPerm };
-  }, [pathname, isAuthenticated, isAdmin, userRoles, permissions, hasPermission]);
+  }, [pathname, isAuthenticated, isAdmin, roles, user?.role, hasPermission]);
 
   useEffect(() => {
     if (decision.allowed) {

@@ -1,5 +1,4 @@
 import { NAVIGATION_MANIFEST, isNavItemAllowed, getNavItemForRoute } from "../lib/navigationManifest";
-import { isNavItemVisible } from "../lib/pageRegistry";
 import { useAuthStore } from "../store/authStore";
 
 /**

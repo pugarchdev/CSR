@@ -202,13 +202,15 @@ export default function ImpactSphere() {
     };
     animate();
 
+    const currentContainer = containerRef.current;
+
     // Cleanup
     return () => {
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("resize", handleResize);
       cancelAnimationFrame(animationId);
-      if (containerRef.current && renderer.domElement) {
-        containerRef.current.removeChild(renderer.domElement);
+      if (currentContainer && renderer.domElement) {
+        currentContainer.removeChild(renderer.domElement);
       }
       geometry.dispose();
       material.dispose();

@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Layers, Building2, MapPin, ArrowRight, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { MapPin, ArrowRight } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
 
 interface ConvergenceResponse {
@@ -28,7 +28,7 @@ interface ConvergenceResponse {
 }
 
 export default function ConvergencePage() {
-  const { data: response, isLoading } = useApiQuery<ConvergenceResponse>(
+  const { data: response } = useApiQuery<ConvergenceResponse>(
     ["strategy", "convergence"],
     "/strategy/convergence"
   );

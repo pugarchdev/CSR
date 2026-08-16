@@ -1,14 +1,14 @@
 "use client";
 
 import React from "react";
-import { BarChart3, PieChart, TrendingUp, Layers, Users, Building2 } from "lucide-react";
+import { BarChart3, TrendingUp, Layers } from "lucide-react";
 
 interface DashboardChartsProps {
   charts?: any;
   userRoleId?: number;
 }
 
-export const DashboardCharts: React.FC<DashboardChartsProps> = ({ charts, userRoleId }) => {
+export const DashboardCharts: React.FC<DashboardChartsProps> = ({ charts: _charts, userRoleId: _userRoleId }) => {
   // If no specific chart data is supplied, show appropriate role-scoped visualizations
   return (
     <section aria-labelledby="charts-heading" className="space-y-3">

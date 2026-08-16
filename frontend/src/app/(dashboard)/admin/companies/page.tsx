@@ -2,15 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Building, CheckCircle2, Clock, ShieldAlert } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
-import GovPageHeader from "@/components/layout/GovPageHeader";
+import { StandardPageHeader } from "@/components/layout/StandardPageHeader";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
 import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
 import GovButton from "@/components/gov/GovButton";
 import GovInput from "@/components/gov/GovInput";
 import GovSelect from "@/components/gov/GovSelect";
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
-import { apiFetch } from "@/lib/api";
 import "@/styles/gov-theme.css";
 
 export default function CompaniesPage() {
@@ -72,95 +73,90 @@ export default function CompaniesPage() {
 
   const filteredCompanies = items;
 
-return (
+  return (
     <GovPortalLayout>
-      <GovPageHeader
-        title="Corporate Company Partners"
-        breadcrumb="Admin / Companies"
-      />
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 text-slate-900">
+        <StandardPageHeader
+          title="Corporate Company Partners"
+          category="Admin / Companies"
+          description="Registry of verified CSR companies, corporate foundations, and industry partners contributing to Maharashtra state development."
+        />
 
-      {/* Force reduced padding on mobile container */}
-      <div className="gov-container !px-2 sm:!px-4 md:!px-6">
-        
-        {/* Stats Cards - Updated grid for better mobile stacking */}
-        <div className="gov-grid gov-grid-cols-2 md:gov-grid-cols-4 gov-gap-3 md:gov-gap-6 gov-mb-6">
-          <GovCard>
-            <GovCardBody className="!p-3 md:!p-5">
-              <div className="gov-text-xs md:gov-text-sm gov-text-muted gov-mb-1">Total Companies</div>
-              <div className="gov-text-2xl md:gov-text-3xl gov-font-bold gov-text-primary">{loading ? "…" : pagination.total}</div>
-              <div className="gov-text-[10px] md:gov-text-xs gov-text-muted gov-mt-1">Registered corporate partners</div>
-            </GovCardBody>
-          </GovCard>
-          <GovCard>
-            <GovCardBody className="!p-3 md:!p-5">
-              <div className="gov-text-xs md:gov-text-sm gov-text-muted gov-mb-1">Active</div>
-              <div className="gov-text-2xl md:gov-text-3xl gov-font-bold" style={{ color: "#166534" }}>
-                {loading ? "…" : (pagination.active || 0)}
-              </div>
-              <div className="gov-text-[10px] md:gov-text-xs gov-text-muted gov-mt-1">Currently operational</div>
-            </GovCardBody>
-          </GovCard>
-          <GovCard>
-            <GovCardBody className="!p-3 md:!p-5">
-              <div className="gov-text-xs md:gov-text-sm gov-text-muted gov-mb-1">Under Review</div>
-              <div className="gov-text-2xl md:gov-text-3xl gov-font-bold" style={{ color: "#005ea8" }}>
-                {loading ? "…" : (pagination.pending || 0)}
-              </div>
-              <div className="gov-text-[10px] md:gov-text-xs gov-text-muted gov-mt-1">Pending verification</div>
-            </GovCardBody>
-          </GovCard>
-          <GovCard>
-            <GovCardBody className="!p-3 md:!p-5">
-              <div className="gov-text-xs md:gov-text-sm gov-text-muted gov-mb-1">Suspended</div>
-              <div className="gov-text-2xl md:gov-text-3xl gov-font-bold" style={{ color: "#b91c1c" }}>
-                {loading ? "…" : (pagination.suspended || 0)}
-              </div>
-              <div className="gov-text-[10px] md:gov-text-xs gov-text-muted gov-mt-1">Compliance issues</div>
-            </GovCardBody>
-          </GovCard>
+        {/* 4-Column Animated KPI Cards */}
+        <StatCardGroup columns={4}>
+          <StatCard
+            label="Total Companies"
+            value={loading ? "…" : pagination.total}
+            icon={Building}
+            colorTheme="blue"
+            sublabel="Registered corporate partners"
+            index={0}
+          />
+          <StatCard
+            label="Active Partners"
+            value={loading ? "…" : (pagination.active || 0)}
+            icon={CheckCircle2}
+            colorTheme="emerald"
+            sublabel="Currently operational"
+            index={1}
+          />
+          <StatCard
+            label="Under Review"
+            value={loading ? "…" : (pagination.pending || 0)}
+            icon={Clock}
+            colorTheme="amber"
+            sublabel="Pending verification"
+            index={2}
+          />
+          <StatCard
+            label="Suspended / Compliance"
+            value={loading ? "…" : (pagination.suspended || 0)}
+            icon={ShieldAlert}
+            colorTheme="rose"
+            sublabel="Compliance flagged"
+            index={3}
+          />
+        </StatCardGroup>
+
+        {/* Search and Filters Bar */}
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+            <GovInput
+              label="Search Company"
+              placeholder="Search by name or CIN..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <GovSelect
+              label="Status"
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="all">All Status</option>
+              <option value="Active">Active</option>
+              <option value="Under Review">Under Review</option>
+              <option value="Suspended">Suspended</option>
+            </GovSelect>
+            <GovSelect
+              label="Sector"
+              value={sectorFilter}
+              onChange={(e) => {
+                setSectorFilter(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="all">All Sectors</option>
+              <option value="Automotive">Automotive</option>
+              <option value="IT Services">IT Services</option>
+              <option value="Conglomerate">Conglomerate</option>
+              <option value="Manufacturing">Manufacturing</option>
+              <option value="Banking">Banking</option>
+            </GovSelect>
+          </div>
         </div>
-
-        {/* Filters */}
-        <GovCard className="gov-mb-6">
-          <GovCardBody className="!p-3 md:!p-5">
-            <div className="gov-grid gov-grid-cols-1 sm:gov-grid-cols-3 gov-gap-3 md:gov-gap-4">
-              <GovInput
-                label="Search Company"
-                placeholder="Search by name or CIN..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <GovSelect
-                label="Status"
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  setPage(1);
-                }}
-              >
-                <option value="all">All Status</option>
-                <option value="Active">Active</option>
-                <option value="Under Review">Under Review</option>
-                <option value="Suspended">Suspended</option>
-              </GovSelect>
-              <GovSelect
-                label="Sector"
-                value={sectorFilter}
-                onChange={(e) => {
-                  setSectorFilter(e.target.value);
-                  setPage(1);
-                }}
-              >
-                <option value="all">All Sectors</option>
-                <option value="Automotive">Automotive</option>
-                <option value="IT Services">IT Services</option>
-                <option value="Conglomerate">Conglomerate</option>
-                <option value="Manufacturing">Manufacturing</option>
-                <option value="Banking">Banking</option>
-              </GovSelect>
-            </div>
-          </GovCardBody>
-        </GovCard>
 
         {/* Companies List */}
         <GovCard>

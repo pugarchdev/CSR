@@ -3,10 +3,8 @@
 import { useState, useEffect } from "react";
 import {
   Building2,
-  Users,
   ShieldCheck,
   Mail,
-  Phone,
   CheckCircle2,
   AlertCircle,
   Loader2,

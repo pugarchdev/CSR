@@ -5,7 +5,7 @@ import { apiFetch } from "@/lib/api";
 import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
 import { Button } from "@/components/ui/Button";
-import { ShieldAlert, CheckCircle, XCircle, Search, Landmark, Clock, FileText } from "lucide-react";
+import { Search, Landmark } from "lucide-react";
 
 export default function NGOEmpanelmentVerification() {
   const [ngos, setNgos] = useState<any[]>([]);

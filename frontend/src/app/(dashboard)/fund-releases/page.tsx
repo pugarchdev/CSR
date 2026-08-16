@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { useApiQuery } from "@/lib/apiHooks";
-import { GovPageHeader } from "@/components/layout/GovPageHeader";
-import { StatCard } from "@/components/ui/StatCard";
+import { StandardPageHeader } from "@/components/layout/StandardPageHeader";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import { Loader } from "@/components/ui/Loader";
 import { Pagination } from "@/components/ui/Pagination";
 import {
-  Coins, Search, ShieldCheck, CheckCircle2, Landmark, Check, FileText
+  Coins, Search, ShieldCheck, Check, FileText, Clock
 } from "lucide-react";
 
 interface FundReleaseItem {
@@ -96,6 +96,9 @@ export default function FundReleasesPage() {
     .filter(r => r.status === "DISBURSED")
     .reduce((acc, curr) => acc + curr.releaseAmountCr, 0);
 
+  const readyCount = fundReleasesList.filter(r => r.status === "VERIFIED_READY").length;
+  const pendingCount = fundReleasesList.filter(r => r.status === "APPROVED").length;
+
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 9;
 
@@ -107,43 +110,48 @@ export default function FundReleasesPage() {
 
   return (
     <GovPortalLayout>
-      <div className="mx-auto flex min-h-screen max-w-7xl flex-col gap-5 px-4 py-6 md:px-8">
-        <GovPageHeader
-          title="Escrow Fund Release Queue & Milestone Tranches"
-          eyebrow="Financial Governance"
-          description="Escrow fund release authorization, milestone verification, and tranche disbursement tracking."
+      <div className="mx-auto flex min-h-screen max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 text-slate-900">
+        <StandardPageHeader
+          title="Escrow Fund Release Queue"
+          category="Financial Governance"
+          description="Escrow fund release authorization, milestone verification, and tranche disbursement tracking for approved CSR projects."
         />
 
-        {/* KPI Metrics */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {/* 4-Column Animated KPI Cards */}
+        <StatCardGroup columns={4}>
           <StatCard
-            label="Verified & Ready"
-            value={fundReleasesList.filter(r => r.status === "VERIFIED_READY").length}
-            icon={ShieldCheck}
+            label="Total Tranches"
+            value={isLoading ? "…" : fundReleasesList.length}
+            icon={FileText}
             index={0}
             colorTheme="blue"
-            badge="Ready for Release"
-            sublabel="Audited Milestones"
+            sublabel="Tracked milestones"
           />
           <StatCard
-            label="Total Authorized Releases"
-            value={`₹${disbursedTotalCr.toFixed(2)} Cr`}
-            icon={Coins}
+            label="Verified & Ready"
+            value={isLoading ? "…" : readyCount}
+            icon={ShieldCheck}
             index={1}
-            colorTheme="emerald"
-            badge="Disbursed Outlay"
-            sublabel="Released to Escrow"
+            colorTheme="purple"
+            sublabel="Audited milestones ready"
           />
           <StatCard
-            label="Empaneled Escrow Banks"
-            value="0 Banks"
-            icon={Landmark}
+            label="Disbursed Outlay"
+            value={isLoading ? "…" : `₹${disbursedTotalCr.toFixed(2)} Cr`}
+            icon={Coins}
             index={2}
-            colorTheme="amber"
-            badge="Escrow Gateway"
-            sublabel="No banks empaneled"
+            colorTheme="emerald"
+            sublabel="Released to escrow"
           />
-        </div>
+          <StatCard
+            label="Pending Sanction"
+            value={isLoading ? "…" : pendingCount}
+            icon={Clock}
+            index={3}
+            colorTheme="amber"
+            sublabel="Awaiting field verification"
+          />
+        </StatCardGroup>
 
         {/* Main Content Area */}
         <div className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs space-y-4">

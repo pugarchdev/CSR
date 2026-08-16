@@ -2,13 +2,11 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, Shield, Key, Check, Minus, LayoutGrid, List } from "lucide-react";
+import { Search, Key, Check, Minus, LayoutGrid, List } from "lucide-react";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import GovPageHeader from "@/components/layout/GovPageHeader";
 import { Card, CardContent } from "@/components/ui/Card";
-import { RiskBadge, DelegableBadge } from "@/components/access-control/RoleBadges";
 import { usePermissions } from "@/hooks/useAccessControl";
-import { cn } from "@/lib/utils";
 import type { Permission } from "@/types/accessControl";
 import "@/styles/gov-theme.css";
 
@@ -38,7 +36,7 @@ const MATRIX_MODULE_OVERVIEW = [
 export default function PermissionsPage() {
   const { data: permissions = [], isLoading } = usePermissions();
   const [search, setSearch] = useState("");
-  const [riskFilter, setRiskFilter] = useState<string>("ALL");
+
   const [viewMode, setViewMode] = useState<"catalog" | "matrix">("catalog");
 
   const modules = useMemo(() => {
@@ -55,7 +53,6 @@ export default function PermissionsPage() {
     return modules
       .map(([mod, perms]) => {
         const f = perms.filter((p) => {
-          if (riskFilter !== "ALL" && (p.riskLevel || "LOW") !== riskFilter) return false;
           if (!search.trim()) return true;
           const term = search.toLowerCase();
           return (
@@ -68,7 +65,7 @@ export default function PermissionsPage() {
         return [mod, f] as [string, Permission[]];
       })
       .filter(([, perms]) => perms.length > 0);
-  }, [modules, search, riskFilter]);
+  }, [modules, search]);
 
   return (
     <GovPortalLayout>

@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Image as ImageIcon, MapPin, Calendar, Tag, Play } from "lucide-react";
-import { Card, CardHeader, CardContent } from "@/components/ui/Card";
+import { Image as ImageIcon, MapPin, Calendar } from "lucide-react";
 
 const galleryItems = [
   { id: "1", title: "Check Dam Construction in Aheri", location: "Gadchiroli", date: "June 2026", tag: "Water", image: "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?q=80&w=400" },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Building2,
   Search,
@@ -8,7 +8,6 @@ import {
   Clock,
   Loader2,
   AlertCircle,
-  ArrowRight,
   ShieldCheck,
   Send,
   HelpCircle

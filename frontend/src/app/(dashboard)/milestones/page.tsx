@@ -3,10 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
-import GovPageHeader from "@/components/layout/GovPageHeader";
-import { StatCard } from "@/components/ui/StatCard";
+import { StandardPageHeader } from "@/components/layout/StandardPageHeader";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
 import { useApiQuery } from "@/lib/apiHooks";
-import { Flag, CheckCircle2, Clock, AlertTriangle, ArrowUpRight, Search, Filter, Loader2, Building2 } from "lucide-react";
+import { Flag, CheckCircle2, Clock, ArrowUpRight, Search, Loader2, ShieldCheck } from "lucide-react";
 
 export default function MilestonesPage() {
   const { data: envelope, isLoading } = useApiQuery<any>(["all-milestones"], "/convergence-projects");
@@ -32,42 +32,54 @@ export default function MilestonesPage() {
     );
   });
 
+  const completedCount = milestonesList.filter((m: any) => m.status === "COMPLETED" || m.status === "VERIFIED").length;
+  const inProgressCount = milestonesList.filter((m: any) => m.status === "IN_PROGRESS" || m.status === "ACTIVE").length;
+  const pendingCount = milestonesList.filter((m: any) => m.status !== "COMPLETED" && m.status !== "VERIFIED" && m.status !== "IN_PROGRESS" && m.status !== "ACTIVE").length;
+
   return (
     <GovPortalLayout>
-      <main className="mx-auto min-h-screen max-w-screen-2xl space-y-4 px-4 py-4 md:px-6">
-        <GovPageHeader
+      <main className="mx-auto min-h-screen max-w-7xl space-y-6 px-4 py-6 md:px-8 text-slate-900">
+        <StandardPageHeader
           title="Project Milestones & Verification Register"
-          eyebrow="Execution Monitoring"
+          category="Execution Monitoring"
           description="Track milestone deliverables, progress status, field inspection evidence, and fund release triggers across active projects."
         />
 
-        {/* Metrics */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {/* Standard 4-Column KPI Cards */}
+        <StatCardGroup columns={4}>
           <StatCard
             label="Total Milestones"
-            value={milestonesList.length}
+            value={isLoading ? "…" : milestonesList.length}
             icon={Flag}
             index={0}
-            badge="Milestones Engine"
+            colorTheme="blue"
             sublabel="Configured project targets"
           />
           <StatCard
             label="Completed & Verified"
-            value={milestonesList.filter((m: any) => m.status === "COMPLETED" || m.status === "VERIFIED").length}
+            value={isLoading ? "…" : completedCount}
             icon={CheckCircle2}
             index={1}
-            badge="Verified Deliverables"
+            colorTheme="emerald"
             sublabel="Verified by inspection team"
           />
           <StatCard
-            label="In Progress & Due"
-            value={milestonesList.filter((m: any) => m.status !== "COMPLETED" && m.status !== "VERIFIED").length}
+            label="Active In Progress"
+            value={isLoading ? "…" : inProgressCount}
             icon={Clock}
             index={2}
-            badge="Active Execution"
-            sublabel="Pending physical verification"
+            colorTheme="purple"
+            sublabel="Under physical execution"
           />
-        </div>
+          <StatCard
+            label="Pending Inspection"
+            value={isLoading ? "…" : pendingCount}
+            icon={ShieldCheck}
+            index={3}
+            colorTheme="amber"
+            sublabel="Awaiting field verification"
+          />
+        </StatCardGroup>
 
         {/* Search Bar */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">

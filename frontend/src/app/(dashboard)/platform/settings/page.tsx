@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Sliders, ShieldAlert, CheckCircle2, Lock, Info, Save } from "lucide-react";
+import { Lock } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
 
 interface FeatureFlag {
@@ -13,7 +13,7 @@ interface FeatureFlag {
 }
 
 export default function PlatformSettingsPage() {
-  const { data: response, isLoading } = useApiQuery<{ success: boolean; data: FeatureFlag[] }>(
+  const { data: response } = useApiQuery<{ success: boolean; data: FeatureFlag[] }>(
     ["platform", "feature-flags"],
     "/platform-admin/feature-flags"
   );

@@ -173,14 +173,6 @@ const textReveal = {
   }),
 };
 
-const statsContainer = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { delayChildren: 0.6, staggerChildren: 0.1 },
-  },
-};
-
 const statItem = {
   hidden: { opacity: 0, scale: 0.8, y: 20 },
   visible: {

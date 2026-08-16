@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
-  FileText, CheckCircle2, Clock, Upload, ShieldCheck,
-  AlertCircle, FileCheck, ArrowRight, RefreshCw, PenTool
+  FileText, CheckCircle2, Clock, ShieldCheck,
+  AlertCircle, FileCheck, PenTool
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -44,7 +44,7 @@ interface MouWorkflowManagerProps {
 export function MouWorkflowManager({
   projectId,
   projectTitle,
-  userRole = "GOVERNMENT_OFFICER",
+  userRole: _userRole = "GOVERNMENT_OFFICER",
   onMouStatusChange
 }: MouWorkflowManagerProps) {
   const [mou, setMou] = useState<MouRecord | null>(null);
@@ -54,11 +54,7 @@ export function MouWorkflowManager({
   const [showSignModal, setShowSignModal] = useState(false);
   const toast = useToastActions();
 
-  useEffect(() => {
-    fetchMouDetails();
-  }, [projectId]);
-
-  const fetchMouDetails = async () => {
+  const fetchMouDetails = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch(`/api/v1/mou/project/${projectId}`);
@@ -74,7 +70,11 @@ export function MouWorkflowManager({
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId, onMouStatusChange, toast]);
+
+  useEffect(() => {
+    fetchMouDetails();
+  }, [fetchMouDetails]);
 
   const handleInitiateMou = async () => {
     try {

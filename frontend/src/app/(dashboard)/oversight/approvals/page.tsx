@@ -2,11 +2,11 @@
 
 import React from "react";
 import Link from "next/link";
-import { ShieldCheck, Clock, CheckCircle2, FileText, ArrowRight, Eye } from "lucide-react";
+import { Eye } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
 
 export default function OversightApprovalsPage() {
-  const { data: response, isLoading } = useApiQuery<{ success: boolean; data: any }>(
+  useApiQuery<{ success: boolean; data: any }>(
     ["oversight", "approvals"],
     "/dashboard/summary"
   );

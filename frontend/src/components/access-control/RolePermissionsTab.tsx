@@ -30,7 +30,7 @@ const DANGEROUS_COMBOS: { keys: string[]; warning: string }[] = [
 ];
 
 export function RolePermissionsTab({
-  role,
+  role: _role,
   allPermissions,
   currentPermissionKeys,
   originalPermissionKeys,

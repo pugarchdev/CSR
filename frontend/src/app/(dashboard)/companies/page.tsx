@@ -7,7 +7,7 @@ import { useApiQuery } from "@/lib/apiHooks";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import GovPageHeader from "@/components/layout/GovPageHeader";
 import { StatCard } from "@/components/ui/StatCard";
-import { ViewToggle, ViewMode } from "@/components/ui/ViewToggle";
+import { ViewToggle } from "@/components/ui/ViewToggle";
 import { useResponsiveViewMode } from "@/hooks/useResponsiveViewMode";
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
 import { Loader } from "@/components/ui/Loader";
@@ -74,11 +74,6 @@ export default function CompaniesPage() {
       raw: c
     };
   });
-
-  const compliantCount = companiesList.filter((c) => c.cinVerified).length;
-  const compliancePercentage = companiesList.length > 0
-    ? `${Math.round((compliantCount / companiesList.length) * 100)}% Compliant`
-    : "0% Compliant";
 
   const totalBudget = companiesList.reduce((acc, c) => acc + c.rawBudget, 0);
   const formattedTotalBudget = totalBudget > 0

@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState, useMemo, type ReactNode } from "react";
+import { useState, useMemo, type ReactNode } from "react";
 import {
   ArrowLeft, BadgeIndianRupee, Building2, Calendar, CheckCircle2, FileText,
-  Loader2, Send, MapPin, Layers, FileCode, ShieldCheck, AlertCircle, Camera, CheckSquare, Sparkles, Copy, Check
+  Loader2, Send, FileCode, ShieldCheck, AlertCircle, Copy, Check
 } from "lucide-react";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import { useApiQuery } from "@/lib/apiHooks";

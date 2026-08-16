@@ -36,8 +36,8 @@ import {
   RotateCcw
 } from "lucide-react";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
-import GovPageHeader from "@/components/layout/GovPageHeader";
-import { StatCard } from "@/components/ui/StatCard";
+import { StandardPageHeader } from "@/components/layout/StandardPageHeader";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
 import { useApiQuery } from "@/lib/apiHooks";
 import { apiFetch } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
@@ -99,13 +99,15 @@ export default function AssessmentsPage() {
   // Selected Assessment for Modal Drawer
   const [selectedAudit, setSelectedAudit] = useState<any | null>(null);
 
-  const rawAssessments = Array.isArray(response?.data)
-    ? response.data
-    : Array.isArray(response?.data?.assessments)
-    ? response.data.assessments
-    : Array.isArray(response)
-    ? response
-    : [];
+  const rawAssessments = useMemo(() => {
+    return Array.isArray(response?.data)
+      ? response.data
+      : Array.isArray(response?.data?.assessments)
+      ? response.data.assessments
+      : Array.isArray(response)
+      ? response
+      : [];
+  }, [response]);
 
   // Extract list of unique districts for filter
   const allDistricts = useMemo(() => {
@@ -213,24 +215,24 @@ export default function AssessmentsPage() {
 
   return (
     <GovPortalLayout>
-      <main className="mx-auto min-h-screen max-w-screen-2xl space-y-5 px-4 py-4 md:px-6">
+      <main className="mx-auto min-h-screen max-w-7xl space-y-6 px-4 py-6 md:px-8 text-slate-900">
         {/* Page Header */}
-        <GovPageHeader
-          eyebrow={isJs ? "Joint Secretary Decision Desk" : "13-Factor Feasibility Audit"}
+        <StandardPageHeader
+          category={isJs ? "Joint Secretary Decision Desk" : "13-Factor Feasibility Audit"}
           title={isJs ? "Feasibility Decisions & Approvals" : "Feasibility Reports & Assessment Register"}
           description="Technical, financial, regulatory, and sustainability feasibility assessments compiled by Relationship Managers."
           actions={
             <div className="flex items-center gap-2">
               <button
                 onClick={() => refetch()}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-xs hover:bg-slate-50 transition-all"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-xs hover:bg-slate-50 transition-all cursor-pointer"
                 title="Refresh Assessments"
               >
                 <RefreshCw size={14} className={isLoading ? "animate-spin text-blue-700" : ""} /> Refresh
               </button>
               <button
                 onClick={exportCSV}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-blue-900 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-blue-800 transition-all"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-blue-900 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-blue-800 transition-all cursor-pointer"
               >
                 <Download size={14} /> Export CSV
               </button>
@@ -239,48 +241,48 @@ export default function AssessmentsPage() {
         />
 
         {/* Metric Cards Banner */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <StatCardGroup columns={5}>
           <StatCard
             label="Total Assessments"
-            value={stats.total}
+            value={isLoading ? "…" : stats.total}
             icon={ClipboardCheck}
             index={0}
-            badge="Register"
+            colorTheme="blue"
             sublabel="Compiled reports"
           />
           <StatCard
             label="100% Feasible"
-            value={stats.fullyFeasible}
+            value={isLoading ? "…" : stats.fullyFeasible}
             icon={CheckCircle2}
             index={1}
-            badge="13/13 Passed"
-            sublabel="Clean compliance"
+            colorTheme="emerald"
+            sublabel="Clean compliance (13/13)"
           />
           <StatCard
             label="Conditional"
-            value={stats.conditional}
+            value={isLoading ? "…" : stats.conditional}
             icon={AlertTriangle}
             index={2}
-            badge="Remediation"
+            colorTheme="amber"
             sublabel="Gaps with action plan"
           />
           <StatCard
             label="Pending JS Review"
-            value={stats.pendingJs}
+            value={isLoading ? "…" : stats.pendingJs}
             icon={FileCheck2}
             index={3}
-            badge="Awaiting JS"
-            sublabel="Submitted to JS"
+            colorTheme="purple"
+            sublabel="Submitted to Joint Secretary"
           />
           <StatCard
             label="Approved & Routed"
-            value={stats.approved}
+            value={isLoading ? "…" : stats.approved}
             icon={ShieldCheck}
             index={4}
-            badge="Execution Pipeline"
+            colorTheme="indigo"
             sublabel="Routed to DNC / Dept"
           />
-        </div>
+        </StatCardGroup>
 
         {/* Filter & Search Toolbar */}
         <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs">
@@ -969,8 +971,8 @@ function AssessmentDetailCard({
 function AuditDetailsModal({
   assessment,
   onClose,
-  isJs,
-  onCompleted
+  isJs: _isJs,
+  onCompleted: _onCompleted
 }: {
   assessment: any;
   onClose: () => void;
@@ -1105,7 +1107,6 @@ function AuditDetailsModal({
               <div className="grid gap-3 md:grid-cols-2">
                 {checklist.map((item: any) => {
                   const seedDef = MASTER_13_CHECKLIST.find((m) => m.itemNumber === item.itemNumber) || item;
-                  const isCritical = item.isCritical ?? seedDef.isCritical;
                   const icon = DIMENSION_ICONS[item.dimension] || "📌";
 
                   return (

@@ -212,7 +212,7 @@ export default function LiveCSRReportPage({ title, description, endpoint }: Live
           )}
 
           <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
-            {Object.entries(report.kpis || {}).slice(0, 8).map(([label, value], idx) => (
+            {Object.entries(report.kpis || {}).slice(0, 8).map(([label, value]) => (
               <div key={label} className="rounded-2xl border border-white/80 bg-white/90 backdrop-blur-xl p-5 shadow-glass flex flex-col justify-between hover:shadow-lg transition-all">
                 <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">{label.replace(/([A-Z])/g, " $1")}</p>
                 <p className="mt-3 text-2xl font-black tracking-tight text-blue-950 font-heading">

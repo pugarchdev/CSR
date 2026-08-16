@@ -1,21 +1,16 @@
 // Header Component
 "use client";
 
-import { ReactNode } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   Bell,
   Search,
   Menu,
-  ChevronDown,
   LogOut,
-  User,
-  Settings,
   Mail
 } from "lucide-react";
-import { NotificationBell } from "./NotificationBell";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
 
@@ -30,16 +25,15 @@ interface HeaderProps {
 }
 
 export function Header({
-  userRole = "User",
+  userRole: _userRole = "User",
   userName = "User",
   userEmail = "user@example.com",
-  notificationCount = 0,
-  messageCount = 0,
+  notificationCount: _notificationCount = 0,
+  messageCount: _messageCount = 0,
   onMenuToggle,
   className
 }: HeaderProps) {
   const router = useRouter();
-  const pathname = usePathname();
   const logout = useAuthStore((state) => state.logout);
 
   const handleLogout = () => {

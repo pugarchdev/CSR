@@ -1,14 +1,14 @@
 // Access Control Overview — KPI Dashboard with navigation cards
 "use client";
 
-import { useState } from "react";
+import React from "react";
 import { motion } from "framer-motion";
 import {
-  Shield, Users, Key, AlertTriangle,
+  Shield, Users, Key,
   ChevronRight, Activity, Clock, ShieldAlert
 } from "lucide-react";
 import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";

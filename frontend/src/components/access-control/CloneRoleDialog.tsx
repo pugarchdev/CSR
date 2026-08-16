@@ -5,7 +5,7 @@ import { useState, useMemo } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { AlertTriangle, Copy, Check } from "lucide-react";
+import { AlertTriangle, Copy } from "lucide-react";
 import { ScopeBadge } from "./RoleBadges";
 import { useCloneRole } from "@/hooks/useAccessControl";
 import { useToastActions } from "@/components/ui/Toast";
@@ -23,7 +23,6 @@ const SCOPE_OPTIONS: DefaultScope[] = ["GLOBAL", "ORGANIZATION", "DISTRICT", "PR
 export function CloneRoleDialog({ isOpen, onClose, sourceRole, onCloned }: CloneRoleDialogProps) {
   const [code, setCode] = useState("");
   const [name, setName] = useState(`${sourceRole.displayName || sourceRole.name} (Copy)`);
-  const [displayName, setDisplayName] = useState("");
   const [description, setDescription] = useState(sourceRole.description || "");
   const [scope, setScope] = useState<DefaultScope>(sourceRole.defaultScope);
 
@@ -47,7 +46,7 @@ export function CloneRoleDialog({ isOpen, onClose, sourceRole, onCloned }: Clone
         body: {
           code: code.trim().toUpperCase().replace(/\s+/g, "_"),
           name: name.trim(),
-          displayName: displayName.trim() || name.trim(),
+          displayName: name.trim(),
           description: description.trim(),
           defaultScope: scope,
         },

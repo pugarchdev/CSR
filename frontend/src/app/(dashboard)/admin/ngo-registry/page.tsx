@@ -2,15 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Users, CheckCircle2, Clock, ShieldAlert } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
-import GovPageHeader from "@/components/layout/GovPageHeader";
+import { StandardPageHeader } from "@/components/layout/StandardPageHeader";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
 import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
 import GovButton from "@/components/gov/GovButton";
 import GovInput from "@/components/gov/GovInput";
 import GovSelect from "@/components/gov/GovSelect";
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
-import { apiFetch } from "@/lib/api";
+
 import "@/styles/gov-theme.css";
 
 export default function ImplementingAgencyRegistryPage() {
@@ -74,104 +76,95 @@ export default function ImplementingAgencyRegistryPage() {
 
 return (
     <GovPortalLayout>
-      <GovPageHeader
-        title="Implementing Agencies"
-        breadcrumb="Admin / Implementing Agencies"
-      />
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 text-slate-900">
+        <StandardPageHeader
+          title="Implementing Agencies (NGOs)"
+          category="Admin / Agencies"
+          description="Verified register of CSR-1 registered NGOs, non-profit trusts, and social sector implementing partners in Maharashtra."
+        />
 
-      <div className="gov-container !px-2 sm:!px-4 md:!px-6">
-        
-        {/* Stats Cards - Replaced with Tailwind grid for a compact 4-column row on desktop */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-5">
-          <GovCard>
-            <GovCardBody className="!p-3 md:!p-4">
-              <div className="text-xs text-slate-500 font-medium mb-1">Total Agencies</div>
-              <div className="text-xl md:text-2xl font-bold text-blue-900">{loading ? "…" : pagination.total}</div>
-              <div className="text-[10px] md:text-[11px] text-slate-500 mt-1">Registered implementing agencies</div>
-            </GovCardBody>
-          </GovCard>
-          <GovCard>
-            <GovCardBody className="!p-3 md:!p-4">
-              <div className="text-xs text-slate-500 font-medium mb-1">Active Agencies</div>
-              <div className="text-xl md:text-2xl font-bold text-emerald-800">
-                {loading ? "…" : (pagination.active || 0)}
-              </div>
-              <div className="text-[10px] md:text-[11px] text-slate-500 mt-1">Currently operational</div>
-            </GovCardBody>
-          </GovCard>
-          <GovCard>
-            <GovCardBody className="!p-3 md:!p-4">
-              <div className="text-xs text-slate-500 font-medium mb-1">Under Review</div>
-              <div className="text-xl md:text-2xl font-bold text-amber-600">
-                {loading ? "…" : (pagination.pending || 0)}
-              </div>
-              <div className="text-[10px] md:text-[11px] text-slate-500 mt-1">Pending verification</div>
-            </GovCardBody>
-          </GovCard>
-          <GovCard>
-            <GovCardBody className="!p-3 md:!p-4">
-              <div className="text-xs text-slate-500 font-medium mb-1">Suspended</div>
-              <div className="text-xl md:text-2xl font-bold text-red-700">
-                {loading ? "…" : (pagination.suspended || 0)}
-              </div>
-              <div className="text-[10px] md:text-[11px] text-slate-500 mt-1">Compliance issues</div>
-            </GovCardBody>
-          </GovCard>
-        </div>
+        {/* 4-Column Animated KPI Cards */}
+        <StatCardGroup columns={4}>
+          <StatCard
+            label="Total Agencies"
+            value={loading ? "…" : pagination.total}
+            icon={Users}
+            colorTheme="blue"
+            sublabel="Registered non-profit partners"
+            index={0}
+          />
+          <StatCard
+            label="Active Agencies"
+            value={loading ? "…" : (pagination.active || 0)}
+            icon={CheckCircle2}
+            colorTheme="emerald"
+            sublabel="Operational & accredited"
+            index={1}
+          />
+          <StatCard
+            label="Under Review"
+            value={loading ? "…" : (pagination.pending || 0)}
+            icon={Clock}
+            colorTheme="amber"
+            sublabel="Pending credential verification"
+            index={2}
+          />
+          <StatCard
+            label="Suspended / Inactive"
+            value={loading ? "…" : (pagination.suspended || 0)}
+            icon={ShieldAlert}
+            colorTheme="rose"
+            sublabel="Compliance issues"
+            index={3}
+          />
+        </StatCardGroup>
 
-        {/* Filters - Replaced with Tailwind grid for a compact 3-column row on desktop */}
-       <GovCard className="mb-6">
-          <GovCardBody className="!p-3 md:!p-4">
-            {/* Flex forces them into a single line on medium screens and up */}
-            <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4 w-full">
-              
-              {/* flex-[2] makes the search bar take up twice as much horizontal space as the dropdowns */}
-              <div className="w-full flex-[2]">
-                <GovInput
-                  label="Search Agency"
-                  placeholder="Search by name or registration number..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-
-              <div className="w-full flex-1">
-                <GovSelect
-                  label="Status"
-                  value={statusFilter}
-                  onChange={(e) => {
-                    setStatusFilter(e.target.value);
-                    setPage(1);
-                  }}
-                >
-                  <option value="all">All Status</option>
-                  <option value="Active">Active</option>
-                  <option value="Under Review">Under Review</option>
-                  <option value="Suspended">Suspended</option>
-                </GovSelect>
-              </div>
-
-              <div className="w-full flex-1">
-                <GovSelect
-                  label="District"
-                  value={districtFilter}
-                  onChange={(e) => {
-                    setDistrictFilter(e.target.value);
-                    setPage(1);
-                  }}
-                >
-                  <option value="all">All Districts</option>
-                  <option value="Mumbai">Mumbai</option>
-                  <option value="Pune">Pune</option>
-                  <option value="Nagpur">Nagpur</option>
-                  <option value="Ratnagiri">Ratnagiri</option>
-                  <option value="Aurangabad">Aurangabad</option>
-                </GovSelect>
-              </div>
-              
+        {/* Search and Filters Bar */}
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4 w-full">
+            <div className="w-full flex-[2]">
+              <GovInput
+                label="Search Agency"
+                placeholder="Search by name or registration number..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-          </GovCardBody>
-        </GovCard>
+            <div className="w-full flex-1">
+              <GovSelect
+                label="Status"
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value="all">All Status</option>
+                <option value="Active">Active</option>
+                <option value="Under Review">Under Review</option>
+                <option value="Suspended">Suspended</option>
+              </GovSelect>
+            </div>
+            <div className="w-full flex-1">
+              <GovSelect
+                label="District"
+                value={districtFilter}
+                onChange={(e) => {
+                  setDistrictFilter(e.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value="all">All Districts</option>
+                <option value="Mumbai">Mumbai</option>
+                <option value="Pune">Pune</option>
+                <option value="Nagpur">Nagpur</option>
+                <option value="Nashik">Nashik</option>
+                <option value="Thane">Thane</option>
+                <option value="Aurangabad">Chhatrapati Sambhajinagar</option>
+              </GovSelect>
+            </div>
+          </div>
+        </div>
 
         {/* Agency List */}
         <GovCard>

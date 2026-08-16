@@ -162,6 +162,7 @@ function TrackContent() {
       setTrackingId(id);
       handleSearch(id);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   const validateTrackingId = (id: string): boolean => {

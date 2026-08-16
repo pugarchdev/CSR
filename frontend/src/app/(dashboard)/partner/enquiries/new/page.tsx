@@ -13,10 +13,9 @@ import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import GovPageHeader from "@/components/layout/GovPageHeader";
 import { Modal } from "@/components/ui/Modal";
 import {
-  Building2, Handshake, CheckCircle, Loader2, Copy, ArrowLeft, ChevronDown, X,
-  Search, Mail, Coins, ShieldCheck, CheckCircle2, Sparkles, Phone, User, Edit3, Paperclip, FileText, Trash2, AlertCircle, Clock
+  Handshake, CheckCircle, Copy, ArrowLeft, ChevronDown, X,
+  Search, ShieldCheck, CheckCircle2, Edit3, Paperclip, FileText, AlertCircle, Clock
 } from "lucide-react";
-import Link from "next/link";
 import { locationData } from "@/lib/locationData";
 import { useAuthStore } from "@/store/authStore";
 
@@ -231,13 +230,11 @@ export default function CreateCorporateEnquiryPage() {
     let isMounted = true;
     const checkOnboardingAndApproval = async () => {
       let org = user?.organization;
-      let profile = user?.csrCompanyProfile || org?.csrCompanyProfile;
 
       if (user?.organizationId) {
         try {
           const res = await apiFetch<any>("/onboarding/company");
           org = res?.organization || res?.data?.organization || res || org;
-          profile = res?.profile || res?.data?.profile || org?.csrCompanyProfile || profile;
         } catch {}
       }
 

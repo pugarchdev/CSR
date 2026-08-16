@@ -1,18 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import {
-  Building2,
   UserPlus,
   Users,
   CheckCircle2,
-  Clock,
   Loader2,
   AlertCircle,
-  Mail,
-  Phone,
-  ShieldCheck,
   Send
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
@@ -43,7 +38,7 @@ export default function ProjectImplementingAgenciesPage() {
     mobile: ""
   });
 
-  const fetchAgencies = async () => {
+  const fetchAgencies = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
@@ -59,11 +54,11 @@ export default function ProjectImplementingAgenciesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
 
   useEffect(() => {
     if (projectId) fetchAgencies();
-  }, [projectId]);
+  }, [projectId, fetchAgencies]);
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();

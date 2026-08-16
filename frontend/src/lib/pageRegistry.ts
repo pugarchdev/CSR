@@ -1,5 +1,5 @@
 import { useAuthStore } from "@/store/authStore";
-import { NAVIGATION_MANIFEST, getNavItemForRoute, isNavItemAllowed, NavItemDef } from "./navigationManifest";
+import { NAVIGATION_MANIFEST, getNavItemForRoute, isNavItemAllowed } from "./navigationManifest";
 
 export interface PageDef {
   slug: string;

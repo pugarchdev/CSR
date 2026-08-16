@@ -3,8 +3,8 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import {
-  Building2, MapPin, Landmark, Layers, TrendingUp,
-  Search, Filter, ArrowRight, CheckCircle2, FolderKanban, ShieldCheck
+  MapPin, Landmark, TrendingUp,
+  Search, ArrowRight, FolderKanban
 } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
 
@@ -45,7 +45,7 @@ export default function StatePortfolioPage() {
   const [selectedDistrict, setSelectedDistrict] = useState("ALL");
   const [selectedSector, setSelectedSector] = useState("ALL");
 
-  const { data: response, isLoading } = useApiQuery<{ success: boolean; data: PortfolioData }>(
+  const { data: response } = useApiQuery<{ success: boolean; data: PortfolioData }>(
     ["strategy", "portfolio"],
     "/strategy/portfolio"
   );

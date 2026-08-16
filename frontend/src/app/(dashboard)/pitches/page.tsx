@@ -4,11 +4,11 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useApiQuery } from "@/lib/apiHooks";
-import { GovPageHeader } from "@/components/layout/GovPageHeader";
-import { StatCard } from "@/components/ui/StatCard";
+import { StandardPageHeader } from "@/components/layout/StandardPageHeader";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import { Loader } from "@/components/ui/Loader";
-import { ViewToggle, ViewMode } from "@/components/ui/ViewToggle";
+import { ViewToggle } from "@/components/ui/ViewToggle";
 import { useResponsiveViewMode } from "@/hooks/useResponsiveViewMode";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
@@ -149,13 +149,17 @@ export default function PitchesPage() {
     return matchesSearch && matchesStatus;
   });
 
+  const totalOutlay = pitchesList.reduce((acc, curr) => acc + curr.outlayLakhs, 0);
+  const approvedCount = pitchesList.filter(p => p.status === "APPROVED" || p.status === "CSR_COMMITTED" || p.status === "VERIFIED").length;
+  const underReviewCount = pitchesList.filter(p => p.status === "SUBMITTED").length;
+
   return (
     <GovPortalLayout>
-      <div className="mx-auto flex min-h-screen max-w-screen-2xl flex-col gap-4 px-4 py-4 md:px-6">
-        <GovPageHeader
-          title="Government Development Pitches & Proposals"
-          eyebrow="Department Pitches"
-          description="Statewide directory of departmental proposals seeking corporate partner empanelement and CSR funding."
+      <div className="mx-auto flex min-h-screen max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 text-slate-900">
+        <StandardPageHeader
+          title="Government Development Pitches"
+          category="Department Pitches"
+          description="Statewide directory of departmental proposals seeking corporate partner empanelment and CSR funding alignment."
           actions={
             canCreatePitch && (
               <button
@@ -232,36 +236,41 @@ export default function PitchesPage() {
           </div>
         </Modal>
 
-        {/* Metrics Grid */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {/* Standard 4-Column KPI Cards */}
+        <StatCardGroup columns={4}>
           <StatCard
             label="Total Submitted Pitches"
-            value={pitchesList.length}
+            value={isLoading ? "…" : pitchesList.length}
             icon={Compass}
             index={0}
             colorTheme="blue"
-            badge="Gov Proposals"
-            sublabel="Statewide Department Pitches"
+            sublabel="Statewide department pitches"
           />
           <StatCard
             label="Total Outlay Required"
-            value={`₹${(pitchesList.reduce((acc, curr) => acc + curr.outlayLakhs, 0) / 100).toFixed(2)} Cr`}
+            value={isLoading ? "…" : `₹${(totalOutlay / 100).toFixed(2)} Cr`}
             icon={Coins}
             index={1}
             colorTheme="amber"
-            badge="CSR Budget Need"
-            sublabel="Estimated CSR Outlay"
+            sublabel="Estimated CSR need"
           />
           <StatCard
-            label="CSR Committed / Approved"
-            value={pitchesList.filter(p => p.status === "APPROVED" || p.status === "CSR_COMMITTED" || p.status === "VERIFIED").length}
+            label="Committed & Approved"
+            value={isLoading ? "…" : approvedCount}
             icon={CheckCircle2}
             index={2}
             colorTheme="emerald"
-            badge="Ready for MOU"
-            sublabel="Empaneled with Corporates"
+            sublabel="Ready for MoU signing"
           />
-        </div>
+          <StatCard
+            label="Under Review"
+            value={isLoading ? "…" : underReviewCount}
+            icon={Clock}
+            index={3}
+            colorTheme="purple"
+            sublabel="Department review pipeline"
+          />
+        </StatCardGroup>
 
         {/* Content Box */}
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-4 md:p-5">

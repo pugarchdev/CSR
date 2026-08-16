@@ -14,7 +14,6 @@ import {
   RefreshCcw,
   Search,
   ShieldCheck,
-  Target,
   Users,
   ArrowUpDown,
   ArrowRight

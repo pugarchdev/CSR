@@ -232,6 +232,8 @@ export default function GrievanceDetailPage() {
           </GovStatusBadge>
         }
       >
+        {success && <GovAlert variant="success" style={{ marginTop: 16 }}>{success}</GovAlert>}
+
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginTop: 16 }}>
           {[
             { label: "Project", value: grievance.convergenceProject ? `${grievance.convergenceProject.projectId} — ${grievance.convergenceProject.title}` : "—" },

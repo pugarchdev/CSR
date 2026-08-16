@@ -8,13 +8,10 @@ import {
   Search,
   Edit2,
   Trash2,
-  CheckCircle,
-  XCircle,
   Mail,
   Phone,
   UserCheck,
   ShieldCheck,
-  AlertCircle,
   Layers,
   ChevronRight,
   Info
@@ -132,7 +129,7 @@ export default function GovDepartmentManager({ organizationName = "Government Or
           setDepartments(data);
         }
       }
-    } catch (err) {
+    } catch {
       console.log("Using default department hierarchy preview");
     }
   };

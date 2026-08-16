@@ -3,18 +3,17 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { useApiQuery } from "@/lib/apiHooks";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
-import GovPageHeader from "@/components/layout/GovPageHeader";
-import { StatCard } from "@/components/ui/StatCard";
-import { ViewToggle, ViewMode } from "@/components/ui/ViewToggle";
+import { StandardPageHeader } from "@/components/layout/StandardPageHeader";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
+import { ViewToggle } from "@/components/ui/ViewToggle";
 import { useResponsiveViewMode } from "@/hooks/useResponsiveViewMode";
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
 import { Loader } from "@/components/ui/Loader";
 import {
-  Layers, Search, MapPin, Building2, Coins, CheckCircle2, Eye, FileText, ArrowUpRight
+  Layers, Search, MapPin, Building2, Coins, CheckCircle2, Eye, FileText
 } from "lucide-react";
 
 interface Project {
@@ -43,7 +42,6 @@ const statusOptions = [
 ];
 
 export default function ProjectsPage() {
-  const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const roles = useAuthStore((s) => s.roles);
   const activeRoles = (roles || []).length > 0 ? roles : (user?.role ? [user.role] : []);
@@ -118,46 +116,52 @@ export default function ProjectsPage() {
     : "₹0.0 Cr";
 
   const completedCount = scopedProjects.filter(p => p.status === "COMPLETED").length;
+  const inProgressCount = scopedProjects.filter(p => p.status === "IN_PROGRESS").length;
 
   return (
     <GovPortalLayout>
-      <GovPageHeader
-        title={isCompany ? `${companyName || "Corporate"} Funded Projects` : "Convergence Projects Register"}
-        description={isCompany ? "Manage and monitor your company's active CSR convergence projects, milestones, and fund utilization." : "Track and manage CSR convergence projects across Maharashtra."}
-        breadcrumb="Home / Convergence Projects"
-      />
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 text-slate-900">
+        <StandardPageHeader
+          title={isCompany ? `${companyName || "Corporate"} Funded Projects` : "Convergence Projects Register"}
+          category="Projects & Milestones"
+          description={isCompany ? "Manage and monitor your company's active CSR convergence projects, milestones, and fund utilization." : "Track and manage statewide CSR convergence projects across Maharashtra districts."}
+        />
 
-      <div className="space-y-6">
-        {/* KPI Metrics */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {/* Standard 4-Column KPI Cards */}
+        <StatCardGroup columns={4}>
           <StatCard
             label="Total Projects"
-            value={scopedProjects.length}
+            value={isLoading ? "…" : scopedProjects.length}
             icon={Layers}
             index={0}
-            colorTheme="purple"
-            badge="Convergence"
-            sublabel="Empaneled CSR Projects"
+            colorTheme="blue"
+            sublabel="Empaneled CSR projects"
           />
           <StatCard
             label="Total Outlay Budget"
-            value={formattedOutlay}
+            value={isLoading ? "…" : formattedOutlay}
             icon={Coins}
             index={1}
             colorTheme="amber"
-            badge="Pledged Budget"
-            sublabel="Statewide CSR Outlay"
+            sublabel="Statewide CSR outlay"
+          />
+          <StatCard
+            label="Active In Progress"
+            value={isLoading ? "…" : inProgressCount}
+            icon={CheckCircle2}
+            index={2}
+            colorTheme="purple"
+            sublabel="Under field execution"
           />
           <StatCard
             label="Completed Projects"
-            value={completedCount}
+            value={isLoading ? "…" : completedCount}
             icon={CheckCircle2}
-            index={2}
+            index={3}
             colorTheme="emerald"
-            badge="100% Physical Progress"
-            sublabel="Milestones Verified"
+            sublabel="100% physical completion"
           />
-        </div>
+        </StatCardGroup>
 
         {/* Controls & Filter Bar */}
         <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">

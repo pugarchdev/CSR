@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CheckCircle2, Shield, Landmark, FileText, Search, Building2, Award, Loader2, RefreshCw } from "lucide-react";
-import { GovPageHeader } from "@/components/layout/GovPageHeader";
+import { CheckCircle2, Search, Building2, Award, Loader2, RefreshCw, Clock, Coins } from "lucide-react";
+import { StandardPageHeader } from "@/components/layout/StandardPageHeader";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
 import { apiFetch } from "@/lib/api";
-import { useAuthStore } from "@/store/authStore";
 
 interface HandoverItem {
   id: string;
@@ -18,15 +18,12 @@ interface HandoverItem {
 }
 
 export default function HandoverPage() {
-  const { user } = useAuthStore();
   const [items, setItems] = useState<HandoverItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [search, setSearch] = useState("");
 
   const loadHandovers = async () => {
     setLoading(true);
-    setError("");
     try {
       const res = await apiFetch<any[]>("/projects");
       if (Array.isArray(res) && res.length > 0) {
@@ -87,51 +84,48 @@ export default function HandoverPage() {
   );
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-7xl flex-col gap-6 px-4 py-8 md:px-8">
-      <GovPageHeader
+    <div className="mx-auto flex min-h-screen max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 text-slate-900">
+      <StandardPageHeader
         title="CSR Project Handover & Asset Transfer"
+        category="Asset Transfer Desk"
         description="Formal sign-off and transfer of completed CSR infrastructure assets into State Government Department operational custody."
-        eyebrow="Asset Transfer Desk"
       />
 
-      {/* Dynamic Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-amber-200/80 bg-amber-50/50 p-5 backdrop-blur-xl shadow-xs">
-          <span className="text-xs font-extrabold uppercase tracking-wider text-amber-700">
-            Pending Department Sign-Off
-          </span>
-          <p className="mt-2 text-3xl font-extrabold text-amber-950">
-            {pendingCount}
-          </p>
-          <span className="text-[11px] text-amber-700 font-medium">
-            Completed assets ready for takeover
-          </span>
-        </div>
-
-        <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/50 p-5 backdrop-blur-xl shadow-xs">
-          <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-700">
-            Transferred Assets
-          </span>
-          <p className="mt-2 text-3xl font-extrabold text-emerald-950">
-            {transferredCount}
-          </p>
-          <span className="text-[11px] text-emerald-700 font-medium">
-            Handover certificate executed
-          </span>
-        </div>
-
-        <div className="rounded-2xl border border-blue-200/80 bg-blue-50/50 p-5 backdrop-blur-xl shadow-xs">
-          <span className="text-xs font-extrabold uppercase tracking-wider text-blue-700">
-            Total Transferred Asset Value
-          </span>
-          <p className="mt-2 text-3xl font-extrabold text-blue-950">
-            ₹{totalAssetValueCr.toFixed(1)} Cr
-          </p>
-          <span className="text-[11px] text-blue-700 font-medium">
-            Public infrastructure value
-          </span>
-        </div>
-      </div>
+      {/* Standard 4-Column Animated KPI Cards */}
+      <StatCardGroup columns={4}>
+        <StatCard
+          label="Total Handover Assets"
+          value={loading ? "…" : items.length}
+          icon={Building2}
+          index={0}
+          colorTheme="blue"
+          sublabel="Completed CSR assets"
+        />
+        <StatCard
+          label="Pending Dept Sign-Off"
+          value={loading ? "…" : pendingCount}
+          icon={Clock}
+          index={1}
+          colorTheme="amber"
+          sublabel="Ready for government takeover"
+        />
+        <StatCard
+          label="Transferred Assets"
+          value={loading ? "…" : transferredCount}
+          icon={CheckCircle2}
+          index={2}
+          colorTheme="emerald"
+          sublabel="Handover certificate executed"
+        />
+        <StatCard
+          label="Transferred Asset Outlay"
+          value={loading ? "…" : `₹${totalAssetValueCr.toFixed(1)} Cr`}
+          icon={Coins}
+          index={3}
+          colorTheme="purple"
+          sublabel="Public infrastructure value"
+        />
+      </StatCardGroup>
 
       {/* Main Table / Empty State Container */}
       <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">

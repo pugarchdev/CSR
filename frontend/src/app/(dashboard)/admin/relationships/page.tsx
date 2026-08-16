@@ -3,13 +3,10 @@
 import { useState, useEffect } from "react";
 import {
   ShieldCheck,
-  Building2,
   CheckCircle2,
-  XCircle,
   Clock,
   Loader2,
   AlertCircle,
-  Link as LinkIcon,
   UserCheck
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";

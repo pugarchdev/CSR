@@ -4,8 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
-  Camera, MapPin, CheckCircle2, ArrowLeft, Clock,
-  UploadCloud, AlertTriangle, ShieldCheck, FileCheck
+  MapPin, CheckCircle2, ArrowLeft
 } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
 
@@ -14,7 +13,7 @@ export default function FieldVisitDetailPage() {
   const router = useRouter();
   const id = String(params?.id || "");
 
-  const { data: response, isLoading } = useApiQuery<{ success: boolean; data: any }>(
+  const { data: response } = useApiQuery<{ success: boolean; data: any }>(
     ["field-visit", id],
     `/field-visits/${id}`,
     { enabled: Boolean(id && id !== "new") }
@@ -54,7 +53,7 @@ export default function FieldVisitDetailPage() {
   const handleSaveVisit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch("/api/field-visits", {
+      await fetch("/api/field-visits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -68,7 +67,7 @@ export default function FieldVisitDetailPage() {
         })
       });
       router.push("/field-visits");
-    } catch (err) {
+    } catch {
       router.push("/field-visits");
     }
   };

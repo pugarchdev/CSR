@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Shield, Monitor, Smartphone, Globe, Trash2, ShieldAlert, Key, Check, Layers, Settings as SettingsIcon } from "lucide-react";
-import { motion } from "framer-motion";
+import { Shield, Monitor, Smartphone, Globe, Trash2, ShieldAlert, Layers, Settings as SettingsIcon } from "lucide-react";
 import { DashboardLayout } from "@/components/layout";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -29,10 +28,8 @@ interface SessionItem {
 export default function SecuritySettingsPage() {
   const [sessions, setSessions] = useState<SessionItem[]>([]);
   const [policy, setPolicy] = useState<"REPLACE" | "REJECT">("REPLACE");
-  const [maxSessions, setMaxSessions] = useState<number>(1);
   const [userRole, setUserRole] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
-  const [isSavingPolicy, setIsSavingPolicy] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const fetchSecurityData = async () => {

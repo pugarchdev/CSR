@@ -1,12 +1,10 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
-import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
-import GovStatusBadge from "@/components/gov/GovStatusBadge";
 import { Button } from "@/components/ui/Button";
-import { Search, MapPin, Coins, Users, Clock, AlertTriangle, ArrowRight, ShieldCheck } from "lucide-react";
+import { Search, MapPin, Coins, ArrowRight } from "lucide-react";
 
 interface CSRRequirement {
   id: string;
@@ -34,7 +32,6 @@ interface CSRRequirement {
 
 export default function CSRMarketplace() {
   const router = useRouter();
-  const pathname = usePathname();
   const [requirements, setRequirements] = useState<CSRRequirement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

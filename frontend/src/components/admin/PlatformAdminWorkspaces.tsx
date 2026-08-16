@@ -2,15 +2,17 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertCircle, AlertTriangle, ArrowRight, Building2, Check, CheckCircle2, Clock, Coins, Compass, ExternalLink, Eye, FileText, HeartHandshake, HelpCircle, LayoutGrid, List, Loader2, Mail, MapPin, Phone, Plus, RefreshCw, Save, Search, ShieldAlert, ShieldCheck, Target, ToggleLeft, ToggleRight, Trash2, Upload, User, UserCheck, XCircle } from "lucide-react";
+import { AlertCircle, AlertTriangle, ArrowRight, Building2, Check, CheckCircle2, Clock, Coins, ExternalLink, Eye, FileText, HeartHandshake, LayoutGrid, List, Loader2, Mail, MapPin, Phone, Plus, RefreshCw, Save, Search, ShieldAlert, ShieldCheck, Target, ToggleLeft, ToggleRight, Trash2, Upload, UserCheck, X, XCircle } from "lucide-react";
 import { apiFetch, API_BASE_URL, getAccessToken } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { Pagination } from "@/components/ui/Pagination";
 import GovModal from "@/components/gov/GovModal";
 import { useToastActions } from "@/components/ui/Toast";
 import { useResponsiveViewMode } from "@/hooks/useResponsiveViewMode";
+import { StandardPageHeader } from "@/components/layout/StandardPageHeader";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
 
 type Tenant = {
   id: string;
@@ -123,18 +125,13 @@ function WorkspaceShell({
   actions?: React.ReactNode;
 }) {
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 md:px-8">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/60 pb-3">
-        <div className="flex items-center gap-3">
-          <h1 className="text-lg font-extrabold tracking-tight text-slate-900 font-heading">{title}</h1>
-          {eyebrow && (
-            <span className="text-[10px] font-extrabold text-blue-700 uppercase tracking-wider bg-blue-50 border border-blue-100 px-2.5 py-0.5 rounded-full">
-              {eyebrow}
-            </span>
-          )}
-        </div>
-        {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
-      </div>
+    <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 text-slate-900">
+      <StandardPageHeader
+        title={title}
+        description={description}
+        category={eyebrow}
+        actions={actions}
+      />
       {children}
     </div>
   );
@@ -1703,7 +1700,7 @@ export function AdminOnboardingApprovalsWorkspace() {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 9;
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
@@ -1718,12 +1715,12 @@ export function AdminOnboardingApprovalsWorkspace() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [typeFilter, statusFilter]);
 
   useEffect(() => {
     setCurrentPage(1);
     load();
-  }, [typeFilter, statusFilter]);
+  }, [load]);
 
   const action = async (id: string, type: "approve" | "reject" | "request-clarification" | "suspend") => {
     const remarks = type === "approve" ? undefined : window.prompt("Remarks or reason") || undefined;
@@ -2968,10 +2965,48 @@ export function AdminOrganizationsWorkspace() {
   const [items, setItems] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [districtFilter, setDistrictFilter] = useState<string>("ALL");
+  const [viewMode, setViewMode] = useResponsiveViewMode();
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 8;
   const [error, setError] = useState("");
+  const toast = useToastActions();
+
+  // Create Modal state
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [deptForm, setDeptForm] = useState({ name: "", email: "", district: "" });
+  const [deptForm, setDeptForm] = useState({
+    name: "",
+    email: "",
+    district: "",
+    phone: "",
+    registrationNumber: "",
+  });
+
+  // Action Modal state (Approve / Clarify / Suspend)
+  const [actionModal, setActionModal] = useState<{
+    open: boolean;
+    orgId: string;
+    orgName: string;
+    type: "approve" | "request-clarification" | "suspend" | "reject" | null;
+    title: string;
+    description: string;
+    remarks: string;
+    submitLabel: string;
+    variant: "primary" | "warning" | "danger";
+  }>({
+    open: false,
+    orgId: "",
+    orgName: "",
+    type: null,
+    title: "",
+    description: "",
+    remarks: "",
+    submitLabel: "",
+    variant: "primary",
+  });
+  const [actionSubmitting, setActionSubmitting] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -2996,20 +3031,90 @@ export function AdminOrganizationsWorkspace() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
-  const action = async (id: string, type: "approve" | "reject" | "request-clarification" | "suspend") => {
-    const remarks = type === "approve" ? undefined : window.prompt("Remarks or reason") || undefined;
-    if (type !== "approve" && !remarks) return;
-    await apiFetch(`/admin/organizations/${id}/${type}`, {
-      method: "POST",
-      body: JSON.stringify(type === "reject" ? { rejectionReason: remarks } : { remarks })
-    });
-    await load();
+  const openActionModal = (
+    org: Organization,
+    type: "approve" | "request-clarification" | "suspend" | "reject"
+  ) => {
+    if (type === "approve") {
+      setActionModal({
+        open: true,
+        orgId: org.id,
+        orgName: org.name,
+        type: "approve",
+        title: "Approve Government Department",
+        description: `Confirm approval and activation for "${org.name}". This department will be enabled across the CSR coordination workflows.`,
+        remarks: "",
+        submitLabel: "Approve & Activate",
+        variant: "primary",
+      });
+    } else if (type === "request-clarification") {
+      setActionModal({
+        open: true,
+        orgId: org.id,
+        orgName: org.name,
+        type: "request-clarification",
+        title: "Request Clarification",
+        description: `Specify the required information, nodal officer credentials, or statutory mandates from "${org.name}":`,
+        remarks: "",
+        submitLabel: "Send Clarification Request",
+        variant: "warning",
+      });
+    } else if (type === "suspend") {
+      setActionModal({
+        open: true,
+        orgId: org.id,
+        orgName: org.name,
+        type: "suspend",
+        title: "Suspend Department Access",
+        description: `Please provide the administrative justification for suspending "${org.name}":`,
+        remarks: "",
+        submitLabel: "Confirm Suspension",
+        variant: "danger",
+      });
+    }
+  };
+
+  const handleActionSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!actionModal.type || !actionModal.orgId) return;
+
+    if (actionModal.type !== "approve" && !actionModal.remarks.trim()) {
+      toast.warning("Remarks Required", "Please provide a reason or remarks before submitting.");
+      return;
+    }
+
+    setActionSubmitting(true);
+    try {
+      const type = actionModal.type;
+      const remarks = actionModal.remarks.trim() || undefined;
+      await apiFetch(`/admin/organizations/${actionModal.orgId}/${type}`, {
+        method: "POST",
+        body: JSON.stringify(type === "reject" ? { rejectionReason: remarks } : { remarks }),
+      });
+
+      toast.success(
+        "Action Executed",
+        `Department "${actionModal.orgName}" status successfully updated.`
+      );
+      setActionModal((prev) => ({ ...prev, open: false }));
+      await load();
+    } catch (err: any) {
+      toast.error("Action Failed", err.message || "Failed to update department status");
+    } finally {
+      setActionSubmitting(false);
+    }
   };
 
   const handleCreateDept = async (e: FormEvent) => {
     e.preventDefault();
+    if (!deptForm.name.trim()) {
+      toast.warning("Validation Error", "Department name is required.");
+      return;
+    }
     setCreating(true);
     setError("");
     try {
@@ -3018,153 +3123,744 @@ export function AdminOrganizationsWorkspace() {
         body: JSON.stringify({
           name: deptForm.name.trim(),
           email: deptForm.email.trim() || undefined,
-          district: deptForm.district || undefined,
-          kind: "GOVERNMENT_DEPARTMENT"
-        })
+          district: deptForm.district.trim() || undefined,
+          phone: deptForm.phone.trim() || undefined,
+          registrationNumber: deptForm.registrationNumber.trim() || undefined,
+          kind: "GOVERNMENT_DEPARTMENT",
+        }),
       });
+      toast.success(
+        "Department Created",
+        `"${deptForm.name.trim()}" has been successfully added.`
+      );
       setCreateModalOpen(false);
-      setDeptForm({ name: "", email: "", district: "" });
+      setDeptForm({ name: "", email: "", district: "", phone: "", registrationNumber: "" });
       await load();
     } catch (err: any) {
       setError(err.message || "Failed to create government department");
+      toast.error("Creation Error", err.message || "Failed to create government department");
     } finally {
       setCreating(false);
     }
   };
 
-  const filtered = items.filter((item) => {
-    const typeStr = String(item.organizationType || item.kind || "");
-    const statusStr = String(item.onboardingStatus || item.status || "");
-    return `${item.name} ${typeStr} ${item.district || ""} ${statusStr}`.toLowerCase().includes(search.toLowerCase());
-  });
+  const uniqueDistricts = useMemo(() => {
+    const set = new Set<string>();
+    items.forEach((item) => {
+      if (item.district && item.district.trim()) {
+        set.add(item.district.trim());
+      }
+    });
+    return Array.from(set).sort();
+  }, [items]);
 
-return (
+  const filtered = useMemo(() => {
+    return items.filter((item) => {
+      const q = search.toLowerCase();
+      const typeStr = String(item.organizationType || item.kind || "");
+      const statusStr = String(item.onboardingStatus || item.status || "");
+      const matchesSearch =
+        !search.trim() ||
+        item.name.toLowerCase().includes(q) ||
+        (item.email || item.officialEmail || "").toLowerCase().includes(q) ||
+        (item.district || "").toLowerCase().includes(q) ||
+        typeStr.toLowerCase().includes(q) ||
+        statusStr.toLowerCase().includes(q);
+
+      const itemStatus = String(item.onboardingStatus || item.status || "").toUpperCase();
+      let matchesStatus = true;
+      if (statusFilter === "ACTIVE") {
+        matchesStatus = itemStatus === "ACTIVE" || itemStatus === "APPROVED";
+      } else if (statusFilter === "PENDING") {
+        matchesStatus =
+          itemStatus === "PENDING" ||
+          itemStatus === "UNDER_VERIFICATION" ||
+          itemStatus === "SUBMITTED_FOR_REVIEW";
+      } else if (statusFilter === "CLARIFICATION") {
+        matchesStatus = itemStatus === "CLARIFICATION_REQUIRED";
+      } else if (statusFilter === "SUSPENDED") {
+        matchesStatus = itemStatus === "SUSPENDED" || itemStatus === "REJECTED";
+      }
+
+      const matchesDistrict =
+        districtFilter === "ALL" ||
+        (item.district && item.district.toLowerCase() === districtFilter.toLowerCase());
+
+      return matchesSearch && matchesStatus && matchesDistrict;
+    });
+  }, [items, search, statusFilter, districtFilter]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter, districtFilter]);
+
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filtered.slice(start, start + ITEMS_PER_PAGE);
+  }, [filtered, currentPage]);
+
+  const stats = useMemo(() => {
+    let active = 0;
+    let pendingOrClarify = 0;
+    let suspended = 0;
+    items.forEach((item) => {
+      const st = String(item.onboardingStatus || item.status || "").toUpperCase();
+      if (st === "ACTIVE" || st === "APPROVED") active++;
+      else if (st === "SUSPENDED" || st === "REJECTED") suspended++;
+      else pendingOrClarify++;
+    });
+    return {
+      total: items.length,
+      active,
+      pendingOrClarify,
+      suspended,
+      districtsCount: uniqueDistricts.length,
+    };
+  }, [items, uniqueDistricts]);
+
+  return (
     <WorkspaceShell
       eyebrow="Portal Admin"
       title="Government Departments"
-      description="Review government department organizations in this portal instance and manage onboarding status."
+      description="Manage State and District government department accounts, jurisdictional mandates, and onboarding verification."
       actions={
-        <Button onClick={() => setCreateModalOpen(true)} className="w-full sm:w-auto justify-center">
-          <Plus size={16} className="mr-1.5 inline" /> Add Department
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* View Mode Toggle */}
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setViewMode("list")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                viewMode === "list"
+                  ? "bg-white text-blue-900 shadow-xs border border-slate-200/80"
+                  : "text-slate-500 hover:text-slate-900"
+              }`}
+            >
+              <List size={14} />
+              <span>List</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("grid")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                viewMode === "grid"
+                  ? "bg-white text-blue-900 shadow-xs border border-slate-200/80"
+                  : "text-slate-500 hover:text-slate-900"
+              }`}
+            >
+              <LayoutGrid size={14} />
+              <span>Grid</span>
+            </button>
+          </div>
+
+          <Button variant="outline" size="sm" onClick={load} className="gap-1.5">
+            <RefreshCw size={14} className={loading ? "animate-spin text-blue-600" : ""} />
+            <span className="hidden sm:inline">Refresh</span>
+          </Button>
+
+          <Button onClick={() => setCreateModalOpen(true)} className="gap-1.5">
+            <Plus size={16} /> Add Department
+          </Button>
+        </div>
       }
     >
       <ErrorBox error={error} />
-      <section className="border border-slate-200/60 bg-white/70 backdrop-blur-xl rounded-2xl shadow-glass overflow-hidden">
-        <div className="flex flex-col gap-3 border-b border-gov-line p-4 md:flex-row md:items-center md:justify-between">
-          <div className="w-full md:max-w-sm">
-            <SearchBox value={search} onChange={setSearch} placeholder="Search departments..." />
+
+      {/* Standard 4-Column KPI Cards */}
+      <StatCardGroup columns={4} className="mb-2">
+        <StatCard
+          label="Total Departments"
+          value={stats.total}
+          icon={Building2}
+          colorTheme="blue"
+          sublabel="Registered state agencies"
+          index={0}
+        />
+        <StatCard
+          label="Active & Operational"
+          value={stats.active}
+          icon={CheckCircle2}
+          colorTheme="emerald"
+          sublabel="Authorized for CSR programs"
+          index={1}
+        />
+        <StatCard
+          label="Pending / Clarification"
+          value={stats.pendingOrClarify}
+          icon={Clock}
+          colorTheme="amber"
+          sublabel="Pending onboarding actions"
+          index={2}
+        />
+        <StatCard
+          label="Districts Covered"
+          value={stats.districtsCount || "Statewide"}
+          icon={MapPin}
+          colorTheme="indigo"
+          sublabel="Across Maharashtra divisions"
+          index={3}
+        />
+      </StatCardGroup>
+
+      {/* Filter and Search Bar */}
+      <section className="border border-slate-200/80 bg-white/90 backdrop-blur-xl rounded-2xl shadow-xs p-4 space-y-3">
+        {/* Status Filter Tabs */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            {[
+              { id: "ALL", label: `All Departments (${items.length})` },
+              { id: "ACTIVE", label: `Active (${stats.active})` },
+              { id: "PENDING", label: `In Review (${stats.pendingOrClarify})` },
+              { id: "CLARIFICATION", label: "Clarification Needed" },
+              { id: "SUSPENDED", label: "Suspended" },
+            ].map((tab) => {
+              const isActive = statusFilter === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setStatusFilter(tab.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                    isActive
+                      ? "bg-blue-900 text-white border-blue-900 shadow-xs"
+                      : "bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
-          <div className="text-xs font-bold text-gov-muted text-right">{filtered.length} department(s)</div>
+
+          {/* District Dropdown */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-slate-400 hidden sm:inline">District:</span>
+            <select
+              value={districtFilter}
+              onChange={(e) => setDistrictFilter(e.target.value)}
+              aria-label="Filter by District"
+              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-blue-600"
+            >
+              <option value="ALL">All Districts ({uniqueDistricts.length})</option>
+              {uniqueDistricts.map((dist) => (
+                <option key={dist} value={dist}>
+                  {dist}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-        
-        {/* Wrapper: Handles overflow on desktop, full width on mobile */}
-        <div className="w-full md:overflow-x-auto p-4 md:p-0 bg-slate-50/50 md:bg-transparent">
-          <table className="w-full block md:table text-left text-sm border-collapse">
-            <thead className="hidden md:table-header-group bg-gov-mist text-[11px] uppercase tracking-wider text-gov-muted">
-              <tr>
-                <th className="px-5 py-3 font-bold">Organization</th>
-                <th className="px-5 py-3 font-bold">Type</th>
-                <th className="px-5 py-3 font-bold">District</th>
-                <th className="px-5 py-3 font-bold">Onboarding</th>
-                <th className="px-5 py-3 font-bold">Status</th>
-                <th className="px-5 py-3 font-bold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="block md:table-row-group divide-y-0 md:divide-y md:divide-gov-line">
-              {loading ? (
-                <LoadingRow colSpan={6} />
-              ) : filtered.length === 0 ? (
-                <EmptyRow colSpan={6} text="No government departments found." />
-              ) : (
-                filtered.map((item) => (
-                  <tr 
-                    key={item.id} 
-                    className="block md:table-row mb-4 md:mb-0 bg-white md:bg-transparent border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-sm md:shadow-none hover:bg-slate-50/50 transition-colors overflow-hidden"
-                  >
-                    <td data-label="Organization" className="flex md:table-cell flex-col md:flex-row items-start md:items-center px-4 md:px-5 py-3.5 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-bold before:text-slate-400 before:md:hidden before:mb-1">
-                      <div className="flex flex-col items-start md:items-start w-full text-left">
-                        <Link href={`/admin/organizations/${item.id}`} className="font-bold text-gov-blue hover:underline break-words">
-                          {item.name}
-                        </Link>
-                        <div className="text-xs font-medium text-gov-muted break-all">
-                          {item.email || "-"}
-                        </div>
-                      </div>
-                    </td>
-                    <td data-label="Type" className="flex md:table-cell justify-between items-center px-4 md:px-5 py-3.5 md:py-4 border-b border-slate-100 md:border-none text-gov-muted font-medium before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-bold before:text-slate-400 before:md:hidden text-right md:text-left">
-                      {String(item.organizationType || item.kind || "GOVERNMENT_DEPARTMENT").replace(/_/g, " ")}
-                    </td>
-                    <td data-label="District" className="flex md:table-cell justify-between items-center px-4 md:px-5 py-3.5 md:py-4 border-b border-slate-100 md:border-none text-gov-muted font-medium before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-bold before:text-slate-400 before:md:hidden text-right md:text-left">
-                      {item.district || "-"}
-                    </td>
-                    <td data-label="Onboarding" className="flex md:table-cell justify-between items-center px-4 md:px-5 py-3.5 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-bold before:text-slate-400 before:md:hidden text-right md:text-left">
-                      <Badge>{item.onboardingStatus || item.status || "ACTIVE"}</Badge>
-                    </td>
-                    <td data-label="Status" className="flex md:table-cell justify-between items-center px-4 md:px-5 py-3.5 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-bold before:text-slate-400 before:md:hidden text-right md:text-left">
-                      <Badge>{item.status || "ACTIVE"}</Badge>
-                    </td>
-                    <td className="block md:table-cell px-4 md:px-5 py-3.5 md:py-4 text-right bg-slate-50/50 md:bg-transparent">
-                      <div className="flex flex-wrap md:flex-nowrap justify-end gap-2">
-                        <Button size="sm" className="flex-1 md:flex-none justify-center text-xs" onClick={() => action(item.id, "approve")}>
-                          Approve
-                        </Button>
-                        <Button size="sm" variant="secondary" className="flex-1 md:flex-none justify-center text-xs" onClick={() => action(item.id, "request-clarification")}>
-                          Clarify
-                        </Button>
-                        <Button size="sm" variant="danger" className="w-full sm:flex-1 md:flex-none justify-center text-xs mt-1 sm:mt-0" onClick={() => action(item.id, "suspend")}>
-                          Suspend
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+
+        {/* Search Bar with clear button */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="relative w-full sm:max-w-md">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by department name, official email, district..."
+              className="w-full pl-10 pr-9 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-medium focus:outline-none focus:border-blue-600 focus:bg-white transition-all shadow-2xs"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          <div className="text-xs font-bold text-slate-500 w-full sm:w-auto text-right">
+            Showing <span className="text-blue-900 font-extrabold">{filtered.length}</span> of {items.length} departments
+          </div>
         </div>
       </section>
 
+      {/* Main Content: Table or Grid View */}
+      {loading ? (
+        <div className="p-12 text-center bg-white/70 backdrop-blur-xl rounded-2xl border border-slate-200 flex flex-col items-center gap-3">
+          <Loader2 size={32} className="animate-spin text-blue-600" />
+          <p className="text-xs font-bold text-slate-500">Loading government departments...</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="p-12 text-center bg-white/70 backdrop-blur-xl rounded-2xl border border-slate-200 flex flex-col items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+            <Building2 size={24} />
+          </div>
+          <h3 className="font-heading font-extrabold text-base text-slate-900">No Government Departments Found</h3>
+          <p className="text-xs text-slate-500 max-w-sm">
+            {search || statusFilter !== "ALL" || districtFilter !== "ALL"
+              ? "No departments match the applied filters. Try adjusting your search query or reset filters."
+              : "No government departments have been registered yet."}
+          </p>
+          {(search || statusFilter !== "ALL" || districtFilter !== "ALL") && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setSearch("");
+                setStatusFilter("ALL");
+                setDistrictFilter("ALL");
+              }}
+              className="mt-2 text-xs"
+            >
+              Reset Filters
+            </Button>
+          )}
+        </div>
+      ) : viewMode === "list" ? (
+        /* Sleek Modern Table View */
+        <section className="border border-slate-200/80 bg-white rounded-2xl shadow-xs overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[960px] text-left text-sm border-collapse">
+              <thead className="bg-slate-50 border-b border-slate-200 text-[11px] uppercase tracking-wider font-extrabold text-slate-500">
+                <tr>
+                  <th className="px-6 py-3.5">Department / Organization</th>
+                  <th className="px-5 py-3.5">Category</th>
+                  <th className="px-5 py-3.5">District</th>
+                  <th className="px-5 py-3.5">Status</th>
+                  <th className="px-6 py-3.5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                <AnimatePresence>
+                  {paginatedItems.map((item, idx) => {
+                    const statusVal = String(item.onboardingStatus || item.status || "ACTIVE").toUpperCase();
+                    const isApproved = statusVal === "ACTIVE" || statusVal === "APPROVED";
+                    const isClarification = statusVal === "CLARIFICATION_REQUIRED";
+                    const isSuspended = statusVal === "SUSPENDED" || statusVal === "REJECTED";
+
+                    return (
+                      <motion.tr
+                        key={item.id}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.15, delay: idx * 0.02 }}
+                        className="hover:bg-slate-50/70 transition-colors group"
+                      >
+                        {/* Department Info */}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-50 to-indigo-100 text-blue-700 font-bold border border-blue-200/60 shadow-2xs">
+                              <Building2 size={18} />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <Link
+                                href={`/admin/organizations/${item.id}`}
+                                className="font-bold text-slate-900 hover:text-blue-600 transition-colors line-clamp-1 text-sm block"
+                                title={item.name}
+                              >
+                                {item.name}
+                              </Link>
+                              <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
+                                <Mail size={12} className="text-slate-400 shrink-0" />
+                                <span
+                                  className="truncate max-w-[240px]"
+                                  title={item.email || item.officialEmail || "No official email"}
+                                >
+                                  {item.email || item.officialEmail || "No official email configured"}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Category */}
+                        <td className="px-5 py-4 whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                            <ShieldCheck size={13} className="shrink-0 text-purple-600" />
+                            <span>Govt Department</span>
+                          </span>
+                        </td>
+
+                        {/* District */}
+                        <td className="px-5 py-4 whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200/60">
+                            <MapPin size={12} className="text-slate-500 shrink-0" />
+                            <span>{item.district || "Statewide / All"}</span>
+                          </span>
+                        </td>
+
+                        {/* Status */}
+                        <td className="px-5 py-4 whitespace-nowrap">
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${
+                              isApproved
+                                ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                                : isSuspended
+                                ? "bg-rose-50 text-rose-800 border-rose-200"
+                                : isClarification
+                                ? "bg-amber-50 text-amber-900 border-amber-200"
+                                : "bg-blue-50 text-blue-900 border-blue-200"
+                            }`}
+                          >
+                            {isApproved && <CheckCircle2 size={12} className="text-emerald-600 shrink-0" />}
+                            {isSuspended && <XCircle size={12} className="text-rose-600 shrink-0" />}
+                            {!isApproved && !isSuspended && <Clock size={12} className="text-amber-600 shrink-0" />}
+                            <span>{statusVal.replace(/_/g, " ")}</span>
+                          </span>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-6 py-4 text-right whitespace-nowrap">
+                          <div className="inline-flex items-center justify-end gap-1.5">
+                            <Link
+                              href={`/admin/organizations/${item.id}`}
+                              className="inline-flex items-center gap-1 h-8 px-2.5 text-xs font-semibold text-slate-700 hover:text-blue-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-2xs transition-colors"
+                              title="View Details"
+                            >
+                              <Eye size={13} />
+                              <span>Details</span>
+                            </Link>
+
+                            {!isApproved ? (
+                              <>
+                                <Button
+                                  size="sm"
+                                  className="h-8 px-2.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                                  onClick={() => openActionModal(item, "approve")}
+                                >
+                                  <CheckCircle2 size={13} className="mr-1 inline" /> Approve
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 px-2.5 text-xs border-amber-300 text-amber-800 hover:bg-amber-50"
+                                  onClick={() => openActionModal(item, "request-clarification")}
+                                >
+                                  Clarify
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 px-2.5 text-xs text-slate-600 hover:text-amber-800 hover:bg-amber-50"
+                                  onClick={() => openActionModal(item, "request-clarification")}
+                                >
+                                  Clarify
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="danger"
+                                  className="h-8 px-2.5 text-xs shadow-xs"
+                                  onClick={() => openActionModal(item, "suspend")}
+                                >
+                                  Suspend
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </motion.tr>
+                    );
+                  })}
+                </AnimatePresence>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination bar */}
+          {totalPages > 1 && (
+            <div className="border-t border-slate-100 p-4 flex justify-between items-center bg-slate-50/50">
+              <div className="text-xs text-slate-500 font-medium">
+                Page <span className="font-bold text-slate-800">{currentPage}</span> of {totalPages}
+              </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
+        </section>
+      ) : (
+        /* Responsive Grid Card View */
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <AnimatePresence>
+              {paginatedItems.map((item, idx) => {
+                const statusVal = String(item.onboardingStatus || item.status || "ACTIVE").toUpperCase();
+                const isApproved = statusVal === "ACTIVE" || statusVal === "APPROVED";
+                const isClarification = statusVal === "CLARIFICATION_REQUIRED";
+                const isSuspended = statusVal === "SUSPENDED" || statusVal === "REJECTED";
+
+                return (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.15, delay: idx * 0.02 }}
+                    className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs hover:shadow-md hover:border-blue-200 transition-all group"
+                  >
+                    <div>
+                      {/* Top Header */}
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-50 to-indigo-100 text-blue-700 font-bold border border-blue-200/60 shadow-2xs">
+                          <Building2 size={20} />
+                        </div>
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
+                            isApproved
+                              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                              : isSuspended
+                              ? "bg-rose-50 text-rose-800 border-rose-200"
+                              : isClarification
+                              ? "bg-amber-50 text-amber-900 border-amber-200"
+                              : "bg-blue-50 text-blue-900 border-blue-200"
+                          }`}
+                        >
+                          {isApproved && <CheckCircle2 size={11} className="text-emerald-600" />}
+                          {isSuspended && <XCircle size={11} className="text-rose-600" />}
+                          {!isApproved && !isSuspended && <Clock size={11} className="text-amber-600" />}
+                          <span>{statusVal.replace(/_/g, " ")}</span>
+                        </span>
+                      </div>
+
+                      {/* Department Name & Details */}
+                      <Link
+                        href={`/admin/organizations/${item.id}`}
+                        className="font-bold text-slate-900 group-hover:text-blue-600 text-base leading-snug line-clamp-2 transition-colors"
+                      >
+                        {item.name}
+                      </Link>
+
+                      <div className="mt-3 space-y-2 text-xs">
+                        <div className="flex items-center gap-2 text-slate-600">
+                          <MapPin size={13} className="text-slate-400 shrink-0" />
+                          <span className="font-semibold text-slate-800">{item.district || "Statewide / All Districts"}</span>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-slate-600">
+                          <Mail size={13} className="text-slate-400 shrink-0" />
+                          <span className="truncate text-slate-600">{item.email || item.officialEmail || "No official email"}</span>
+                        </div>
+
+                        {item.phone && (
+                          <div className="flex items-center gap-2 text-slate-600">
+                            <Phone size={13} className="text-slate-400 shrink-0" />
+                            <span className="font-mono text-slate-600">{item.phone}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Action Bar */}
+                    <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                      <Link
+                        href={`/admin/organizations/${item.id}`}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-blue-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors"
+                      >
+                        <Eye size={13} />
+                        <span>Details</span>
+                      </Link>
+
+                      <div className="flex items-center gap-1.5">
+                        {!isApproved ? (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs px-2.5 border-amber-300 text-amber-800"
+                              onClick={() => openActionModal(item, "request-clarification")}
+                            >
+                              Clarify
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="text-xs px-2.5 bg-emerald-600 hover:bg-emerald-700"
+                              onClick={() => openActionModal(item, "approve")}
+                            >
+                              Approve
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-xs px-2 text-slate-600 hover:text-amber-800 hover:bg-amber-50"
+                              onClick={() => openActionModal(item, "request-clarification")}
+                            >
+                              Clarify
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="danger"
+                              className="text-xs px-2.5"
+                              onClick={() => openActionModal(item, "suspend")}
+                            >
+                              Suspend
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </div>
+
+          {totalPages > 1 && (
+            <div className="border border-slate-200 rounded-2xl bg-white p-4 flex justify-between items-center shadow-2xs">
+              <div className="text-xs text-slate-500 font-medium">
+                Page <span className="font-bold text-slate-800">{currentPage}</span> of {totalPages}
+              </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
       {/* CREATE DEPARTMENT MODAL */}
-      <GovModal open={createModalOpen} onClose={() => setCreateModalOpen(false)} title="Add Government Department" width={560}>
+      <GovModal
+        open={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        title="Add Government Department"
+        width={580}
+      >
         <form onSubmit={handleCreateDept} className="flex flex-col gap-4">
+          <p className="text-xs text-slate-500 -mt-1">
+            Register a new state or district department to coordinate CSR project requirements and proposals.
+          </p>
+
           <label className="flex flex-col gap-1.5 text-xs font-bold text-slate-700">
-            Department Name *
+            Department / Office Name *
             <input
               type="text"
               required
               value={deptForm.name}
               onChange={(e) => setDeptForm((prev) => ({ ...prev, name: e.target.value }))}
-              placeholder="e.g. Planning Department Maharashtra"
-              className="border border-slate-200 rounded-lg p-2.5 text-sm font-medium outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-shadow"
+              placeholder="e.g. Planning Department Maharashtra / Collector Office Pune"
+              className="border border-slate-200 rounded-xl p-2.5 text-sm font-medium outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 transition-all shadow-2xs"
             />
           </label>
-          <label className="flex flex-col gap-1.5 text-xs font-bold text-slate-700">
-            Official Email
-            <input
-              type="email"
-              value={deptForm.email}
-              onChange={(e) => setDeptForm((prev) => ({ ...prev, email: e.target.value }))}
-              placeholder="e.g. planning@mahacsr.gov.in"
-              className="border border-slate-200 rounded-lg p-2.5 text-sm font-medium outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-shadow"
-            />
-          </label>
-          <label className="flex flex-col gap-1.5 text-xs font-bold text-slate-700">
-            District
-            <input
-              type="text"
-              value={deptForm.district}
-              onChange={(e) => setDeptForm((prev) => ({ ...prev, district: e.target.value }))}
-              placeholder="e.g. Mumbai / All Districts"
-              className="border border-slate-200 rounded-lg p-2.5 text-sm font-medium outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-shadow"
-            />
-          </label>
-          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 mt-4 pt-2 border-t border-slate-100">
-            <Button type="button" variant="secondary" className="w-full sm:w-auto justify-center" onClick={() => setCreateModalOpen(false)}>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1.5 text-xs font-bold text-slate-700">
+              Official Department Email
+              <input
+                type="email"
+                value={deptForm.email}
+                onChange={(e) => setDeptForm((prev) => ({ ...prev, email: e.target.value }))}
+                placeholder="e.g. planning@mahacsr.gov.in"
+                className="border border-slate-200 rounded-xl p-2.5 text-sm font-medium outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 transition-all shadow-2xs"
+              />
+            </label>
+
+            <label className="flex flex-col gap-1.5 text-xs font-bold text-slate-700">
+              District Jurisdiction
+              <input
+                type="text"
+                value={deptForm.district}
+                onChange={(e) => setDeptForm((prev) => ({ ...prev, district: e.target.value }))}
+                placeholder="e.g. Pune / Mumbai / Statewide"
+                className="border border-slate-200 rounded-xl p-2.5 text-sm font-medium outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 transition-all shadow-2xs"
+              />
+            </label>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1.5 text-xs font-bold text-slate-700">
+              Nodal Contact Phone
+              <input
+                type="text"
+                value={deptForm.phone}
+                onChange={(e) => setDeptForm((prev) => ({ ...prev, phone: e.target.value }))}
+                placeholder="e.g. +91 22 2202 0000"
+                className="border border-slate-200 rounded-xl p-2.5 text-sm font-medium outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 transition-all shadow-2xs"
+              />
+            </label>
+
+            <label className="flex flex-col gap-1.5 text-xs font-bold text-slate-700">
+              Department Code / Ref ID
+              <input
+                type="text"
+                value={deptForm.registrationNumber}
+                onChange={(e) => setDeptForm((prev) => ({ ...prev, registrationNumber: e.target.value }))}
+                placeholder="e.g. DEPT-PLN-MH"
+                className="border border-slate-200 rounded-xl p-2.5 text-sm font-medium outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 transition-all shadow-2xs"
+              />
+            </label>
+          </div>
+
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 mt-3 pt-3 border-t border-slate-100">
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full sm:w-auto justify-center"
+              onClick={() => setCreateModalOpen(false)}
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={creating} className="w-full sm:w-auto justify-center">
-              {creating ? "Creating..." : "Create Department"}
+            <Button
+              type="submit"
+              loading={creating}
+              loadingText="Creating Department..."
+              className="w-full sm:w-auto justify-center"
+            >
+              Save Department
+            </Button>
+          </div>
+        </form>
+      </GovModal>
+
+      {/* ACTION MODAL (APPROVE / CLARIFY / SUSPEND) */}
+      <GovModal
+        open={actionModal.open}
+        onClose={() => !actionSubmitting && setActionModal((prev) => ({ ...prev, open: false }))}
+        title={actionModal.title}
+        width={520}
+      >
+        <form onSubmit={handleActionSubmit} className="flex flex-col gap-4">
+          <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5">
+            <div className="text-[11px] uppercase font-extrabold tracking-wider text-slate-400">Target Department</div>
+            <div className="text-sm font-extrabold text-slate-900 mt-0.5">{actionModal.orgName}</div>
+            <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">{actionModal.description}</p>
+          </div>
+
+          {actionModal.type !== "approve" && (
+            <label className="flex flex-col gap-1.5 text-xs font-bold text-slate-700">
+              Remarks / Justification *
+              <textarea
+                required
+                rows={3}
+                value={actionModal.remarks}
+                onChange={(e) => setActionModal((prev) => ({ ...prev, remarks: e.target.value }))}
+                placeholder="Enter specific remarks, conditions, or reasons for this action..."
+                className="border border-slate-200 rounded-xl p-2.5 text-xs font-medium outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 transition-all shadow-2xs"
+              />
+            </label>
+          )}
+
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 mt-2 pt-3 border-t border-slate-100">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={actionSubmitting}
+              onClick={() => setActionModal((prev) => ({ ...prev, open: false }))}
+              className="w-full sm:w-auto justify-center"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant={actionModal.variant === "danger" ? "danger" : "primary"}
+              loading={actionSubmitting}
+              loadingText="Processing..."
+              className="w-full sm:w-auto justify-center"
+            >
+              {actionModal.submitLabel}
             </Button>
           </div>
         </form>
@@ -3177,16 +3873,16 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
   const [organization, setOrganization] = useState<any | null>(null);
   const [error, setError] = useState("");
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setError("");
     try {
       setOrganization(await apiFetch<any>(`/admin/organizations/${organizationId}`));
     } catch (err: any) {
       setError(err.message || "Unable to load organization");
     }
-  };
+  }, [organizationId]);
 
-  useEffect(() => { load(); }, [organizationId]);
+  useEffect(() => { load(); }, [load]);
 
   const toast = useToastActions();
   const [actionLoading, setActionLoading] = useState(false);
@@ -3290,7 +3986,6 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
   const email = org.officialEmail || org.email || "-";
   const phone = org.officialPhone || org.phone || "-";
   const district = org.district || org.registeredOfficeAddress || org.address || "-";
-  const taluka = org.taluka || "-";
   const regNo = org.registrationNumber || org.cin || "-";
   const pan = org.pan || "-";
   const gst = org.gstin || org.gst || "-";

@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   ShieldCheck,
   UserPlus,
-  Building2,
   FileText,
   CheckCircle2,
   Clock,

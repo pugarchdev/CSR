@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Download, Upload, FileSpreadsheet, Sparkles, AlertCircle, CheckCircle2, Users } from "lucide-react";
+import { Download, Upload, Sparkles, AlertCircle, CheckCircle2, Users } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
 import { apiFetch } from "@/lib/api";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
-import GovPageHeader from "@/components/layout/GovPageHeader";
+import { StandardPageHeader } from "@/components/layout/StandardPageHeader";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
 import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
 import GovButton from "@/components/gov/GovButton";
 import GovInput from "@/components/gov/GovInput";
@@ -100,7 +101,6 @@ export default function AdminUserManagementPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [roleCategoryFilter, setRoleCategoryFilter] = useState("ALL");
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
@@ -457,29 +457,75 @@ export default function AdminUserManagementPage() {
     setTransferSource(null);
   };
 
-return (
-    <GovPortalLayout>
-    <GovPageHeader
-        title="User Management"
-        breadcrumb="Admin / Security / Users"
-        description="Create platform users, manage their roles, districts and account status."
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <GovButton variant="secondary" onClick={() => setBulkImportModalOpen(true)}>
-              <Upload size={14} className="mr-1 inline" />
-              Bulk Import RMs / Users
-            </GovButton>
-            <GovButton variant="secondary" onClick={() => setCustomRoleModalOpen(true)}>
-              + Create Custom Role
-            </GovButton>
-            <GovButton variant="primary" onClick={() => setCreateModalOpen(true)}>
-              Create User
-            </GovButton>
-          </div>
-        }
-      />
+  const activeUsersCount = users.filter((u) => (u.accountStatus || "ACTIVE") === "ACTIVE").length;
+  const govNodalCount = users.filter((u) => {
+    const r = String(u.role || "").toUpperCase();
+    return r.includes("GOVERNMENT") || r.includes("NODAL") || r.includes("OFFICER") || r.includes("SECRETARY");
+  }).length;
+  const adminRmCount = users.filter((u) => {
+    const r = String(u.role || "").toUpperCase();
+    return r.includes("ADMIN") || r.includes("RELATIONSHIP") || r.includes("MANAGER");
+  }).length;
 
-      <div className="gov-container !px-2 sm:!px-4 md:!px-8">
+  return (
+    <GovPortalLayout>
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 text-slate-900">
+        <StandardPageHeader
+          title="User Management"
+          category="Admin / Security / Users"
+          description="Create platform users, manage their roles, districts, organizational scope, and account credentials."
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              <GovButton variant="secondary" onClick={() => setBulkImportModalOpen(true)}>
+                <Upload size={14} className="mr-1 inline" />
+                Bulk Import RMs / Users
+              </GovButton>
+              <GovButton variant="secondary" onClick={() => setCustomRoleModalOpen(true)}>
+                + Create Custom Role
+              </GovButton>
+              <GovButton variant="primary" onClick={() => setCreateModalOpen(true)}>
+                Create User
+              </GovButton>
+            </div>
+          }
+        />
+
+        {/* Standard 4-Column KPI Cards */}
+        <StatCardGroup columns={4}>
+          <StatCard
+            label="Total Accounts"
+            value={loading ? "…" : pagination.total}
+            icon={Users}
+            colorTheme="blue"
+            sublabel="Registered platform users"
+            index={0}
+          />
+          <StatCard
+            label="Active Accounts"
+            value={loading ? "…" : activeUsersCount}
+            icon={CheckCircle2}
+            colorTheme="emerald"
+            sublabel="Currently authorized"
+            index={1}
+          />
+          <StatCard
+            label="Gov & Nodal Officers"
+            value={loading ? "…" : govNodalCount}
+            icon={Sparkles}
+            colorTheme="purple"
+            sublabel="State & district authorities"
+            index={2}
+          />
+          <StatCard
+            label="Administrators & RMs"
+            value={loading ? "…" : adminRmCount}
+            icon={AlertCircle}
+            colorTheme="amber"
+            sublabel="System governance & RMs"
+            index={3}
+          />
+        </StatCardGroup>
+
         {!createModalOpen && !editModalOpen && !deleteTarget && !transferSource && error && (
           <div className="gov-alert gov-alert-danger gov-mb-4">{error}</div>
         )}

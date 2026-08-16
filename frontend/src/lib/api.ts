@@ -116,7 +116,7 @@ const networkFetch = async <T>(path: string, init: RequestInit, isCacheable: boo
     ? errorPayload
     : errorPayload?.message || data?.message || "Request failed";
 
-  let isSessionExpired =
+  const isSessionExpired =
     response.status === 401 ||
     (response.status === 403 && /invalid or expired/i.test(errorMessage));
 

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import GovPageHeader from "@/components/layout/GovPageHeader";
 import { StatCard } from "@/components/ui/StatCard";
-import GovStatusBadge from "@/components/gov/GovStatusBadge";
+
 import AccessDenied from "@/components/gov/AccessDenied";
 import { Loader } from "@/components/ui/Loader";
 import { apiFetch, invalidateCache } from "@/lib/api";
@@ -16,7 +16,6 @@ import {
   Building2,
   CheckCircle2,
   XCircle,
-  FileText,
   UserCheck,
   Building
 } from "lucide-react";

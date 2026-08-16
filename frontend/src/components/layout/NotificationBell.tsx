@@ -2,9 +2,8 @@
 
 import { useEffect, useState, useRef } from "react";
 import { io, Socket } from "socket.io-client";
-import { Bell, Check, Trash2, ShieldAlert } from "lucide-react";
+import { Bell, Check } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { useAuthStore } from "@/store/authStore";

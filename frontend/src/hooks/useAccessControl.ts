@@ -7,7 +7,6 @@ import type {
   Role,
   Permission,
   Assignment,
-  AuditEntry,
   OverviewStats,
   ImpactPreview,
   RolesResponse,

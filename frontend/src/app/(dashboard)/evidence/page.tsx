@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Camera, MapPin, Search, CheckCircle2, ShieldCheck, Filter, UploadCloud, Eye } from "lucide-react";
+import { MapPin, Search, CheckCircle2 } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
 
 interface EvidenceItem {
@@ -25,7 +25,7 @@ interface EvidenceItem {
 export default function EvidenceRepositoryPage() {
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { data: response, isLoading } = useApiQuery<{ success: boolean; data: EvidenceItem[] }>(
+  const { data: response } = useApiQuery<{ success: boolean; data: EvidenceItem[] }>(
     ["evidence"],
     "/evidence"
   );

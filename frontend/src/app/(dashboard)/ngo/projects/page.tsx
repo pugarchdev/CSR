@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
-import { FolderKanban, MapPin, Building2, CheckCircle2, ArrowRight, ShieldCheck, Clock } from "lucide-react";
-import { useApiQuery } from "@/lib/apiHooks";
+import { MapPin, ArrowRight } from "lucide-react";
 
 interface NgoProjectItem {
   id: string;

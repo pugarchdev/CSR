@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import GovPageHeader from "@/components/layout/GovPageHeader";
@@ -41,7 +41,7 @@ interface EligibleGovOfficer {
 export default function GovAdminAssignmentQueuePage() {
   const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState<GovProjectItem[]>([]);
-  const [organizationId, setOrganizationId] = useState<string>("");
+
   const [officers, setOfficers] = useState<EligibleGovOfficer[]>([]);
 
   const [selectedProject, setSelectedProject] = useState<GovProjectItem | null>(null);
@@ -52,19 +52,18 @@ export default function GovAdminAssignmentQueuePage() {
 
   const toast = useToastActions();
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const res = await apiFetch<any>("/assignments/gov-admin/queue");
       if (res) {
-        setOrganizationId(res.organizationId || "ALL DEPARTMENTS");
         setProjects(res.projects || res.data || []);
         if (Array.isArray(res.eligibleOfficers) && res.eligibleOfficers.length > 0) {
           setOfficers(res.eligibleOfficers);
         } else {
           try {
-            const officerRes = await apiFetch<any>("/assignments/gov-admin/eligible-officers");
-            setOfficers(officerRes?.eligibleOfficers || officerRes?.data || []);
+            const officersRes = await apiFetch<any>("/assignments/gov-admin/eligible-officers");
+            setOfficers(officersRes?.eligibleOfficers || officersRes?.data || []);
           } catch {
             setOfficers([]);
           }
@@ -75,11 +74,11 @@ export default function GovAdminAssignmentQueuePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const handleDelegate = async (e: React.FormEvent) => {
     e.preventDefault();

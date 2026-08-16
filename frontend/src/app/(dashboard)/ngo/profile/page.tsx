@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Building2, ShieldCheck, CheckCircle2, FileText, Save, Award } from "lucide-react";
+import { CheckCircle2, Save } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 
 export default function NgoProfilePage() {

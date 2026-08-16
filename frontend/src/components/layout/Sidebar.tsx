@@ -15,8 +15,7 @@ import {
   NAVIGATION_GROUPS,
   NAVIGATION_MANIFEST,
   isNavItemAllowed,
-  NavItemDef,
-  NavGroupDef
+  NavItemDef
 } from "@/lib/navigationManifest";
 import { useAuthStore } from "@/store/authStore";
 import { cn } from "@/lib/utils";
@@ -88,7 +87,6 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname() || "";
   const { hasPermission, isAdmin, roles, user, isLoadingPermissions, fetchStatus } = useAuthStore();
-  const userRoles = roles?.length > 0 ? roles : (user?.role ? [user.role] : []);
 
   const [internalHovered, setInternalHovered] = useState(false);
   const isHovered = hovered || internalHovered;
@@ -125,6 +123,7 @@ export function Sidebar({
 
   // Filter items by permission, feature flag, and scope
   const { visibleDashboard, visibleGroups } = useMemo(() => {
+    const userRoles = roles?.length > 0 ? roles : (user?.role ? [user.role] : []);
     if (fetchStatus === "ERROR") {
       return { visibleDashboard: null, visibleGroups: [] };
     }
@@ -156,7 +155,7 @@ export function Sidebar({
       visibleDashboard: canSeeDashboard ? dashboardItem : null,
       visibleGroups: filteredGroups
     };
-  }, [hasPermission, isAdmin, fetchStatus, tenantFeatures]);
+  }, [hasPermission, isAdmin, fetchStatus, tenantFeatures, roles, user?.role]);
 
   return (
     <aside

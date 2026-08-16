@@ -23,8 +23,8 @@ export interface RoutableIdentity {
  * Returns `/dashboard` for all authenticated user identities.
  */
 export function resolveDashboardPath(
-  identity?: RoutableIdentity | null,
-  fallback = "/dashboard"
+  _identity?: RoutableIdentity | null,
+  _fallback = "/dashboard"
 ): string {
   return "/dashboard";
 }

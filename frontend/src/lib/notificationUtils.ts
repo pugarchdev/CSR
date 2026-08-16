@@ -1,4 +1,4 @@
-import { normalizeRole } from "./navRegistry";
+
 
 export interface NotificationLike {
   id?: string;
@@ -15,11 +15,11 @@ export interface NotificationLike {
 export function resolveNotificationUrl(
   n: NotificationLike,
   isAdmin: boolean = false,
-  userRole?: string | null
+  _userRole?: string | null
 ): string {
   const title = (n.title || "").toLowerCase();
   const message = (n.message || "").toLowerCase();
-  let rawUrl = (n.actionUrl || n.actionButtonUrl || "").trim();
+  const rawUrl = (n.actionUrl || n.actionButtonUrl || "").trim();
 
   // 1. Normalize backend routes that point to non-existent endpoints
   if (rawUrl.startsWith("/corporate-enquiry") || rawUrl.startsWith("/partner/enquiries")) {

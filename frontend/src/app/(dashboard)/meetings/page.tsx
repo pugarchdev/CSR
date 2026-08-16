@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
-import { Calendar, Clock, Video, Users, Plus, CheckCircle2, MapPin } from "lucide-react";
+import React from "react";
+import { Clock, Video, Users, Plus, CheckCircle2 } from "lucide-react";
 
 export default function MeetingsPage() {
-  const [showScheduleModal, setShowScheduleModal] = useState(false);
 
   const meetings = [
     {
@@ -49,7 +48,7 @@ export default function MeetingsPage() {
         </div>
 
         <button
-          onClick={() => setShowScheduleModal(true)}
+          onClick={() => alert("Schedule meeting feature coming soon!")}
           className="inline-flex items-center gap-1.5 rounded-xl bg-blue-900 px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-blue-800"
         >
           <Plus size={14} />

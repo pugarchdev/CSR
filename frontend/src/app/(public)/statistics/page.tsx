@@ -1,6 +1,6 @@
 "use client";
 
-import { Coins, HeartHandshake, FolderHeart, ShieldCheck, MapPin, Landmark, BarChart2, Star } from "lucide-react";
+import { Coins, HeartHandshake, FolderHeart, ShieldCheck, BarChart2 } from "lucide-react";
 import { StatCard } from "@/components/ui/StatCard";
 import dynamic from "next/dynamic";
 

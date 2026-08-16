@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Activity, Server, Database, CheckCircle2, ShieldCheck, RefreshCcw } from "lucide-react";
+import { Server, Database, CheckCircle2, RefreshCcw } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
 
 interface HealthResponse {
@@ -29,7 +29,7 @@ interface HealthResponse {
 }
 
 export default function PlatformSystemHealthPage() {
-  const { data: response, isLoading, refetch } = useApiQuery<HealthResponse>(
+  const { data: response, refetch } = useApiQuery<HealthResponse>(
     ["platform", "health"],
     "/platform-admin/system-health"
   );

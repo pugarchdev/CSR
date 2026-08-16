@@ -2,13 +2,12 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 import Link from "next/link";
 import { useApiQuery } from "@/lib/apiHooks";
-import { GovPageHeader } from "@/components/layout/GovPageHeader";
-import { StatCard } from "@/components/ui/StatCard";
+import { StandardPageHeader } from "@/components/layout/StandardPageHeader";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
 import {
-  Building2, Search, Filter, Mail, Coins, ArrowUpRight, ShieldCheck, Clock, CheckCircle2, Plus, Landmark, AlertCircle, Loader2
+  Building2, Search, Filter, Coins, ArrowUpRight, Clock, CheckCircle2, Plus, AlertCircle, Loader2
 } from "lucide-react";
 
 import { useAuthStore } from "@/store/authStore";
@@ -123,13 +122,13 @@ const canSubmitEnquiry = useMemo(() => {
 
     try {
       let org = (user as any)?.organization;
-      let profile = (user as any)?.csrCompanyProfile || org?.csrCompanyProfile;
+
 
       if (user?.organizationId) {
         try {
           const profileRes = await apiFetch<any>("/onboarding/company");
           org = profileRes?.organization || profileRes?.data?.organization || profileRes || org;
-          profile = profileRes?.profile || profileRes?.data?.profile || org?.csrCompanyProfile || profile;
+
         } catch {}
       }
 
@@ -203,12 +202,17 @@ const canSubmitEnquiry = useMemo(() => {
     return matchesSearch && matchesStatus;
   });
 
+  const approvedCount = items.filter(e => e.status === "APPROVED" || e.status === "ASSIGNED").length;
+  const underReviewCount = items.filter(e => e.status === "UNDER_ASSESSMENT" || e.status === "SUBMITTED").length;
+  const totalOutlay = items.reduce((acc, curr) => acc + (curr.indicativeBudgetCr || 0), 0);
+
   return (
-    <div className="mx-auto flex min-h-screen max-w-screen-2xl flex-col gap-4 px-4 py-4 md:px-6">
+    <div className="mx-auto flex min-h-screen max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 text-slate-900">
       {/* Header */}
-      <GovPageHeader
-        title="Corporate Enquiries & CSR Partnership Register"
-        eyebrow="Corporate Desk"
+      <StandardPageHeader
+        title="Corporate Enquiries & CSR Partnerships"
+        category="Corporate Desk"
+        description="Expressions of interest, budget pledges, and CSR alignment proposals submitted by corporate partners."
         actions={
           canSubmitEnquiry ? (
             <button
@@ -285,33 +289,41 @@ const canSubmitEnquiry = useMemo(() => {
         </div>
       </Modal>
 
-      {/* 3D Compact Metrics */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      {/* Standard 4-Column KPI Cards */}
+      <StatCardGroup columns={4}>
         <StatCard
           label="Total Enquiries"
-          value={items.length}
+          value={isLoading ? "…" : items.length}
           icon={Building2}
           index={0}
-          badge="Corporate Desk"
+          colorTheme="blue"
           sublabel="Received submissions"
         />
         <StatCard
-          label="Indicative Outlay"
-          value={`₹${items.reduce((acc, curr) => acc + (curr.indicativeBudgetCr || 0), 0).toFixed(1)} Cr`}
+          label="Pledged Outlay"
+          value={isLoading ? "…" : `₹${totalOutlay.toFixed(1)} Cr`}
           icon={Coins}
           index={1}
-          badge="Pledged Budget"
+          colorTheme="emerald"
           sublabel="Aggregated outlay"
         />
         <StatCard
-          label="Under Review"
-          value={items.filter(e => e.status === "UNDER_ASSESSMENT" || e.status === "SUBMITTED").length}
-          icon={Clock}
+          label="Approved & Assigned"
+          value={isLoading ? "…" : approvedCount}
+          icon={CheckCircle2}
           index={2}
-          badge="Pending Review"
+          colorTheme="purple"
+          sublabel="Ready for project formulation"
+        />
+        <StatCard
+          label="Under Review"
+          value={isLoading ? "…" : underReviewCount}
+          icon={Clock}
+          index={3}
+          colorTheme="amber"
           sublabel="Active verification queue"
         />
-      </div>
+      </StatCardGroup>
 
       {/* Main Content Register */}
 <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">

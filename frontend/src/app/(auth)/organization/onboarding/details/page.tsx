@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { FileText, Loader2, Building2, User, MapPin, Target, ShieldCheck, Coins } from "lucide-react";
+import { FileText, Loader2, Building2, User, Target, ShieldCheck, Coins } from "lucide-react";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import GovPageHeader from "@/components/layout/GovPageHeader";
 import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
@@ -85,12 +85,7 @@ const statusVariant = (status?: string) => {
   return "warning" as const;
 };
 
-const formatLabel = (key: string) =>
-  key
-    .replace(/([A-Z])/g, " $1")
-    .replace(/_/g, " ")
-    .replace(/^./, (c) => c.toUpperCase())
-    .trim();
+
 
 const formatValue = (value: any): string => {
   if (value === null || value === undefined || value === "") return "—";

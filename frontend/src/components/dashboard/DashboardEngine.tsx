@@ -5,8 +5,7 @@ import Link from "next/link";
 import {
   Activity, AlertCircle, ArrowRight, Bell, Building2, CheckCircle2,
   Clock3, Compass, FileCheck, FileText, FolderKanban, HeartHandshake,
-  Landmark, RefreshCcw, ShieldAlert, ShieldCheck, Users, Target,
-  TrendingUp, Layers, Award, Sparkles, MapPin
+  Landmark, RefreshCcw, ShieldAlert, ShieldCheck, Users, Target
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";

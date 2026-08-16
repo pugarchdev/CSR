@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { CheckSquare, Clock, CheckCircle2, AlertTriangle, Search, Filter } from "lucide-react";
-
 interface TaskItem {
   id: string;
   projectCode: string;

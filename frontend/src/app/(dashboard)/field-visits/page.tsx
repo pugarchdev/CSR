@@ -3,8 +3,8 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import {
-  MapPin, Camera, CheckCircle2, Clock, Plus, Search,
-  ArrowRight, ShieldCheck, FileCheck, AlertTriangle
+  MapPin, Camera, Clock, Plus, Search,
+  ArrowRight
 } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
 
@@ -30,7 +30,7 @@ interface FieldVisitItem {
 export default function FieldVisitsPage() {
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { data: response, isLoading } = useApiQuery<{ success: boolean; data: FieldVisitItem[] }>(
+  const { data: response } = useApiQuery<{ success: boolean; data: FieldVisitItem[] }>(
     ["field-visits"],
     "/field-visits"
   );

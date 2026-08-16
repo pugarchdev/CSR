@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { Search, Filter } from "lucide-react";
 import { ViewToggle, ViewMode } from "./ViewToggle";
 import { useResponsiveViewMode } from "@/hooks/useResponsiveViewMode";

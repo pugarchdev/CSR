@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, memo } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import { Coins, FolderCheck, HeartHandshake, TrendingUp, Users, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 

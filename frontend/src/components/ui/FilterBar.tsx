@@ -2,7 +2,7 @@
 "use client";
 
 import { ReactNode } from "react";
-import { Search, Filter, RefreshCw, X } from "lucide-react";
+import { Search, RefreshCw, X } from "lucide-react";
 import { Button } from "./Button";
 import { cn } from "@/lib/utils";
 

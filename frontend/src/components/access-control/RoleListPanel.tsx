@@ -1,7 +1,7 @@
 // Role List Panel — Searchable, filterable, keyboard-navigable 2-tier role list
 "use client";
 
-import { useState, useRef, useCallback, KeyboardEvent } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Filter, Users, Lock, ShieldCheck, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";

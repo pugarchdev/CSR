@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Database, MapPin, Layers, Building2, Search, CheckCircle2 } from "lucide-react";
+import { MapPin, Layers, Building2, CheckCircle2 } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
 
 interface MasterDataResponse {
@@ -16,9 +16,8 @@ interface MasterDataResponse {
 
 export default function PlatformMasterDataPage() {
   const [activeTab, setActiveTab] = useState<"DISTRICTS" | "SECTORS" | "ORG_TYPES">("DISTRICTS");
-  const [search, setSearch] = useState("");
 
-  const { data: response, isLoading } = useApiQuery<MasterDataResponse>(
+  const { data: response } = useApiQuery<MasterDataResponse>(
     ["platform", "master-data"],
     "/platform-admin/master-data"
   );

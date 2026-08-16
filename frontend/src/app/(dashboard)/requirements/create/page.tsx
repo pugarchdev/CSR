@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, ArrowLeft, Send, Landmark, Coins, MapPin } from "lucide-react";
+import { ArrowLeft, Send } from "lucide-react";
 import { GovPageHeader } from "@/components/layout/GovPageHeader";
 
 export default function CreateRequirementPage() {

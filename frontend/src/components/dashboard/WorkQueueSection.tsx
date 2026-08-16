@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import {
   Clock, AlertTriangle, ArrowRight, CheckCircle2,
-  FileText, ShieldAlert, Sparkles, Filter, ChevronRight
+  FileText
 } from "lucide-react";
 
 export interface WorkQueueItem {

@@ -1,11 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState, useRef } from "react";
+import { FormEvent, useEffect, useState, useRef, useCallback } from "react";
 import { AlertCircle, CheckCircle2, FileText, Loader2, Save, Upload, ChevronDown, X, Sparkles, Building2, ShieldCheck, Eye, Trash2, Check, Plus, UserPlus, Info } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { apiFetch, API_BASE_URL, getStoredUser } from "@/lib/api";
-import { Button } from "@/components/ui/Button";
 import { locationData } from "@/lib/locationData";
 import { FieldFormat, sanitizeField, validateField, inputModeFor, FIELD_MAX_LENGTH } from "@/lib/validation";
 import GstVerificationField from "@/components/verification/GstVerificationField";
@@ -122,7 +120,7 @@ const subDepartmentDocumentTypes = [
   "JURISDICTION_PROOF"
 ];
 
-const departmentDocumentTypes = subDepartmentDocumentTypes;
+
 
 const scheduleAreas = [
   "Education",
@@ -208,7 +206,7 @@ function Badge({ children }: { children: string }) {
 
 function Shell({
   title,
-  description,
+  description: _description,
   steps,
   currentStep,
   onStepChange,
@@ -822,6 +820,7 @@ function useEntityProfile(type: "company" | "department") {
     setProfile(mergedProfile);
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, [type]);
   return { organization, profile, setOrganization, setProfile, error, setError, load };
 }
@@ -1213,8 +1212,7 @@ function DocumentsStep({
   const [uploadingMap, setUploadingMap] = useState<Record<string, boolean>>({});
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const activeUploadingTypes = Object.keys(uploadingMap).filter((k) => uploadingMap[k]);
-  const uploadingCount = activeUploadingTypes.length;
+
 
   const load = async () => {
     try {
@@ -1279,7 +1277,7 @@ function DocumentsStep({
   const matchFileType = (fileName: string, availableTypes: string[]): string | null => {
     const upper = fileName.toUpperCase().replace(/[^A-Z0-9]/g, " ");
     for (const type of availableTypes) {
-      const cleanType = type.toUpperCase().replace(/_/g, " ");
+
       const words = type.split("_");
       if (upper.includes(type) || words.every((w) => upper.includes(w))) {
         return type;
@@ -1297,7 +1295,7 @@ function DocumentsStep({
     return null;
   };
 
-  const handleBatchUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const _handleBatchUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
 
@@ -1699,7 +1697,7 @@ export function DepartmentOnboardingStep() {
     return [];
   };
 
-  const loadSubDepts = async () => {
+  const loadSubDepts = useCallback(async () => {
     if (!organization?.id) return;
     setLoadingSubDepts(true);
     try {
@@ -1711,13 +1709,13 @@ export function DepartmentOnboardingStep() {
     } finally {
       setLoadingSubDepts(false);
     }
-  };
+  }, [organization?.id]);
 
   useEffect(() => {
     if (step === "sub-departments" && organization?.id) {
       loadSubDepts();
     }
-  }, [step, organization?.id]);
+  }, [step, organization?.id, loadSubDepts]);
 
   useEffect(() => {
     if (parentDistrict) {

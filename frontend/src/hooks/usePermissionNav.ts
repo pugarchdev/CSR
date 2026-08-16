@@ -75,62 +75,63 @@ export function usePermissionNav(items: NavItem[], tenantFeatures?: Record<strin
     isLoading
   } = usePermission();
 
-  const checkNavItem = (item: NavItem): boolean => {
-    // Check feature flags first
-    if (tenantFeatures && item.featureKey) {
-      if (tenantFeatures[item.featureKey] === false) {
-        return false;
-      }
-    }
-
-    // Check permissions
-    if (item.permission) {
-      return hasPermission(item.permission);
-    }
-    if (item.permissions) {
-      return hasAllPermissions(item.permissions);
-    }
-    if (item.anyPermission) {
-      return hasAnyPermission(item.anyPermission);
-    }
-
-    // Check roles
-    if (item.role) {
-      return hasRole(item.role);
-    }
-    if (item.roles) {
-      return hasAnyRole(item.roles);
-    }
-
-    // No restrictions
-    return true;
-  };
-
-  const filterNavItems = (navItems: NavItem[]): NavItem[] => {
-    return navItems
-      .filter(checkNavItem)
-      .map((item) => {
-        if (item.children) {
-          return {
-            ...item,
-            children: filterNavItems(item.children),
-          };
-        }
-        return item;
-      })
-      .filter((item) => {
-        // Remove items with empty children (all sub-items filtered out)
-        if (item.children && item.children.length === 0) {
-          return false;
-        }
-        return true;
-      });
-  };
-
   const filteredItems = useMemo(() => {
     if (isLoading) return [];
+
+    const checkNavItem = (item: NavItem): boolean => {
+      // Check feature flags first
+      if (tenantFeatures && item.featureKey) {
+        if (tenantFeatures[item.featureKey] === false) {
+          return false;
+        }
+      }
+
+      // Check permissions
+      if (item.permission) {
+        return hasPermission(item.permission);
+      }
+      if (item.permissions) {
+        return hasAllPermissions(item.permissions);
+      }
+      if (item.anyPermission) {
+        return hasAnyPermission(item.anyPermission);
+      }
+
+      // Check roles
+      if (item.role) {
+        return hasRole(item.role);
+      }
+      if (item.roles) {
+        return hasAnyRole(item.roles);
+      }
+
+      // No restrictions
+      return true;
+    };
+
+    const filterNavItems = (navItems: NavItem[]): NavItem[] => {
+      return navItems
+        .filter(checkNavItem)
+        .map((item) => {
+          if (item.children) {
+            return {
+              ...item,
+              children: filterNavItems(item.children),
+            };
+          }
+          return item;
+        })
+        .filter((item) => {
+          // Remove items with empty children (all sub-items filtered out)
+          if (item.children && item.children.length === 0) {
+            return false;
+          }
+          return true;
+        });
+    };
+
     return filterNavItems(items);
-  }, [items, isLoading, hasPermission, hasAnyPermission, hasAllPermissions, hasRole, hasAnyRole]);
+  }, [items, isLoading, hasPermission, hasAnyPermission, hasAllPermissions, hasRole, hasAnyRole, tenantFeatures]);
 
   return {
     filteredItems,

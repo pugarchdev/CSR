@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ShieldAlert, AlertTriangle, Lock, Users, ShieldCheck, Search } from "lucide-react";
+
 import { useApiQuery } from "@/lib/apiHooks";
 
 interface SecurityResponse {
@@ -26,7 +26,7 @@ interface SecurityResponse {
 }
 
 export default function PlatformSecurityPage() {
-  const { data: response, isLoading } = useApiQuery<SecurityResponse>(
+  const { data: response } = useApiQuery<SecurityResponse>(
     ["platform", "security"],
     "/platform-admin/security"
   );

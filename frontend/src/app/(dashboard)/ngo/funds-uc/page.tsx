@@ -1,11 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
-import Link from "next/link";
-import { FileText, Landmark, UploadCloud, CheckCircle2, Clock, Plus, ArrowRight } from "lucide-react";
+import React from "react";
+import { CheckCircle2, Plus } from "lucide-react";
 
 export default function NgoFundsUcPage() {
-  const [showUploadModal, setShowUploadModal] = useState(false);
   const formatCr = (val: number) => `₹${(Number(val || 0) / 10000000).toFixed(2)} Cr`;
 
   const certificates = [
@@ -53,7 +51,7 @@ export default function NgoFundsUcPage() {
         </div>
 
         <button
-          onClick={() => setShowUploadModal(true)}
+          onClick={() => alert("Upload UC feature coming soon!")}
           className="inline-flex items-center gap-1.5 rounded-xl bg-blue-900 px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-blue-800"
         >
           <Plus size={14} />

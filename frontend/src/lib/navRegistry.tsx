@@ -8,7 +8,7 @@ import {
   CheckCircle, Building, FileCheck, UserPlus, UserCog, Sliders, CheckSquare, Send
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { NAVIGATION_MANIFEST, NavItemDef, isNavItemAllowed } from "./navigationManifest";
+import { NAVIGATION_MANIFEST, isNavItemAllowed } from "./navigationManifest";
 
 export interface NavItem {
   id: string;

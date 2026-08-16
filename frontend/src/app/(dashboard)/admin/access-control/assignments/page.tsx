@@ -38,19 +38,18 @@ export default function AssignmentsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [previewUserId, setPreviewUserId] = useState<string | null>(null);
 
-  const assignments = assignmentsData?.data ?? [];
-
   // Client-side search filtering
   const filtered = useMemo(() => {
-    if (!search) return assignments;
+    const list = assignmentsData?.data ?? [];
+    if (!search) return list;
     const term = search.toLowerCase();
-    return assignments.filter((a) => {
+    return list.filter((a) => {
       const userName = a.user ? `${a.user.firstName || ""} ${a.user.lastName || ""}`.toLowerCase() : "";
       const email = (a.user?.email || "").toLowerCase();
       const roleName = (a.role?.name || "").toLowerCase();
       return userName.includes(term) || email.includes(term) || roleName.includes(term);
     });
-  }, [assignments, search]);
+  }, [assignmentsData, search]);
 
   const handleRevoke = async (assignment: Assignment) => {
     try {

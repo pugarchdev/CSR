@@ -2,7 +2,6 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { FileText, Key, Users, Activity } from "lucide-react";
 import { RoleSummaryTab } from "./RoleSummaryTab";
@@ -14,12 +13,10 @@ import { RoleAuditTab } from "./RoleAuditTab";
 import { CloneRoleDialog } from "./CloneRoleDialog";
 import {
   usePermissions,
-  useRolePermissions,
   useUpdateRolePermissions,
   useActivateRole,
   useDeactivateRole,
   useDeleteRole,
-  usePatchRole,
   useImpactPreview,
 } from "@/hooks/useAccessControl";
 import { useToastActions } from "@/components/ui/Toast";
@@ -59,7 +56,6 @@ export function RoleDetailPanel({ role, onRoleDeleted, onRoleUpdated, onSelectCl
   const activateRole = useActivateRole();
   const deactivateRole = useDeactivateRole();
   const deleteRole = useDeleteRole();
-  const patchRole = usePatchRole();
   const impactPreviewMutation = useImpactPreview(role.id);
 
   // Reset local permissions when role changes

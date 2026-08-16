@@ -7,22 +7,19 @@ import { motion } from "framer-motion";
 import {
   Mail,
   Lock,
-  LogIn,
   AlertCircle,
   Eye,
   EyeOff,
-  Building2,
   ShieldCheck,
   Award,
   Sparkles,
   ArrowRight,
   Landmark,
   CheckCircle2,
-  Check,
   Loader2
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
-import { resolveDashboardPath } from "@/lib/roleRouting";
+
 import { API_BASE_URL, clearApiCache } from "@/lib/api";
 import { Loader } from "@/components/ui/Loader";
 

@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useCallback } from "react";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
-import GovPageHeader from "@/components/layout/GovPageHeader";
+import { StandardPageHeader } from "@/components/layout/StandardPageHeader";
 import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
 import GovInput from "@/components/gov/GovInput";
 import GovSelect from "@/components/gov/GovSelect";
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
-import { StatCard } from "@/components/ui/StatCard";
-import { Activity, Users, ShieldCheck } from "lucide-react";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
+import { Activity, Users, ShieldCheck, ShieldAlert } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import "@/styles/gov-theme.css";
 
@@ -51,6 +51,10 @@ export default function AuditLogsPage() {
 
   const actions = Array.from(new Set(logs.map((l) => l.action))).sort();
   const distinctUsers = new Set(logs.map((l) => l.user?.email).filter(Boolean)).size;
+  const securityEventsCount = logs.filter((l) => {
+    const a = l.action.toUpperCase();
+    return a.includes("ROLE") || a.includes("AUTH") || a.includes("LOGIN") || a.includes("PERM") || a.includes("BLOCK") || a.includes("SECURITY");
+  }).length;
 
   const filtered = logs.filter((log) => {
     const term = searchTerm.toLowerCase();
@@ -84,39 +88,48 @@ export default function AuditLogsPage() {
 
   return (
     <GovPortalLayout userRole="PORTAL_ADMIN">
-      <GovPageHeader
-        breadcrumb="Admin / Audit Logs"
-        title="System Audit Logs"
-        description="Immutable record of user actions, entity modifications, and system events"
-      />
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 text-slate-900">
+        <StandardPageHeader
+          title="System Audit Logs"
+          category="Admin / Audit Logs"
+          description="Immutable record of user actions, entity modifications, RBAC transitions, and security event trails across Maharashtra CSR portal."
+        />
 
-      {/* Summary KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <StatCard
-          label="Total Logged Events"
-          value={logs.length}
-          icon={Activity}
-          index={0}
-          badge="Audit Logged"
-          sublabel="System events recorded"
-        />
-        <StatCard
-          label="Distinct Active Users"
-          value={distinctUsers}
-          icon={Users}
-          index={1}
-          badge="Active Users"
-          sublabel="Unique active accounts"
-        />
-        <StatCard
-          label="Action Categories"
-          value={actions.length}
-          icon={ShieldCheck}
-          index={2}
-          badge="Audit Operations"
-          sublabel="Tracked operation types"
-        />
-      </div>
+        {/* Standard 4-Column Animated KPI Cards */}
+        <StatCardGroup columns={4}>
+          <StatCard
+            label="Total Logged Events"
+            value={loading ? "…" : logs.length}
+            icon={Activity}
+            index={0}
+            colorTheme="blue"
+            sublabel="System events recorded"
+          />
+          <StatCard
+            label="Distinct Active Users"
+            value={loading ? "…" : distinctUsers}
+            icon={Users}
+            index={1}
+            colorTheme="emerald"
+            sublabel="Unique active accounts"
+          />
+          <StatCard
+            label="Action Categories"
+            value={loading ? "…" : actions.length}
+            icon={ShieldCheck}
+            index={2}
+            colorTheme="purple"
+            sublabel="Tracked operation types"
+          />
+          <StatCard
+            label="Security & RBAC Events"
+            value={loading ? "…" : securityEventsCount}
+            icon={ShieldAlert}
+            index={3}
+            colorTheme="rose"
+            sublabel="Authentication & roles"
+          />
+        </StatCardGroup>
 
       {/* Log Search and Filters */}
 <GovCard className="mb-6">
@@ -262,6 +275,7 @@ export default function AuditLogsPage() {
           )}
         </GovCardBody>
       </GovCard>
+      </div>
     </GovPortalLayout>
   );
 }

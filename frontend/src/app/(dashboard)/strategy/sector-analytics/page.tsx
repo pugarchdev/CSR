@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { PieChart, TrendingUp, Layers, ArrowUpRight, BarChart3 } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
 
 interface SectorResponse {
@@ -22,7 +21,7 @@ interface SectorResponse {
 }
 
 export default function SectorAnalyticsPage() {
-  const { data: response, isLoading } = useApiQuery<SectorResponse>(
+  const { data: response } = useApiQuery<SectorResponse>(
     ["strategy", "sectors"],
     "/strategy/sectors"
   );

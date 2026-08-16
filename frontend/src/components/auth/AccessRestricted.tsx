@@ -13,7 +13,7 @@ export const AccessRestricted: React.FC<AccessRestrictedProps> = ({
   requiredPermission,
   reason = "You do not have the required permissions to access this page."
 }) => {
-  const { user, roles } = useAuthStore();
+  const { roles } = useAuthStore();
 
   const formattedPerms = Array.isArray(requiredPermission)
     ? requiredPermission.join(", ")

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, Check, Trash2, Search, Filter, AlertCircle, CheckCircle2, Clock, ExternalLink, RefreshCw, ShieldAlert, FileText, ArrowRight } from "lucide-react";
+import { Bell, Check, Trash2, Search, AlertCircle, CheckCircle2, RefreshCw, ShieldAlert, ArrowRight } from "lucide-react";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import { apiFetch } from "@/lib/api";
 import { useToastActions } from "@/components/ui/Toast";

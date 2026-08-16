@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import GovPageHeader from "@/components/layout/GovPageHeader";
 import { StatCard } from "@/components/ui/StatCard";
@@ -12,9 +11,9 @@ import { Loader } from "@/components/ui/Loader";
 import { apiFetch } from "@/lib/api";
 import { getCurrentUser, hasPageAccess, CONVERGENCE_PROJECT_PERMS } from "@/lib/roleAccess";
 import {
-  Building2, Coins, CheckCircle2, FileText, ArrowLeft, MapPin,
-  Calendar, UserCheck, ShieldCheck, FileCheck, ExternalLink, AlertCircle,
-  UploadCloud, Save, Eye, Clock, Check, Layers, Plus, X, DollarSign
+  Coins, CheckCircle2, FileText, ArrowLeft,
+  ShieldCheck, FileCheck, AlertCircle,
+  UploadCloud, Save, Eye, Clock, Check, Layers, Plus, X
 } from "lucide-react";
 
 interface Milestone {

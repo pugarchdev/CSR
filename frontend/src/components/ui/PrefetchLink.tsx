@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { ReactNode } from "react";
 
 interface PrefetchLinkProps {
@@ -12,8 +11,6 @@ interface PrefetchLinkProps {
 }
 
 export function PrefetchLink({ href, children, className, onClick }: PrefetchLinkProps) {
-  const pathname = usePathname();
-  const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
 
   return (
     <Link

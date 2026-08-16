@@ -1,9 +1,11 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { Clock, ShieldCheck, CheckCircle2, Calendar, RotateCcw, Save } from "lucide-react";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
-import GovPageHeader from "@/components/layout/GovPageHeader";
-import { GovCard, GovCardBody } from "@/components/gov/GovCard";
+import { StandardPageHeader } from "@/components/layout/StandardPageHeader";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
+
 import GovInput from "@/components/gov/GovInput";
 import GovButton from "@/components/gov/GovButton";
 import AccessDenied from "@/components/gov/AccessDenied";
@@ -15,12 +17,12 @@ type SlaValues = Record<string, number>;
 type SlaResponse = { config: SlaValues; defaults: SlaValues; holidays?: string[] };
 
 const labels: Record<string, string> = {
-  RM_RESPONSE: "RM first response",
-  JS_DECISION: "Joint Secretary decision",
-  DISTRICT_ASSIGNMENT: "District assignment",
-  EXECUTION: "Execution review",
-  GRIEVANCE_LEVEL_1: "Level 1 grievance",
-  GRIEVANCE_LEVEL_2: "Level 2 grievance",
+  RM_RESPONSE: "RM First Response Window",
+  JS_DECISION: "Joint Secretary Decision Window",
+  DISTRICT_ASSIGNMENT: "District Assignment Window",
+  EXECUTION: "Execution Review Window",
+  GRIEVANCE_LEVEL_1: "Level 1 Grievance Resolution",
+  GRIEVANCE_LEVEL_2: "Level 2 Grievance Escalation",
 };
 
 export default function SlaConfigurationPage() {
@@ -73,15 +75,57 @@ export default function SlaConfigurationPage() {
 
   return (
     <GovPortalLayout userRole="SUPER_ADMIN">
-      <GovPageHeader
-        breadcrumb="Home / Admin / SLA Configuration"
-        title="SLA Configuration"
-        description="Configure workflow windows in working days. Changes are audited and apply to new SLA calculations."
-      />
-      <GovCard>
-        <GovCardBody>
-          {loading ? <p>Loading configuration…</p> : (
-            <form onSubmit={save}>
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 text-slate-900">
+        <StandardPageHeader
+          title="SLA & Escalation Engine"
+          category="Admin / SLA Configuration"
+          description="Configure statutory turnaround timelines (in working days) across coordination stages and citizen grievance redressal."
+        />
+
+        {/* 4-Column Animated KPI Cards */}
+        <StatCardGroup columns={4}>
+          <StatCard
+            label="RM Response Window"
+            value={loading ? "…" : `${values.RM_RESPONSE ?? 2} Days`}
+            icon={Clock}
+            colorTheme="blue"
+            sublabel="Intake & first touch"
+            index={0}
+          />
+          <StatCard
+            label="JS Decision Window"
+            value={loading ? "…" : `${values.JS_DECISION ?? 7} Days`}
+            icon={ShieldCheck}
+            colorTheme="purple"
+            sublabel="Secretariat sanction"
+            index={1}
+          />
+          <StatCard
+            label="District Assignment"
+            value={loading ? "…" : `${values.DISTRICT_ASSIGNMENT ?? 3} Days`}
+            icon={CheckCircle2}
+            colorTheme="emerald"
+            sublabel="Field nodal allocation"
+            index={2}
+          />
+          <StatCard
+            label="L1 Grievance Redressal"
+            value={loading ? "…" : `${values.GRIEVANCE_LEVEL_1 ?? 15} Days`}
+            icon={Calendar}
+            colorTheme="amber"
+            sublabel="Citizen & NGO disputes"
+            index={3}
+          />
+        </StatCardGroup>
+
+        {/* Form Container */}
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
+          {loading ? (
+            <div className="py-12 text-center text-xs font-semibold text-slate-500">
+              Loading authoritative SLA parameters…
+            </div>
+          ) : (
+            <form onSubmit={save} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {Object.keys(values).map((stage) => (
                   <GovInput
@@ -91,28 +135,48 @@ export default function SlaConfigurationPage() {
                     max={365}
                     required
                     label={labels[stage] || stage.replaceAll("_", " ")}
-                    help={`Default: ${defaults[stage] ?? "—"} day(s)`}
+                    help={`Default baseline: ${defaults[stage] ?? "—"} working day(s)`}
                     value={values[stage] ?? ""}
                     onChange={(event) => setValues((current) => ({ ...current, [stage]: Number(event.target.value) }))}
                   />
                 ))}
               </div>
-              <GovInput
-                label="Maharashtra public holidays"
-                help="Comma-separated YYYY-MM-DD dates. Saturdays, Sundays and these dates do not consume SLA days."
-                value={holidayText}
-                onChange={(event) => setHolidayText(event.target.value)}
-              />
-              {error && <p className="gov-error-text" role="alert">{error}</p>}
-              {message && <p className="gov-help" role="status">{message}</p>}
-              <div className="flex gap-3 mt-6">
-                <GovButton type="submit" disabled={saving || loading}>{saving ? "Saving…" : "Save configuration"}</GovButton>
-                <GovButton type="button" variant="secondary" onClick={reset} disabled={saving || loading}>Reset to defaults</GovButton>
+
+              <div className="border-t border-slate-100 pt-5">
+                <GovInput
+                  label="Maharashtra Public Holidays Exclusions"
+                  help="Comma-separated YYYY-MM-DD dates. Weekends (Saturdays, Sundays) and these dates do not consume SLA working hours."
+                  value={holidayText}
+                  onChange={(event) => setHolidayText(event.target.value)}
+                />
+              </div>
+
+              {error && (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs font-bold text-red-700">
+                  {error}
+                </div>
+              )}
+              {message && (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-800">
+                  {message}
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <GovButton type="submit" disabled={saving || loading}>
+                  <Save size={14} className="mr-1.5 inline" />
+                  {saving ? "Saving Configuration…" : "Save Configuration"}
+                </GovButton>
+                <GovButton type="button" variant="secondary" onClick={reset} disabled={saving || loading}>
+                  <RotateCcw size={14} className="mr-1.5 inline" />
+                  Reset to Defaults
+                </GovButton>
               </div>
             </form>
           )}
-        </GovCardBody>
-      </GovCard>
+        </div>
+      </div>
     </GovPortalLayout>
   );
 }
+

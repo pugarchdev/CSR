@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
-  CheckCircle2, Clock, Upload, AlertCircle, Plus,
-  ShieldCheck, FileText, Check, X, Camera, ChevronRight
+  Upload, Plus,
+  ShieldCheck
 } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { useToastActions } from "@/components/ui/Toast";
@@ -62,11 +62,7 @@ export function ProjectMilestoneTracker({
 
   const toast = useToastActions();
 
-  useEffect(() => {
-    fetchMilestones();
-  }, [projectId]);
-
-  const fetchMilestones = async () => {
+  const fetchMilestones = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch(`/api/v1/milestones/project/${projectId}`);
@@ -79,7 +75,11 @@ export function ProjectMilestoneTracker({
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId, toast]);
+
+  useEffect(() => {
+    fetchMilestones();
+  }, [fetchMilestones]);
 
   const handleProposeMilestone = async () => {
     if (!newTitle.trim() || !newAmount) {

@@ -165,7 +165,7 @@ export default function EnquiryDetailPage() {
 
   /* ─── Quick Action: Send Email ─── */
   const handleSendEmail = useCallback(async () => {
-    const rmEmail = user?.email || "";
+
     const subject = encodeURIComponent(`MahaCSR Convergence — Enquiry ${enquiry?.trackingId || params.id}`);
     const body = encodeURIComponent(
       `Dear ${contactName || "Sir/Madam"},\n\nThis is regarding your CSR Convergence enquiry (Tracking ID: ${enquiry?.trackingId || params.id}).\n\nRegards,\n${user?.firstName || "Relationship Manager"} ${user?.lastName || ""}\nMaharashtra CSR Authority`
@@ -752,7 +752,7 @@ function ScheduleMeetingModal({
   enquiryId,
   contactName,
   contactEmail,
-  trackingId,
+  trackingId: _trackingId,
   onClose,
   onScheduled
 }: {

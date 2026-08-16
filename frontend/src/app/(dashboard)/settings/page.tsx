@@ -7,14 +7,12 @@ import { GovPageHeader } from "@/components/layout/GovPageHeader";
 import { useAuthStore } from "@/store/authStore";
 import {
   Bell, Shield, Globe, Sliders, Check, Lock, Eye, EyeOff, Save,
-  RefreshCw, Mail, MessageSquare, Key, Clock, Sparkles, CheckCircle2,
+  RefreshCw, Mail, MessageSquare, Key, Clock, Sparkles,
   AlertCircle, Monitor, FileText, CheckCircle
 } from "lucide-react";
 
 export default function SettingsPage() {
   const user = useAuthStore((s) => s.user);
-  const roles = useAuthStore((s) => s.roles);
-  const storeIsAdmin = useAuthStore((s) => s.isAdmin);
 
   const [activeTab, setActiveTab] = useState<"notifications" | "security" | "localization" | "preferences">("notifications");
 

@@ -1,11 +1,10 @@
 // Role Summary Tab — Metadata, module access summary bars, risk summary, and protected actions
 "use client";
 
-import { Shield, Calendar, User, AlertTriangle, Copy, Pencil, Power, Trash2, Lock, CheckCircle2, Layers } from "lucide-react";
+import { Shield, User, Copy, Pencil, Power, Trash2, Lock, Layers } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
-import { TypeBadge, StatusBadge, ScopeBadge, ProtectedIndicator } from "./RoleBadges";
+import { TypeBadge, StatusBadge, ScopeBadge } from "./RoleBadges";
 import { useAuthStore } from "@/store/authStore";
 import type { Role } from "@/types/accessControl";
 
@@ -22,8 +21,8 @@ interface RoleSummaryTabProps {
 
 export function RoleSummaryTab({
   role,
-  highRiskCount,
-  criticalCount,
+  highRiskCount: _highRiskCount,
+  criticalCount: _criticalCount,
   onEdit,
   onClone,
   onActivate,

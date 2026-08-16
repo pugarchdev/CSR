@@ -17,7 +17,7 @@ interface GovPageHeaderProps {
  */
 export function GovPageHeader({
   title,
-  description,
+  description: _description,
   breadcrumb,
   eyebrow,
   actions,

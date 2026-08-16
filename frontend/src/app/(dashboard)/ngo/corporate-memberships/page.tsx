@@ -2,8 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Building2, CheckCircle2, ShieldCheck, ArrowRight, ExternalLink, Clock } from "lucide-react";
-import { useApiQuery } from "@/lib/apiHooks";
+import { CheckCircle2, ArrowRight, Clock } from "lucide-react";
 
 interface CorporateMembershipItem {
   id: string;

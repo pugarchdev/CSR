@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useApiQuery } from "@/lib/apiHooks";
-import { GovPageHeader } from "@/components/layout/GovPageHeader";
-import { StatCard } from "@/components/ui/StatCard";
+import { StandardPageHeader } from "@/components/layout/StandardPageHeader";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
 import {
-  FileText, Download, Filter, Search, CheckCircle2, ShieldCheck, BarChart3, ArrowUpRight, Sparkles, TrendingUp, PieChart, Coins, Activity, Layers, Landmark
+  FileText, Download, Search, ShieldCheck, BarChart3, Sparkles, TrendingUp, PieChart, Coins, Activity, Landmark
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -154,18 +154,19 @@ export default function ReportsPage() {
     }, 1200);
   };
 
- return (
-    <div className="mx-auto flex min-h-screen max-w-7xl flex-col gap-4 sm:gap-6 px-3 sm:px-4 py-6 md:px-8">
-      <GovPageHeader
+  return (
+    <div className="mx-auto flex min-h-screen max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 text-slate-900">
+      <StandardPageHeader
         title="CSR Analytical Dashboard & Audit Reports"
-        eyebrow="State Governance & Analytics"
+        category="State Governance & Analytics"
+        description="Comprehensive analytics on CSR outlays, sector distribution, tribal district coverage, and statutory compliance reports."
         actions={
           <div className="flex flex-wrap sm:flex-nowrap items-center gap-1 w-full sm:w-auto rounded-xl bg-slate-100 p-1 border border-slate-200/80">
             <button
               onClick={() => setActiveTab("ANALYTICS")}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 activeTab === "ANALYTICS"
-                  ? "bg-white text-blue-900 shadow-sm"
+                  ? "bg-white text-blue-900 shadow-xs border border-slate-200/60"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -173,9 +174,9 @@ export default function ReportsPage() {
             </button>
             <button
               onClick={() => setActiveTab("REPORTS")}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 activeTab === "REPORTS"
-                  ? "bg-white text-blue-900 shadow-sm"
+                  ? "bg-white text-blue-900 shadow-xs border border-slate-200/60"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -186,40 +187,44 @@ export default function ReportsPage() {
       />
 
       {/* 3D KPI Key Statistics Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <StatCardGroup columns={4}>
         <StatCard
           label="Total CSR Committed"
           value="₹141.1 Cr"
           icon={Coins}
           index={0}
+          colorTheme="blue"
           badge="+24% YoY"
-          sublabel="Outlay Growth"
+          sublabel="Outlay growth"
         />
         <StatCard
           label="Utilization Rate"
           value="91.4%"
           icon={Activity}
           index={1}
+          colorTheme="emerald"
           badge="Verified"
-          sublabel="Tranche Releases"
+          sublabel="Tranche releases"
         />
         <StatCard
           label="Aspirational Priority"
           value="56%"
           icon={Landmark}
           index={2}
+          colorTheme="purple"
           badge="Tribal Focus"
-          sublabel="Tribal Districts Outlay"
+          sublabel="Tribal districts outlay"
         />
         <StatCard
           label="MCA Compliance"
           value="100%"
           icon={Sparkles}
           index={3}
+          colorTheme="amber"
           badge="Sec 135 OK"
-          sublabel="Section 135 Compliant"
+          sublabel="Section 135 compliant"
         />
-      </div>
+      </StatCardGroup>
 
       {activeTab === "ANALYTICS" && (
         <div className="flex flex-col gap-4 sm:gap-6">

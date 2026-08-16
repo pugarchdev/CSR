@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
-import GovPageShell from "@/components/gov/GovPageShell";
+import { StandardPageHeader } from "@/components/layout/StandardPageHeader";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
 import GovDataTable from "@/components/gov/GovDataTable";
 import GovButton from "@/components/gov/GovButton";
 import GovStatusBadge, { statusToVariant } from "@/components/gov/GovStatusBadge";
@@ -14,6 +15,7 @@ import GovAlert from "@/components/gov/GovAlert";
 import AccessDenied from "@/components/gov/AccessDenied";
 import { apiFetch, clearApiCache } from "@/lib/api";
 import { getCurrentUser, hasPageAccess, GRIEVANCE_ACCESS_PERMS } from "@/lib/roleAccess";
+import { AlertCircle, CheckCircle2, Clock, ShieldAlert, Plus } from "lucide-react";
 
 interface Grievance {
   id: string;
@@ -115,6 +117,10 @@ export default function GrievancesPage() {
 
   const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
+  const resolvedCount = grievances.filter(g => g.status === "RESOLVED" || g.status === "CLOSED").length;
+  const pendingCount = grievances.filter(g => g.status === "UNDER_INVESTIGATION" || g.status === "RAISED" || g.status === "OPEN").length;
+  const escalatedCount = grievances.filter(g => g.status.includes("ESCALAT") || g.status === "ESCALATED_L2").length;
+
   const columns = [
     { key: "grievanceId", label: "Grievance ID", render: (v: unknown) => <span style={{ fontWeight: 700, color: "var(--gov-link)" }}>{v as string}</span> },
     { key: "convergenceProject", label: "Project", render: (_: unknown, row: Record<string, unknown>) => { const p = row.convergenceProject as Grievance["convergenceProject"]; return p ? `${p.projectId} — ${p.title}` : "—"; } },
@@ -129,13 +135,55 @@ export default function GrievancesPage() {
 
   return (
     <GovPortalLayout>
-      <GovPageShell
-        breadcrumb="Home / Grievance Redressal"
-        title="Grievance Redressal"
-        description="View, raise, and track grievances related to convergence projects."
-        actions={<GovButton onClick={() => { setShowRaiseModal(true); setSubmitSuccess(""); setSubmitError(""); }}>Raise Grievance</GovButton>}
-      >
-        <div style={{ marginTop: 16 }}>
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 text-slate-900">
+        <StandardPageHeader
+          title="Grievance Redressal Portal"
+          category="Citizen & Stakeholder Desk"
+          description="View, raise, and track grievances related to convergence project execution, vendor disputes, and fund flow timelines."
+          actions={
+            <GovButton onClick={() => { setShowRaiseModal(true); setSubmitSuccess(""); setSubmitError(""); }}>
+              <Plus size={14} className="mr-1 inline" /> Raise Grievance
+            </GovButton>
+          }
+        />
+
+        {/* Standard 4-Column KPI Cards */}
+        <StatCardGroup columns={4}>
+          <StatCard
+            label="Total Grievances"
+            value={loading ? "…" : grievances.length}
+            icon={AlertCircle}
+            index={0}
+            colorTheme="blue"
+            sublabel="Logged complaints"
+          />
+          <StatCard
+            label="Resolved & Closed"
+            value={loading ? "…" : resolvedCount}
+            icon={CheckCircle2}
+            index={1}
+            colorTheme="emerald"
+            sublabel="Resolution accepted"
+          />
+          <StatCard
+            label="Pending Review"
+            value={loading ? "…" : pendingCount}
+            icon={Clock}
+            index={2}
+            colorTheme="amber"
+            sublabel="With assigned Nodal Officer"
+          />
+          <StatCard
+            label="Escalated (Level 2)"
+            value={loading ? "…" : escalatedCount}
+            icon={ShieldAlert}
+            index={3}
+            colorTheme="rose"
+            sublabel="Escalated to State Cell"
+          />
+        </StatCardGroup>
+
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
           <GovDataTable
             columns={columns}
             data={grievances as unknown as Record<string, unknown>[]}
@@ -145,7 +193,7 @@ export default function GrievancesPage() {
             onRowClick={(row) => router.push(`/grievances/${row.id}`)}
           />
         </div>
-      </GovPageShell>
+      </div>
 
       <GovModal open={showRaiseModal} onClose={() => setShowRaiseModal(false)} title="Raise New Grievance" width={560}>
         {submitSuccess && <GovAlert variant="success">{submitSuccess}</GovAlert>}

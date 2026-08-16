@@ -6,8 +6,8 @@ interface PaginationProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
-  totalItems: number;
-  itemsPerPage: number;
+  totalItems?: number;
+  itemsPerPage?: number;
   className?: string;
 }
 
@@ -16,19 +16,20 @@ export function Pagination({
   totalPages,
   onPageChange,
   totalItems,
-  itemsPerPage,
+  itemsPerPage = 10,
   className = ""
 }: PaginationProps) {
-  if (totalItems === 0 || totalPages <= 1) return null;
+  if (totalPages <= 1) return null;
 
+  const actualTotalItems = totalItems ?? (totalPages * itemsPerPage);
   const startItem = (currentPage - 1) * itemsPerPage + 1;
-  const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+  const endItem = Math.min(currentPage * itemsPerPage, actualTotalItems);
 
   // Generate page numbers
   const pages: number[] = [];
   const maxPagesToShow = 5;
   let startPage = Math.max(1, currentPage - 2);
-  let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+  const endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
 
   if (endPage - startPage + 1 < maxPagesToShow) {
     startPage = Math.max(1, endPage - maxPagesToShow + 1);
