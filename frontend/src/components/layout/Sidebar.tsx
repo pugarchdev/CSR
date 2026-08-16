@@ -87,7 +87,8 @@ export function Sidebar({
   tenantFeatures
 }: SidebarProps) {
   const pathname = usePathname() || "";
-  const { hasPermission, isAdmin, isLoadingPermissions, fetchStatus } = useAuthStore();
+  const { hasPermission, isAdmin, roles, user, isLoadingPermissions, fetchStatus } = useAuthStore();
+  const userRoles = roles?.length > 0 ? roles : (user?.role ? [user.role] : []);
 
   const [internalHovered, setInternalHovered] = useState(false);
   const isHovered = hovered || internalHovered;
@@ -130,7 +131,7 @@ export function Sidebar({
 
     const dashboardItem = NAVIGATION_MANIFEST.find((i) => i.id === "dashboard");
     const canSeeDashboard = dashboardItem
-      ? isNavItemAllowed(dashboardItem, hasPermission, isAdmin)
+      ? isNavItemAllowed(dashboardItem, hasPermission, isAdmin, userRoles)
       : false;
 
     const filteredGroups = NAVIGATION_GROUPS.map((group) => {
@@ -142,7 +143,7 @@ export function Sidebar({
           if (item.featureFlag && tenantFeatures && tenantFeatures[item.featureFlag] === false) {
             return false;
           }
-          return isNavItemAllowed(item, hasPermission, isAdmin);
+          return isNavItemAllowed(item, hasPermission, isAdmin, userRoles);
         });
 
       return {

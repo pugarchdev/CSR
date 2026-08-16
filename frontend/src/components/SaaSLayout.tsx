@@ -802,7 +802,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                               .map((id) => NAVIGATION_MANIFEST.find((item) => item.id === id))
                               .filter((item): item is NavItemDef => {
                                 if (!item || !item.showInSidebar) return false;
-                                return isNavItemAllowed(item, hasPermission, storeIsAdmin);
+                                return isNavItemAllowed(item, hasPermission, storeIsAdmin, storeRoles);
                               });
 
                             if (children.length === 0) return null;

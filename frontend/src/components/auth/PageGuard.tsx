@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
-import { getNavItemForRoute, isNavItemAllowed } from "@/lib/navigationManifest";
+import { getNavItemForRoute, isNavItemAllowed, isInternalAuthorityUser } from "@/lib/navigationManifest";
 import { AccessRestricted } from "./AccessRestricted";
 import { Loader2, RefreshCw, AlertCircle } from "lucide-react";
 
@@ -13,6 +13,8 @@ export default function PageGuard({ children }: { children: React.ReactNode }) {
   const {
     isAuthenticated,
     isAdmin,
+    roles,
+    user,
     permissions,
     fetchStatus,
     fetchError,
@@ -20,6 +22,8 @@ export default function PageGuard({ children }: { children: React.ReactNode }) {
     hasPermission,
     fetchEffectivePermissions
   } = useAuthStore();
+
+  const userRoles = roles?.length > 0 ? roles : (user?.role ? [user.role] : []);
 
   const [lastAllowedChildren, setLastAllowedChildren] = useState<React.ReactNode>(null);
   const [hasNavigatedBack, setHasNavigatedBack] = useState(false);
@@ -68,13 +72,15 @@ export default function PageGuard({ children }: { children: React.ReactNode }) {
       return { allowed: false, requiredPerm: "authentication:required", reason: "Authentication is required to view this page." };
     }
 
+    // RM, JS, Planning Secretary, Super Admin and internal authorities do not undergo onboarding
+    const isInternal = isInternalAuthorityUser(userRoles, isAdmin);
+    if (pathname.startsWith("/organization/onboarding") && isInternal) {
+      return { allowed: false, requiredPerm: "organization:onboard", reason: "Internal authority roles do not undergo organization onboarding." };
+    }
+
     // Universal authenticated routes — always allowed for any logged-in user
     const universalAuthRoutes = [
       "/dashboard",
-      "/organization/onboarding",
-      "/organization/onboarding/company",
-      "/organization/onboarding/government",
-      "/organization/onboarding/status",
       "/profile",
       "/settings",
       "/notifications",
@@ -85,7 +91,12 @@ export default function PageGuard({ children }: { children: React.ReactNode }) {
       return { allowed: true, requiredPerm: undefined };
     }
 
-    // Super Admin bypass
+    // Applicant onboarding routes for non-internal users
+    if (pathname.startsWith("/organization/onboarding") && !isInternal) {
+      return { allowed: true, requiredPerm: undefined };
+    }
+
+    // Super Admin bypass for all other routes
     if (isAdmin) {
       return { allowed: true, requiredPerm: undefined };
     }
@@ -96,18 +107,18 @@ export default function PageGuard({ children }: { children: React.ReactNode }) {
     // If route is not listed in manifest but starts with /admin, gate with admin permissions
     if (!manifestItem) {
       if (pathname.startsWith("/admin")) {
-        const allowed = hasPermission("user:view") || hasPermission("role:view");
-        return { allowed, requiredPerm: "user:view or role:view" };
+        const allowed = hasPermission("user:view") || hasPermission("role:view") || hasPermission("organization:view");
+        return { allowed, requiredPerm: "user:view or role:view or organization:view" };
       }
       // Fail closed for unmapped authenticated routes
       return { allowed: false, requiredPerm: "route:authorized", reason: "This page is not classified or authorized for your role." };
     }
 
-    const allowed = isNavItemAllowed(manifestItem, hasPermission, isAdmin);
+    const allowed = isNavItemAllowed(manifestItem, hasPermission, isAdmin, userRoles);
     const requiredPerm = manifestItem.requiredAnyPermissions?.join(" or ") || manifestItem.requiredAllPermissions?.join(" and ");
 
     return { allowed, requiredPerm };
-  }, [pathname, isAuthenticated, isAdmin, permissions, hasPermission]);
+  }, [pathname, isAuthenticated, isAdmin, userRoles, permissions, hasPermission]);
 
   useEffect(() => {
     if (decision.allowed) {

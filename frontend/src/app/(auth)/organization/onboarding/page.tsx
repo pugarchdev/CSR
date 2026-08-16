@@ -16,6 +16,27 @@ export default function OrganizationOnboardingPage() {
     const numericRoleId = Number(user?.roleNumericId || user?.roleId || (typeof user?.role === "number" ? user?.role : 0));
 
     const routeToTypeForm = (kind?: string) => {
+      const isInternal =
+        role.includes("SUPER_ADMIN") ||
+        role.includes("PLANNING_SECRETARY") ||
+        role.includes("JOINT_SECRETARY") ||
+        role.includes("CSR_RELATIONSHIP_MANAGER") ||
+        role.includes("RELATIONSHIP_MANAGER") ||
+        role.includes("STATE_CSR_CELL") ||
+        role.includes("PORTAL_ADMIN") ||
+        role.includes("CSR_ADMIN") ||
+        numericRoleId === 1 ||
+        numericRoleId === 2 ||
+        numericRoleId === 3 ||
+        numericRoleId === 5 ||
+        numericRoleId === 6 ||
+        numericRoleId === 7;
+
+      if (isInternal) {
+        router.replace("/dashboard");
+        return true;
+      }
+
       const typeStr = (kind || storedOrgKind || "").toUpperCase();
       const isGov =
         typeStr === "GOVERNMENT_DEPARTMENT" ||
@@ -23,20 +44,11 @@ export default function OrganizationOnboardingPage() {
         typeStr === "DEPARTMENT" ||
         accountType === "GOVERNMENT_DEPARTMENT" ||
         role === "BENEFICIARY_AGENCY" ||
-        role === "NODAL_OFFICER" ||
-        role === "DISTRICT_NODAL_OFFICER" ||
-        role === "DISTRICT_NODAL_CONSULTANT" ||
         role === "GOVERNMENT_USER" ||
         role === "GOV_ENTITY" ||
         role === "DEPARTMENT_ADMIN" ||
         role === "GOVERNMENT_DEPARTMENT_ADMIN" ||
-        role === "JOINT_SECRETARY" ||
-        role === "PLANNING_SECRETARY" ||
-        role.includes("GOVT") ||
-        role.includes("DEPARTMENT") ||
-        role.includes("NODAL") ||
-        role.includes("OFFICER") ||
-        [2, 3, 4, 5, 7].includes(numericRoleId);
+        numericRoleId === 4;
 
       if (isGov) {
         router.replace("/organization/onboarding/government");

@@ -420,7 +420,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-organizations",
     showInSidebar: true,
-    requiredAnyPermissions: ["organization:view", "organization:onboard", "organization:update", "company_profile:manage", "ngo_profile:manage"],
+    requiredAnyPermissions: ["organization:onboard", "company_profile:manage", "ngo_profile:manage", "organization:update"],
     ordering: 40,
     breadcrumbMetadata: { title: "Onboarding Status", parentRoute: "/dashboard" }
   },
@@ -434,7 +434,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-organizations",
     showInSidebar: true,
-    requiredAnyPermissions: ["organization:view", "organization:manage-users", "ngo_login:create", "company_profile:manage"],
+    requiredAnyPermissions: ["organization:manage-users", "ngo_login:create", "company_profile:manage"],
     ordering: 50,
     breadcrumbMetadata: { title: "Sub-Logins", parentRoute: "/dashboard" }
   },
@@ -629,6 +629,49 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
   }
 ];
 
+export function isInternalAuthorityUser(roles?: string[] | string | null, isSuperAdmin?: boolean): boolean {
+  if (isSuperAdmin) return true;
+  let activeRoles: string[] = [];
+  if (Array.isArray(roles)) {
+    activeRoles = roles;
+  } else if (typeof roles === "string" && roles) {
+    activeRoles = [roles];
+  } else if (typeof window !== "undefined") {
+    try {
+      const stored = localStorage.getItem("user");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.role) activeRoles.push(parsed.role);
+        if (parsed?.roleSlug) activeRoles.push(parsed.roleSlug);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  const normalized = activeRoles.map((r) => String(r).toUpperCase());
+  return normalized.some((r) =>
+    r.includes("SUPER_ADMIN") ||
+    r.includes("PLANNING_SECRETARY") ||
+    r.includes("JOINT_SECRETARY") ||
+    r.includes("CSR_RELATIONSHIP_MANAGER") ||
+    r.includes("RELATIONSHIP_MANAGER") ||
+    r.includes("STATE_CSR_CELL") ||
+    r.includes("DISTRICT_NODAL") ||
+    r.includes("PORTAL_ADMIN") ||
+    r.includes("CSR_ADMIN") ||
+    r === "ROLE_1" ||
+    r === "ROLE_2" ||
+    r === "ROLE_3" ||
+    r === "ROLE_4" ||
+    r === "ROLE_5" ||
+    r === "ROLE_6" ||
+    r === "ROLE_7" ||
+    r === "RM" ||
+    r === "JS"
+  );
+}
+
 export function getNavItemForRoute(pathname: string): NavItemDef | undefined {
   let matched: NavItemDef | undefined;
   for (const item of NAVIGATION_MANIFEST) {
@@ -650,9 +693,23 @@ export function getNavItemForRoute(pathname: string): NavItemDef | undefined {
 export function isNavItemAllowed(
   item: NavItemDef,
   hasPermission: (perm: string) => boolean,
-  isSuperAdmin: boolean
+  isSuperAdmin: boolean,
+  userRoles?: string[] | string | null
 ): boolean {
-  if (isSuperAdmin && item.id === "sub-logins") return false;
+  const isInternalAuthority = isInternalAuthorityUser(userRoles, isSuperAdmin);
+
+  // 1. Internal Authority roles (RM, JS, Planning Secretary, Super Admin, Portal Admin, State Cell)
+  // have no entity onboarding. Never show "Onboarding Status" to them in the sidebar.
+  if (item.id === "organization-onboarding") {
+    if (isInternalAuthority) return false;
+  }
+
+  // 2. Sub-Logins is only for Corporate Companies managing NGO implementation sub-logins.
+  // Never show "Sub-Logins" to RM, JS, Planning Secretary, Super Admin, etc.
+  if (item.id === "sub-logins") {
+    if (isInternalAuthority) return false;
+  }
+
   if (isSuperAdmin) return true;
 
   if (item.requiredAllPermissions && item.requiredAllPermissions.length > 0) {
