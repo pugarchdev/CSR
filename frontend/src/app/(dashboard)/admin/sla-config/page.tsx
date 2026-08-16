@@ -9,6 +9,7 @@ import GovButton from "@/components/gov/GovButton";
 import AccessDenied from "@/components/gov/AccessDenied";
 import { apiFetch } from "@/lib/api";
 import { isAdmin } from "@/lib/roleAccess";
+import { useAuthStore } from "@/store/authStore";
 
 type SlaValues = Record<string, number>;
 type SlaResponse = { config: SlaValues; defaults: SlaValues; holidays?: string[] };
@@ -42,8 +43,11 @@ export default function SlaConfigurationPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (!isAdmin()) {
-    return <AccessDenied requiredRoles={["Super Admin"]} />;
+  const { hasPermission, isAdmin: storeIsAdmin } = useAuthStore();
+  const canAccess = storeIsAdmin || hasPermission("role:configure") || isAdmin();
+
+  if (!canAccess) {
+    return <AccessDenied requiredRoles={["Super Admin", "Administrator"]} />;
   }
 
   const save = async (event: FormEvent) => {

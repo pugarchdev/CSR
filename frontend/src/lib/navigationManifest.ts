@@ -362,7 +362,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-projects",
     showInSidebar: true,
-    requiredAnyPermissions: ["requirement:handover", "project:close"],
+    requiredAnyPermissions: ["requirement:handover", "project:close", "project:view"],
     ordering: 50,
     breadcrumbMetadata: { title: "Project Handover", parentRoute: "/convergence-projects" }
   },
@@ -378,7 +378,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-organizations",
     showInSidebar: true,
-    requiredAnyPermissions: ["organization:approve"],
+    requiredAnyPermissions: ["organization:view", "organization:approve"],
     ordering: 10,
     breadcrumbMetadata: { title: "Organizations", parentRoute: "/dashboard" }
   },
@@ -392,7 +392,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-organizations",
     showInSidebar: true,
-    requiredAnyPermissions: ["organization:approve"],
+    requiredAnyPermissions: ["organization:view", "organization:approve"],
     ordering: 20,
     breadcrumbMetadata: { title: "Corporate Partners", parentRoute: "/admin/organizations" }
   },
@@ -406,7 +406,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-organizations",
     showInSidebar: true,
-    requiredAnyPermissions: ["organization:approve"],
+    requiredAnyPermissions: ["organization:view", "organization:approve"],
     ordering: 30,
     breadcrumbMetadata: { title: "Implementing Agencies", parentRoute: "/admin/organizations" }
   },
@@ -414,13 +414,13 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     id: "organization-onboarding",
     label: "Onboarding Status",
     formalTitle: "Org Onboarding Status",
-    route: "/organization/onboarding",
+    route: "/organization/onboarding/status",
     iconName: "FileCheck",
     section: "Organizations",
     navigationLevel: "CHILD",
     parentNavId: "group-organizations",
     showInSidebar: true,
-    requiredAnyPermissions: ["company_profile:manage", "ngo_profile:manage", "organization:onboard", "organization:update"],
+    requiredAnyPermissions: ["organization:view", "organization:onboard", "organization:update", "company_profile:manage", "ngo_profile:manage"],
     ordering: 40,
     breadcrumbMetadata: { title: "Onboarding Status", parentRoute: "/dashboard" }
   },
@@ -434,7 +434,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-organizations",
     showInSidebar: true,
-    requiredAnyPermissions: ["ngo_login:create", "company_profile:manage"],
+    requiredAnyPermissions: ["organization:view", "organization:manage-users", "ngo_login:create", "company_profile:manage"],
     ordering: 50,
     breadcrumbMetadata: { title: "Sub-Logins", parentRoute: "/dashboard" }
   },
@@ -450,7 +450,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-finance",
     showInSidebar: true,
-    requiredAnyPermissions: ["fund:view", "fund:commit", "fund:release", "fund:verify"],
+    requiredAnyPermissions: ["fund:view", "fund:commit", "fund:release", "fund:verify", "project:view"],
     ordering: 10,
     breadcrumbMetadata: { title: "Fund Monitoring", parentRoute: "/dashboard" }
   },
@@ -464,7 +464,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-finance",
     showInSidebar: true,
-    requiredAnyPermissions: ["report:view", "report:generate", "report:export"],
+    requiredAnyPermissions: ["report:view", "report:generate", "report:export", "dashboard:view"],
     ordering: 20,
     breadcrumbMetadata: { title: "Reports", parentRoute: "/dashboard" }
   },
@@ -478,7 +478,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-finance",
     showInSidebar: true,
-    requiredAnyPermissions: ["user:view", "audit:view", "role:view"],
+    requiredAnyPermissions: ["user:view", "audit:view", "role:view", "organization:view"],
     ordering: 30,
     breadcrumbMetadata: { title: "Audit Trail", parentRoute: "/dashboard" }
   },
@@ -579,7 +579,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-administration",
     showInSidebar: true,
-    requiredAnyPermissions: ["organization:approve", "organization:reject"],
+    requiredAnyPermissions: ["organization:approve", "organization:reject", "organization:view"],
     ordering: 30,
     breadcrumbMetadata: { title: "Onboarding Approvals", parentRoute: "/dashboard" }
   },
@@ -593,7 +593,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-administration",
     showInSidebar: true,
-    requiredAnyPermissions: ["role:configure", "user:view"],
+    requiredAnyPermissions: ["role:configure", "user:view", "role:view"],
     ordering: 40,
     breadcrumbMetadata: { title: "SLA Configuration", parentRoute: "/dashboard" }
   },
@@ -623,7 +623,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-help",
     showInSidebar: true,
-    requiredAnyPermissions: ["grievance:view", "grievance:resolve"],
+    requiredAnyPermissions: ["grievance:view", "grievance:resolve", "dashboard:view", "project:view"],
     ordering: 20,
     breadcrumbMetadata: { title: "Grievances", parentRoute: "/dashboard" }
   }
@@ -638,6 +638,12 @@ export function getNavItemForRoute(pathname: string): NavItemDef | undefined {
       }
     }
   }
+
+  // Handle special aliases
+  if (!matched && pathname.startsWith("/organization/onboarding")) {
+    matched = NAVIGATION_MANIFEST.find((i) => i.id === "organization-onboarding");
+  }
+
   return matched;
 }
 

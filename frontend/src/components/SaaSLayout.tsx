@@ -314,88 +314,9 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
       }
     }
 
-    // 2. Enforce roles permissions for dashboard routes
+    // 2. Set user details for dashboard routes (Page-level authorization is managed by PageGuard)
     if (token && user && isDashboard) {
       setUserEmail(user.email || "user@mahacsr.gov.in");
-
-      const activeRoles = storeRoles.length > 0 ? storeRoles : (user.role ? [user.role] : []);
-      const hasAnyAllowedRole = (allowedRoles: string[]) => {
-        const normalizedActive = activeRoles.map(r => normalizeRole(r));
-        const normalizedAllowed = allowedRoles.map(r => normalizeRole(r));
-        return normalizedActive.some(r => normalizedAllowed.includes(r)) || storeIsAdmin;
-      };
-
-      const allowed =
-        (pathname.startsWith("/ngo-dashboard") && hasAnyAllowedRole(["NGO_ADMIN", "NGO_MEMBER"])) ||
-        (pathname.startsWith("/company-dashboard") && hasAnyAllowedRole(["COMPANY_ADMIN", "COMPANY_MEMBER"])) ||
-        (pathname.startsWith("/government-portal") && hasAnyAllowedRole(["SUPER_ADMIN", "PORTAL_ADMIN", "DISTRICT_ADMIN"])) ||
-        ((pathname === "/company" || pathname.startsWith("/company/")) && hasAnyAllowedRole(["COMPANY_ADMIN", "COMPANY_MEMBER", "SUPER_ADMIN", "CORPORATE_USER"])) ||
-        ((pathname === "/ngo" || pathname.startsWith("/ngo/")) && hasAnyAllowedRole(["NGO_ADMIN", "NGO_MEMBER", "SUPER_ADMIN"])) ||
-        (pathname.startsWith("/district") && hasAnyAllowedRole(["DISTRICT_ADMIN", "SUPER_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN"])) ||
-        (pathname.startsWith("/organization") && hasAnyAllowedRole(["GOVERNMENT_OFFICER", "BENEFICIARY_AGENCY", "COMPANY_ADMIN", "COMPANY_MEMBER", "CORPORATE_USER", "NGO_ADMIN", "NGO_MEMBER", "DISTRICT_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN", "SUPER_ADMIN"])) ||
-        (pathname.startsWith("/admin") && hasAnyAllowedRole(["SUPER_ADMIN", "DISTRICT_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN"])) ||
-        ((pathname.startsWith("/beneficiary") || pathname.startsWith("/department")) && hasAnyAllowedRole(["GOVERNMENT_OFFICER", "BENEFICIARY_AGENCY", "SUPER_ADMIN"])) ||
-        (pathname.startsWith("/rm") && hasAnyAllowedRole(["CSR_RELATIONSHIP_MANAGER", "JOINT_SECRETARY", "PLANNING_SECRETARY", "SUPER_ADMIN"])) ||
-        (pathname.startsWith("/js") && hasAnyAllowedRole(["JOINT_SECRETARY", "PLANNING_SECRETARY", "SUPER_ADMIN"])) ||
-        (pathname.startsWith("/secretary") && hasAnyAllowedRole(["PLANNING_SECRETARY", "SUPER_ADMIN"])) ||
-        (pathname.startsWith("/nodal") && hasAnyAllowedRole(["DISTRICT_NODAL_OFFICER", "NODAL_OFFICER", "JOINT_SECRETARY", "PLANNING_SECRETARY", "SUPER_ADMIN"])) ||
-        (pathname.startsWith("/state-cell") && hasAnyAllowedRole(["STATE_CSR_CELL", "PLANNING_SECRETARY", "SUPER_ADMIN"])) ||
-        (pathname.startsWith("/agency") && hasAnyAllowedRole(["IMPLEMENTING_AGENCY_USER", "CORPORATE_USER", "SUPER_ADMIN"])) ||
-        ((pathname === "/partner" || pathname.startsWith("/partner/")) && hasAnyAllowedRole(["CORPORATE_USER", "CORPORATE_PARTNER", "COMPANY_ADMIN", "COMPANY_MEMBER", "SUPER_ADMIN"])) ||
-        pathname.startsWith("/dashboard") ||
-        pathname.startsWith("/onboarding") ||
-        pathname.startsWith("/queries") ||
-        pathname.startsWith("/csr-projects") ||
-        pathname.startsWith("/payments") ||
-        pathname.startsWith("/fund-releases") ||
-        pathname.startsWith("/reports") ||
-        pathname.startsWith("/audit-logs") ||
-        pathname.startsWith("/profile") ||
-        pathname.startsWith("/settings") ||
-        pathname.startsWith("/admin/user-management") ||
-        pathname.startsWith("/admin/access-control") ||
-        pathname.startsWith("/chat") ||
-        pathname.startsWith("/analytics") ||
-        pathname.startsWith("/grievances") ||
-        pathname.startsWith("/convergence-projects") ||
-        pathname.startsWith("/projects") ||
-        pathname.startsWith("/public-development-needs") ||
-        pathname.startsWith("/pitch-development-need") ||
-        pathname.startsWith("/partner-with-maharashtra") ||
-        pathname.startsWith("/enquiries") ||
-        pathname.startsWith("/pitches") ||
-        pathname.startsWith("/interests") ||
-        pathname.startsWith("/assessments") ||
-        pathname.startsWith("/agencies") ||
-        pathname.startsWith("/assignments") ||
-        pathname.startsWith("/milestones") ||
-        pathname.startsWith("/requirements") ||
-        pathname.startsWith("/marketplace") ||
-        pathname.startsWith("/csr-marketplace") ||
-        pathname.startsWith("/escalations") ||
-        pathname.startsWith("/decisions") ||
-        pathname.startsWith("/nodal-appointments") ||
-        pathname.startsWith("/inspections") ||
-        pathname.startsWith("/handover") ||
-        pathname.startsWith("/communications") ||
-        pathname.startsWith("/notifications") ||
-        pathname.startsWith("/helpdesk") ||
-        pathname.startsWith("/track");
-
-      if (!allowed) {
-        // Route to the user's home dashboard by CANONICAL identity
-        // (numericId → slug → base enum), never by role name. See roleRouting.ts.
-        router.push(
-          resolveDashboardPath(
-            {
-              roleNumericId: user.roleNumericId,
-              roleSlug: user.roleSlug,
-              role: user.role,
-            },
-            "/"
-          )
-        );
-      }
     }
   }, [mounted, isDashboard, pathname, router]);
 

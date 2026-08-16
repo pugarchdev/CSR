@@ -114,7 +114,12 @@ export function Sidebar({
   }, [activeGroupId]);
 
   const toggleGroup = (groupId: string) => {
-    setExpandedGroup((prev) => (prev === groupId ? null : groupId));
+    if (collapsed && onCollapseToggle) {
+      onCollapseToggle();
+      setExpandedGroup(groupId);
+    } else {
+      setExpandedGroup((prev) => (prev === groupId ? null : groupId));
+    }
   };
 
   // Filter items by permission, feature flag, and scope
