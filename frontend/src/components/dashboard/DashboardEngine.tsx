@@ -14,7 +14,15 @@ import { DashboardSummary, QUICK_ACTIONS, visibleByPermission } from "@/lib/dash
 import { StatCard } from "@/components/ui/StatCard";
 import { WorkQueueSection } from "./WorkQueueSection";
 import { AlertsSection } from "./AlertsSection";
-import { DashboardCharts } from "./DashboardCharts";
+import dynamic from "next/dynamic";
+
+const DashboardCharts = dynamic(
+  () => import("./DashboardCharts").then((mod) => mod.DashboardCharts),
+  {
+    ssr: false,
+    loading: () => <div className="h-64 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs animate-pulse" />
+  }
+);
 
 interface SummaryEnvelope {
   success: boolean;
@@ -119,7 +127,13 @@ export default function DashboardEngine() {
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1 rounded-md bg-blue-100/80 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-blue-900">
               <ShieldCheck size={12} />
-              {summary.roleCode ? summary.roleCode.replace(/_/g, " ") : "Authorized User"}
+              {typeof summary.roleCode === "string"
+                ? summary.roleCode.replace(/_/g, " ")
+                : typeof summary.roleCode?.code === "string"
+                ? summary.roleCode.code.replace(/_/g, " ")
+                : typeof summary.roleCode?.name === "string"
+                ? summary.roleCode.name.replace(/_/g, " ")
+                : String(summary.roleCode || "Authorized User")}
             </span>
             {summary.orgName && (
               <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700">
@@ -286,7 +300,9 @@ export default function DashboardEngine() {
                   <div className="flex min-w-0 items-center gap-3">
                     <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${index % 3 === 0 ? "bg-blue-600" : index % 3 === 1 ? "bg-emerald-500" : "bg-amber-500"}`} />
                     <div className="min-w-0">
-                      <p className="truncate text-xs font-bold text-slate-900">{item.action.replace(/_/g, " ")}</p>
+                      <p className="truncate text-xs font-bold text-slate-900">
+                        {typeof item.action === "string" ? item.action.replace(/_/g, " ") : String(item.action || "Workflow Action")}
+                      </p>
                       <p className="mt-0.5 text-[11px] font-medium text-slate-500">
                         {item.entityType || "Portal Workflow"}
                         {item.actorName ? ` · by ${item.actorName}` : ""}

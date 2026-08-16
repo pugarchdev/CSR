@@ -1,6 +1,7 @@
 import { Response, NextFunction } from "express";
 import prisma from "../config/db";
 import { AuthenticatedRequest } from "../middlewares/authMiddleware";
+import { cacheOrFetch } from "../config/redis";
 
 /**
  * Platform Security Events & Blocked Access Logs
@@ -56,40 +57,45 @@ export const getSecurityEvents = async (req: AuthenticatedRequest, res: Response
  */
 export const getMasterData = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const districts = [
-      "Ahmednagar", "Akola", "Amravati", "Chhatrapati Sambhajinagar", "Beed", "Bhandara", "Buldhana", "Chandrapur",
-      "Dhule", "Gadchiroli", "Gondia", "Hingoli", "Jalgaon", "Jalna", "Kolhapur", "Latur", "Mumbai City",
-      "Mumbai Suburban", "Nagpur", "Nanded", "Nandurbar", "Nashik", "Dharashiv", "Palghar", "Parbhani", "Pune",
-      "Raigad", "Ratnagiri", "Sangli", "Satara", "Sindhudurg", "Solapur", "Thane", "Wardha", "Washim", "Yavatmal"
-    ];
+    res.setHeader("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400");
+    const data = await cacheOrFetch("platform:master-data", async () => {
+      const districts = [
+        "Ahmednagar", "Akola", "Amravati", "Chhatrapati Sambhajinagar", "Beed", "Bhandara", "Buldhana", "Chandrapur",
+        "Dhule", "Gadchiroli", "Gondia", "Hingoli", "Jalgaon", "Jalna", "Kolhapur", "Latur", "Mumbai City",
+        "Mumbai Suburban", "Nagpur", "Nanded", "Nandurbar", "Nashik", "Dharashiv", "Palghar", "Parbhani", "Pune",
+        "Raigad", "Ratnagiri", "Sangli", "Satara", "Sindhudurg", "Solapur", "Thane", "Wardha", "Washim", "Yavatmal"
+      ];
 
-    const sectors = [
-      "Healthcare & Nutrition",
-      "Education & Digital Literacy",
-      "Rural Water & Sanitation",
-      "Skill Development & Livelihood",
-      "Environmental Sustainability & Green Energy",
-      "Women & Child Welfare",
-      "Agriculture & Irrigation Convergence",
-      "Disaster Management & Resilience"
-    ];
+      const sectors = [
+        "Healthcare & Nutrition",
+        "Education & Digital Literacy",
+        "Rural Water & Sanitation",
+        "Skill Development & Livelihood",
+        "Environmental Sustainability & Green Energy",
+        "Women & Child Welfare",
+        "Agriculture & Irrigation Convergence",
+        "Disaster Management & Resilience"
+      ];
 
-    const organizationTypes = [
-      { code: "COLLECTORATE", label: "District Collectorate", level: "MAIN" },
-      { code: "ZILLA_PARISHAD", label: "Zilla Parishad", level: "MAIN" },
-      { code: "MUNICIPAL_CORPORATION", label: "Municipal Corporation", level: "MAIN" },
-      { code: "SUB_DEPARTMENT", label: "Sub-Department", level: "SUB_DEPARTMENT" },
-      { code: "STATE_CSR_CELL", label: "State CSR Cell", level: "STATE" }
-    ];
+      const organizationTypes = [
+        { code: "COLLECTORATE", label: "District Collectorate", level: "MAIN" },
+        { code: "ZILLA_PARISHAD", label: "Zilla Parishad", level: "MAIN" },
+        { code: "MUNICIPAL_CORPORATION", label: "Municipal Corporation", level: "MAIN" },
+        { code: "SUB_DEPARTMENT", label: "Sub-Department", level: "SUB_DEPARTMENT" },
+        { code: "STATE_CSR_CELL", label: "State CSR Cell", level: "STATE" }
+      ];
 
-    return res.json({
-      success: true,
-      data: {
+      return {
         districts,
         sectors,
         organizationTypes,
         state: "Maharashtra"
-      }
+      };
+    }, 86400);
+
+    return res.json({
+      success: true,
+      data
     });
   } catch (error) {
     next(error);
@@ -145,17 +151,19 @@ export const getSystemHealth = async (req: AuthenticatedRequest, res: Response, 
  */
 export const getFeatureFlags = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const flags = [
-      { key: "ENABLE_DNO_MOU_SIGN", label: "Enable DNO MoU Signing", description: "Allow District Nodal Officers to digitally sign Tripartite MoUs", enabled: false, isClientConfirmed: false },
-      { key: "ENABLE_UC_FINAL_APPROVAL", label: "Enable UC Final Approval by DNO", description: "Grant DNO final sign-off authority for Utilization Certificates", enabled: false, isClientConfirmed: false },
-      { key: "ENABLE_HANDOVER_FINAL_APPROVAL", label: "Enable Final Handover Approval by DNO", description: "Allow DNO to grant final asset handover certificate", enabled: false, isClientConfirmed: false },
-      { key: "ENABLE_FINAL_COMPLETION_CERTIFICATION", label: "Enable Final Completion Certification", description: "Grant final project completion certification authority", enabled: false, isClientConfirmed: false },
-      { key: "ENABLE_PS_OPERATIONAL_OVERRIDE", label: "Enable Planning Secretary Operational Override", description: "Allow Planning Secretary to override routine Joint Secretary decisions", enabled: false, isClientConfirmed: false }
-    ];
+    const data = await cacheOrFetch("platform:feature-flags", async () => {
+      return [
+        { key: "ENABLE_DNO_MOU_SIGN", label: "Enable DNO MoU Signing", description: "Allow District Nodal Officers to digitally sign Tripartite MoUs", enabled: false, isClientConfirmed: false },
+        { key: "ENABLE_UC_FINAL_APPROVAL", label: "Enable UC Final Approval by DNO", description: "Grant DNO final sign-off authority for Utilization Certificates", enabled: false, isClientConfirmed: false },
+        { key: "ENABLE_HANDOVER_FINAL_APPROVAL", label: "Enable Final Handover Approval by DNO", description: "Allow DNO to grant final asset handover certificate", enabled: false, isClientConfirmed: false },
+        { key: "ENABLE_FINAL_COMPLETION_CERTIFICATION", label: "Enable Final Completion Certification", description: "Grant final project completion certification authority", enabled: false, isClientConfirmed: false },
+        { key: "ENABLE_PS_OPERATIONAL_OVERRIDE", label: "Enable Planning Secretary Operational Override", description: "Allow Planning Secretary to override routine Joint Secretary decisions", enabled: false, isClientConfirmed: false }
+      ];
+    }, 3600);
 
     return res.json({
       success: true,
-      data: flags
+      data
     });
   } catch (error) {
     next(error);

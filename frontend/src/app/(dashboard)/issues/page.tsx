@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { AlertCircle, AlertTriangle, Plus, Search, CheckCircle2, ShieldAlert, ArrowRight } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface IssueItem {
   id: string;
@@ -23,6 +24,7 @@ interface IssueItem {
 }
 
 export default function ProjectIssuesPage() {
+  const queryClient = useQueryClient();
   const [showAddModal, setShowAddModal] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -70,6 +72,8 @@ export default function ProjectIssuesPage() {
       setShowAddModal(false);
       setTitle("");
       setDescription("");
+      queryClient.invalidateQueries({ queryKey: ["issues"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "summary"] });
       refetch();
     } catch (err) {
       setShowAddModal(false);
