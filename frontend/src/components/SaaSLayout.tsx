@@ -295,13 +295,15 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
       "/convergence",
       "/resources",
       "/reports",
-      "/help"
+      "/help",
+      "/register"
     ];
 
     const isPublicRoute =
       cleanPath === "/" ||
       cleanPath === "/login" ||
       cleanPath === "/register" ||
+      cleanPath.startsWith("/register/") ||
       publicPrefixes.some(prefix => cleanPath === prefix || cleanPath.startsWith(prefix + "/"));
 
     // 1. Enforce login for non-public routes
@@ -828,7 +830,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
       )}
 
       {/* Main Workspace */}
-      <div className={isDashboard ? "flex flex-1 pt-[60px]" : (pathname === "/" || pathname === "/login" || pathname === "/register") ? "flex flex-1 pt-0" : "flex flex-1 pt-20 sm:pt-24"}>
+      <div className={isDashboard ? "flex flex-1 pt-[60px]" : (pathname === "/" || pathname === "/login" || pathname === "/register" || pathname.startsWith("/register/")) ? "flex flex-1 pt-0" : "flex flex-1 pt-20 sm:pt-24"}>
 
         {/* Desktop Sidebar */}
         {isDashboard && (
