@@ -17,9 +17,24 @@ export default function OrganizationOnboardingPage() {
     const role = user?.role as string | undefined;
     const storedOrganizationType = user?.organization?.organizationType as string | undefined;
 
-    const routeByType = (organizationType?: string) => {
-      if (organizationType === "GOVERNMENT_DEPARTMENT" || role === "BENEFICIARY_AGENCY") {
-        router.replace("/organization/onboarding/department");
+    const routeToTypeForm = (kind?: string) => {
+      const isInternal =
+        role.includes("SUPER_ADMIN") ||
+        role.includes("PLANNING_SECRETARY") ||
+        role.includes("JOINT_SECRETARY") ||
+        role.includes("CSR_RELATIONSHIP_MANAGER") ||
+        role.includes("RELATIONSHIP_MANAGER") ||
+        role.includes("STATE_CSR_CELL") ||
+        role.includes("PORTAL_ADMIN") ||
+        role.includes("CSR_ADMIN") ||
+        numericRoleId === 1 ||
+        numericRoleId === 2 ||
+        numericRoleId === 3 ||
+        numericRoleId === 5 ||
+        numericRoleId === 6;
+
+      if (isInternal) {
+        router.replace("/dashboard");
         return true;
       }
       if (
@@ -39,13 +54,17 @@ export default function OrganizationOnboardingPage() {
     apiFetch<any>("/onboarding/status")
       .then((res) => {
         const org = res?.data || res || {};
+        
         const currentStatus = (org.onboardingStatus || org.status || "").toUpperCase();
-        const locked = ["SUBMITTED_FOR_REVIEW", "UNDER_VERIFICATION", "APPROVED", "ACTIVE", "SUSPENDED"];
-        if (currentStatus && locked.includes(currentStatus)) {
-          router.replace(currentStatus === "APPROVED" || currentStatus === "ACTIVE" ? "/organization/onboarding/details" : "/organization/onboarding/status");
+        if (currentStatus && currentStatus !== "PROFILE_INCOMPLETE" && currentStatus !== "DOCUMENTS_PENDING") {
+          router.replace("/organization/onboarding/status");
           return;
         }
-        routeByType(org.organizationType);
+
+        routeToTypeForm(org.kind || org.organizationType);
+      })
+      .catch(() => {
+        routeToTypeForm(storedOrgKind);
       })
       .catch(() => {});
   }, [router]);

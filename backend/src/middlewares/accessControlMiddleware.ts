@@ -191,7 +191,7 @@ export const requireApprovedOrganization = (requiredKind: OrganizationKind) => {
           actualKind: organization?.kind,
           path: req.originalUrl
         });
-        return res.status(403).json({ error: "This action is not available for your organization type." });
+        return res.status(403).json({ error: `This action is not available for your organization type. You are a ${organization.kind}, but this action requires a ${requiredKind}.` });
       }
 
       if (organization.status !== OrganizationStatus.ACTIVE) {
