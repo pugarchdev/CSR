@@ -362,7 +362,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-projects",
     showInSidebar: true,
-    requiredAnyPermissions: ["requirement:handover", "project:close", "project:view"],
+    requiredAnyPermissions: ["requirement:handover", "project:close"],
     ordering: 50,
     breadcrumbMetadata: { title: "Project Handover", parentRoute: "/convergence-projects" }
   },
@@ -378,7 +378,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-organizations",
     showInSidebar: true,
-    requiredAnyPermissions: ["organization:view", "organization:approve"],
+    requiredAnyPermissions: ["organization:approve", "organization:view"],
     ordering: 10,
     breadcrumbMetadata: { title: "Organizations", parentRoute: "/dashboard" }
   },
@@ -392,7 +392,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-organizations",
     showInSidebar: true,
-    requiredAnyPermissions: ["organization:view", "organization:approve"],
+    requiredAnyPermissions: ["organization:approve", "organization:view"],
     ordering: 20,
     breadcrumbMetadata: { title: "Corporate Partners", parentRoute: "/admin/organizations" }
   },
@@ -406,7 +406,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-organizations",
     showInSidebar: true,
-    requiredAnyPermissions: ["organization:view", "organization:approve"],
+    requiredAnyPermissions: ["organization:approve", "organization:view"],
     ordering: 30,
     breadcrumbMetadata: { title: "Implementing Agencies", parentRoute: "/admin/organizations" }
   },
@@ -414,13 +414,13 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     id: "organization-onboarding",
     label: "Onboarding Status",
     formalTitle: "Org Onboarding Status",
-    route: "/organization/onboarding/status",
+    route: "/organization/onboarding",
     iconName: "FileCheck",
     section: "Organizations",
     navigationLevel: "CHILD",
     parentNavId: "group-organizations",
     showInSidebar: true,
-    requiredAnyPermissions: ["organization:onboard", "company_profile:manage", "ngo_profile:manage", "organization:update"],
+    requiredAnyPermissions: ["page:organization/onboarding:view"],
     ordering: 40,
     breadcrumbMetadata: { title: "Onboarding Status", parentRoute: "/dashboard" }
   },
@@ -434,7 +434,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-organizations",
     showInSidebar: true,
-    requiredAnyPermissions: ["organization:manage-users", "ngo_login:create", "company_profile:manage"],
+    requiredAnyPermissions: ["ngo_login:create", "company_profile:manage"],
     ordering: 50,
     breadcrumbMetadata: { title: "Sub-Logins", parentRoute: "/dashboard" }
   },
@@ -450,7 +450,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-finance",
     showInSidebar: true,
-    requiredAnyPermissions: ["fund:view", "fund:commit", "fund:release", "fund:verify", "project:view"],
+    requiredAnyPermissions: ["fund:view", "fund:commit", "fund:release", "fund:verify"],
     ordering: 10,
     breadcrumbMetadata: { title: "Fund Monitoring", parentRoute: "/dashboard" }
   },
@@ -464,7 +464,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-finance",
     showInSidebar: true,
-    requiredAnyPermissions: ["report:view", "report:generate", "report:export", "dashboard:view"],
+    requiredAnyPermissions: ["report:view", "report:generate", "report:export"],
     ordering: 20,
     breadcrumbMetadata: { title: "Reports", parentRoute: "/dashboard" }
   },
@@ -478,7 +478,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-finance",
     showInSidebar: true,
-    requiredAnyPermissions: ["user:view", "audit:view", "role:view", "organization:view"],
+    requiredAnyPermissions: ["user:view", "audit:view", "role:view"],
     ordering: 30,
     breadcrumbMetadata: { title: "Audit Trail", parentRoute: "/dashboard" }
   },
@@ -579,7 +579,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-administration",
     showInSidebar: true,
-    requiredAnyPermissions: ["organization:approve", "organization:reject", "organization:view"],
+    requiredAnyPermissions: ["organization:approve", "organization:reject"],
     ordering: 30,
     breadcrumbMetadata: { title: "Onboarding Approvals", parentRoute: "/dashboard" }
   },
@@ -593,7 +593,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-administration",
     showInSidebar: true,
-    requiredAnyPermissions: ["role:configure", "user:view", "role:view"],
+    requiredAnyPermissions: ["role:configure", "user:view"],
     ordering: 40,
     breadcrumbMetadata: { title: "SLA Configuration", parentRoute: "/dashboard" }
   },
@@ -623,54 +623,11 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-help",
     showInSidebar: true,
-    requiredAnyPermissions: ["grievance:view", "grievance:resolve", "dashboard:view", "project:view"],
+    requiredAnyPermissions: ["grievance:view", "grievance:resolve"],
     ordering: 20,
     breadcrumbMetadata: { title: "Grievances", parentRoute: "/dashboard" }
   }
 ];
-
-export function isInternalAuthorityUser(roles?: string[] | string | null, isSuperAdmin?: boolean): boolean {
-  if (isSuperAdmin) return true;
-  let activeRoles: string[] = [];
-  if (Array.isArray(roles)) {
-    activeRoles = roles;
-  } else if (typeof roles === "string" && roles) {
-    activeRoles = [roles];
-  } else if (typeof window !== "undefined") {
-    try {
-      const stored = localStorage.getItem("user");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed?.role) activeRoles.push(parsed.role);
-        if (parsed?.roleSlug) activeRoles.push(parsed.roleSlug);
-      }
-    } catch {
-      // ignore
-    }
-  }
-
-  const normalized = activeRoles.map((r) => String(r).toUpperCase());
-  return normalized.some((r) =>
-    r.includes("SUPER_ADMIN") ||
-    r.includes("PLANNING_SECRETARY") ||
-    r.includes("JOINT_SECRETARY") ||
-    r.includes("CSR_RELATIONSHIP_MANAGER") ||
-    r.includes("RELATIONSHIP_MANAGER") ||
-    r.includes("STATE_CSR_CELL") ||
-    r.includes("DISTRICT_NODAL") ||
-    r.includes("PORTAL_ADMIN") ||
-    r.includes("CSR_ADMIN") ||
-    r === "ROLE_1" ||
-    r === "ROLE_2" ||
-    r === "ROLE_3" ||
-    r === "ROLE_4" ||
-    r === "ROLE_5" ||
-    r === "ROLE_6" ||
-    r === "ROLE_7" ||
-    r === "RM" ||
-    r === "JS"
-  );
-}
 
 export function getNavItemForRoute(pathname: string): NavItemDef | undefined {
   let matched: NavItemDef | undefined;
@@ -681,35 +638,15 @@ export function getNavItemForRoute(pathname: string): NavItemDef | undefined {
       }
     }
   }
-
-  // Handle special aliases
-  if (!matched && pathname.startsWith("/organization/onboarding")) {
-    matched = NAVIGATION_MANIFEST.find((i) => i.id === "organization-onboarding");
-  }
-
   return matched;
 }
 
 export function isNavItemAllowed(
   item: NavItemDef,
   hasPermission: (perm: string) => boolean,
-  isSuperAdmin: boolean,
-  userRoles?: string[] | string | null
+  isSuperAdmin: boolean
 ): boolean {
-  const isInternalAuthority = isInternalAuthorityUser(userRoles, isSuperAdmin);
-
-  // 1. Internal Authority roles (RM, JS, Planning Secretary, Super Admin, Portal Admin, State Cell)
-  // have no entity onboarding. Never show "Onboarding Status" to them in the sidebar.
-  if (item.id === "organization-onboarding") {
-    if (isInternalAuthority) return false;
-  }
-
-  // 2. Sub-Logins is only for Corporate Companies managing NGO implementation sub-logins.
-  // Never show "Sub-Logins" to RM, JS, Planning Secretary, Super Admin, etc.
-  if (item.id === "sub-logins") {
-    if (isInternalAuthority) return false;
-  }
-
+  if (isSuperAdmin && item.id === "sub-logins") return false;
   if (isSuperAdmin) return true;
 
   if (item.requiredAllPermissions && item.requiredAllPermissions.length > 0) {

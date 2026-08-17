@@ -2,16 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Building, CheckCircle2, Clock, ShieldAlert } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
-import { StandardPageHeader } from "@/components/layout/StandardPageHeader";
-import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
+import GovPageHeader from "@/components/layout/GovPageHeader";
 import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
 import GovButton from "@/components/gov/GovButton";
 import GovInput from "@/components/gov/GovInput";
 import GovSelect from "@/components/gov/GovSelect";
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
+import { apiFetch } from "@/lib/api";
 import "@/styles/gov-theme.css";
 
 export default function CompaniesPage() {
@@ -73,54 +72,66 @@ export default function CompaniesPage() {
 
   const filteredCompanies = items;
 
-  return (
+return (
     <GovPortalLayout>
-      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 text-slate-900">
-        <StandardPageHeader
-          title="Corporate Company Partners"
-          category="Admin / Companies"
-          description="Registry of verified CSR companies, corporate foundations, and industry partners contributing to Maharashtra state development."
-        />
+      <GovPageHeader
+        title="Corporate Company Partners"
+        breadcrumb="Admin / Companies"
+      />
 
-        {/* 4-Column Animated KPI Cards */}
-        <StatCardGroup columns={4}>
-          <StatCard
-            label="Total Companies"
-            value={loading ? "…" : pagination.total}
-            icon={Building}
-            colorTheme="blue"
-            sublabel="Registered corporate partners"
-            index={0}
-          />
-          <StatCard
-            label="Active Partners"
-            value={loading ? "…" : (pagination.active || 0)}
-            icon={CheckCircle2}
-            colorTheme="emerald"
-            sublabel="Currently operational"
-            index={1}
-          />
-          <StatCard
-            label="Under Review"
-            value={loading ? "…" : (pagination.pending || 0)}
-            icon={Clock}
-            colorTheme="amber"
-            sublabel="Pending verification"
-            index={2}
-          />
-          <StatCard
-            label="Suspended / Compliance"
-            value={loading ? "…" : (pagination.suspended || 0)}
-            icon={ShieldAlert}
-            colorTheme="rose"
-            sublabel="Compliance flagged"
-            index={3}
-          />
-        </StatCardGroup>
+      {/* Force reduced padding on mobile container */}
+      <div className="gov-container !px-2 sm:!px-4 md:!px-6">
+        
+    {/* Compact KPI Cards */}
+   <div className="gov-grid gov-grid-cols-4 gov-gap-3 gov-mb-4">
+        <GovCard>
+          <GovCardBody className="!p-3 flex items-center justify-between">
+            <div>
+              <div className="gov-text-xs gov-text-muted">Total Companies</div>
+              <div className="gov-text-xl gov-font-bold gov-text-primary">{loading ? "…" : pagination.total}</div>
+            </div>
+            <div className="gov-text-[10px] gov-text-muted text-right">Registered</div>
+          </GovCardBody>
+        </GovCard>
+        <GovCard>
+          <GovCardBody className="!p-3 flex items-center justify-between">
+            <div>
+              <div className="gov-text-xs gov-text-muted">Active</div>
+              <div className="gov-text-xl gov-font-bold" style={{ color: "#166534" }}>
+                {loading ? "…" : (pagination.active || 0)}
+              </div>
+            </div>
+            <div className="gov-text-[10px] gov-text-muted text-right">Operational</div>
+          </GovCardBody>
+        </GovCard>
+        <GovCard>
+          <GovCardBody className="!p-3 flex items-center justify-between">
+            <div>
+              <div className="gov-text-xs gov-text-muted">Under Review</div>
+              <div className="gov-text-xl gov-font-bold" style={{ color: "#005ea8" }}>
+                {loading ? "…" : (pagination.pending || 0)}
+              </div>
+            </div>
+            <div className="gov-text-[10px] gov-text-muted text-right">Pending</div>
+          </GovCardBody>
+        </GovCard>
+        <GovCard>
+          <GovCardBody className="!p-3 flex items-center justify-between">
+            <div>
+              <div className="gov-text-xs gov-text-muted">Suspended</div>
+              <div className="gov-text-xl gov-font-bold" style={{ color: "#b91c1c" }}>
+                {loading ? "…" : (pagination.suspended || 0)}
+              </div>
+            </div>
+            <div className="gov-text-[10px] gov-text-muted text-right">Issues</div>
+          </GovCardBody>
+        </GovCard>
+      </div>
 
-        {/* Search and Filters Bar */}
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+      {/* Compact Filters - Side by Side on One Line */}
+     <GovCard className="gov-mb-4">
+        <GovCardBody className="!p-3">
+          <div className="gov-grid gov-grid-cols-3 gov-gap-3 items-center">
             <GovInput
               label="Search Company"
               placeholder="Search by name or CIN..."
@@ -156,7 +167,8 @@ export default function CompaniesPage() {
               <option value="Banking">Banking</option>
             </GovSelect>
           </div>
-        </div>
+        </GovCardBody>
+      </GovCard>
 
         {/* Companies List */}
         <GovCard>

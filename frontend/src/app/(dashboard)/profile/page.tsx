@@ -70,14 +70,14 @@ export default function ProfilePage() {
 
   return (
     <GovPortalLayout>
-      <div className="mx-auto flex min-h-screen max-w-screen-2xl flex-col gap-5 px-4 py-4 md:px-6">
+      <div className="mx-auto flex min-h-screen max-w-screen-2xl flex-col gap-3 sm:gap-4 px-4 py-4 md:px-6">
         {/* Page Header */}
         <GovPageHeader
-          title="User & Organization Profile"
+          title="User Profile"
           eyebrow="Account Management"
           description="View and verify your official credentials, organizational details, system roles, and assigned platform permissions."
           actions={
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 mt-2 md:mt-0">
               <button
                 type="button"
                 onClick={handleCopyId}
@@ -101,20 +101,20 @@ export default function ProfilePage() {
         />
 
         {/* Profile Identity Hero Banner */}
-        <div className="relative overflow-hidden rounded-3xl border border-blue-900/10 bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 p-6 text-white shadow-xl md:p-8">
+        <div className="relative overflow-hidden rounded-2xl md:rounded-3xl border border-blue-900/10 bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 p-5 md:p-6 text-white shadow-lg">
           <div className="absolute right-0 top-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl" />
           <div className="absolute right-1/3 bottom-0 -mb-16 h-48 w-48 rounded-full bg-indigo-500/10 blur-2xl" />
 
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-start md:items-center gap-5">
+            <div className="flex items-start md:items-center gap-4 sm:gap-5 min-w-0">
               {/* Avatar Circle */}
-              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 text-2xl font-black text-white shadow-lg ring-4 ring-white/10">
+              <div className="flex h-14 w-14 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 text-xl sm:text-2xl font-black text-white shadow-lg ring-4 ring-white/10">
                 {userName.charAt(0).toUpperCase()}
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl font-black tracking-tight text-white">{userName}</h1>
+                  <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white truncate min-w-0">{userName}</h1>
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 px-2.5 py-0.5 text-[11px] font-bold text-emerald-300">
                     <ShieldCheck size={13} /> Active & Verified
                   </span>
@@ -129,20 +129,20 @@ export default function ProfilePage() {
                   <Mail size={14} className="text-blue-400" /> {liveUser?.email || "No email on record"}
                 </p>
 
-                <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300 font-medium pt-1">
-                  <span className="inline-flex items-center gap-1 bg-white/10 px-2.5 py-1 rounded-lg">
-                    <Briefcase size={13} className="text-indigo-400" />
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-slate-300 font-medium pt-1">
+                  <span className="inline-flex items-center gap-1 bg-white/10 px-2.5 py-1.5 rounded-lg whitespace-nowrap">
+                    <Briefcase size={13} className="text-indigo-400 shrink-0" />
                     Role: <strong className="text-white">{primaryRole.replace(/_/g, " ")}</strong>
                   </span>
                   {org?.name && (
-                    <span className="inline-flex items-center gap-1 bg-white/10 px-2.5 py-1 rounded-lg">
-                      <Building2 size={13} className="text-purple-400" />
-                      {org.name}
+                    <span className="inline-flex items-center gap-1.5 bg-white/10 px-2.5 py-1.5 rounded-lg">
+                      <Building2 size={13} className="text-purple-400 shrink-0" />
+                      <span className="line-clamp-1 sm:line-clamp-none">{org.name}</span>
                     </span>
                   )}
                   {liveUser?.assignedDistrict && (
-                    <span className="inline-flex items-center gap-1 bg-white/10 px-2.5 py-1 rounded-lg">
-                      <MapPin size={13} className="text-rose-400" />
+                    <span className="inline-flex items-center gap-1 bg-white/10 px-2.5 py-1.5 rounded-lg whitespace-nowrap">
+                      <MapPin size={13} className="text-rose-400 shrink-0" />
                       District: <strong className="text-white">{liveUser.assignedDistrict}</strong>
                     </span>
                   )}
@@ -169,7 +169,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
+        <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {[
             { id: "overview", label: "Personal Identity", icon: User },
             { id: "organization", label: "Organization Details", icon: Building2 },
@@ -330,37 +330,38 @@ export default function ProfilePage() {
           {/* TAB 3: ROLES & PERMISSIONS */}
           {activeTab === "permissions" && (
             <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
+              <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                <div className="min-w-0 flex-1">
                   <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-                    <ShieldCheck size={18} className="text-emerald-700" /> Granted System Roles & Effective Permissions
+                    <ShieldCheck size={18} className="text-emerald-700 shrink-0" /> <span className="truncate">Granted System Roles</span>
                   </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-slate-500 mt-0.5 truncate">
                     Authoritative list of permissions dynamically computed for your role hierarchy.
                   </p>
                 </div>
 
-                <div className="relative max-w-xs w-full">
-                  <Search size={14} className="absolute left-3 top-2.5 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Search permission keys..."
-                    value={permissionSearch}
-                    onChange={(e) => setPermissionSearch(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-1.5 pl-9 pr-3 text-xs font-medium text-slate-800 focus:outline-none focus:border-blue-600"
-                  />
-                </div>
-              </div>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto shrink-0">
+                  <div className="flex items-center gap-2 sm:border-r sm:border-slate-200 sm:pr-3">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase hidden sm:inline">Active Role:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {liveRoles.map((r, i) => (
+                        <span key={i} className="inline-flex items-center gap-1 rounded-lg bg-purple-100 border border-purple-200 px-2.5 py-1 text-[10px] font-bold text-purple-900 font-mono shadow-xs">
+                          <Layers size={11} className="text-purple-600" /> {r}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
 
-              {/* Roles Badge List */}
-              <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
-                <span className="text-[11px] font-bold text-slate-400 uppercase block mb-2">Active Roles</span>
-                <div className="flex flex-wrap gap-2">
-                  {liveRoles.map((r, i) => (
-                    <span key={i} className="inline-flex items-center gap-1.5 rounded-lg bg-purple-100 border border-purple-200 px-3 py-1 text-xs font-bold text-purple-900 font-mono">
-                      <Layers size={13} className="text-purple-600" /> {r}
-                    </span>
-                  ))}
+                  <div className="relative w-full sm:w-64 shrink-0">
+                    <Search size={14} className="absolute left-3 top-2.5 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Search permission keys..."
+                      value={permissionSearch}
+                      onChange={(e) => setPermissionSearch(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 py-1.5 pl-9 pr-3 text-xs font-medium text-slate-800 focus:outline-none focus:border-blue-600"
+                    />
+                  </div>
                 </div>
               </div>
 

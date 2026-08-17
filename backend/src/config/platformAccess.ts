@@ -154,6 +154,7 @@ export const PERMISSIONS = [
   ["organization:update", "Update organizations", "organization"],
   ["organization:delete", "Delete organizations", "organization"],
   ["organization:approve", "Approve organization onboarding (Company, Govt Dept, NGO)", "organization"],
+  ["organization:reject", "Reject organization onboarding", "organization"],
   ["organization:suspend", "Suspend organization accounts", "organization"],
   ["company_profile:manage", "Manage corporate profile & KYC", "organization"],
 
@@ -320,7 +321,7 @@ export const SEED_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
     "dashboard:widget-activity", "dashboard:widget-quick-actions",
     "enquiry:view", "enquiry:update", "enquiry:assign", "enquiry:respond", "enquiry:contact",
     "pitch:view", "pitch:verify", "assessment:view", "assessment:create", "assessment:update", "assessment:submit",
-    "meeting:schedule", "followup:assign", "project:recommend", "project:recommend_rejection", "organization:view",
+    "meeting:schedule", "followup:assign", "project:recommend", "project:recommend_rejection", "organization:view", "organization:approve", "organization:reject", "organization:suspend", "organization:update",
     "report:view",
     "verification:execute", "verification:reverify", "verification:view-history", "verification:dashboard",
   ],

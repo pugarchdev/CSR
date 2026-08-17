@@ -56,9 +56,41 @@ export default function GovDataTable({
     );
   }
 
-  return (
+return (
     <div className="gov-card overflow-hidden">
-      <div className="gov-table-container overflow-x-auto">
+      
+      {/* --- MOBILE VIEW: CARDS (Hidden on md and up) --- */}
+      <div className="flex flex-col divide-y divide-slate-100 md:hidden">
+        {data.length === 0 ? (
+          <div style={{ textAlign: "center", padding: 48, color: "var(--gov-text-muted)" }}>
+            {emptyMessage}
+          </div>
+        ) : (
+          data.map((row, idx) => (
+            <div
+              key={(row.id as string) || idx}
+              onClick={onRowClick ? () => onRowClick(row) : undefined}
+              className={`flex flex-col gap-2 p-4 transition-colors ${
+                onRowClick ? "cursor-pointer hover:bg-slate-50/50 active:bg-slate-100" : ""
+              } ${rowClassName ? rowClassName(row) : ""}`}
+            >
+              {columns.map((col) => (
+                <div key={col.key} className="flex items-start justify-between gap-4">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    {col.label}
+                  </span>
+                  <div className="text-sm font-medium text-slate-900" style={{ textAlign: col.align === 'center' ? 'right' : (col.align || 'right') }}>
+                    {col.render ? col.render(row[col.key], row) : (row[col.key] as ReactNode) ?? "—"}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* --- DESKTOP VIEW: TABLE (Hidden on mobile, visible on md and up) --- */}
+      <div className="gov-table-container hidden overflow-x-auto md:block">
         <table className="gov-table w-full">
           <thead>
             <tr>
@@ -95,6 +127,7 @@ export default function GovDataTable({
           </tbody>
         </table>
       </div>
+      
     </div>
   );
 }

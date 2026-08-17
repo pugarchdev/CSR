@@ -5,16 +5,19 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Search, Bell, Mail,
-  Layers, Sparkles, Compass, FileText,
-  HelpCircle, Menu, X, LogOut, BookOpen,
-  ChevronDown, ArrowUp, MapPin, Phone, Handshake,
+  Building2, Landmark, Search, Bell, Mail, ChevronLeft, ChevronRight,
+  Layers, Sparkles, Award, Coins, Compass, FileText, BarChart2,
+  HelpCircle, Menu, X, LogOut, ShieldCheck, BookOpen, ShieldAlert,
+  Clock, Users, Globe2, ChevronDown, ArrowUp, MapPin, Phone, CheckCircle2, Handshake,
   User, Settings, LayoutDashboard
 } from "lucide-react";
+import { Button } from "./ui/Button";
 import { Loader } from "./ui/Loader";
-import { apiFetch, getStoredUser, getAccessToken } from "@/lib/api";
+import { apiFetch, getStoredUser } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import PageGuard from "@/components/auth/PageGuard";
+import { isNavItemVisible } from "@/lib/pageRegistry";
+import { resolveNavItems, normalizeRole, type NavItem } from "@/lib/navRegistry";
 import { resolveDashboardPath } from "@/lib/roleRouting";
 import { resolveNotificationUrl } from "@/lib/notificationUtils";
 import { Sidebar, resolveNavIcon } from "@/components/layout/Sidebar";
@@ -76,7 +79,7 @@ const publicNavGroups = [
 export default function SaaSLayout({ children }: SaaSLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { roles: storeRoles = [], isAdmin: storeIsAdmin, hasPermission, isLoadingPermissions } = useAuthStore();
+  const { user: storeUser, roles: storeRoles = [], isAdmin: storeIsAdmin, hasPermission, isLoadingPermissions } = useAuthStore();
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("mahacsr_sidebar_collapsed");
@@ -165,9 +168,9 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
     };
   }, []);
 
-  const isLoggedIn = mounted && typeof window !== "undefined" && !!getAccessToken();
+  const isLoggedIn = mounted && typeof window !== "undefined" && !!localStorage.getItem("accessToken");
 
-  const _usesGovPortalShell =
+  const usesGovPortalShell =
     pathname.startsWith("/admin") ||
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/onboarding") ||
@@ -254,13 +257,12 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
   useEffect(() => {
     if (!mounted) return;
 
-    const token = getAccessToken();
+    const token = localStorage.getItem("accessToken");
     const user = getStoredUser();
 
     const cleanPath = pathname.endsWith("/") && pathname !== "/" ? pathname.slice(0, -1) : pathname;
 
     const publicPrefixes = [
-      "/register",
       "/about",
       "/partner-with-maharashtra",
       "/pitch-development-need",
@@ -286,7 +288,6 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
       "/faq-news-recognition",
       "/knowledge",
       "/marketplace",
-      "/csr-marketplace",
       "/circulars",
       "/news",
       "/contact",
@@ -311,9 +312,90 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
       }
     }
 
-    // 2. Set user details for dashboard routes (Page-level authorization is managed by PageGuard)
+    // 2. Enforce roles permissions for dashboard routes
     if (token && user && isDashboard) {
       setUserEmail(user.email || "user@mahacsr.gov.in");
+
+      const activeRoles = storeRoles.length > 0 ? storeRoles : (user.role ? [user.role] : []);
+      const hasAnyAllowedRole = (allowedRoles: string[]) => {
+        const normalizedActive = activeRoles.map(r => normalizeRole(r));
+        const normalizedAllowed = allowedRoles.map(r => normalizeRole(r));
+        return normalizedActive.some(r => normalizedAllowed.includes(r)) || storeIsAdmin;
+      };
+
+      const allowed =
+        (pathname.startsWith("/ngo-dashboard") && hasAnyAllowedRole(["NGO_ADMIN", "NGO_MEMBER"])) ||
+        (pathname.startsWith("/company-dashboard") && hasAnyAllowedRole(["COMPANY_ADMIN", "COMPANY_MEMBER"])) ||
+        (pathname.startsWith("/government-portal") && hasAnyAllowedRole(["SUPER_ADMIN", "PORTAL_ADMIN", "DISTRICT_ADMIN"])) ||
+        ((pathname === "/company" || pathname.startsWith("/company/")) && hasAnyAllowedRole(["COMPANY_ADMIN", "COMPANY_MEMBER", "SUPER_ADMIN", "CORPORATE_USER"])) ||
+        ((pathname === "/ngo" || pathname.startsWith("/ngo/")) && hasAnyAllowedRole(["NGO_ADMIN", "NGO_MEMBER", "SUPER_ADMIN"])) ||
+        (pathname.startsWith("/district") && hasAnyAllowedRole(["DISTRICT_ADMIN", "SUPER_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN"])) ||
+        (pathname.startsWith("/organization") && hasAnyAllowedRole(["GOVERNMENT_OFFICER", "BENEFICIARY_AGENCY", "COMPANY_ADMIN", "COMPANY_MEMBER", "CORPORATE_USER", "NGO_ADMIN", "NGO_MEMBER", "DISTRICT_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN", "SUPER_ADMIN", "JOINT_SECRETARY", "PLANNING_SECRETARY", "CSR_RELATIONSHIP_MANAGER", "DISTRICT_NODAL_OFFICER", "NODAL_OFFICER", "STATE_CSR_CELL"])) ||
+        (pathname.startsWith("/admin") && hasAnyAllowedRole(["SUPER_ADMIN", "DISTRICT_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN", "JOINT_SECRETARY", "PLANNING_SECRETARY"])) ||
+        ((pathname.startsWith("/beneficiary") || pathname.startsWith("/department")) && hasAnyAllowedRole(["GOVERNMENT_OFFICER", "BENEFICIARY_AGENCY", "SUPER_ADMIN"])) ||
+        (pathname.startsWith("/rm") && hasAnyAllowedRole(["CSR_RELATIONSHIP_MANAGER", "JOINT_SECRETARY", "PLANNING_SECRETARY", "SUPER_ADMIN"])) ||
+        (pathname.startsWith("/js") && hasAnyAllowedRole(["JOINT_SECRETARY", "PLANNING_SECRETARY", "SUPER_ADMIN"])) ||
+        (pathname.startsWith("/secretary") && hasAnyAllowedRole(["PLANNING_SECRETARY", "SUPER_ADMIN"])) ||
+        (pathname.startsWith("/nodal") && hasAnyAllowedRole(["DISTRICT_NODAL_OFFICER", "NODAL_OFFICER", "JOINT_SECRETARY", "PLANNING_SECRETARY", "SUPER_ADMIN"])) ||
+        (pathname.startsWith("/state-cell") && hasAnyAllowedRole(["STATE_CSR_CELL", "PLANNING_SECRETARY", "SUPER_ADMIN"])) ||
+        (pathname.startsWith("/agency") && hasAnyAllowedRole(["IMPLEMENTING_AGENCY_USER", "CORPORATE_USER", "SUPER_ADMIN"])) ||
+        ((pathname === "/partner" || pathname.startsWith("/partner/")) && hasAnyAllowedRole(["CORPORATE_USER", "CORPORATE_PARTNER", "COMPANY_ADMIN", "COMPANY_MEMBER", "SUPER_ADMIN"])) ||
+        pathname.startsWith("/dashboard") ||
+        pathname.startsWith("/onboarding") ||
+        pathname.startsWith("/queries") ||
+        pathname.startsWith("/csr-projects") ||
+        pathname.startsWith("/payments") ||
+        pathname.startsWith("/fund-releases") ||
+        pathname.startsWith("/reports") ||
+        pathname.startsWith("/audit-logs") ||
+        pathname.startsWith("/profile") ||
+        pathname.startsWith("/settings") ||
+        pathname.startsWith("/admin/organizations") ||
+        pathname.startsWith("/admin/companies") ||
+        pathname.startsWith("/admin/ngo-registry") ||
+        pathname.startsWith("/admin/user-management") ||
+        pathname.startsWith("/admin/access-control") ||
+        pathname.startsWith("/chat") ||
+        pathname.startsWith("/analytics") ||
+        pathname.startsWith("/grievances") ||
+        pathname.startsWith("/convergence-projects") ||
+        pathname.startsWith("/projects") ||
+        pathname.startsWith("/public-development-needs") ||
+        pathname.startsWith("/pitch-development-need") ||
+        pathname.startsWith("/partner-with-maharashtra") ||
+        pathname.startsWith("/enquiries") ||
+        pathname.startsWith("/pitches") ||
+        pathname.startsWith("/interests") ||
+        pathname.startsWith("/assessments") ||
+        pathname.startsWith("/agencies") ||
+        pathname.startsWith("/assignments") ||
+        pathname.startsWith("/milestones") ||
+        pathname.startsWith("/requirements") ||
+        pathname.startsWith("/marketplace") ||
+        pathname.startsWith("/escalations") ||
+        pathname.startsWith("/decisions") ||
+        pathname.startsWith("/nodal-appointments") ||
+        pathname.startsWith("/inspections") ||
+        pathname.startsWith("/handover") ||
+        pathname.startsWith("/communications") ||
+        pathname.startsWith("/notifications") ||
+        pathname.startsWith("/helpdesk") ||
+        pathname.startsWith("/track");
+
+      if (!allowed) {
+        // Route to the user's home dashboard by CANONICAL identity
+        // (numericId → slug → base enum), never by role name. See roleRouting.ts.
+        router.push(
+          resolveDashboardPath(
+            {
+              roleNumericId: user.roleNumericId,
+              roleSlug: user.roleSlug,
+              role: user.role,
+            },
+            "/"
+          )
+        );
+      }
     }
   }, [mounted, isDashboard, pathname, router]);
 
@@ -356,6 +438,22 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
     );
 
   const storedUser = typeof window !== "undefined" ? getStoredUser() : null;
+  const activeRoles = (storeRoles || []).length > 0 ? storeRoles : (storedUser?.role ? [storedUser.role] : []);
+  const storedRole = activeRoles.find(r => r !== "GOVERNMENT_OFFICER" && r !== "CORPORATE_USER") || activeRoles[0];
+  const storedOrganizationType = storedUser?.organization?.organizationType as string | undefined;
+
+  const rawSidebarItems = resolveNavItems({
+    role: storedRole,
+    pathname,
+    hasPermission,
+    isSuperAdmin: storeIsAdmin
+  });
+
+  const filteredNavItems = rawSidebarItems
+    .filter((item) => !item.featureKey || tenantFeatures[item.featureKey] !== false)
+    .filter((item) => isNavItemVisible(item.href, hasPermission));
+
+  const dashboardNavigationItems = filteredNavItems;
   const routeFeatureKey =
     pathname.includes("/requirements") ? "enableRequirementCreation" :
     pathname.includes("/marketplace") ? "enableCSRMarketplace" :
@@ -419,10 +517,10 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                   <path d="M42,80 L58,80" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round" />
                 </svg>
                 <div className="flex min-w-0 flex-col leading-none">
-                  <span className="font-heading font-bold text-base text-slate-900">
+                  <span className="font-heading font-bold text-base text-slate-900 whitespace-nowrap">
                     Maha<span className="text-blue-600">CSR</span> Setu
                   </span>
-                  <span className="text-[9px] text-slate-400 font-semibold mt-1 uppercase tracking-wider">
+                  <span className="text-[9px] text-slate-400 font-semibold mt-1 uppercase tracking-wider whitespace-nowrap hidden sm:block">
                     Smart CSR Platform
                   </span>
                 </div>
@@ -464,7 +562,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                 </button>
 
                 {notificationsOpen && (
-                  <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white backdrop-blur-xl border border-slate-200/80 rounded-2xl p-4 z-50 flex flex-col gap-3 shadow-xl">
+                  <div className="absolute -right-12 sm:right-0 mt-3 w-[calc(100vw-32px)] max-w-[340px] sm:max-w-none sm:w-96 bg-white backdrop-blur-xl border border-slate-200/80 rounded-2xl p-4 z-50 flex flex-col gap-3 shadow-xl">
                     <div className="flex justify-between items-center pb-2 border-b border-slate-100">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-extrabold text-slate-900">Notifications</span>
@@ -800,7 +898,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                               .map((id) => NAVIGATION_MANIFEST.find((item) => item.id === id))
                               .filter((item): item is NavItemDef => {
                                 if (!item || !item.showInSidebar) return false;
-                                return isNavItemAllowed(item, hasPermission, storeIsAdmin, storeRoles);
+                                return isNavItemAllowed(item, hasPermission, storeIsAdmin);
                               });
 
                             if (children.length === 0) return null;
