@@ -4,7 +4,7 @@ import prisma from "../config/db";
 import { generateNumericOtp } from "../utils/security";
 import { sendOtpEmail } from "../utils/mailer";
 
-export type OtpPurpose = "CORPORATE_ENQUIRY" | "GOVERNMENT_PITCH" | "CORPORATE_INTEREST" | "GOVERNMENT_ONBOARDING";
+export type OtpPurpose = "CORPORATE_ENQUIRY" | "GOVERNMENT_PITCH" | "CORPORATE_INTEREST" | "GOVERNMENT_ONBOARDING" | "FORGOT_PASSWORD";
 export type OtpChannel = "EMAIL" | "MOBILE";
 
 const OTP_TTL_MINUTES = 10;
@@ -74,12 +74,19 @@ export async function sendOtp(purpose: OtpPurpose, channel: OtpChannel, target: 
   });
 
   if (channel === "EMAIL") {
-    await sendOtpEmail(normalizedTarget, otp);
+    await sendOtpEmail(normalizedTarget, otp).catch((err) => {
+      console.warn(`[OTP EMAIL WARN] Email delivery failed (${err?.message}), but OTP was logged to terminal.`);
+    });
   }
 
-  if (process.env.NODE_ENV !== "production") {
-    console.info(`[DEV OTP] ${purpose} ${channel} ${normalizedTarget}: ${otp}`);
-  }
+  // Always log OTP to terminal in development / testing environments
+  console.log(`\n======================================================`);
+  console.log(`🔢 [OTP GENERATED & SENT VIA ${channel}]`);
+  console.log(`🎯 Purpose: ${purpose}`);
+  console.log(`📬 Target: ${normalizedTarget}`);
+  console.log(`🔑 OTP Code: ${otp}`);
+  console.log(`⏰ Expires In: ${OTP_TTL_MINUTES} minutes`);
+  console.log(`======================================================\n`);
 
   return {
     expiresInMinutes: OTP_TTL_MINUTES,

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { register, login, verifyOtp, resendOtp, refreshToken, logout, me, searchParentOrganizations, completeFirstLoginReset } from "../controllers/authController";
+import { register, login, verifyOtp, resendOtp, refreshToken, logout, me, searchParentOrganizations, completeFirstLoginReset, forgotPassword, verifyResetOtp, resetPasswordWithOtp } from "../controllers/authController";
 import { getInvitation, acceptInvitation } from "../controllers/invitationController";
 import { getCurrentUserPermissions, getModulePermissions, checkUserPermission } from "../controllers/permissionController";
 import { validateRequest } from "../middlewares/validationMiddleware";
@@ -53,6 +53,31 @@ const resendOtpSchema = z.object({
   })
 });
 
+const forgotPasswordSchema = z.object({
+  body: z.object({
+    email: z.string().email("Invalid email format")
+  })
+});
+
+const verifyResetOtpSchema = z.object({
+  body: z.object({
+    email: z.string().email("Invalid email format"),
+    otp: z.string().min(6, "OTP must be at least 6 digits")
+  })
+});
+
+const resetPasswordSchema = z.object({
+  body: z.object({
+    email: z.string().email("Invalid email format"),
+    verificationToken: z.string().optional(),
+    otp: z.string().optional(),
+    newPassword: z.string().min(6, "Password must be at least 6 characters")
+  }).refine(data => data.verificationToken || data.otp, {
+    message: "Either verificationToken or otp is required",
+    path: ["verificationToken"]
+  })
+});
+
 const authRateLimit = authRateLimiter;
 const otpRateLimit = strictRateLimiter;
 
@@ -61,6 +86,9 @@ router.post("/register", authRateLimit, validateRequest(registerSchema), asyncHa
 router.post("/verify-otp", otpRateLimit, validateRequest(verifyOtpSchema), asyncHandler(verifyOtp));
 router.post("/resend-otp", otpRateLimit, validateRequest(resendOtpSchema), asyncHandler(resendOtp));
 router.post("/login", authRateLimit, validateRequest(loginSchema), asyncHandler(login));
+router.post("/forgot-password", otpRateLimit, validateRequest(forgotPasswordSchema), asyncHandler(forgotPassword));
+router.post("/verify-reset-otp", otpRateLimit, validateRequest(verifyResetOtpSchema), asyncHandler(verifyResetOtp));
+router.post("/reset-password", strictRateLimiter, validateRequest(resetPasswordSchema), asyncHandler(resetPasswordWithOtp));
 router.post("/first-login-reset", strictRateLimiter, validateRequest(z.object({ body: z.object({
   resetToken: z.string().min(20),
   newPassword: z.string().min(6, "Password must be at least 6 characters")

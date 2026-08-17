@@ -10,6 +10,7 @@ import { getRoleId } from "../types/role";
 import { computeUserPermissions } from "../services/permissionService";
 import { CacheService } from "../services/cacheService";
 import { primeAuthenticatedUserCache } from "../middlewares/authMiddleware";
+import { sendOtp as sendOtpService, verifyOtp as verifyOtpService, assertOtpVerified } from "../services/otpService";
 
 const JWT_SECRET = getJwtSecret();
 const JWT_REFRESH_SECRET = getJwtRefreshSecret();
@@ -813,4 +814,122 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
 
 export const logout = async (_req: Request, res: Response) => {
   return res.json({ message: "Logged out successfully" });
+};
+
+export const forgotPassword = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: "Email address is required" });
+    }
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: normalizedEmail },
+          { loginIdentifier: normalizedEmail }
+        ],
+        deletedAt: null
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "No account found registered with this official email address." });
+    }
+
+    const otpResult = await sendOtpService("FORGOT_PASSWORD", "EMAIL", user.email);
+    return res.json({
+      success: true,
+      message: `A 6-digit password reset code has been sent to ${user.email}.`,
+      data: {
+        email: user.email,
+        expiresInMinutes: otpResult.expiresInMinutes,
+        resendAfterSeconds: otpResult.resendAfterSeconds
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const verifyResetOtp = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      return res.status(400).json({ error: "Email and 6-digit OTP code are required" });
+    }
+    const normalizedEmail = email.trim().toLowerCase();
+    const result = await verifyOtpService("FORGOT_PASSWORD", "EMAIL", normalizedEmail, String(otp).trim());
+    return res.json({
+      success: true,
+      message: "OTP verified successfully. You can now set your new password.",
+      data: {
+        verificationToken: result.verificationToken
+      }
+    });
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message || "Invalid or expired OTP" });
+  }
+};
+
+export const resetPasswordWithOtp = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email, verificationToken, otp, newPassword } = req.body;
+    if (!email || !newPassword) {
+      return res.status(400).json({ error: "Email and new password are required" });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: "Password must be at least 6 characters in length" });
+    }
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Validate OTP proof
+    if (verificationToken) {
+      await assertOtpVerified("FORGOT_PASSWORD", "EMAIL", normalizedEmail, verificationToken);
+    } else if (otp) {
+      await verifyOtpService("FORGOT_PASSWORD", "EMAIL", normalizedEmail, String(otp).trim());
+    } else {
+      return res.status(400).json({ error: "OTP verification is required to reset password" });
+    }
+
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: normalizedEmail },
+          { loginIdentifier: normalizedEmail }
+        ],
+        deletedAt: null
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "User account not found" });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        mustResetPassword: false,
+        accountStatus: user.accountStatus === "PENDING_ACTIVATION" ? "ACTIVE" : user.accountStatus,
+        isVerified: true,
+        tokenVersion: { increment: 1 }
+      }
+    });
+
+    console.log(`\n======================================================`);
+    console.log(`🔑 [PASSWORD RESET COMPLETED]`);
+    console.log(`📧 User Email: ${user.email}`);
+    console.log(`👤 Name: ${[user.firstName, user.lastName].filter(Boolean).join(" ") || user.email}`);
+    console.log(`🔒 Status: New password successfully saved and activated`);
+    console.log(`======================================================\n`);
+
+    return res.json({
+      success: true,
+      message: "Password reset successfully. You can now sign in with your new password."
+    });
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message || "Failed to reset password" });
+  }
 };
