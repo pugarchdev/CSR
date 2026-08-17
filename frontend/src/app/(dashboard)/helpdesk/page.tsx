@@ -59,7 +59,7 @@ export default function HelpdeskPage() {
 
   const handleResolve = (id: string) => {
     setItems(prev => {
-      const updated = prev.map(t => t.id === id ? { ...t, status: "RESOLVED" } : t);
+      const updated = prev.map(t => t.id === id ? { ...t, status: "RESOLVED" as const } : t);
       localStorage.setItem("helpdesk_tickets", JSON.stringify(updated));
       return updated;
     });
