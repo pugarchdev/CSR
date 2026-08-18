@@ -8,7 +8,10 @@ import SessionExpiredModal from "@/components/auth/SessionExpiredModal";
 import { PermissionInitializer } from "@/components/auth/PermissionInitializer";
 import { Suspense } from "react";
 import TopProgressBar from "@/components/ui/TopProgressBar";
-import SaaSLayout from "@/components/SaaSLayout";
+import dynamic from "next/dynamic";
+const SaaSLayout = dynamic(() => import("@/components/SaaSLayout"), {
+  ssr: false,
+});
 
 const inter = Inter({
   subsets: ["latin"],

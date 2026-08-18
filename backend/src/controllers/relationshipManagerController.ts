@@ -461,7 +461,12 @@ export const submitFeasibilityAssessment = async (req: AuthenticatedRequest, res
 
 export const listRMEnquiryInteractions = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const enquiry = await prisma.corporateEnquiry.findFirst({ where: { id: req.params.id, assignedRelationshipManagerId: req.user!.id }, select: { id: true } });
+    const roleIdNum = Number(req.user!.roleId || req.user!.role);
+    const isStateAdmin = ([ROLE_ID.SUPER_ADMIN, ROLE_ID.PLANNING_SECRETARY, ROLE_ID.JOINT_SECRETARY] as number[]).includes(roleIdNum);
+    const enquiry = await prisma.corporateEnquiry.findFirst({
+      where: isStateAdmin ? { id: req.params.id } : { id: req.params.id, assignedRelationshipManagerId: req.user!.id },
+      select: { id: true }
+    });
     if (!enquiry) return res.status(404).json({ error: "Enquiry not found" });
     const data = await prisma.applicationInteraction.findMany({ where: { entityType: "CORPORATE_ENQUIRY", entityId: enquiry.id }, orderBy: { occurredAt: "desc" } });
     return res.json({ success: true, data });
@@ -495,7 +500,12 @@ export const logPitchInteraction = async (req: AuthenticatedRequest, res: Respon
 
 export const listRMPitchInteractions = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const pitch = await prisma.governmentPitch.findFirst({ where: { id: req.params.id, assignedRelationshipManagerId: req.user!.id }, select: { id: true } });
+    const roleIdNum = Number(req.user!.roleId || req.user!.role);
+    const isStateAdmin = ([ROLE_ID.SUPER_ADMIN, ROLE_ID.PLANNING_SECRETARY, ROLE_ID.JOINT_SECRETARY] as number[]).includes(roleIdNum);
+    const pitch = await prisma.governmentPitch.findFirst({
+      where: isStateAdmin ? { id: req.params.id } : { id: req.params.id, assignedRelationshipManagerId: req.user!.id },
+      select: { id: true }
+    });
     if (!pitch) return res.status(404).json({ error: "Pitch not found" });
     const data = await prisma.applicationInteraction.findMany({ where: { entityType: "GOVERNMENT_PITCH", entityId: pitch.id }, orderBy: { occurredAt: "desc" } });
     return res.json({ success: true, data });
@@ -504,8 +514,10 @@ export const listRMPitchInteractions = async (req: AuthenticatedRequest, res: Re
 
 export const getRMFeasibilityAssessment = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
+    const roleIdNum = Number(req.user!.roleId || req.user!.role);
+    const isStateAdmin = ([ROLE_ID.SUPER_ADMIN, ROLE_ID.PLANNING_SECRETARY, ROLE_ID.JOINT_SECRETARY] as number[]).includes(roleIdNum);
     const assignedEnquiry = await prisma.corporateEnquiry.findFirst({
-      where: { id: req.params.id, assignedRelationshipManagerId: req.user!.id },
+      where: isStateAdmin ? { id: req.params.id } : { id: req.params.id, assignedRelationshipManagerId: req.user!.id },
       select: { id: true }
     });
     if (!assignedEnquiry) return res.status(404).json({ error: "Enquiry not found" });

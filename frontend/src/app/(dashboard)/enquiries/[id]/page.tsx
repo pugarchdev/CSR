@@ -8,7 +8,8 @@ import {
   MapPin, FileText, ClipboardCheck,
   MessageSquare, History, FileCheck,
   Copy, Check, PhoneCall, Video, Globe, User, ArrowRight,
-  X, CalendarDays, FileImage, ExternalLink, Briefcase
+  X, CalendarDays, FileImage, ExternalLink, Briefcase,
+  CheckCircle2, AlertCircle, ShieldCheck, FileCheck2, RotateCcw, XCircle, Clock
 } from "lucide-react";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import { useApiQuery } from "@/lib/apiHooks";
@@ -83,6 +84,181 @@ function extractRoleTokens(user: any, roles: any[], roleDetails: any[]): string[
   return Array.from(tokens);
 }
 
+/* ─── Joint Secretary Decision Panel ─── */
+function JointSecretaryDecisionPanel({
+  assessmentId,
+  currentStatus,
+  existingDecision,
+  existingReason,
+  decidedAt,
+  onDecisionRecorded,
+}: {
+  assessmentId: string;
+  currentStatus?: string;
+  existingDecision?: string;
+  existingReason?: string;
+  decidedAt?: string;
+  onDecisionRecorded: () => void;
+}) {
+  const [reason, setReason] = useState("");
+  const [working, setWorking] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  const decide = async (decision: "PROCEED" | "PROCEED_WITH_CONDITIONS" | "RETURN_FOR_CLARIFICATION" | "DO_NOT_PROCEED") => {
+    setMessage("");
+    setError("");
+    if (decision !== "PROCEED" && (!reason.trim() || reason.trim().length < 5)) {
+      setError("Please provide a reason or conditions (minimum 5 characters) for this decision.");
+      return;
+    }
+    setWorking(decision);
+    try {
+      const res = await apiFetch<any>(`/js/assessments/${assessmentId}/decision`, {
+        method: "POST",
+        body: JSON.stringify({ decision, reason: reason.trim() })
+      });
+      setMessage(res?.message || "Joint Secretary decision recorded successfully.");
+      onDecisionRecorded();
+    } catch (err: any) {
+      setError(err instanceof Error ? err.message : "Failed to record decision.");
+    } finally {
+      setWorking("");
+    }
+  };
+
+  if (currentStatus === "JS_APPROVED" || existingDecision === "PROCEED" || existingDecision === "PROCEED_WITH_CONDITIONS") {
+    return (
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-5 space-y-2">
+        <div className="flex items-center gap-2 text-emerald-900 font-extrabold text-sm">
+          <CheckCircle2 size={18} className="text-emerald-700" />
+          <span>Approved by Joint Secretary</span>
+          <span className="ml-auto text-[11px] font-mono text-emerald-700">
+            {formatDateTime(decidedAt)}
+          </span>
+        </div>
+        {existingReason && (
+          <p className="text-xs text-emerald-800 bg-white/70 p-3 rounded-lg border border-emerald-200 leading-relaxed">
+            <strong>Decision Notes:</strong> {existingReason}
+          </p>
+        )}
+        <p className="text-xs text-emerald-700">
+          This enquiry has been sanctioned and routed for District Nodal Consultant and Department onboarding.
+        </p>
+      </div>
+    );
+  }
+
+  if (currentStatus === "JS_REJECTED" || existingDecision === "DO_NOT_PROCEED") {
+    return (
+      <div className="rounded-xl border border-rose-200 bg-rose-50/70 p-5 space-y-2">
+        <div className="flex items-center gap-2 text-rose-900 font-extrabold text-sm">
+          <XCircle size={18} className="text-rose-700" />
+          <span>Rejected by Joint Secretary</span>
+          <span className="ml-auto text-[11px] font-mono text-rose-700">
+            {formatDateTime(decidedAt)}
+          </span>
+        </div>
+        {existingReason && (
+          <p className="text-xs text-rose-800 bg-white/70 p-3 rounded-lg border border-rose-200 leading-relaxed">
+            <strong>Rejection Reason:</strong> {existingReason}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  if (currentStatus === "RETURN_FOR_CLARIFICATION" || existingDecision === "RETURN_FOR_CLARIFICATION") {
+    return (
+      <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-5 space-y-2">
+        <div className="flex items-center gap-2 text-amber-900 font-extrabold text-sm">
+          <RotateCcw size={18} className="text-amber-700" />
+          <span>Returned to Relationship Manager for Clarification</span>
+          <span className="ml-auto text-[11px] font-mono text-amber-700">
+            {formatDateTime(decidedAt)}
+          </span>
+        </div>
+        {existingReason && (
+          <p className="text-xs text-amber-900 bg-white/70 p-3 rounded-lg border border-amber-200 leading-relaxed">
+            <strong>Clarification Instructions:</strong> {existingReason}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50/80 to-indigo-50/60 p-5 shadow-sm space-y-4">
+      <div className="flex items-center justify-between border-b border-blue-200/60 pb-3">
+        <h4 className="text-sm font-extrabold text-blue-950 flex items-center gap-2">
+          <ShieldCheck size={18} className="text-blue-900" /> Joint Secretary Executive Decision Desk
+        </h4>
+        <span className="text-[11px] font-bold text-blue-800 bg-blue-100 px-2.5 py-0.5 rounded-full border border-blue-200">
+          Awaiting Decision
+        </span>
+      </div>
+
+      <p className="text-xs text-slate-600 leading-relaxed">
+        Review the 13-Point Feasibility Checklist and RM recommendations above. Select an executive decision to proceed with Government department routing, request RM corrections, or decline.
+      </p>
+
+      <div className="space-y-1.5">
+        <label className="text-xs font-bold text-slate-700">
+          Decision Notes / Approval Rationale / Clarification Remarks
+        </label>
+        <textarea
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          rows={3}
+          placeholder="Enter executive remarks, conditions, or required clarification points..."
+          className="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+        />
+      </div>
+
+      {error && <p className="text-xs font-bold text-rose-600">{error}</p>}
+      {message && <p className="text-xs font-bold text-emerald-700">{message}</p>}
+
+      <div className="flex flex-wrap gap-2.5 pt-1">
+        <button
+          disabled={Boolean(working)}
+          onClick={() => decide("PROCEED")}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2.5 text-xs font-extrabold text-white shadow-sm hover:bg-emerald-800 transition-all disabled:opacity-50"
+        >
+          {working === "PROCEED" ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+          Approve & Route Project
+        </button>
+
+        <button
+          disabled={Boolean(working)}
+          onClick={() => decide("PROCEED_WITH_CONDITIONS")}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-blue-900 px-4 py-2.5 text-xs font-extrabold text-white shadow-sm hover:bg-blue-950 transition-all disabled:opacity-50"
+        >
+          {working === "PROCEED_WITH_CONDITIONS" ? <Loader2 size={14} className="animate-spin" /> : <FileCheck2 size={14} />}
+          Approve with Conditions
+        </button>
+
+        <button
+          disabled={Boolean(working)}
+          onClick={() => decide("RETURN_FOR_CLARIFICATION")}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-100 px-4 py-2.5 text-xs font-extrabold text-amber-900 shadow-sm hover:bg-amber-200 transition-all disabled:opacity-50"
+        >
+          {working === "RETURN_FOR_CLARIFICATION" ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
+          Return to RM for Clarification
+        </button>
+
+        <button
+          disabled={Boolean(working)}
+          onClick={() => decide("DO_NOT_PROCEED")}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-rose-300 bg-rose-50 px-4 py-2.5 text-xs font-extrabold text-rose-800 shadow-sm hover:bg-rose-100 transition-all disabled:opacity-50"
+        >
+          {working === "DO_NOT_PROCEED" ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
+          Reject Proposal
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Main Page Component ─── */
 export default function EnquiryDetailPage() {
   const params = useParams<{ id: string }>();
@@ -91,24 +267,39 @@ export default function EnquiryDetailPage() {
   const roleDetails = useAuthStore((state) => state.roleDetails);
   const isAdmin = useAuthStore((state) => state.isAdmin);
 
+  const [mounted, setMounted] = useState(false);
   const [copied, setCopied] = useState(false);
   const [phoneCopied, setPhoneCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "communication" | "feasibility" | "js" | "assignments">("overview");
   const [showMeetingModal, setShowMeetingModal] = useState(false);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isJS = useMemo(() => {
+    if (!mounted) return false;
+    const tokens = extractRoleTokens(user, roles, roleDetails);
+    return tokens.some((t) => {
+      const u = t.toUpperCase();
+      return u.includes("JOINT_SECRETARY") || u.includes("JOINT SECRETARY") || u === "3" || u.includes("PLANNING_SECRETARY") || u === "2";
+    }) || user?.roleId === 3 || user?.roleId === 2;
+  }, [user, roles, roleDetails, mounted]);
+
   const isRM = useMemo(() => {
-    if (isAdmin) return true;
+    if (!mounted || isJS) return false;
     const tokens = extractRoleTokens(user, roles, roleDetails);
     return tokens.some((t) => {
       const u = t.toUpperCase();
       return u.includes("RELATIONSHIP") || u.includes("RM") || u === "6";
-    });
-  }, [user, roles, roleDetails, isAdmin]);
+    }) || user?.roleId === 6;
+  }, [user, roles, roleDetails, isJS, mounted]);
 
-  const path = isRM ? `/rm/enquiries/${params.id}` : `/corporate-enquiries/${params.id}`;
+  const canAccessRMWorkspace = isRM || isJS || isAdmin;
+  const path = canAccessRMWorkspace ? `/rm/enquiries/${params.id}` : `/corporate-enquiries/${params.id}`;
 
   const { data: response, isLoading, refetch } = useApiQuery<any>(
-    ["enquiry", params.id, isRM ? "rm" : "standard"],
+    ["enquiry", params.id, canAccessRMWorkspace ? "rm" : "standard"],
     path,
     { enabled: Boolean(params.id) }
   );
@@ -116,13 +307,13 @@ export default function EnquiryDetailPage() {
   const { data: interactionsResponse, refetch: refetchInteractions } = useApiQuery<any>(
     ["enquiry-interactions", params.id],
     `/rm/enquiries/${params.id}/interactions`,
-    { enabled: isRM && Boolean(params.id) }
+    { enabled: canAccessRMWorkspace && Boolean(params.id) }
   );
 
   const { data: assessmentResponse, refetch: refetchAssessment } = useApiQuery<any>(
     ["rm-feasibility", params.id],
     `/rm/enquiries/${params.id}/feasibility`,
-    { enabled: isRM && Boolean(params.id) }
+    { enabled: canAccessRMWorkspace && Boolean(params.id) }
   );
 
   const enquiry = response?.data ?? response;
@@ -165,10 +356,9 @@ export default function EnquiryDetailPage() {
 
   /* ─── Quick Action: Send Email ─── */
   const handleSendEmail = useCallback(async () => {
-
     const subject = encodeURIComponent(`MahaCSR Convergence — Enquiry ${enquiry?.trackingId || params.id}`);
     const body = encodeURIComponent(
-      `Dear ${contactName || "Sir/Madam"},\n\nThis is regarding your CSR Convergence enquiry (Tracking ID: ${enquiry?.trackingId || params.id}).\n\nRegards,\n${user?.firstName || "Relationship Manager"} ${user?.lastName || ""}\nMaharashtra CSR Authority`
+      `Dear ${contactName || "Sir/Madam"},\n\nThis is regarding your CSR Convergence enquiry (Tracking ID: ${enquiry?.trackingId || params.id}).\n\nRegards,\n${user?.firstName || "State CSR Cell"} ${user?.lastName || ""}\nMaharashtra CSR Authority`
     );
     window.open(`mailto:${contactEmail}?subject=${subject}&body=${body}`, "_self");
 
@@ -186,7 +376,7 @@ export default function EnquiryDetailPage() {
     }
   }, [params.id, contactEmail, contactName, enquiry?.trackingId, user, refetchInteractions]);
 
-  if (isLoading) {
+  if (!mounted || isLoading) {
     return (
       <GovPortalLayout>
         <div className="flex justify-center items-center min-h-[60vh]">
@@ -204,7 +394,7 @@ export default function EnquiryDetailPage() {
     { id: "overview", label: "Overview", icon: Briefcase },
     { id: "communication", label: "Interaction Log", icon: MessageSquare },
     { id: "feasibility", label: "13-Point Feasibility", icon: ClipboardCheck },
-    { id: "js", label: "JS Decision", icon: Send },
+    { id: "js", label: isJS ? "Executive Decision" : "JS Decision", icon: ShieldCheck },
     { id: "assignments", label: "Assignments & Audit", icon: History },
   ];
 
@@ -242,6 +432,11 @@ export default function EnquiryDetailPage() {
                 {enquiry?.sector && (
                   <span className="rounded-md bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-700 border border-slate-200">
                     {enquiry.sector}
+                  </span>
+                )}
+                {isJS && (
+                  <span className="rounded-md bg-indigo-100 px-2.5 py-0.5 text-[10px] font-extrabold text-indigo-950 border border-indigo-200">
+                    JOINT SECRETARY DESK
                   </span>
                 )}
               </div>
@@ -471,7 +666,7 @@ export default function EnquiryDetailPage() {
                 <div className="space-y-2">
                   <TabNavButton label="View Interaction Log" icon={MessageSquare} onClick={() => setActiveTab("communication")} count={interactions.length} />
                   <TabNavButton label="13-Point Feasibility" icon={ClipboardCheck} onClick={() => setActiveTab("feasibility")} />
-                  <TabNavButton label="JS Decision & Status" icon={Send} onClick={() => setActiveTab("js")} />
+                  <TabNavButton label={isJS ? "Joint Secretary Decision Desk" : "JS Decision & Status"} icon={ShieldCheck} onClick={() => setActiveTab("js")} />
                 </div>
               </div>
 
@@ -485,8 +680,16 @@ export default function EnquiryDetailPage() {
                     <User size={18} className="text-blue-800" />
                   </div>
                   <div>
-                    <p className="text-xs font-extrabold text-slate-900">{user?.firstName || "RM"} {user?.lastName || ""}</p>
-                    <p className="text-[11px] text-slate-500">{user?.email || "rm@mahacsr.gov.in"}</p>
+                    <p className="text-xs font-extrabold text-slate-900">
+                      {enquiry?.assignedRelationshipManager
+                        ? `${enquiry.assignedRelationshipManager.firstName || ""} ${enquiry.assignedRelationshipManager.lastName || ""}`.trim() || enquiry.assignedRelationshipManager.email
+                        : isRM
+                        ? `${user?.firstName || "RM"} ${user?.lastName || ""}`.trim()
+                        : "State CSR Cell (Unassigned)"}
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      {enquiry?.assignedRelationshipManager?.email || (isRM ? user?.email : "csr-cell@mahacsr.gov.in")}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -513,6 +716,9 @@ export default function EnquiryDetailPage() {
             enquiryId={params.id}
             existingAssessment={assessment}
             onSubmitted={() => { refetchAssessment(); refetch(); }}
+            isJS={isJS}
+            isRM={isRM}
+            isAdmin={isAdmin}
           />
         )}
 
@@ -520,17 +726,23 @@ export default function EnquiryDetailPage() {
         {/* TAB 4: JS DECISION                                     */}
         {/* ────────────────────────────────────────────────────── */}
         {activeTab === "js" && (
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
-            <h3 className="text-sm font-extrabold text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
-              <Send size={16} className="text-blue-800" /> Joint Secretary Submission
-            </h3>
-            {assessment?.status === "SUBMITTED_TO_JS" ? (
-              <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-200 text-sm text-emerald-950 font-bold">
-                ✓ Feasibility Assessment has been submitted to the Joint Secretary for approval.
-              </div>
+          <div className="space-y-4">
+            {assessment?.id ? (
+              <JointSecretaryDecisionPanel
+                assessmentId={assessment.id}
+                currentStatus={assessment.status}
+                existingDecision={assessment.jsDecision}
+                existingReason={assessment.jsDecisionReason}
+                decidedAt={assessment.jsDecidedAt}
+                onDecisionRecorded={() => { refetchAssessment(); refetch(); }}
+              />
             ) : (
-              <div className="p-4 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-950">
-                Complete the 13-Factor Feasibility in the Feasibility tab to submit to JS.
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-8 text-center space-y-2">
+                <Clock size={28} className="text-amber-700 mx-auto" />
+                <h3 className="text-sm font-extrabold text-amber-950">Feasibility Assessment Pending</h3>
+                <p className="text-xs text-amber-800 max-w-md mx-auto leading-relaxed">
+                  The 13-point feasibility checklist has not yet been submitted by the Relationship Manager. Once submitted, Joint Secretary executive decision actions will be available here.
+                </p>
               </div>
             )}
           </div>
@@ -545,7 +757,7 @@ export default function EnquiryDetailPage() {
               <h3 className="text-sm font-extrabold text-slate-900 border-b border-slate-100 pb-3">
                 Post-JS Approval District & Dept Assignments
               </h3>
-              <p className="text-xs text-slate-500">Assignments to DNC and Government Department Officer are triggered upon JS approval.</p>
+              <p className="text-xs text-slate-500">Assignments to DNC and Government Department Officer are triggered automatically upon Joint Secretary approval.</p>
             </div>
             <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
               <h3 className="text-sm font-extrabold text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
@@ -612,7 +824,7 @@ function TabNavButton({ label, icon: Icon, onClick, count }: { label: string; ic
   return (
     <button
       onClick={onClick}
-      className="w-full text-left p-3 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors flex items-center justify-between text-xs font-bold text-slate-800"
+      className="w-full text-left p-3 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors flex items-center justify-between text-xs font-bold text-slate-800 cursor-pointer"
     >
       <span className="flex items-center gap-2">
         <Icon size={15} className="text-blue-700" /> {label}
@@ -675,7 +887,7 @@ function InteractionLogTab({
               <button
                 key={type.value}
                 onClick={() => setChannel(type.value)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
                   isActive
                     ? "bg-blue-900 text-white border-blue-900 shadow-sm"
                     : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
@@ -697,7 +909,7 @@ function InteractionLogTab({
           <button
             onClick={handleSubmit}
             disabled={submitting || note.trim().length < 3}
-            className="self-end rounded-xl bg-blue-900 px-5 py-3 text-xs font-extrabold text-white shadow-sm hover:bg-blue-950 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="self-end rounded-xl bg-blue-900 px-5 py-3 text-xs font-extrabold text-white shadow-sm hover:bg-blue-950 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {submitting ? <Loader2 size={15} className="animate-spin" /> : "Log"}
           </button>
@@ -807,7 +1019,7 @@ function ScheduleMeetingModal({
           <h3 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
             <CalendarDays size={20} className="text-purple-700" /> Schedule Meeting
           </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 transition-colors">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 transition-colors cursor-pointer">
             <X size={20} />
           </button>
         </div>
@@ -860,14 +1072,14 @@ function ScheduleMeetingModal({
         <div className="flex justify-end gap-3 pt-2">
           <button
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 border border-slate-200 hover:bg-slate-100 transition-colors"
+            className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 border border-slate-200 hover:bg-slate-100 transition-colors cursor-pointer"
           >
             Cancel
           </button>
           <button
             onClick={handleSchedule}
             disabled={submitting}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-700 text-white text-xs font-extrabold shadow-sm hover:bg-purple-800 transition-all disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-700 text-white text-xs font-extrabold shadow-sm hover:bg-purple-800 transition-all disabled:opacity-50 cursor-pointer"
           >
             {submitting ? <Loader2 size={15} className="animate-spin" /> : <CalendarDays size={15} />}
             Schedule Meeting
@@ -878,8 +1090,22 @@ function ScheduleMeetingModal({
   );
 }
 
-/* ─── Feasibility Workspace (preserved from original) ─── */
-function FeasibilityWorkspace({ enquiryId, existingAssessment, onSubmitted }: { enquiryId: string; existingAssessment: any; onSubmitted: () => void }) {
+/* ─── Feasibility Workspace (Role-Aware) ─── */
+function FeasibilityWorkspace({
+  enquiryId,
+  existingAssessment,
+  onSubmitted,
+  isJS,
+  isRM,
+  isAdmin
+}: {
+  enquiryId: string;
+  existingAssessment: any;
+  onSubmitted: () => void;
+  isJS: boolean;
+  isRM: boolean;
+  isAdmin: boolean;
+}) {
   const [answers, setAnswers] = useState<Record<number, "YES" | "NO" | "NA">>({});
   const [notes, setNotes] = useState<Record<number, string>>({});
   const [departmentId, setDepartmentId] = useState("");
@@ -911,7 +1137,26 @@ function FeasibilityWorkspace({ enquiryId, existingAssessment, onSubmitted }: { 
     }
   }, [existingAssessment]);
 
+  const isSubmitted = existingAssessment?.status === "SUBMITTED_TO_JS" ||
+                      existingAssessment?.status === "JS_APPROVED" ||
+                      existingAssessment?.status === "JS_REJECTED" ||
+                      existingAssessment?.status === "PROCEED" ||
+                      existingAssessment?.status === "PROCEED_WITH_CONDITIONS";
+
+  const isReturned = existingAssessment?.status === "RETURN_FOR_CLARIFICATION" ||
+                     existingAssessment?.status === "RETURN_FOR_CORRECTION";
+
+  // Joint Secretary / Reviewer mode: always read-only checklist
+  // RM mode: editable only when not submitted OR when returned for clarification
+  const isReadOnly = isJS || (!isRM && !isAdmin) || (isSubmitted && !isReturned);
+
+  const selectedDepartment = departments.find((d: any) => d.id === departmentId);
+  const deptDisplayName = selectedDepartment?.name || existingAssessment?.targetDepartment?.name || departmentId || "—";
+  const targetDistrictsList = districtText ? districtText.split(",").map((s) => s.trim()).filter(Boolean) : (Array.isArray(existingAssessment?.targetDistricts) ? existingAssessment.targetDistricts : []);
+
   const completed = Object.keys(answers).length;
+  const yesCount = Object.values(answers).filter((a) => a === "YES").length;
+  const noCount = Object.values(answers).filter((a) => a === "NO").length;
 
   const submit = async () => {
     setMessage("");
@@ -939,87 +1184,195 @@ function FeasibilityWorkspace({ enquiryId, existingAssessment, onSubmitted }: { 
     }
   };
 
+  // If viewing as JS and no assessment has been submitted yet:
+  if (isJS && !existingAssessment) {
+    return (
+      <section className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm text-center space-y-3">
+        <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center mx-auto">
+          <Clock size={24} />
+        </div>
+        <h3 className="text-base font-extrabold text-slate-900">Feasibility Assessment in Progress</h3>
+        <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+          The assigned Relationship Manager has not yet submitted the 13-Point Feasibility Assessment for this enquiry. Once completed, it will appear here for your review and sanction.
+        </p>
+      </section>
+    );
+  }
+
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-        <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-          <ClipboardCheck size={16} className="text-blue-800" /> 13-Point Feasibility Assessment
-        </h3>
-        <span className="rounded-full bg-blue-100 px-3 py-0.5 text-xs font-extrabold text-blue-900 border border-blue-200">
-          {completed}/13 completed
-        </span>
+    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-5">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+        <div>
+          <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+            <ClipboardCheck size={16} className="text-blue-800" />
+            13-Point Feasibility Assessment
+            {isReadOnly && (
+              <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                Review Mode
+              </span>
+            )}
+          </h3>
+          <p className="text-[11px] text-slate-500 mt-0.5">
+            MCA Schedule VII, statutory clearances, land availability, and operational sustainability evaluation.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {existingAssessment?.status && (
+            <span className={`rounded-full px-3 py-0.5 text-xs font-extrabold border ${
+              existingAssessment.status === "JS_APPROVED" ? "bg-emerald-100 text-emerald-900 border-emerald-200" :
+              existingAssessment.status === "JS_REJECTED" ? "bg-rose-100 text-rose-900 border-rose-200" :
+              existingAssessment.status === "RETURN_FOR_CLARIFICATION" ? "bg-amber-100 text-amber-900 border-amber-200" :
+              "bg-blue-100 text-blue-900 border-blue-200"
+            }`}>
+              {existingAssessment.status.replace(/_/g, " ")}
+            </span>
+          )}
+          <span className="rounded-full bg-slate-100 px-3 py-0.5 text-xs font-extrabold text-slate-700 border border-slate-200">
+            {yesCount}/13 YES {noCount > 0 && `• ${noCount} NO`}
+          </span>
+        </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <label className="text-xs font-bold text-slate-700 space-y-1.5">
-          <span>Target Government Department *</span>
-          <select
-            value={departmentId}
-            onChange={(e) => setDepartmentId(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none focus:border-blue-600"
-          >
-            <option value="">Select department</option>
-            {departments.map((d: any) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
-          </select>
-        </label>
-        <label className="text-xs font-bold text-slate-700 space-y-1.5">
-          <span>Target District(s) *</span>
-          <input
-            value={districtText}
-            onChange={(e) => setDistrictText(e.target.value)}
-            placeholder="e.g. Pune, Thane, Nagpur"
-            className="w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none focus:border-blue-600"
-          />
-        </label>
-      </div>
-
-      <div className="grid gap-2.5 md:grid-cols-2">
-        {CHECKS.map(([num, title, desc]) => (
-          <div key={num} className="p-3.5 rounded-lg border border-slate-200/80 bg-slate-50/70 text-xs space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="font-extrabold text-slate-900">{num}. {title}</span>
-              <div className="flex gap-1">
-                {(["YES", "NO", "NA"] as const).map((a) => (
-                  <button
-                    key={a}
-                    onClick={() => setAnswers((prev) => ({ ...prev, [num]: a }))}
-                    className={`px-2 py-0.5 rounded text-[10px] font-extrabold transition-all ${
-                      answers[num] === a
-                        ? a === "YES" ? "bg-emerald-700 text-white shadow-sm" : a === "NO" ? "bg-rose-700 text-white shadow-sm" : "bg-slate-800 text-white shadow-sm"
-                        : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-100"
-                    }`}
-                  >
-                    {a}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <p className="text-slate-500 text-[11px] leading-relaxed">{desc}</p>
+      {/* Target Dept & Districts */}
+      {isReadOnly ? (
+        <div className="grid gap-3 sm:grid-cols-2 rounded-xl bg-slate-50 border border-slate-200 p-4 text-xs">
+          <div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Target Government Department</span>
+            <p className="font-extrabold text-slate-900 mt-1">{deptDisplayName}</p>
           </div>
-        ))}
+          <div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Target District(s)</span>
+            <div className="flex flex-wrap gap-1.5 mt-1">
+              {targetDistrictsList.length > 0 ? targetDistrictsList.map((d: string, i: number) => (
+                <span key={i} className="px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-800 font-bold text-[11px]">
+                  {d}
+                </span>
+              )) : <span className="font-bold text-slate-900">Statewide</span>}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2">
+          <label className="text-xs font-bold text-slate-700 space-y-1.5">
+            <span>Target Government Department *</span>
+            <select
+              value={departmentId}
+              onChange={(e) => setDepartmentId(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none focus:border-blue-600"
+            >
+              <option value="">Select department</option>
+              {departments.map((d: any) => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs font-bold text-slate-700 space-y-1.5">
+            <span>Target District(s) *</span>
+            <input
+              value={districtText}
+              onChange={(e) => setDistrictText(e.target.value)}
+              placeholder="e.g. Pune, Thane, Nagpur"
+              className="w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none focus:border-blue-600"
+            />
+          </label>
+        </div>
+      )}
+
+      {/* 13 Checks Grid */}
+      <div className="grid gap-2.5 md:grid-cols-2">
+        {CHECKS.map(([num, title, desc]) => {
+          const ans = answers[num];
+          return (
+            <div key={num} className="p-3.5 rounded-lg border border-slate-200/80 bg-slate-50/70 text-xs space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-extrabold text-slate-900">{num}. {title}</span>
+                {isReadOnly ? (
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
+                    ans === "YES" ? "bg-emerald-700 text-white shadow-xs" :
+                    ans === "NO" ? "bg-rose-700 text-white shadow-xs" :
+                    ans === "NA" ? "bg-slate-700 text-white shadow-xs" :
+                    "bg-slate-200 text-slate-600"
+                  }`}>
+                    {ans || "PENDING"}
+                  </span>
+                ) : (
+                  <div className="flex gap-1">
+                    {(["YES", "NO", "NA"] as const).map((a) => (
+                      <button
+                        key={a}
+                        onClick={() => setAnswers((prev) => ({ ...prev, [num]: a }))}
+                        className={`px-2 py-0.5 rounded text-[10px] font-extrabold transition-all cursor-pointer ${
+                          answers[num] === a
+                            ? a === "YES" ? "bg-emerald-700 text-white shadow-sm" : a === "NO" ? "bg-rose-700 text-white shadow-sm" : "bg-slate-800 text-white shadow-sm"
+                            : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-100"
+                        }`}
+                      >
+                        {a}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <p className="text-slate-500 text-[11px] leading-relaxed">{desc}</p>
+              {notes[num] && (
+                <p className="text-[11px] font-medium text-slate-700 bg-white/80 p-1.5 rounded border border-slate-200">
+                  <strong>Note:</strong> {notes[num]}
+                </p>
+              )}
+            </div>
+          );
+        })}
       </div>
 
-      <textarea
-        value={summary}
-        onChange={(e) => setSummary(e.target.value)}
-        rows={3}
-        placeholder="Executive summary for the Joint Secretary..."
-        className="w-full rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-blue-600"
-      />
-
-      <div className="flex justify-between items-center pt-1">
-        {message && <p className="text-xs font-bold text-blue-900">{message}</p>}
-        <button
-          onClick={submit}
-          disabled={submitting}
-          className="ml-auto inline-flex items-center gap-2 rounded-xl bg-blue-900 px-5 py-2.5 text-xs font-extrabold text-white shadow-sm hover:bg-blue-950 transition-all disabled:opacity-50"
-        >
-          {submitting ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
-          Submit to Joint Secretary
-        </button>
+      {/* Executive Summary */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-bold text-slate-700">
+          RM Executive Summary {isReadOnly ? "to Joint Secretary" : "for the Joint Secretary"}
+        </label>
+        {isReadOnly ? (
+          <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-xs text-slate-800 leading-relaxed whitespace-pre-wrap">
+            {summary || "No executive summary provided."}
+          </div>
+        ) : (
+          <textarea
+            value={summary}
+            onChange={(e) => setSummary(e.target.value)}
+            rows={3}
+            placeholder="Executive summary for the Joint Secretary..."
+            className="w-full rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-blue-600"
+          />
+        )}
       </div>
+
+      {/* RM Action Bar (Only shown for RM when not in readOnly mode) */}
+      {!isReadOnly && (
+        <div className="flex justify-between items-center pt-1">
+          {message && <p className="text-xs font-bold text-blue-900">{message}</p>}
+          <button
+            onClick={submit}
+            disabled={submitting}
+            className="ml-auto inline-flex items-center gap-2 rounded-xl bg-blue-900 px-5 py-2.5 text-xs font-extrabold text-white shadow-sm hover:bg-blue-950 transition-all disabled:opacity-50 cursor-pointer"
+          >
+            {submitting ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+            Submit to Joint Secretary
+          </button>
+        </div>
+      )}
+
+      {/* Joint Secretary Decision Panel (Rendered when viewing as JS) */}
+      {isJS && existingAssessment?.id && (
+        <div className="pt-3 border-t border-slate-200">
+          <JointSecretaryDecisionPanel
+            assessmentId={existingAssessment.id}
+            currentStatus={existingAssessment.status}
+            existingDecision={existingAssessment.jsDecision}
+            existingReason={existingAssessment.jsDecisionReason}
+            decidedAt={existingAssessment.jsDecidedAt}
+            onDecisionRecorded={() => { onSubmitted(); }}
+          />
+        </div>
+      )}
     </section>
   );
 }

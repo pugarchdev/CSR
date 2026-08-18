@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useState, useMemo, type ReactNode } from "react";
+import { useState, useEffect, useMemo, type ReactNode } from "react";
 import {
   ArrowLeft, BadgeIndianRupee, Building2, Calendar, CheckCircle2, FileText,
   Loader2, Send, FileCode, ShieldCheck, AlertCircle, Copy, Check
@@ -57,28 +57,35 @@ export default function PitchDetailPage() {
   const roleDetails = useAuthStore((state) => state.roleDetails);
   const isAdmin = useAuthStore((state) => state.isAdmin);
 
+  const [mounted, setMounted] = useState(false);
   const [copied, setCopied] = useState(false);
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean | undefined>>({});
   const [recommendation, setRecommendation] = useState("FEASIBLE");
   const [assessmentSummary, setAssessmentSummary] = useState("");
   const [conditions, setConditions] = useState("");
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const isRM = useMemo(() => {
+    if (!mounted) return false;
     if (isAdmin) return true;
     const tokens = extractRoleTokens(user, roles, roleDetails);
     return tokens.some((t) => {
       const u = t.toUpperCase();
       return u.includes("RELATIONSHIP") || u.includes("RM") || u === "6";
     });
-  }, [user, roles, roleDetails, isAdmin]);
+  }, [user, roles, roleDetails, isAdmin, mounted]);
 
   const isJS = useMemo(() => {
+    if (!mounted) return false;
     const tokens = extractRoleTokens(user, roles, roleDetails);
     return tokens.some((t) => {
       const u = String(t).toUpperCase();
       return u.includes("JOINT_SECRETARY") || u.includes("JOINT SECRETARY") || u === "3" || user?.roleId === 3;
     });
-  }, [user, roles, roleDetails]);
+  }, [user, roles, roleDetails, mounted]);
 
   const { data: response, isLoading, error, refetch } = useApiQuery<any>(
     ["pitch", params.id, isRM ? "rm" : "standard"],

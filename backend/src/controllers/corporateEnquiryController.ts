@@ -319,7 +319,19 @@ export const getEnquiryById = async (req: AuthenticatedRequest, res: Response, n
 
     const enquiry = await prisma.corporateEnquiry.findFirst({ where });
     if (!enquiry) return notFoundResponse(res, "Enquiry not found");
-    return res.json(enquiry);
+
+    let assignedRelationshipManager = null;
+    if (enquiry.assignedRelationshipManagerId) {
+      assignedRelationshipManager = await prisma.user.findUnique({
+        where: { id: enquiry.assignedRelationshipManagerId },
+        select: { id: true, firstName: true, lastName: true, email: true, designation: true }
+      });
+    }
+
+    return res.json({
+      ...enquiry,
+      assignedRelationshipManager
+    });
   } catch (error) {
     next(error);
   }
