@@ -259,21 +259,24 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
       // 4. DISTRICT NODAL OFFICER (Role 4)
       // ─────────────────────────────────────────────────────────────────────────────
       else if (roleId === 4) {
-        const [pendingAssignments, activeAssignments, overdueItems, assignedProjects, dncCount, pendingEvidence] = await Promise.all([
+        const [pendingAssignments, activeAssignments, overdueItems, milestonesDue, plannedVisits, dncCount, pendingEvidence] = await Promise.all([
           prisma.projectDistrictAssignment.count({ where: { nodalUserId: userId, status: "PENDING_ACCEPTANCE" } }),
           prisma.projectDistrictAssignment.count({ where: { nodalUserId: userId, status: "ACTIVE" } }),
           prisma.sLAEscalation.count({ where: { responsibleUserId: userId, isResolved: false, dueDate: { lt: now } } }),
-          prisma.project.findMany({
-            where: { nodalOfficerUserId: userId, status: { in: ACTIVE_PROJECTS } },
-            include: { milestones: true, inspections: true }
+          prisma.projectMilestone.count({
+            where: {
+              project: { nodalOfficerUserId: userId, status: { in: ACTIVE_PROJECTS } },
+              OR: [{ status: "APPROVED" }, { verificationStatus: "PENDING_VERIFICATION" }]
+            }
+          }),
+          prisma.projectInspection.count({
+            where: {
+              project: { nodalOfficerUserId: userId, status: { in: ACTIVE_PROJECTS } }
+            }
           }),
           prisma.districtDncAssignment.count({ where: { assignedById: userId, isActive: true } }),
           prisma.projectInspection.count({ where: { issuesFound: { not: null } } }),
         ]);
-
-        const totalMilestones = assignedProjects.flatMap(p => p.milestones);
-        const milestonesDue = totalMilestones.filter(m => m.status === "APPROVED" || m.verificationStatus === "PENDING_VERIFICATION").length;
-        const plannedVisits = assignedProjects.flatMap(p => p.inspections).length;
 
         kpis = [
           createKpi("dno_incoming_assignments", "New Incoming Assignments", pendingAssignments, "number", "/assignments?owner=me&status=PENDING_ACCEPTANCE", "District execution assignments awaiting your acceptance", pendingAssignments > 0 ? "warning" : "positive"),

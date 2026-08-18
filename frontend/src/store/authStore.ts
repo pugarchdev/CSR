@@ -125,6 +125,7 @@ export const useAuthStore = create<AuthState>()(
           localStorage.removeItem("token");
           localStorage.removeItem("mahacsr_access_token");
           localStorage.removeItem("user");
+          document.cookie = 'mahacsr_auth=; path=/; max-age=0';
           clearApiCache();
         }
         set({

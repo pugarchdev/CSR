@@ -851,6 +851,11 @@ model Project {
   @@index([corporatePartnerId])
   @@index([implementingAgencyId])
   @@index([createdAt])
+  @@index([parentOrganizationId])
+  @@index([departmentOrganizationId])
+  @@index([dncUserId])
+  @@index([ngoId])
+  @@index([status, createdAt])
 }
 
 model ProjectMilestone {

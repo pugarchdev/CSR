@@ -42,7 +42,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(compression({ level: 6, threshold: 1024 }));
 app.use(helmet());
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json({ limit: "2mb" }));
 app.use(cookieParser());
 app.use(generalRateLimiter);
 

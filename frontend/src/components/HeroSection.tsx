@@ -199,6 +199,16 @@ export default function HeroSection() {
     }
   }, []);
 
+  // Preload initial carousel images for instant display
+  useEffect(() => {
+    slides.slice(0, 4).forEach((s) => {
+      if (s.image && typeof window !== "undefined") {
+        const img = new window.Image();
+        img.src = s.image;
+      }
+    });
+  }, [slides]);
+
   // Fetch slides from API
   useEffect(() => {
     fetch(`${API_BASE_URL}/platform/hero-slides`)
@@ -206,7 +216,16 @@ export default function HeroSection() {
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
           const filtered = data.filter((s: any) => !s.image?.includes("hero_slide_"));
-          if (filtered.length > 0) setSlides(filtered);
+          if (filtered.length > 0) {
+            setSlides(filtered);
+            // Preload fetched images
+            filtered.slice(0, 4).forEach((s: any) => {
+              if (s.image && typeof window !== "undefined") {
+                const img = new window.Image();
+                img.src = s.image;
+              }
+            });
+          }
         }
       })
       .catch(() => {

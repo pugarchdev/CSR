@@ -79,7 +79,11 @@ const publicNavGroups = [
 export default function SaaSLayout({ children }: SaaSLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user: storeUser, roles: storeRoles = [], isAdmin: storeIsAdmin, hasPermission, isLoadingPermissions } = useAuthStore();
+  const storeUser = useAuthStore(state => state.user);
+  const storeRoles = useAuthStore(state => state.roles) ?? [];
+  const storeIsAdmin = useAuthStore(state => state.isAdmin);
+  const hasPermission = useAuthStore(state => state.hasPermission);
+  const isLoadingPermissions = useAuthStore(state => state.isLoadingPermissions);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("mahacsr_sidebar_collapsed");

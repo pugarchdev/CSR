@@ -144,14 +144,18 @@ export default function RegisterPage() {
 
   // Timer countdown effect for Step 3
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (step === 3 && timer > 0) {
-      interval = setInterval(() => {
-        setTimer((prev) => prev - 1);
-      }, 1000);
-    }
+    if (step !== 3) return;
+    const interval = setInterval(() => {
+      setTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
     return () => clearInterval(interval);
-  }, [step, timer]);
+  }, [step]);
 
   const handleStateChange = (stateName: string) => {
     setFormData((prev) => {
@@ -506,15 +510,14 @@ export default function RegisterPage() {
         useAuthStore.getState().login(user);
         localStorage.setItem("accessToken", accessToken);
         localStorage.setItem("user", JSON.stringify(user));
+        document.cookie = 'mahacsr_auth=1; path=/; max-age=86400; SameSite=Lax';
       }
 
       // Immediately render full-card Success Screen
       setIsVerifiedSuccess(true);
 
-      // Instant fast redirect to workspace dashboard
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 700);
+      // Navigate immediately to dashboard
+      router.push("/dashboard");
     } catch (err: any) {
       setErrorMsg(err.message || "Verification failed");
     } finally {

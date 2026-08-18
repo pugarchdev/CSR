@@ -5,7 +5,7 @@ const isDev = process.env.NODE_ENV !== "production";
 
 export const generalRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: isDev ? 10000 : 100,
+  max: isDev ? 10000 : 500,
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => isDev,
@@ -14,7 +14,7 @@ export const generalRateLimiter = rateLimit({
 
 export const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: isDev ? 1000 : 30,
+  max: isDev ? 1000 : 50,
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true,

@@ -109,13 +109,13 @@ async function createAndSendOtp(email: string): Promise<void> {
     console.log(`[DEV OTP] Email: ${email} | OTP: ${otpCode}`);
   }
 
-  try {
-    await sendOtpEmail(email, otpCode);
+  // Fire-and-forget: send email in background, don't block the response
+  sendOtpEmail(email, otpCode).then(() => {
     console.log(`[Email] OTP sent to ${email}`);
-  } catch (err: any) {
+  }).catch((err: any) => {
     console.error(`[Email] Failed to send OTP to ${email}:`, err.message);
     // Don't fail registration if email fails — OTP is logged in dev mode
-  }
+  });
 }
 
 const generateTokens = (user: {

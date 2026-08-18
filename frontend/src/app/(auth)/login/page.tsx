@@ -141,6 +141,7 @@ function LoginForm() {
       clearApiCache();
       localStorage.setItem("accessToken", accessToken);
       localStorage.setItem("user", JSON.stringify(user));
+      document.cookie = 'mahacsr_auth=1; path=/; max-age=86400; SameSite=Lax';
 
       const invalidNextPaths = ["/partner/dashboard", "/department/dashboard", "/company/dashboard", "/ngo/dashboard", "/nodal/dashboard", "/rm/dashboard"];
       const rawNextPath = searchParams.get("next") || searchParams.get("redirect");

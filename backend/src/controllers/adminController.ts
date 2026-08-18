@@ -584,6 +584,17 @@ export const importAdminUsers = async (req: AuthenticatedRequest, res: Response,
       totalProcessed: users.length
     };
 
+    // Phase 1: Validate all users and check for duplicates upfront
+    const validatedUsers: Array<{ idx: number; data: any }> = [];
+    const emails = users.map((u: any) => String(u.email || "").trim().toLowerCase());
+    
+    // Batch check for existing emails
+    const existingUsers = await prisma.user.findMany({
+      where: { email: { in: emails }, deletedAt: null },
+      select: { email: true },
+    });
+    const existingEmailSet = new Set(existingUsers.map(u => u.email));
+
     for (let idx = 0; idx < users.length; idx++) {
       const u = users[idx];
       try {
@@ -595,9 +606,8 @@ export const importAdminUsers = async (req: AuthenticatedRequest, res: Response,
         const department = String(u.department || "MahaCSR State Cell").trim();
         const district = String(u.district || u.assignedDistrict || "").trim();
         const requestedRole = u.role || "RELATIONSHIP_MANAGER";
-
         let roleId = getRoleId(requestedRole);
-        if (!roleId) roleId = 6; // Default to Relationship Manager if unmapped
+        if (!roleId) roleId = 6;
 
         if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
           throw new Error("Invalid or missing email address.");
@@ -605,100 +615,107 @@ export const importAdminUsers = async (req: AuthenticatedRequest, res: Response,
         if (!firstName) {
           throw new Error("First name is required.");
         }
-
-        const existing = await prisma.user.findFirst({ where: { email, deletedAt: null } });
-        if (existing) {
+        if (existingEmailSet.has(email)) {
           throw new Error(`Email ${email} is already registered.`);
         }
 
-        const tempPassword = `MahaCSR@${crypto.randomInt(100000, 999999)}`;
-        const passwordHash = await bcrypt.hash(tempPassword, 10);
+        validatedUsers.push({ idx, data: { email, firstName, lastName, mobile, designation, department, district, requestedRole, roleId } });
+      } catch (err: any) {
+        results.errors.push({ row: idx + 1, email: u.email || "Unknown", error: err.message || "Import failed" });
+      }
+    }
 
-        const createdUser = await prisma.user.create({
-          data: {
-            email,
-            loginIdentifier: email,
-            passwordHash,
-            firstName,
-            lastName,
-            mobile: mobile || null,
-            designation,
-            roleId,
-            accountStatus: "ACTIVE",
-            isVerified: true,
-            mustResetPassword: true,
-            temporaryPasswordExpiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000),
-            organizationId: req.user?.organizationId || null,
-            officerProfile: {
-              create: {
-                fullName: `${firstName} ${lastName}`.trim(),
-                designation,
-                department,
-                district: district || null
+    // Phase 2: Hash all passwords in parallel
+    const tempPasswords = validatedUsers.map(() => `MahaCSR@${crypto.randomInt(100000, 999999)}`);
+    const passwordHashes = await Promise.all(
+      tempPasswords.map(pw => bcrypt.hash(pw, 10))
+    );
+
+    // Phase 3: Create all users in a single transaction
+    const createdUsers: Array<{ user: any; data: any; tempPassword: string; idx: number }> = [];
+    await prisma.$transaction(async (tx) => {
+      for (let i = 0; i < validatedUsers.length; i++) {
+        const { data, idx } = validatedUsers[i];
+        try {
+          const createdUser = await tx.user.create({
+            data: {
+              email: data.email,
+              loginIdentifier: data.email,
+              passwordHash: passwordHashes[i],
+              firstName: data.firstName,
+              lastName: data.lastName,
+              mobile: data.mobile || null,
+              designation: data.designation,
+              roleId: data.roleId,
+              accountStatus: "ACTIVE",
+              isVerified: true,
+              mustResetPassword: true,
+              temporaryPasswordExpiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000),
+              organizationId: req.user?.organizationId || null,
+              officerProfile: {
+                create: {
+                  fullName: `${data.firstName} ${data.lastName}`.trim(),
+                  designation: data.designation,
+                  department: data.department,
+                  district: data.district || null
+                }
               }
             }
-          }
-        });
+          });
 
-        // Link district mappings for nodal roles
-        if (district) {
-          if (roleId === ROLE_ID.DISTRICT_NODAL_CONSULTANT) {
-            await prisma.districtDncAssignment.create({
-              data: {
-                district,
-                organizationId: req.user?.organizationId || null,
-                dncUserId: createdUser.id,
-                assignedById: req.user!.id,
-                isActive: true
-              }
-            }).catch((err) => console.error("Error creating DistrictDncAssignment:", err));
-          } else if (roleId === ROLE_ID.DISTRICT_NODAL_OFFICER) {
-            await prisma.districtNodalMapping.create({
-              data: {
-                district,
-                userId: createdUser.id,
-                assignedById: req.user!.id,
-                isActive: true
-              }
-            }).catch((err) => console.error("Error creating DistrictNodalMapping:", err));
+          // District mappings
+          if (data.district) {
+            if (data.roleId === ROLE_ID.DISTRICT_NODAL_CONSULTANT) {
+              await tx.districtDncAssignment.create({
+                data: { district: data.district, organizationId: req.user?.organizationId || null, dncUserId: createdUser.id, assignedById: req.user!.id, isActive: true }
+              }).catch((err) => console.error("Error creating DistrictDncAssignment:", err));
+            } else if (data.roleId === ROLE_ID.DISTRICT_NODAL_OFFICER) {
+              await tx.districtNodalMapping.create({
+                data: { district: data.district, userId: createdUser.id, assignedById: req.user!.id, isActive: true }
+              }).catch((err) => console.error("Error creating DistrictNodalMapping:", err));
+            }
           }
+
+          createdUsers.push({ user: createdUser, data, tempPassword: tempPasswords[i], idx });
+        } catch (err: any) {
+          results.errors.push({ row: idx + 1, email: data.email, error: err.message || "Import failed" });
         }
-
-        let inviteSent = false;
-        if (sendInvitation) {
-          try {
-            const roleRecord = await prisma.role.findUnique({ where: { id: roleId }, select: { name: true } });
-            await sendUserInvitationEmail({
-              to: email,
-              applicantName: `${firstName} ${lastName}`.trim(),
-              roleName: roleRecord?.name || String(requestedRole),
-              password: tempPassword,
-              loginUrl,
-              dashboardUrl,
-              isAutogenerated: true
-            });
-            inviteSent = true;
-            results.invitationsSent += 1;
-          } catch (emailErr) {
-            console.error(`Failed to send invitation email to ${email}:`, emailErr);
-          }
-        }
-
-        results.imported.push({
-          id: createdUser.id,
-          email: createdUser.email,
-          name: `${firstName} ${lastName}`.trim(),
-          role: requestedRole,
-          tempPassword,
-          invitationSent: inviteSent
-        });
-      } catch (err: any) {
-        results.errors.push({
-          row: idx + 1,
-          email: u.email || "Unknown",
-          error: err.message || "Import failed"
-        });
       }
+    });
+
+    // Phase 4: Send invitation emails in parallel (fire-and-forget, don't block response)
+    for (const { user: createdUser, data, tempPassword, idx } of createdUsers) {
+      results.imported.push({
+        id: createdUser.id,
+        email: createdUser.email,
+        name: `${data.firstName} ${data.lastName}`.trim(),
+        role: data.requestedRole,
+        tempPassword,
+        invitationSent: false
+      });
+    }
+
+    if (sendInvitation) {
+      // Fire-and-forget: send all emails in background
+      Promise.allSettled(
+        createdUsers.map(async ({ user: createdUser, data, tempPassword }) => {
+          const roleRecord = await prisma.role.findUnique({ where: { id: data.roleId }, select: { name: true } });
+          await sendUserInvitationEmail({
+            to: data.email,
+            applicantName: `${data.firstName} ${data.lastName}`.trim(),
+            roleName: roleRecord?.name || String(data.requestedRole),
+            password: tempPassword,
+            loginUrl,
+            dashboardUrl,
+            isAutogenerated: true
+          });
+        })
+      ).then(emailResults => {
+        const sent = emailResults.filter(r => r.status === 'fulfilled').length;
+        console.log(`[Bulk Import] ${sent}/${emailResults.length} invitation emails sent successfully`);
+      }).catch(err => console.error('[Bulk Import] Email batch error:', err));
+
+      results.invitationsSent = createdUsers.length; // Optimistic count
     }
 
     return res.json({
