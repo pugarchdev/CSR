@@ -12,6 +12,7 @@ import GovModal from "@/components/gov/GovModal";
 import { useToastActions } from "@/components/ui/Toast";
 import { useResponsiveViewMode } from "@/hooks/useResponsiveViewMode";
 import { useAuthStore } from "@/store/authStore";
+import { MAHARASHTRA_DISTRICTS } from "@/lib/locationData";
 
 type Tenant = {
   id: string;
@@ -3048,7 +3049,9 @@ export function AdminOrganizationsWorkspace() {
     );
 
     // District match
-    const matchesDistrict = districtFilter === "all" || districtStr.toLowerCase().includes(districtFilter.toLowerCase());
+    const matchesDistrict = districtFilter === "all" || 
+      districtStr.toLowerCase().includes(districtFilter.toLowerCase()) || 
+      districtFilter.toLowerCase().includes(districtStr.toLowerCase());
 
     return matchesSearch && matchesStatus && matchesDistrict;
   });
@@ -3098,24 +3101,18 @@ export function AdminOrganizationsWorkspace() {
         </div>
 
         {/* District Filter */}
-        <div className="w-full md:w-52">
+        <div className="w-full md:w-56">
           <select
             value={districtFilter}
             onChange={(e) => setDistrictFilter(e.target.value)}
             className="w-full px-3 py-2 text-xs md:text-sm rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all font-medium cursor-pointer"
           >
             <option value="all">All 36 Districts</option>
-            <option value="Mumbai">Mumbai</option>
-            <option value="Pune">Pune</option>
-            <option value="Nagpur">Nagpur</option>
-            <option value="Nashik">Nashik</option>
-            <option value="Thane">Thane</option>
-            <option value="Yavatmal">Yavatmal</option>
-            <option value="Wardha">Wardha</option>
-            <option value="Raigad">Raigad</option>
-            <option value="Satara">Satara</option>
-            <option value="Gadchiroli">Gadchiroli</option>
-            <option value="Aurangabad">Chhatrapati Sambhajinagar</option>
+            {MAHARASHTRA_DISTRICTS.map((dist) => (
+              <option key={dist} value={dist}>
+                {dist}
+              </option>
+            ))}
           </select>
         </div>
       </div>

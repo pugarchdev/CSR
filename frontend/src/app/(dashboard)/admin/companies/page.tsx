@@ -27,6 +27,7 @@ import GovModal from "@/components/gov/GovModal";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { apiFetch } from "@/lib/api";
+import { MAHARASHTRA_DISTRICTS } from "@/lib/locationData";
 import "@/styles/gov-theme.css";
 
 export default function CompaniesPage() {
@@ -35,6 +36,7 @@ export default function CompaniesPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sectorFilter, setSectorFilter] = useState("all");
+  const [districtFilter, setDistrictFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
@@ -58,11 +60,12 @@ export default function CompaniesPage() {
     statusFilter === "all" ? "" : statusFilter;
 
   const dbSector = sectorFilter === "all" ? "" : sectorFilter;
+  const dbDistrict = districtFilter === "all" ? "" : districtFilter;
 
   // Fetch paginated and filtered Companies
   const { data: orgsResponse, isLoading: loading } = useApiQuery<any>(
-    ["admin", "companies", String(page), debouncedSearch, dbStatus, dbSector],
-    `/admin/organizations?type=CSR_COMPANY&page=${page}&limit=${limit}&search=${encodeURIComponent(debouncedSearch)}&status=${dbStatus}&sector=${encodeURIComponent(dbSector)}`,
+    ["admin", "companies", String(page), debouncedSearch, dbStatus, dbSector, dbDistrict],
+    `/admin/organizations?type=CSR_COMPANY&page=${page}&limit=${limit}&search=${encodeURIComponent(debouncedSearch)}&status=${dbStatus}&sector=${encodeURIComponent(dbSector)}&district=${encodeURIComponent(dbDistrict)}`,
     { staleTime: 30 * 1000 }
   );
 
@@ -158,8 +161,27 @@ export default function CompaniesPage() {
             </select>
           </div>
 
+          {/* District Filter */}
+          <div className="w-full md:w-52">
+            <select
+              value={districtFilter}
+              onChange={(e) => {
+                setDistrictFilter(e.target.value);
+                setPage(1);
+              }}
+              className="w-full px-3 py-2 text-xs md:text-sm rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all font-medium cursor-pointer"
+            >
+              <option value="all">All 36 Districts</option>
+              {MAHARASHTRA_DISTRICTS.map((dist) => (
+                <option key={dist} value={dist}>
+                  {dist}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Sector Filter */}
-          <div className="w-full md:w-56">
+          <div className="w-full md:w-52">
             <select
               value={sectorFilter}
               onChange={(e) => {

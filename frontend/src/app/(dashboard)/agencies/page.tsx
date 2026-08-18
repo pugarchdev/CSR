@@ -14,6 +14,7 @@ import {
   MapPin, Mail, Phone, Globe, ExternalLink
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
+import { MAHARASHTRA_DISTRICTS } from "@/lib/locationData";
 
 interface AgencyItem {
   id: string;
@@ -226,10 +227,8 @@ export default function AgenciesPage() {
             onChange: setFilterDistrict,
             options: [
               { label: "All Districts", value: "ALL" },
-              { label: "Gadchiroli", value: "Gadchiroli" },
-              { label: "Raigad", value: "Raigad" },
-              { label: "Satara", value: "Satara" },
-              { label: "Statewide", value: "Statewide" },
+              { label: "Statewide Operations", value: "Statewide" },
+              ...MAHARASHTRA_DISTRICTS.map((d) => ({ label: d, value: d })),
             ],
           },
         ]}
