@@ -32,12 +32,23 @@ const generateHelpdeskTrackingId = async (): Promise<string> => {
   return `${prefix}${String(next).padStart(6, "0")}`;
 };
 
-const RESOLVER_ROLES: Role[] = [
-  Role.STATE_CSR_CELL,
-  Role.CSR_RELATIONSHIP_MANAGER,
-  Role.SUPER_ADMIN,
-  Role.PORTAL_ADMIN,
-];
+const isAuthorizedResolver = (user: any): boolean => {
+  if (!user) return false;
+  const roleIdNum = Number(user.roleId);
+  const roleStr = String(user.role || "").toUpperCase();
+  const roleSlug = String(user.roleSlug || "").toLowerCase();
+
+  return (
+    [1, 2, 3, 6].includes(roleIdNum) ||
+    roleStr.includes("SUPER_ADMIN") ||
+    roleStr.includes("SECRETARY") ||
+    roleStr.includes("RELATIONSHIP_MANAGER") ||
+    roleStr === "RM" ||
+    roleStr.includes("PORTAL_ADMIN") ||
+    roleStr.includes("STATE_CSR_CELL") ||
+    roleSlug.includes("relationship-manager")
+  );
+};
 
 // ─── Public: submit helpdesk query ──────────────────────────────────
 export const submitQuery = async (req: AuthenticatedRequest, res: Response): Promise<Response | void> => {
@@ -106,22 +117,30 @@ export const getQueryByTrackingId = async (req: AuthenticatedRequest, res: Respo
   }
 };
 
-// ─── Staff: list queries ────────────────────────────────────────────
+// ─── Staff / Authenticated: list queries ────────────────────────────
 export const listQueries = async (req: AuthenticatedRequest, res: Response): Promise<Response | void> => {
   try {
-    const userId = req.user?.id;
-    const userRole = req.user?.role;
-    if (!userId) return unauthorizedResponse(res, "User not authenticated");
-    if (!RESOLVER_ROLES.includes(userRole!)) {
-      return forbiddenResponse(res, "You don't have permission to view helpdesk queries");
+    const user = req.user;
+    if (!user?.id) return unauthorizedResponse(res, "User not authenticated");
+
+    const isResolver = isAuthorizedResolver(user);
+    const { status } = req.query as { status?: string };
+
+    let where: any = {};
+    if (status && status !== "all") {
+      where.status = status;
     }
 
-    const { status } = req.query as { status?: string };
-    const where = status && status !== "all" ? { status } : {};
+    if (!isResolver) {
+      where.OR = [
+        { raisedByUserId: user.id },
+        ...(user.email ? [{ email: user.email.toLowerCase() }] : [])
+      ];
+    }
 
     const queries = await prisma.helpdeskQuery.findMany({
       where,
-      orderBy: [{ status: "asc" }, { resolutionDueAt: "asc" }],
+      orderBy: [{ status: "asc" }, { createdAt: "desc" }],
       take: 200,
     });
 
@@ -141,10 +160,9 @@ export const listQueries = async (req: AuthenticatedRequest, res: Response): Pro
 // ─── Staff: resolve query ───────────────────────────────────────────
 export const resolveQuery = async (req: AuthenticatedRequest, res: Response): Promise<Response | void> => {
   try {
-    const userId = req.user?.id;
-    const userRole = req.user?.role;
-    if (!userId) return unauthorizedResponse(res, "User not authenticated");
-    if (!RESOLVER_ROLES.includes(userRole!)) {
+    const user = req.user;
+    if (!user?.id) return unauthorizedResponse(res, "User not authenticated");
+    if (!isAuthorizedResolver(user)) {
       return forbiddenResponse(res, "You don't have permission to resolve helpdesk queries");
     }
 
@@ -167,7 +185,7 @@ export const resolveQuery = async (req: AuthenticatedRequest, res: Response): Pr
       data: {
         status: status || "RESOLVED",
         resolution: resolution?.trim() || existing.resolution,
-        resolvedByUserId: userId,
+        resolvedByUserId: user.id,
         resolvedAt: status === "IN_PROGRESS" ? null : new Date(),
       },
     });
