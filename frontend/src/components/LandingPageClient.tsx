@@ -158,6 +158,13 @@ function Parallax3DSection({ children, className }: { children: React.ReactNode;
 
 export default function LandingPageClient() {
   const cursorRef = useRef<HTMLDivElement>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsLoggedIn(Boolean(localStorage.getItem("accessToken")));
+    }
+  }, []);
 
   useEffect(() => {
     const dot = cursorRef.current;
@@ -277,7 +284,7 @@ export default function LandingPageClient() {
                   </div>
                   <div className="mt-8">
                     <Link
-                      href="/partner-with-maharashtra"
+                      href={isLoggedIn ? "/partner-with-maharashtra" : "/login?next=/partner-with-maharashtra"}
                       className="inline-flex min-h-12 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-700 px-7 text-xs font-black uppercase tracking-wider text-white shadow-lg shadow-blue-500/20 hover:no-underline transition-all hover:scale-105 border border-white/30"
                     >
                       Submit Partnership Enquiry <ArrowRight size={16} className="ml-2" />
@@ -318,7 +325,7 @@ export default function LandingPageClient() {
                   </div>
                   <div className="mt-8">
                     <Link
-                      href="/pitch-development-need"
+                      href={isLoggedIn ? "/pitch-development-need" : "/login?next=/pitch-development-need"}
                       className="inline-flex min-h-12 items-center justify-center rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 px-7 text-xs font-black uppercase tracking-wider text-white shadow-lg shadow-amber-500/20 hover:no-underline transition-all hover:scale-105 border border-white/30"
                     >
                       Pitch Development Need <ArrowRight size={16} className="ml-2" />

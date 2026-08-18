@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { authenticateToken, authorizeRoles } from "../middlewares/authMiddleware";
 import { requirePermission } from "../middlewares/accessControlMiddleware";
-import { createAdminUser, getAdminOverview, listUsers, deleteUser, updateUser, importAdminUsers } from "../controllers/adminController";
+import { createAdminUser, getAdminOverview, listUsers, deleteUser, updateUser, importAdminUsers, sendAdminUserInvitation } from "../controllers/adminController";
 import { getConvergenceOverview, listPitchInterests } from "../controllers/adminConvergenceController";
 import {
   listOrganizations,
@@ -29,6 +29,7 @@ router.get("/pitch-interests", requirePermission("pitch:view"), listPitchInteres
 router.get("/users", requirePermission("user:view"), listUsers);
 router.post("/users", requirePermission("user:create"), createAdminUser);
 router.post("/users/import", requirePermission("user:create"), importAdminUsers);
+router.post("/users/:id/send-invitation", requirePermission("user:create"), sendAdminUserInvitation);
 router.patch("/users/:id", requirePermission("user:update"), updateUser);
 router.delete("/users/:id", requirePermission("user:suspend"), deleteUser);
 router.post("/users/:id/transfer-responsibilities", requirePermission("user:update"), transferUserResponsibilities);

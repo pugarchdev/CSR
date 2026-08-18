@@ -1,10 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Allows CI/verification builds to avoid colliding with a running local dev
-  // server's .next directory.
   distDir: process.env.NEXT_DIST_DIR || ".next",
   reactStrictMode: true,
   swcMinify: true,
+  poweredByHeader: false,
+  compress: true,
   outputFileTracing: true,
   images: {
     formats: ["image/avif", "image/webp"],
@@ -23,8 +23,6 @@ const nextConfig = {
   },
   experimental: {
     optimizeCss: false,
-    // Tree-shake big icon/chart/heavy libs to only the imports actually used —
-    // dramatically shrinks per-page JS and speeds up client navigation.
     optimizePackageImports: [
       "lucide-react",
       "recharts",
@@ -33,7 +31,10 @@ const nextConfig = {
       "axios",
       "three",
       "html2canvas",
-      "jspdf"
+      "jspdf",
+      "zod",
+      "clsx",
+      "tailwind-merge"
     ],
     webVitalsAttribution: ["CLS", "LCP", "FCP", "INP", "TTFB"]
   },

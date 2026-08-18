@@ -191,6 +191,13 @@ export default function HeroSection() {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const heroRef = useRef<HTMLElement>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsLoggedIn(Boolean(localStorage.getItem("accessToken")));
+    }
+  }, []);
 
   // Fetch slides from API
   useEffect(() => {
@@ -386,7 +393,7 @@ export default function HeroSection() {
         {/* Bottom Center: Two Action Cards */}
         <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-stretch gap-3 sm:gap-4 pointer-events-auto w-full max-w-2xl px-1 sm:px-0">
           {/* Card 1: Partner with Maharashtra */}
-          <Link href="/partner-with-maharashtra" className="flex-1 hover:no-underline group">
+          <Link href={isLoggedIn ? "/partner-with-maharashtra" : "/login?next=/partner-with-maharashtra"} className="flex-1 hover:no-underline group">
             <div className="h-full bg-white/8 backdrop-blur-xl border border-white/15 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex items-center gap-3 transition-all hover:bg-white/15 hover:border-blue-400/30 hover:shadow-lg hover:shadow-blue-500/5">
               <div className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 rounded-lg sm:rounded-xl bg-blue-500/20 border border-blue-400/25 flex items-center justify-center text-blue-300 group-hover:bg-blue-500/30 transition-colors">
                 <Building2 size={18} />
@@ -400,7 +407,7 @@ export default function HeroSection() {
           </Link>
 
           {/* Card 2: Pitch a Development Need */}
-          <Link href="/pitch-development-need" className="flex-1 hover:no-underline group">
+          <Link href={isLoggedIn ? "/pitch-development-need" : "/login?next=/pitch-development-need"} className="flex-1 hover:no-underline group">
             <div className="h-full bg-white/8 backdrop-blur-xl border border-white/15 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex items-center gap-3 transition-all hover:bg-white/15 hover:border-amber-400/30 hover:shadow-lg hover:shadow-amber-500/5">
               <div className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 rounded-lg sm:rounded-xl bg-amber-500/20 border border-amber-400/25 flex items-center justify-center text-amber-300 group-hover:bg-amber-500/30 transition-colors">
                 <Landmark size={18} />

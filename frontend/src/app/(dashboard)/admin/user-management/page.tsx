@@ -2,7 +2,33 @@
 
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Download, Upload, Sparkles, AlertCircle, CheckCircle2, Users } from "lucide-react";
+import {
+  Download,
+  Upload,
+  Sparkles,
+  AlertCircle,
+  CheckCircle2,
+  Users,
+  FileSpreadsheet,
+  UploadCloud,
+  FileText,
+  Info,
+  Trash2,
+  HelpCircle,
+  Check,
+  ArrowRight,
+  Search,
+  Plus,
+  Shield,
+  MapPin,
+  Mail,
+  Phone,
+  Edit3,
+  ArrowRightLeft,
+  Filter,
+  RefreshCw,
+  X
+} from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
 import { apiFetch } from "@/lib/api";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
@@ -53,6 +79,10 @@ type UserRow = {
   accountStatus?: string;
   assignedDistrict?: string | null;
   isVerified?: boolean;
+  mustResetPassword?: boolean;
+  passwordChangedAt?: string | null;
+  invitationAcceptedAt?: string | null;
+  temporaryPasswordExpiresAt?: string | null;
   ngo?: { name: string };
   company?: { name: string };
   organization?: { name: string; kind: string };
@@ -97,6 +127,7 @@ export default function AdminUserManagementPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [togglingId, setTogglingId] = useState("");
+  const [sendingInviteId, setSendingInviteId] = useState("");
 
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -106,47 +137,34 @@ export default function AdminUserManagementPage() {
 
   // Bulk Import Modal State
   const [bulkImportModalOpen, setBulkImportModalOpen] = useState(false);
+  const [bulkImportTab, setBulkImportTab] = useState<"upload" | "paste">("upload");
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [parsedRows, setParsedRows] = useState<any[]>([]);
   const [bulkCsvText, setBulkCsvText] = useState("");
   const [bulkImporting, setBulkImporting] = useState(false);
   const [bulkResults, setBulkResults] = useState<{ imported: any[]; errors: any[] } | null>(null);
   const [bulkError, setBulkError] = useState("");
 
-  const downloadSampleCsv = () => {
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      "FirstName,LastName,Email,Mobile,Designation,Role,District\n" +
-      "Rajesh,Sharma,rajesh.sharma@maharashtra.gov.in,9876543210,Senior Relationship Manager,RELATIONSHIP_MANAGER,Pune\n" +
-      "Priya,Deshmukh,priya.d@maharashtra.gov.in,9823012345,District Relationship Officer,RELATIONSHIP_MANAGER,Mumbai City\n" +
-      "Amit,Patil,amit.patil@maharashtra.gov.in,9970123456,Nodal Consultant,DISTRICT_NODAL_CONSULTANT,Nagpur\n";
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "MahaCSR_RM_Import_Template.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleBulkImport = async () => {
-    setBulkError("");
-    setBulkResults(null);
-    if (!bulkCsvText.trim()) {
-      setBulkError("Please paste CSV data or upload a CSV file.");
-      return;
-    }
-
-    const lines = bulkCsvText.trim().split("\n").map(l => l.trim()).filter(Boolean);
+  const parseCsvOrText = (rawText: string) => {
+    const lines = rawText.trim().split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
     if (lines.length === 0) {
-      setBulkError("No valid rows found in the CSV data.");
-      return;
+      setParsedRows([]);
+      return [];
     }
 
     const firstLine = lines[0].toLowerCase();
-    const hasHeader = firstLine.includes("email") || firstLine.includes("firstname");
+    const hasHeader =
+      firstLine.includes("email") ||
+      firstLine.includes("firstname") ||
+      firstLine.includes("first name") ||
+      firstLine.includes("role") ||
+      firstLine.includes("district");
+
     const dataLines = hasHeader ? lines.slice(1) : lines;
 
-    const parsedUsers = dataLines.map((line) => {
-      const parts = line.split(",").map(p => p.trim().replace(/^["']|["']$/g, ''));
+    const parsed = dataLines.map((line) => {
+      const parts = line.split(/[,\t]/).map((p) => p.trim().replace(/^["']|["']$/g, ""));
       return {
         firstName: parts[0] || "",
         lastName: parts[1] || "",
@@ -156,10 +174,181 @@ export default function AdminUserManagementPage() {
         role: parts[5] || "RELATIONSHIP_MANAGER",
         district: parts[6] || "",
       };
-    }).filter(u => u.email || u.firstName);
+    }).filter((u) => u.email || u.firstName);
 
-    if (parsedUsers.length === 0) {
-      setBulkError("No valid user records parsed from CSV.");
+    setParsedRows(parsed);
+    return parsed;
+  };
+
+  const handleFileSelect = (file: File) => {
+    setBulkError("");
+    setBulkResults(null);
+    setUploadedFile(file);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      if (!content) {
+        setBulkError("The selected file is empty.");
+        return;
+      }
+      setBulkCsvText(content);
+      const rows = parseCsvOrText(content);
+      if (rows.length === 0) {
+        setBulkError("Could not parse any user rows from the uploaded file. Please verify format.");
+      }
+    };
+    reader.onerror = () => {
+      setBulkError("Error reading the uploaded file.");
+    };
+    reader.readAsText(file);
+  };
+
+  const downloadSampleExcel = () => {
+    const excelXml = `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+ <Styles>
+  <Style ss:ID="Default" ss:Name="Normal">
+   <Alignment ss:Vertical="Center"/>
+   <Borders/>
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#000000"/>
+   <Interior/>
+   <NumberFormat/>
+   <Protection/>
+  </Style>
+  <Style ss:ID="Header">
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="2" ss:Color="#1E3A8A"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+   </Borders>
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#FFFFFF" ss:Bold="1"/>
+   <Interior ss:Color="#1E3A8A" ss:Pattern="Solid"/>
+  </Style>
+  <Style ss:ID="DataCell">
+   <Alignment ss:Vertical="Center"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+   </Borders>
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="10" ss:Color="#0F172A"/>
+  </Style>
+  <Style ss:ID="DataCellCenter">
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+   </Borders>
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="10" ss:Color="#0F172A"/>
+  </Style>
+ </Styles>
+ <Worksheet ss:Name="RM_Import_Template">
+  <Table ss:ExpandedColumnCount="7" x:FullColumns="1" x:FullRows="1" ss:DefaultRowHeight="20">
+   <Column ss:Width="90"/>
+   <Column ss:Width="90"/>
+   <Column ss:Width="200"/>
+   <Column ss:Width="100"/>
+   <Column ss:Width="170"/>
+   <Column ss:Width="160"/>
+   <Column ss:Width="120"/>
+   <Row ss:Height="24">
+    <Cell ss:StyleID="Header"><Data ss:Type="String">FirstName</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">LastName</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Email</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Mobile</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Designation</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Role</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">District</Data></Cell>
+   </Row>
+   <Row ss:Height="20">
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Rajesh</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Sharma</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">rajesh.sharma@maharashtra.gov.in</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">9876543210</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Senior Relationship Manager</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RELATIONSHIP_MANAGER</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String"></Data></Cell>
+   </Row>
+   <Row ss:Height="20">
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Priya</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Deshmukh</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">priya.d@maharashtra.gov.in</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">9823012345</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">District Relationship Officer</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RELATIONSHIP_MANAGER</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">Pune</Data></Cell>
+   </Row>
+   <Row ss:Height="20">
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Amit</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Patil</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">amit.patil@maharashtra.gov.in</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">9970123456</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Nodal Consultant</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">DISTRICT_NODAL_CONSULTANT</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">Nagpur</Data></Cell>
+   </Row>
+   <Row ss:Height="20">
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Sneha</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Kulkarni</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">sneha.k@maharashtra.gov.in</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">9819054321</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">State CSR Coordinator</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">STATE_CSR_CELL</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">Mumbai City</Data></Cell>
+   </Row>
+  </Table>
+ </Worksheet>
+</Workbook>`;
+
+    const blob = new Blob([excelXml], { type: "application/vnd.ms-excel;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "MahaCSR_RM_Import_Template.xls";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadSampleCsv = () => {
+    const csvContent =
+      "\uFEFF" +
+      "FirstName,LastName,Email,Mobile,Designation,Role,District\n" +
+      "Rajesh,Sharma,rajesh.sharma@maharashtra.gov.in,9876543210,Senior Relationship Manager,RELATIONSHIP_MANAGER,\n" +
+      "Priya,Deshmukh,priya.d@maharashtra.gov.in,9823012345,District Relationship Officer,RELATIONSHIP_MANAGER,Pune\n" +
+      "Amit,Patil,amit.patil@maharashtra.gov.in,9970123456,Nodal Consultant,DISTRICT_NODAL_CONSULTANT,Nagpur\n" +
+      "Sneha,Kulkarni,sneha.k@maharashtra.gov.in,9819054321,State CSR Coordinator,STATE_CSR_CELL,Mumbai City\n";
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "MahaCSR_RM_Import_Template.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleBulkImport = async (sendInvitation: boolean = false) => {
+    setBulkError("");
+    setBulkResults(null);
+
+    const usersToImport = parsedRows.length > 0 ? parsedRows : parseCsvOrText(bulkCsvText);
+
+    if (usersToImport.length === 0) {
+      setBulkError("No valid user records found. Please upload an Excel/CSV file or paste CSV rows.");
       return;
     }
 
@@ -167,16 +356,36 @@ export default function AdminUserManagementPage() {
     try {
       const response = await apiFetch<any>("/admin/users/import", {
         method: "POST",
-        body: JSON.stringify({ users: parsedUsers }),
+        body: JSON.stringify({ users: usersToImport, sendInvitation }),
       });
       const data = response?.data || response;
       setBulkResults(data);
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
-      setSuccess(`Bulk import complete: ${data.imported?.length || 0} Relationship Managers / Users imported successfully!`);
+      setSuccess(
+        response?.message ||
+        `Bulk import complete: ${data.imported?.length || 0} user(s) imported successfully${sendInvitation ? ` and invitations sent.` : "."}`
+      );
     } catch (err: any) {
       setBulkError(err.message || "Failed to process bulk import.");
     } finally {
       setBulkImporting(false);
+    }
+  };
+
+  const handleSendInvitation = async (user: UserRow) => {
+    setSendingInviteId(user.id);
+    setError("");
+    setSuccess("");
+    try {
+      const res = await apiFetch<any>(`/admin/users/${user.id}/send-invitation`, {
+        method: "POST",
+      });
+      setSuccess(res?.message || `Invitation email sent successfully to ${user.email}.`);
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+    } catch (err: any) {
+      setError(err?.message || `Failed to send invitation to ${user.email}.`);
+    } finally {
+      setSendingInviteId("");
     }
   };
 
@@ -467,30 +676,54 @@ export default function AdminUserManagementPage() {
     return r.includes("ADMIN") || r.includes("RELATIONSHIP") || r.includes("MANAGER");
   }).length;
 
-  return (
-    <GovPortalLayout>
+  return (    <GovPortalLayout>
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 text-slate-900">
-        <StandardPageHeader
-          title="User Management"
-          category="Admin / Security / Users"
-          description="Create platform users, manage their roles, districts, organizational scope, and account credentials."
-          actions={
-            <div className="flex flex-wrap items-center gap-2">
-              <GovButton variant="secondary" onClick={() => setBulkImportModalOpen(true)}>
-                <Upload size={14} className="mr-1 inline" />
-                Bulk Import RMs / Users
-              </GovButton>
-              <GovButton variant="secondary" onClick={() => setCustomRoleModalOpen(true)}>
-                + Create Custom Role
-              </GovButton>
-              <GovButton variant="primary" onClick={() => setCreateModalOpen(true)}>
-                Create User
-              </GovButton>
+        {/* Page Title & Actions */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
+          <div>
+            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+              <span>Administration</span>
+              <span>/</span>
+              <span>Security &amp; Access</span>
+              <span>/</span>
+              <span className="text-blue-600 font-extrabold">Users</span>
             </div>
-          }
-        />
+            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+              User Management
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-extrabold border border-blue-200">
+                {pagination.total} Accounts
+              </span>
+            </h1>
+            <p className="text-xs text-slate-500 mt-1">
+              Provision platform users, configure roles, assign districts, manage credentials, and audit officer access.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setBulkImportModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-300 hover:border-slate-400 hover:bg-slate-50 text-slate-700 hover:text-slate-900 text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+            >
+              <Upload size={14} className="text-blue-600" />
+              Bulk Import RMs / Users
+            </button>
+            <button
+              onClick={() => setCustomRoleModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-300 hover:border-slate-400 hover:bg-slate-50 text-slate-700 hover:text-slate-900 text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+            >
+              <Shield size={14} className="text-purple-600" />
+              + Create Custom Role
+            </button>
+            <button
+              onClick={() => setCreateModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs shadow-blue-500/20 transition-all hover:scale-[1.02] cursor-pointer"
+            >
+              <Plus size={15} />
+              Create User
+            </button>
+          </div>
+        </div>
 
-        {/* Standard 4-Column KPI Cards */}
+        {/* 4-Column KPI Stats Cards */}
         <StatCardGroup columns={4}>
           <StatCard
             label="Total Accounts"
@@ -527,119 +760,174 @@ export default function AdminUserManagementPage() {
         </StatCardGroup>
 
         {!createModalOpen && !editModalOpen && !deleteTarget && !transferSource && error && (
-          <div className="gov-alert gov-alert-danger gov-mb-4">{error}</div>
+          <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs font-bold text-rose-800 flex items-center gap-2.5 shadow-2xs">
+            <AlertCircle size={16} className="text-rose-600 shrink-0" />
+            <span>{error}</span>
+          </div>
         )}
-        {success && <div className="gov-alert gov-alert-success gov-mb-4">{success}</div>}
+        {success && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-800 flex items-center gap-2.5 shadow-2xs">
+            <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+            <span>{success}</span>
+          </div>
+        )}
 
-        <GovCard>
-          <GovCardHeader className="!p-4 md:!p-5">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full">
-              <GovCardTitle>User Directory ({pagination.total})</GovCardTitle>
-              <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-                <select
-                  className="gov-select w-full sm:w-auto md:min-w-[140px]"
-                  value={statusFilter}
-                  onChange={(e) => {
-                    setStatusFilter(e.target.value);
-                    setPage(1);
-                  }}
-                >
-                  <option value="">All statuses</option>
-                  <option value="ACTIVE">ACTIVE</option>
-                  <option value="INACTIVE">INACTIVE</option>
-                  <option value="SUSPENDED">SUSPENDED</option>
-                  <option value="PENDING_ACTIVATION">PENDING_ACTIVATION</option>
-                </select>
+        {/* User Directory Table Card */}
+        <div className="rounded-2xl border border-slate-200/90 bg-white shadow-xs overflow-hidden">
+          {/* Card Filter Toolbar */}
+          <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="flex items-center gap-2.5">
+              <h2 className="font-heading font-extrabold text-sm sm:text-base text-slate-900">
+                Official User Directory
+              </h2>
+              <span className="px-2 py-0.5 rounded-full bg-slate-200/80 text-slate-700 text-[11px] font-bold">
+                {filteredUsers.length} shown
+              </span>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+              {/* Status Filter */}
+              <select
+                className="bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all cursor-pointer shadow-2xs"
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value="">All Account Statuses</option>
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="INACTIVE">INACTIVE</option>
+                <option value="SUSPENDED">SUSPENDED</option>
+                <option value="PENDING_ACTIVATION">PENDING_ACTIVATION</option>
+              </select>
+
+              {/* Search Bar */}
+              <div className="relative min-w-[240px] sm:min-w-[280px]">
                 <input
                   type="text"
-                  className="gov-input w-full sm:w-auto md:min-w-[240px]"
-                  placeholder="Search users by email..."
+                  className="w-full bg-white border border-slate-300 rounded-xl py-2 pl-9 pr-8 text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-2xs font-medium"
+                  placeholder="Search by name, email, or role..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-0.5 rounded-md"
+                    title="Clear search"
+                  >
+                    <X size={13} />
+                  </button>
+                )}
               </div>
             </div>
-          </GovCardHeader>
-          
-          <GovCardBody className="!p-2 sm:!p-4 md:!p-5">
+          </div>
+
+          {/* Table Body */}
+          <div className="p-0 w-full overflow-hidden">
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-16 gap-4 w-full bg-white">
-                <div className="w-10 h-10 rounded-full border-4 border-[#14274e] border-t-transparent animate-spin" />
-                <span className="text-xs text-slate-500 font-semibold">Loading user accounts...</span>
+              <div className="flex flex-col items-center justify-center py-20 gap-3 w-full bg-white">
+                <div className="w-9 h-9 rounded-full border-3 border-blue-600 border-t-transparent animate-spin" />
+                <span className="text-xs text-slate-500 font-bold">Loading user directory...</span>
               </div>
             ) : filteredUsers.length > 0 ? (
-              <div className="w-full md:overflow-x-auto">
-                <table className="w-full block md:table text-left border-collapse">
-                  <thead className="hidden md:table-header-group border-b-2 border-slate-200">
-                    <tr>
-                      <th className="px-4 py-3 text-left">User / Official Name</th>
-                      <th className="px-4 py-3 text-left">User Email</th>
-                      <th className="px-4 py-3 text-left">Designation</th>
-                      <th className="px-4 py-3 text-left">Role</th>
-                      <th className="px-4 py-3 text-left">Assigned District</th>
-                      <th className="px-4 py-3 text-left">Status</th>
-                      <th className="px-4 py-3 text-right">Actions</th>
+              <div className="w-full overflow-x-auto scrollbar-thin">
+                <table className="w-full text-left border-collapse table-auto min-w-full">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-extrabold uppercase tracking-wider text-slate-600">
+                      <th className="py-3 px-4 min-w-[220px] whitespace-nowrap">User / Official Name</th>
+                      <th className="py-3 px-4 min-w-[200px] whitespace-nowrap">Email &amp; Contact</th>
+                      <th className="py-3 px-4 min-w-[140px] whitespace-nowrap">Designation</th>
+                      <th className="py-3 px-4 min-w-[150px] whitespace-nowrap">Role</th>
+                      <th className="py-3 px-4 min-w-[120px] whitespace-nowrap">Assigned District</th>
+                      <th className="py-3 px-4 min-w-[90px] whitespace-nowrap">Status</th>
+                      <th className="py-3 px-4 min-w-[260px] whitespace-nowrap text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="block md:table-row-group divide-y-0 md:divide-y md:divide-slate-100">
+                  <tbody className="divide-y divide-slate-100">
                     {filteredUsers.map((u) => {
                       const isActive = (u.accountStatus || "ACTIVE") === "ACTIVE";
                       const fullName = ([u.firstName, u.lastName].filter(Boolean).join(" ")) || u.officerProfile?.fullName || "Official User";
-                      
+                      const initials = fullName
+                        .split(" ")
+                        .map((n) => n[0])
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .join("")
+                        .toUpperCase() || "U";
+                      const roleString = effectiveRole(u);
+
                       return (
-                        <tr 
+                        <tr
                           key={u.id}
-                          className="block md:table-row mb-4 md:mb-0 bg-white border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-sm md:shadow-none hover:bg-slate-50/80 transition-colors overflow-hidden"
+                          className="hover:bg-slate-50/70 transition-colors"
                         >
-                          <td 
-                            data-label="User / Official Name" 
-                            className="flex md:table-cell flex-col md:flex-row items-start md:items-center px-4 py-3 md:py-4 border-b border-slate-100 md:border-none align-middle before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden before:mb-1"
-                          >
-                            <div className="text-left w-full md:w-auto">
-                              <div className="gov-font-semibold gov-text-primary break-words">{fullName}</div>
-                              {(u.ngo?.name || u.company?.name || u.organization?.name) && (
-                                <div className="text-[11px] text-slate-500 font-medium break-words mt-0.5">
-                                  {u.ngo?.name || u.company?.name || u.organization?.name}
-                                </div>
+                          {/* Official Name & Avatar */}
+                          <td className="py-3.5 px-4 align-middle min-w-[220px]">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-heading font-extrabold text-xs flex items-center justify-center shrink-0 shadow-2xs shadow-blue-500/20">
+                                {initials}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="font-bold text-slate-900 text-xs break-words whitespace-normal leading-tight">{fullName}</div>
+                                {(u.ngo?.name || u.company?.name || u.organization?.name || u.officerProfile?.department) && (
+                                  <div className="text-[11px] text-slate-500 font-medium break-words whitespace-normal mt-0.5 leading-normal">
+                                    {u.ngo?.name || u.company?.name || u.organization?.name || u.officerProfile?.department}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Email & Mobile */}
+                          <td className="py-3.5 px-4 align-middle min-w-[200px]">
+                            <div className="flex flex-col gap-0.5">
+                              <span className="font-mono text-xs text-slate-800 font-semibold select-all break-all whitespace-normal">
+                                {u.email}
+                              </span>
+                              {(u.mobile || u.officerProfile?.mobile) && (
+                                <span className="text-[11px] text-slate-500 flex items-center gap-1 font-medium whitespace-nowrap mt-0.5">
+                                  <Phone size={11} className="text-slate-400 shrink-0" />
+                                  {u.mobile || u.officerProfile?.mobile}
+                                </span>
                               )}
                             </div>
                           </td>
-                          
-                          <td 
-                            data-label="User Email" 
-                            className="flex md:table-cell justify-between items-center px-4 py-3 md:py-4 border-b border-slate-100 md:border-none align-middle text-[12px] text-slate-700 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden min-w-0"
-                          >
-                            <span className="break-all md:break-words text-right md:text-left">{u.email}</span>
-                          </td>
-                          
-                          <td 
-                            data-label="Designation" 
-                            className="flex md:table-cell justify-between items-center px-4 py-3 md:py-4 border-b border-slate-100 md:border-none align-middle before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden"
-                          >
-                            <span className="text-[12px] font-semibold text-slate-900 text-right md:text-left">
-                              {u.officerProfile?.designation || "N/A"}
+
+                          {/* Designation */}
+                          <td className="py-3.5 px-4 align-middle min-w-[140px]">
+                            <span className="text-xs font-semibold text-slate-800 block break-words whitespace-normal leading-normal">
+                              {u.officerProfile?.designation || u.designation || "N/A"}
                             </span>
                           </td>
-                          
-                          <td 
-                            data-label="Role" 
-                            className="flex md:table-cell justify-between items-start md:items-center px-4 py-3 md:py-4 border-b border-slate-100 md:border-none align-middle before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden"
-                          >
-                            <div className="flex flex-col gap-1 items-end md:items-start w-full md:w-auto">
-                              {effectiveRole(u) ? (
-                                <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold border ${u.role ? 'bg-slate-100 text-slate-700 border-slate-200' : 'bg-blue-50 text-blue-800 border-blue-200'}`}>
-                                  {effectiveRole(u)}
+
+                          {/* Role */}
+                          <td className="py-3.5 px-4 align-middle min-w-[150px]">
+                            <div className="flex flex-col gap-1 items-start whitespace-nowrap">
+                              {roleString ? (
+                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                                  roleString.includes("ADMIN")
+                                    ? "bg-purple-50 text-purple-800 border-purple-200"
+                                    : roleString.includes("RELATIONSHIP")
+                                    ? "bg-blue-50 text-blue-800 border-blue-200"
+                                    : roleString.includes("NODAL")
+                                    ? "bg-amber-50 text-amber-800 border-amber-200"
+                                    : "bg-slate-100 text-slate-700 border-slate-200"
+                                }`}>
+                                  {roleString}
                                 </span>
                               ) : (
-                                <span className="gov-text-muted text-[12px]">No role</span>
+                                <span className="text-slate-400 text-[11px] italic">No role</span>
                               )}
-                              
+
                               {u.dynamicRoles && u.dynamicRoles.length > 0 && (
-                                <div className="flex flex-wrap justify-end md:justify-start gap-1 mt-1 w-full md:w-auto">
+                                <div className="flex flex-wrap gap-1 mt-0.5">
                                   {u.dynamicRoles.map((dr) => (
                                     <span
                                       key={dr.roleId}
-                                      className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-800 text-[10px] font-bold border border-blue-200 whitespace-nowrap"
+                                      className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 text-[9px] font-bold border border-slate-200 whitespace-nowrap"
                                     >
                                       +{dr.roleName}
                                     </span>
@@ -648,75 +936,119 @@ export default function AdminUserManagementPage() {
                               )}
                             </div>
                           </td>
-                          
-                          <td 
-                            data-label="Assigned District" 
-                            className="flex md:table-cell justify-between items-center px-4 py-3 md:py-4 border-b border-slate-100 md:border-none align-middle before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden"
-                          >
-                            <span className="text-right md:text-left text-sm md:text-sm">
-                              {u.assignedDistrict || <span className="gov-text-muted text-[12px]">State level</span>}
-                            </span>
+
+                          {/* Assigned District */}
+                          <td className="py-3.5 px-4 align-middle min-w-[120px] whitespace-nowrap">
+                            {u.assignedDistrict ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-slate-100 text-slate-800 text-xs font-bold border border-slate-200">
+                                <MapPin size={12} className="text-blue-600 shrink-0" />
+                                {u.assignedDistrict}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 text-xs italic">State level</span>
+                            )}
                           </td>
-                          
-                          <td 
-                            data-label="Status" 
-                            className="flex md:table-cell justify-between items-center px-4 py-3 md:py-4 border-b border-slate-100 md:border-none align-middle before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden"
-                          >
-                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                              isActive ? "bg-emerald-50 text-emerald-700" : u.accountStatus === "SUSPENDED" ? "bg-rose-50 text-rose-700" : "bg-slate-100 text-slate-600"
+
+                          {/* Status */}
+                          <td className="py-3.5 px-4 align-middle min-w-[90px] whitespace-nowrap">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                              isActive
+                                ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                                : u.accountStatus === "SUSPENDED"
+                                ? "bg-rose-50 text-rose-800 border-rose-200"
+                                : "bg-slate-100 text-slate-600 border-slate-200"
                             }`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${
+                                isActive ? "bg-emerald-500" : u.accountStatus === "SUSPENDED" ? "bg-rose-500" : "bg-slate-400"
+                              }`} />
                               {u.accountStatus || "ACTIVE"}
                             </span>
                           </td>
-                          
-                          <td className="block md:table-cell px-4 py-3 md:py-4 align-middle bg-slate-50/50 md:bg-transparent">
-                            <div className="flex md:inline-flex justify-end items-center gap-2.5 w-full md:w-auto">
+
+                          {/* Actions */}
+                          <td className="py-3.5 px-4 align-middle text-right min-w-[260px] whitespace-nowrap">
+                            <div className="inline-flex items-center justify-end gap-1.5">
+                              {/* Send Invitation Button */}
+                              {(() => {
+                                const hasActivatedPassword = !u.mustResetPassword && Boolean(u.passwordChangedAt || u.invitationAcceptedAt);
+                                const isSending = sendingInviteId === u.id;
+                                return (
+                                  <button
+                                    type="button"
+                                    disabled={hasActivatedPassword || isSending}
+                                    onClick={() => handleSendInvitation(u)}
+                                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-all ${
+                                      hasActivatedPassword
+                                        ? "border-slate-200 bg-slate-100/60 text-slate-400 opacity-50 cursor-not-allowed"
+                                        : "border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100 text-indigo-800 shadow-2xs cursor-pointer"
+                                    }`}
+                                    title={
+                                      hasActivatedPassword
+                                        ? "User has already logged in and updated their password"
+                                        : "Send Email Invitation with temporary login credentials"
+                                    }
+                                  >
+                                    {isSending ? (
+                                      <RefreshCw size={12} className="animate-spin text-indigo-700" />
+                                    ) : (
+                                      <Mail size={12} />
+                                    )}
+                                    <span>{isSending ? "Sending..." : "Invite"}</span>
+                                  </button>
+                                );
+                              })()}
+
                               {isAdmin && isRelationshipManager(u) && (
-                                <GovButton variant="secondary" className="flex-1 md:flex-none justify-center px-2 py-1 text-xs" onClick={() => setTransferSource(u)}>
-                                  Transfer Portfolio
-                                </GovButton>
+                                <button
+                                  type="button"
+                                  onClick={() => setTransferSource(u)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-blue-200 bg-blue-50/70 hover:bg-blue-100 text-blue-800 text-[11px] font-bold transition-colors cursor-pointer"
+                                  title="Transfer enquiries and pitches to another RM"
+                                >
+                                  <ArrowRightLeft size={12} />
+                                  Transfer
+                                </button>
                               )}
-                              <GovButton variant="secondary" className="flex-1 md:flex-none justify-center px-2 py-1 text-xs" onClick={() => openEditModal(u)}>
+
+                              <button
+                                type="button"
+                                onClick={() => openEditModal(u)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-300 hover:border-slate-400 hover:bg-slate-50 text-slate-700 text-[11px] font-bold transition-colors cursor-pointer"
+                                title="Edit user details and roles"
+                              >
+                                <Edit3 size={12} />
                                 Edit
-                              </GovButton>
-                              
+                              </button>
+
+                              {/* Toggle Active/Inactive Switch */}
                               <button
                                 type="button"
                                 role="switch"
                                 aria-checked={isActive}
-                                title={isActive ? "Inactivate user" : "Activate user"}
+                                title={isActive ? "Click to deactivate user account" : "Click to activate user account"}
                                 disabled={togglingId === u.id}
                                 onClick={() => handleToggleStatus(u)}
-                                style={{
-                                  width: 44,
-                                  height: 24,
-                                  borderRadius: 12,
-                                  border: "none",
-                                  position: "relative",
-                                  cursor: togglingId === u.id ? "wait" : "pointer",
-                                  backgroundColor: isActive ? "#047857" : "#cbd5e1",
-                                  transition: "background-color 0.2s",
-                                  flexShrink: 0,
-                                }}
+                                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 ${
+                                  isActive ? "bg-emerald-500" : "bg-slate-300"
+                                }`}
                               >
+                                <span className="sr-only">{isActive ? "Deactivate" : "Activate"}</span>
                                 <span
-                                  style={{
-                                    position: "absolute",
-                                    top: 3,
-                                    left: isActive ? 23 : 3,
-                                    width: 18,
-                                    height: 18,
-                                    borderRadius: "50%",
-                                    backgroundColor: "#fff",
-                                    boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
-                                    transition: "left 0.2s",
-                                  }}
+                                  aria-hidden="true"
+                                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition duration-200 ease-in-out ${
+                                    isActive ? "translate-x-4" : "translate-x-0"
+                                  }`}
                                 />
                               </button>
-                              
-                              <GovButton variant="danger" className="flex-1 md:flex-none justify-center px-2 py-1 text-xs" onClick={() => setDeleteTarget(u)}>
-                                Delete
-                              </GovButton>
+
+                              <button
+                                type="button"
+                                onClick={() => setDeleteTarget(u)}
+                                className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                title="Delete or suspend user"
+                              >
+                                <Trash2 size={15} />
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -724,38 +1056,39 @@ export default function AdminUserManagementPage() {
                     })}
                   </tbody>
                 </table>
-                
+
+                {/* Pagination */}
                 {pagination.totalPages > 1 && (
-                  <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-4 pt-4 border-t border-slate-200">
-                    <span className="gov-text-xs gov-text-muted text-center sm:text-left">
-                      Showing page {page} of {pagination.totalPages} ({pagination.total} users total)
+                  <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-5 py-4 border-t border-slate-100 bg-slate-50/50">
+                    <span className="text-xs text-slate-500 font-medium">
+                      Showing page <strong className="text-slate-900">{page}</strong> of <strong className="text-slate-900">{pagination.totalPages}</strong> ({pagination.total} total accounts)
                     </span>
-                    <div className="flex gap-2 w-full sm:w-auto">
-                      <GovButton
-                        variant="secondary"
-                        className="flex-1 sm:flex-none justify-center"
+                    <div className="flex items-center gap-2">
+                      <button
+                        className="px-3.5 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold text-slate-700 shadow-2xs transition-colors cursor-pointer"
                         disabled={page <= 1}
                         onClick={() => setPage((p) => Math.max(1, p - 1))}
                       >
                         Previous
-                      </GovButton>
-                      <GovButton
-                        variant="secondary"
-                        className="flex-1 sm:flex-none justify-center"
+                      </button>
+                      <button
+                        className="px-3.5 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold text-slate-700 shadow-2xs transition-colors cursor-pointer"
                         disabled={page >= pagination.totalPages}
                         onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
                       >
                         Next
-                      </GovButton>
+                      </button>
                     </div>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="gov-empty">No users matching search query found.</div>
+              <div className="p-12 text-center text-slate-500 text-xs font-medium bg-slate-50/30">
+                No users found matching the selected search and status filters.
+              </div>
             )}
-          </GovCardBody>
-        </GovCard>
+          </div>
+        </div>
       </div>
 
       {/* CREATE USER MODAL */}
@@ -1269,43 +1602,250 @@ export default function AdminUserManagementPage() {
           setBulkResults(null);
           setBulkError("");
           setBulkCsvText("");
+          setUploadedFile(null);
+          setParsedRows([]);
         }}
         title="Bulk Import Relationship Managers & Officials"
       >
-        <div className="space-y-4 text-xs">
-          <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3 text-blue-900 flex items-start gap-2.5">
-            <Sparkles size={18} className="text-blue-700 shrink-0 mt-0.5" />
+        <div className="space-y-4 text-xs max-h-[80vh] overflow-y-auto pr-1">
+          {/* Header Banner */}
+          {/* <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3.5 text-blue-900 flex items-start gap-3">
+            <Sparkles size={20} className="text-blue-700 shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold text-slate-900">Relationship Manager Batch Provisioning</p>
+              <p className="font-bold text-slate-900 text-sm">Relationship Manager Batch Provisioning</p>
               <p className="mt-0.5 text-[11px] text-slate-600 leading-normal">
-                Quickly import multiple Relationship Managers or State Cell officers. Paste CSV rows directly below or upload a CSV file. Each imported user receives an active account with an auto-generated temporary password.
+                Batch onboard Relationship Managers, State CSR Cell coordinators, or District Nodal Consultants. Upload your spreadsheet or paste CSV rows. Each imported user receives an active account with an auto-generated temporary password.
               </p>
+            </div>
+          </div> */}
+
+          {/* Download Templates Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-xl bg-slate-100/80 border border-slate-200">
+            <div>
+              <span className="font-bold text-slate-900 block text-xs">Official Import Templates</span>
+              <span className="text-[11px] text-slate-500">Download formatted template with sample data</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={downloadSampleExcel}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-xs transition-colors cursor-pointer"
+                title="Download formatted Microsoft Excel spreadsheet"
+              >
+                <FileSpreadsheet size={14} />
+                Download Excel (.xls)
+              </button>
+              <button
+                type="button"
+                onClick={downloadSampleCsv}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] shadow-xs transition-colors cursor-pointer"
+                title="Download CSV spreadsheet"
+              >
+                <Download size={14} />
+                Download CSV (.csv)
+              </button>
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <span className="font-bold text-slate-800">CSV Data Format</span>
+          {/* District Column Explanation Alert */}
+          {/* <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-[11px] text-amber-900 flex items-start gap-2.5">
+            <Info size={16} className="text-amber-700 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-amber-950">Why is there a &quot;District&quot; column in the template?</p>
+              <p className="mt-1 text-slate-700 leading-relaxed">
+                • <strong>State-Level Relationship Managers:</strong> Oversee corporate matching across the entire state of Maharashtra. If importing Statewide RMs, <strong>leave the District column blank</strong>.
+                <br />
+                • <strong>District Relationship Officers &amp; Nodal Consultants:</strong> Assigned to a specific district (e.g. <em>Pune, Mumbai City, Nagpur, Nashik</em>) for localized case handling and MoU facilitation — <strong>enter the assigned district name</strong>.
+              </p>
+            </div>
+          </div> */}
+
+          {/* Input Method Switcher */}
+          <div className="flex border-b border-slate-200 text-xs font-bold">
             <button
               type="button"
-              onClick={downloadSampleCsv}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-800 hover:text-blue-950 underline cursor-pointer"
+              onClick={() => setBulkImportTab("upload")}
+              className={`pb-2 px-4 border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
+                bulkImportTab === "upload"
+                  ? "border-blue-600 text-blue-600 font-extrabold"
+                  : "border-transparent text-slate-500 hover:text-slate-900"
+              }`}
             >
-              <Download size={13} />
-              Download CSV Sample Template
+              <UploadCloud size={15} />
+              Upload Excel / CSV File
+            </button>
+            <button
+              type="button"
+              onClick={() => setBulkImportTab("paste")}
+              className={`pb-2 px-4 border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
+                bulkImportTab === "paste"
+                  ? "border-blue-600 text-blue-600 font-extrabold"
+                  : "border-transparent text-slate-500 hover:text-slate-900"
+              }`}
+            >
+              <FileText size={15} />
+              Paste CSV Content
             </button>
           </div>
 
-          <div>
-            <label className="block font-bold text-slate-700 mb-1">
-              Paste CSV Content (Headers: FirstName, LastName, Email, Mobile, Designation, Role, District)
-            </label>
-            <textarea
-              className="w-full h-36 rounded-xl border border-slate-300 p-3 font-mono text-[11px] text-slate-800 focus:ring-2 focus:ring-blue-600 focus:outline-none"
-              placeholder={`FirstName,LastName,Email,Mobile,Designation,Role,District\nRajesh,Sharma,rajesh.sharma@maharashtra.gov.in,9876543210,Senior Relationship Manager,RELATIONSHIP_MANAGER,Pune\nPriya,Deshmukh,priya.d@maharashtra.gov.in,9823012345,District Relationship Officer,RELATIONSHIP_MANAGER,Mumbai City`}
-              value={bulkCsvText}
-              onChange={(e) => setBulkCsvText(e.target.value)}
-            />
-          </div>
+          {/* TAB 1: FILE UPLOAD (DRAG & DROP) */}
+          {bulkImportTab === "upload" && (
+            <div className="space-y-3">
+              {!uploadedFile ? (
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                      handleFileSelect(e.dataTransfer.files[0]);
+                    }
+                  }}
+                  className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all ${
+                    isDragging
+                      ? "border-blue-500 bg-blue-50/50 scale-[1.01]"
+                      : "border-slate-300 hover:border-blue-400 bg-slate-50/50"
+                  }`}
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="p-3 rounded-full bg-blue-100 text-blue-700">
+                      <UploadCloud size={24} />
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-800 text-xs sm:text-sm">
+                        Drag and drop your Excel (.xls) or CSV (.csv) file here
+                      </p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Supports Microsoft Excel (.xls), comma-separated (.csv), and tab-separated (.tsv, .txt)
+                      </p>
+                    </div>
+                    <label className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm cursor-pointer transition-colors">
+                      <Upload size={14} />
+                      Browse File
+                      <input
+                        type="file"
+                        accept=".csv,.xls,.xlsx,.tsv,.txt"
+                        className="hidden"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            handleFileSelect(e.target.files[0]);
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/50">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="p-2.5 rounded-lg bg-emerald-100 text-emerald-800 shrink-0">
+                      <FileSpreadsheet size={20} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-slate-900 text-xs truncate">{uploadedFile.name}</p>
+                      <p className="text-[10px] text-slate-500">
+                        {(uploadedFile.size / 1024).toFixed(1)} KB • {parsedRows.length} user record(s) detected
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUploadedFile(null);
+                      setParsedRows([]);
+                      setBulkCsvText("");
+                    }}
+                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                    title="Remove file and select another"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 2: PASTE CSV CONTENT */}
+          {bulkImportTab === "paste" && (
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">
+                Paste CSV Rows (Headers: FirstName, LastName, Email, Mobile, Designation, Role, District)
+              </label>
+              <textarea
+                className="w-full h-36 rounded-xl border border-slate-300 p-3 font-mono text-[11px] text-slate-800 focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                placeholder={`FirstName,LastName,Email,Mobile,Designation,Role,District\nRajesh,Sharma,rajesh.sharma@maharashtra.gov.in,9876543210,Senior Relationship Manager,RELATIONSHIP_MANAGER,\nPriya,Deshmukh,priya.d@maharashtra.gov.in,9823012345,District Relationship Officer,RELATIONSHIP_MANAGER,Pune\nAmit,Patil,amit.patil@maharashtra.gov.in,9970123456,Nodal Consultant,DISTRICT_NODAL_CONSULTANT,Nagpur`}
+                value={bulkCsvText}
+                onChange={(e) => {
+                  setBulkCsvText(e.target.value);
+                  parseCsvOrText(e.target.value);
+                }}
+              />
+            </div>
+          )}
+
+          {/* LIVE PARSED DATA PREVIEW */}
+          {parsedRows.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                  <CheckCircle2 size={14} className="text-emerald-600" />
+                  Parsed User Records ({parsedRows.length})
+                </span>
+                <span className="text-[10px] text-slate-500 font-medium">
+                  Review verified rows before importing
+                </span>
+              </div>
+              <div className="max-h-44 overflow-auto rounded-xl border border-slate-200 bg-white">
+                <table className="w-full text-left text-[11px]">
+                  <thead className="bg-slate-50 sticky top-0 border-b border-slate-200 text-slate-700 font-bold">
+                    <tr>
+                      <th className="py-2 px-3">#</th>
+                      <th className="py-2 px-3">Name</th>
+                      <th className="py-2 px-3">Email</th>
+                      <th className="py-2 px-3">Mobile</th>
+                      <th className="py-2 px-3">Designation</th>
+                      <th className="py-2 px-3">Role</th>
+                      <th className="py-2 px-3">District</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {parsedRows.map((row, idx) => {
+                      const isValid = Boolean(row.email && row.firstName);
+                      return (
+                        <tr key={idx} className={isValid ? "hover:bg-slate-50/60" : "bg-rose-50/60"}>
+                          <td className="py-1.5 px-3 font-mono text-slate-400">{idx + 1}</td>
+                          <td className="py-1.5 px-3 font-bold text-slate-900">
+                            {row.firstName} {row.lastName}
+                          </td>
+                          <td className="py-1.5 px-3 text-slate-700 font-mono">{row.email || "-"}</td>
+                          <td className="py-1.5 px-3 text-slate-600">{row.mobile || "-"}</td>
+                          <td className="py-1.5 px-3 text-slate-600">{row.designation || "Relationship Manager"}</td>
+                          <td className="py-1.5 px-3">
+                            <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-800 text-[10px] font-bold border border-blue-200">
+                              {row.role || "RELATIONSHIP_MANAGER"}
+                            </span>
+                          </td>
+                          <td className="py-1.5 px-3">
+                            {row.district ? (
+                              <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 text-[10px] font-bold border border-amber-200">
+                                {row.district}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 italic">Statewide</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {bulkError && (
             <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-bold text-rose-800 flex items-center gap-2">
@@ -1314,6 +1854,7 @@ export default function AdminUserManagementPage() {
             </div>
           )}
 
+          {/* RESULTS SUMMARY */}
           {bulkResults && (
             <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
               <div className="flex items-center justify-between">
@@ -1361,7 +1902,8 @@ export default function AdminUserManagementPage() {
             </div>
           )}
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
+          {/* ACTIONS */}
+          <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-2.5 pt-3 border-t border-slate-200">
             <GovButton
               type="button"
               variant="secondary"
@@ -1370,17 +1912,34 @@ export default function AdminUserManagementPage() {
                 setBulkResults(null);
                 setBulkError("");
                 setBulkCsvText("");
+                setUploadedFile(null);
+                setParsedRows([]);
               }}
+              className="w-full sm:w-auto"
             >
               Close
             </GovButton>
+
+            <GovButton
+              type="button"
+              variant="secondary"
+              disabled={bulkImporting || (parsedRows.length === 0 && !bulkCsvText.trim())}
+              onClick={() => handleBulkImport(false)}
+              className="w-full sm:w-auto font-bold"
+            >
+              <Users size={14} className="mr-1 inline-block" />
+              {bulkImporting ? "Processing..." : `Create ${parsedRows.length > 0 ? `${parsedRows.length} ` : ""}User${parsedRows.length === 1 ? "" : "s"}`}
+            </GovButton>
+
             <GovButton
               type="button"
               variant="primary"
-              disabled={bulkImporting || !bulkCsvText.trim()}
-              onClick={handleBulkImport}
+              disabled={bulkImporting || (parsedRows.length === 0 && !bulkCsvText.trim())}
+              onClick={() => handleBulkImport(true)}
+              className="w-full sm:w-auto font-bold"
             >
-              {bulkImporting ? "Processing Batch Import..." : "Import Users"}
+              <Mail size={14} className="mr-1 inline-block" />
+              {bulkImporting ? "Creating & Sending..." : `Create User${parsedRows.length === 1 ? "" : "s"} & Send Invite`}
             </GovButton>
           </div>
         </div>

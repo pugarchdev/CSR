@@ -33,6 +33,7 @@ export default function PageGuard({ children }: { children: React.ReactNode }) {
       "/",
       "/login",
       "/register",
+      "/activate",
       "/public",
       "/about",
       "/partner-with-maharashtra",
@@ -60,7 +61,14 @@ export default function PageGuard({ children }: { children: React.ReactNode }) {
       "/knowledge",
       "/marketplace",
       "/csr-marketplace",
-      "/circulars"
+      "/circulars",
+      "/news",
+      "/contact",
+      "/csr-policy",
+      "/convergence",
+      "/resources",
+      "/reports",
+      "/help"
     ];
 
     if (publicPrefixes.some((prefix) => prefix === "/" ? pathname === "/" : pathname.startsWith(prefix))) {
@@ -140,7 +148,8 @@ export default function PageGuard({ children }: { children: React.ReactNode }) {
   }, [decision.allowed, router, hasNavigatedBack]);
 
   // 1. Loading State
-  if (isLoadingPermissions || fetchStatus === "LOADING") {
+  // Only block the UI with a full-screen loading spinner if the page access is not yet allowed
+  if ((isLoadingPermissions || fetchStatus === "LOADING") && !decision.allowed) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 text-gray-500" role="status" aria-live="polite">
         <Loader2 className="w-10 h-10 animate-spin text-blue-600 mb-4" />

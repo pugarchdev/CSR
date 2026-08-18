@@ -403,15 +403,25 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
   }, [mounted, isDashboard, pathname, router]);
 
   useEffect(() => {
-    if (!isDashboard) return;
+    // Prefetch authentication routes in the background to ensure instant transition when clicked
+    if (router && typeof window !== "undefined") {
+      router.prefetch("/login");
+      router.prefetch("/register");
+      router.prefetch("/register/corporate");
+      router.prefetch("/register/government");
+    }
+  }, [router]);
+
+  useEffect(() => {
+    if (!isDashboard || !isLoggedIn) return;
 
     apiFetch<Array<{ id: string; title: string; message: string; isRead: boolean }>>("/notifications")
       .then(setNotifications)
       .catch(() => setNotifications([]));
-  }, [isDashboard, pathname]);
+  }, [isDashboard, isLoggedIn]);
 
   useEffect(() => {
-    if (!isDashboard) return;
+    if (!isDashboard || !isLoggedIn) return;
     const user = getStoredUser();
     if (!user) {
       setTenantFeatures({});
@@ -420,7 +430,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
     apiFetch<{ features: Record<string, boolean> }>("/platform/features")
       .then((data) => setTenantFeatures(data.features || {}))
       .catch(() => setTenantFeatures({}));
-  }, [isDashboard, pathname]);
+  }, [isDashboard, isLoggedIn]);
 
   const handleLogout = () => {
     localStorage.removeItem("accessToken");
