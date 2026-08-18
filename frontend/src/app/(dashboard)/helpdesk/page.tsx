@@ -8,6 +8,7 @@ import { useApiQuery } from "@/lib/apiHooks";
 import { apiFetch } from "@/lib/api";
 import GovModal from "@/components/gov/GovModal";
 import { Button } from "@/components/ui/Button";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
 
 interface HelpdeskTicket {
   id: string;
@@ -109,32 +110,33 @@ export default function HelpdeskPage() {
         eyebrow="Helpdesk Operations Desk"
       />
 
-      {/* --- COMPACT KPI CARDS --- */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-        <div className="flex items-center justify-between rounded-xl border border-amber-200/80 bg-amber-50/50 p-3.5 backdrop-blur-xl sm:p-4 shadow-2xs">
-          <div>
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700 sm:text-xs">Open Tickets</span>
-            <span className="mt-0.5 block text-[9px] font-medium text-amber-700 sm:text-[11px]">Awaiting support response</span>
-          </div>
-          <p className="text-2xl font-extrabold text-amber-950">{openCount}</p>
-        </div>
-
-        <div className="flex items-center justify-between rounded-xl border border-blue-200/80 bg-blue-50/50 p-3.5 backdrop-blur-xl sm:p-4 shadow-2xs">
-          <div>
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700 sm:text-xs">In Progress</span>
-            <span className="mt-0.5 block text-[9px] font-medium text-blue-700 sm:text-[11px]">Under tech cell review</span>
-          </div>
-          <p className="text-2xl font-extrabold text-blue-950">{inProgressCount}</p>
-        </div>
-
-        <div className="flex items-center justify-between rounded-xl border border-emerald-200/80 bg-emerald-50/50 p-3.5 backdrop-blur-xl sm:p-4 shadow-2xs">
-          <div>
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 sm:text-xs">Resolved Queries</span>
-            <span className="mt-0.5 block text-[9px] font-medium text-emerald-700 sm:text-[11px]">Closed support cases</span>
-          </div>
-          <p className="text-2xl font-extrabold text-emerald-950">{resolvedCount}</p>
-        </div>
-      </div>
+      {/* --- STANDARD KPI CARDS --- */}
+      <StatCardGroup columns={3}>
+        <StatCard
+          label="Open Tickets"
+          value={openCount}
+          icon={AlertCircle}
+          index={0}
+          colorTheme="amber"
+          sublabel="Awaiting support response"
+        />
+        <StatCard
+          label="In Progress"
+          value={inProgressCount}
+          icon={Clock}
+          index={1}
+          colorTheme="blue"
+          sublabel="Under tech cell review"
+        />
+        <StatCard
+          label="Resolved Queries"
+          value={resolvedCount}
+          icon={CheckCircle2}
+          index={2}
+          colorTheme="emerald"
+          sublabel="Closed support cases"
+        />
+      </StatCardGroup>
 
       {/* --- FILTER & SEARCH TOOLBAR --- */}
       <div className="flex flex-col md:flex-row items-center gap-2.5 p-2.5 sm:p-3 bg-white rounded-2xl border border-slate-200/90 shadow-2xs">

@@ -1,8 +1,9 @@
 "use client";
 
 import React from "react";
-import { Server, Database, CheckCircle2, RefreshCcw } from "lucide-react";
+import { Server, Database, CheckCircle2, RefreshCcw, Activity } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
 
 interface HealthResponse {
   success: boolean;
@@ -68,38 +69,34 @@ export default function PlatformSystemHealthPage() {
       </div>
 
       {/* Health Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-900">Core API Status</span>
-            <CheckCircle2 size={18} className="text-emerald-600" />
-          </div>
-          <p className="mt-2 font-mono text-2xl font-extrabold text-emerald-950">{health?.status || "HEALTHY"}</p>
-          <p className="mt-1 text-[11px] font-medium text-emerald-800">Uptime: {uptimeHours} Hours Continuous</p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Database Latency</span>
-            <Database size={18} className="text-blue-700" />
-          </div>
-          <p className="mt-2 font-mono text-2xl font-extrabold text-slate-900">{health?.database.latencyMs || 4} ms</p>
-          <p className="mt-1 text-[11px] font-medium text-emerald-700">PostgreSQL Connection Active</p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Registered Entities</span>
-            <Server size={18} className="text-indigo-700" />
-          </div>
-          <p className="mt-2 font-mono text-2xl font-extrabold text-slate-900">
-            {((health?.entities.users || 0) + (health?.entities.organizations || 0) + (health?.entities.projects || 0)).toLocaleString()}
-          </p>
-          <p className="mt-1 text-[11px] font-medium text-slate-500">
-            {health?.entities.users || 0} Users · {health?.entities.organizations || 0} Orgs · {health?.entities.projects || 0} Projects
-          </p>
-        </div>
-      </div>
+      <StatCardGroup columns={3}>
+        <StatCard
+          label="Core API Status"
+          value={health?.status || "HEALTHY"}
+          icon={Activity}
+          index={0}
+          colorTheme="emerald"
+          badge="Online"
+          sublabel={`Uptime: ${uptimeHours} Hours Continuous`}
+        />
+        <StatCard
+          label="Database Latency"
+          value={`${health?.database.latencyMs || 4} ms`}
+          icon={Database}
+          index={1}
+          colorTheme="blue"
+          badge="Active"
+          sublabel="PostgreSQL Connection Pool Active"
+        />
+        <StatCard
+          label="Registered Entities"
+          value={((health?.entities.users || 0) + (health?.entities.organizations || 0) + (health?.entities.projects || 0)).toLocaleString()}
+          icon={Server}
+          index={2}
+          colorTheme="indigo"
+          sublabel={`${health?.entities.users || 0} Users · ${health?.entities.organizations || 0} Orgs · ${health?.entities.projects || 0} Projects`}
+        />
+      </StatCardGroup>
 
       {/* Integration Gateways List */}
       <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">

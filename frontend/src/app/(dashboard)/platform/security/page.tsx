@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
-
+import { Shield, ShieldAlert, ShieldCheck } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
 
 interface SecurityResponse {
   success: boolean;
@@ -56,25 +56,34 @@ export default function PlatformSecurityPage() {
       </div>
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Security Events</span>
-          <p className="mt-2 font-mono text-2xl font-extrabold text-slate-900">{securityData?.summary.totalEvents || 0}</p>
-          <p className="mt-1 text-[11px] text-slate-500">Recorded across platform API endpoints</p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Critical Access Blocks</span>
-          <p className="mt-2 font-mono text-2xl font-extrabold text-rose-700">{securityData?.summary.criticalEvents || 0}</p>
-          <p className="mt-1 text-[11px] text-rose-600 font-medium">Direct object reference & scope violations</p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Threat Mitigation Status</span>
-          <p className="mt-2 font-mono text-2xl font-extrabold text-emerald-800">Protected</p>
-          <p className="mt-1 text-[11px] text-emerald-700 font-medium">RBAC ceiling & scope predicates active</p>
-        </div>
-      </div>
+      <StatCardGroup columns={3}>
+        <StatCard
+          label="Total Security Events"
+          value={securityData?.summary.totalEvents || 0}
+          icon={Shield}
+          index={0}
+          colorTheme="blue"
+          sublabel="Recorded across platform API endpoints"
+        />
+        <StatCard
+          label="Critical Access Blocks"
+          value={securityData?.summary.criticalEvents || 0}
+          icon={ShieldAlert}
+          index={1}
+          colorTheme="rose"
+          badge={securityData?.summary.criticalEvents ? "Action Req" : "Clear"}
+          sublabel="Direct object reference & scope violations"
+        />
+        <StatCard
+          label="Threat Mitigation Status"
+          value="Protected"
+          icon={ShieldCheck}
+          index={2}
+          colorTheme="emerald"
+          badge="Active"
+          sublabel="RBAC ceiling & scope predicates active"
+        />
+      </StatCardGroup>
 
       {/* Security Logs Table */}
       <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">

@@ -7,6 +7,7 @@ import {
   Search, ArrowRight, FolderKanban
 } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
 
 interface PortfolioData {
   summary: {
@@ -86,60 +87,41 @@ export default function StatePortfolioPage() {
         </div>
       </div>
 
-      {/* High-Level Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-bold uppercase tracking-wider">Total Commitments</span>
-            <Landmark size={18} className="text-blue-700" />
-          </div>
-          <p className="mt-2 font-mono text-2xl font-extrabold text-slate-900">
-            {formatCr(portfolio?.summary.totalCommittedAmount || 485000000)}
-          </p>
-          <p className="mt-1 text-[11px] font-medium text-emerald-700">
-            Budget Approved: {formatCr(portfolio?.summary.totalApprovedBudget || 520000000)}
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-bold uppercase tracking-wider">Active Projects</span>
-            <FolderKanban size={18} className="text-indigo-700" />
-          </div>
-          <p className="mt-2 font-mono text-2xl font-extrabold text-slate-900">
-            {portfolio?.summary.activeProjects || 28}
-          </p>
-          <p className="mt-1 text-[11px] font-medium text-slate-500">
-            Total Projects in Portfolio: {portfolio?.summary.totalProjects || 34}
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-bold uppercase tracking-wider">District Coverage</span>
-            <MapPin size={18} className="text-emerald-700" />
-          </div>
-          <p className="mt-2 font-mono text-2xl font-extrabold text-slate-900">
-            {portfolio?.summary.coveragePercentage || 89}%
-          </p>
-          <p className="mt-1 text-[11px] font-medium text-slate-500">
-            {portfolio?.summary.districtCoverageCount || 32} of 36 Districts Active
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-bold uppercase tracking-wider">Citizens Impacted</span>
-            <TrendingUp size={18} className="text-amber-700" />
-          </div>
-          <p className="mt-2 font-mono text-2xl font-extrabold text-slate-900">
-            {(portfolio?.summary.totalBeneficiaries || 142000).toLocaleString()}
-          </p>
-          <p className="mt-1 text-[11px] font-medium text-slate-500">
-            Validated beneficiaries reached
-          </p>
-        </div>
-      </div>
+      {/* Standard 4-Column KPI Overview Cards */}
+      <StatCardGroup columns={4}>
+        <StatCard
+          label="Total Commitments"
+          value={formatCr(portfolio?.summary.totalCommittedAmount || 485000000)}
+          icon={Landmark}
+          index={0}
+          colorTheme="blue"
+          sublabel={`Budget Approved: ${formatCr(portfolio?.summary.totalApprovedBudget || 520000000)}`}
+        />
+        <StatCard
+          label="Active Projects"
+          value={portfolio?.summary.activeProjects || 28}
+          icon={FolderKanban}
+          index={1}
+          colorTheme="indigo"
+          sublabel={`Total Projects: ${portfolio?.summary.totalProjects || 34}`}
+        />
+        <StatCard
+          label="District Coverage"
+          value={`${portfolio?.summary.coveragePercentage || 89}%`}
+          icon={MapPin}
+          index={2}
+          colorTheme="emerald"
+          sublabel={`${portfolio?.summary.districtCoverageCount || 32} of 36 Districts Active`}
+        />
+        <StatCard
+          label="Citizens Impacted"
+          value={(portfolio?.summary.totalBeneficiaries || 142000).toLocaleString()}
+          icon={TrendingUp}
+          index={3}
+          colorTheme="amber"
+          sublabel="Validated beneficiaries reached"
+        />
+      </StatCardGroup>
 
       {/* Search and Filters */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-xs">

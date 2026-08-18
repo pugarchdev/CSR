@@ -2,8 +2,9 @@
 
 import React from "react";
 import Link from "next/link";
-import { Eye } from "lucide-react";
+import { Eye, Clock, CheckCircle2, FileCheck2 } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
 
 export default function OversightApprovalsPage() {
   useApiQuery<{ success: boolean; data: any }>(
@@ -34,25 +35,34 @@ export default function OversightApprovalsPage() {
       </div>
 
       {/* Decision Analytics Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Average JS Turnaround</span>
-          <p className="mt-2 font-mono text-2xl font-extrabold text-blue-900">4.2 Days</p>
-          <p className="mt-1 text-[11px] text-emerald-700 font-medium">Within 7-Day SLA Threshold</p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Decisions (MTD)</span>
-          <p className="mt-2 font-mono text-2xl font-extrabold text-slate-900">42 Decisions</p>
-          <p className="mt-1 text-[11px] text-slate-500 font-medium">36 Approved · 6 Changes Requested</p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Pending in Queue</span>
-          <p className="mt-2 font-mono text-2xl font-extrabold text-amber-900">8 Items</p>
-          <p className="mt-1 text-[11px] text-amber-700 font-medium">Awaiting Joint Secretary Review</p>
-        </div>
-      </div>
+      <StatCardGroup columns={3}>
+        <StatCard
+          label="Average JS Turnaround"
+          value="4.2 Days"
+          icon={Clock}
+          index={0}
+          colorTheme="blue"
+          badge="Within SLA"
+          sublabel="Target: 7-Day SLA Threshold"
+        />
+        <StatCard
+          label="Total Decisions (MTD)"
+          value="42"
+          icon={FileCheck2}
+          index={1}
+          colorTheme="emerald"
+          sublabel="36 Approved · 6 Changes Requested"
+        />
+        <StatCard
+          label="Pending in Queue"
+          value="8"
+          icon={Clock}
+          index={2}
+          colorTheme="amber"
+          badge="Action Req"
+          sublabel="Awaiting Joint Secretary Review"
+        />
+      </StatCardGroup>
 
       {/* Approvals Table */}
       <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">

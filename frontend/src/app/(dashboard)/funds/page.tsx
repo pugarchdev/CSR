@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-
+import { Landmark, ArrowUpRight, CheckCircle2, TrendingUp, DollarSign, PieChart } from "lucide-react";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
 
 export default function CorporateFundsPage() {
   const formatCr = (val: number) => `₹${(Number(val || 0) / 10000000).toFixed(2)} Cr`;
@@ -39,32 +40,41 @@ export default function CorporateFundsPage() {
         </div>
       </div>
 
-      {/* Financial Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Committed</span>
-          <p className="mt-2 font-mono text-2xl font-extrabold text-slate-900">{formatCr(fundSummary.totalCommitted)}</p>
-          <p className="mt-1 text-[11px] text-slate-500 font-medium">Across active project agreements</p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Funds Released</span>
-          <p className="mt-2 font-mono text-2xl font-extrabold text-blue-900">{formatCr(fundSummary.totalReleased)}</p>
-          <p className="mt-1 text-[11px] text-blue-700 font-medium">Disbursed to implementing agencies</p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Verified Utilization</span>
-          <p className="mt-2 font-mono text-2xl font-extrabold text-emerald-900">{formatCr(fundSummary.totalUtilized)}</p>
-          <p className="mt-1 text-[11px] text-emerald-700 font-medium">Supported by invoices & UCs</p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Utilization Rate</span>
-          <p className="mt-2 font-mono text-2xl font-extrabold text-purple-900">{fundSummary.utilizationRate}%</p>
-          <p className="mt-1 text-[11px] text-purple-700 font-medium">Of released tranches deployed</p>
-        </div>
-      </div>
+      {/* Standard 4-Column KPI Cards */}
+      <StatCardGroup columns={4}>
+        <StatCard
+          label="Total Committed"
+          value={formatCr(fundSummary.totalCommitted)}
+          icon={Landmark}
+          index={0}
+          colorTheme="blue"
+          sublabel="Across active project agreements"
+        />
+        <StatCard
+          label="Funds Released"
+          value={formatCr(fundSummary.totalReleased)}
+          icon={ArrowUpRight}
+          index={1}
+          colorTheme="sky"
+          sublabel="Disbursed to implementing agencies"
+        />
+        <StatCard
+          label="Verified Utilization"
+          value={formatCr(fundSummary.totalUtilized)}
+          icon={CheckCircle2}
+          index={2}
+          colorTheme="emerald"
+          sublabel="Supported by invoices & UCs"
+        />
+        <StatCard
+          label="Utilization Rate"
+          value={`${fundSummary.utilizationRate}%`}
+          icon={PieChart}
+          index={3}
+          colorTheme="purple"
+          sublabel="Of released tranches deployed"
+        />
+      </StatCardGroup>
 
       {/* Commitments Table */}
       <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">

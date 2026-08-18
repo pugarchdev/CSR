@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { CheckCircle2, Plus } from "lucide-react";
+import { CheckCircle2, Plus, Landmark, Clock } from "lucide-react";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
 
 export default function NgoFundsUcPage() {
   const formatCr = (val: number) => `₹${(Number(val || 0) / 10000000).toFixed(2)} Cr`;
@@ -60,25 +60,33 @@ export default function NgoFundsUcPage() {
       </div>
 
       {/* Overview Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Funds Received</span>
-          <p className="mt-2 font-mono text-2xl font-extrabold text-blue-900">{formatCr(18500000)}</p>
-          <p className="mt-1 text-[11px] text-slate-500 font-medium">Disbursed by corporate sponsors</p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Verified Ground Deployment</span>
-          <p className="mt-2 font-mono text-2xl font-extrabold text-emerald-900">{formatCr(14200000)}</p>
-          <p className="mt-1 text-[11px] text-emerald-700 font-medium">Certified by CA & submitted UCs</p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">UCs Under DNO Review</span>
-          <p className="mt-2 font-mono text-2xl font-extrabold text-amber-900">1 Certificate</p>
-          <p className="mt-1 text-[11px] text-amber-700 font-medium">Awaiting ground physical verification</p>
-        </div>
-      </div>
+      <StatCardGroup columns={3}>
+        <StatCard
+          label="Total Funds Received"
+          value={formatCr(18500000)}
+          icon={Landmark}
+          index={0}
+          colorTheme="blue"
+          sublabel="Disbursed by corporate sponsors"
+        />
+        <StatCard
+          label="Verified Ground Deployment"
+          value={formatCr(14200000)}
+          icon={CheckCircle2}
+          index={1}
+          colorTheme="emerald"
+          sublabel="Certified by CA & submitted UCs"
+        />
+        <StatCard
+          label="UCs Under DNO Review"
+          value="1"
+          icon={Clock}
+          index={2}
+          colorTheme="amber"
+          badge="Pending Review"
+          sublabel="Awaiting ground physical verification"
+        />
+      </StatCardGroup>
 
       {/* Certificates List */}
       <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">

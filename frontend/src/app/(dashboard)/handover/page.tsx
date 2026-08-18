@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Shield, Landmark, FileText, Search, Building2, Award } from "lucide-react";
+import { CheckCircle2, Shield, Landmark, FileText, Search, Building2, Award, Clock } from "lucide-react";
 import { GovPageHeader } from "@/components/layout/GovPageHeader";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
 
 interface HandoverItem {
   id: string;
@@ -60,31 +61,32 @@ export default function HandoverPage() {
         eyebrow="Asset Transfer Desk"
       />
 
-      <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-3 xl:w-3/4">
-        <div className="rounded-xl border border-amber-200/80 bg-amber-50/50 p-4 backdrop-blur-xl">
-          <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-amber-700">Pending Department Sign-Off</span>
-          <p className="mt-1 text-2xl font-extrabold text-amber-950">
-            {items.filter(i => i.handoverCertificateStatus === "PENDING_DEPARTMENT_SIGNATURE").length}
-          </p>
-          <span className="text-[10px] sm:text-[11px] text-amber-700 font-medium">Completed assets ready for takeover</span>
-        </div>
-
-        <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/50 p-4 backdrop-blur-xl">
-          <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-emerald-700">Transferred Assets</span>
-          <p className="mt-1 text-2xl font-extrabold text-emerald-950">
-            {items.filter(i => i.handoverCertificateStatus === "SIGNED").length}
-          </p>
-          <span className="text-[10px] sm:text-[11px] text-emerald-700 font-medium">Handover certificate executed</span>
-        </div>
-
-        <div className="rounded-xl border border-blue-200/80 bg-blue-50/50 p-4 backdrop-blur-xl">
-          <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-blue-700">Total Transferred Asset Value</span>
-          <p className="mt-1 text-2xl font-extrabold text-blue-950">
-            ₹{items.reduce((acc, curr) => acc + curr.assetValueCr, 0).toFixed(1)} Cr
-          </p>
-          <span className="text-[10px] sm:text-[11px] text-blue-700 font-medium">Public infrastructure value</span>
-        </div>
-      </div>
+      <StatCardGroup columns={3}>
+        <StatCard
+          label="Pending Department Sign-Off"
+          value={items.filter(i => i.handoverCertificateStatus === "PENDING_DEPARTMENT_SIGNATURE").length}
+          icon={Clock}
+          index={0}
+          colorTheme="amber"
+          sublabel="Completed assets ready for takeover"
+        />
+        <StatCard
+          label="Transferred Assets"
+          value={items.filter(i => i.handoverCertificateStatus === "SIGNED").length}
+          icon={CheckCircle2}
+          index={1}
+          colorTheme="emerald"
+          sublabel="Handover certificate executed"
+        />
+        <StatCard
+          label="Total Transferred Asset Value"
+          value={`₹${items.reduce((acc, curr) => acc + curr.assetValueCr, 0).toFixed(1)} Cr`}
+          icon={Landmark}
+          index={2}
+          colorTheme="blue"
+          sublabel="Public infrastructure value"
+        />
+      </StatCardGroup>
 
       <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
         <div className="mb-6 max-w-md">
