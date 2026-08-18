@@ -8,7 +8,7 @@ import { useAuthStore } from "@/store/authStore";
 import {
   Bell, Shield, Globe, Sliders, Check, Lock, Eye, EyeOff, Save,
   RefreshCw, Mail, MessageSquare, Key, Clock, Sparkles,
-  AlertCircle, Monitor, FileText, CheckCircle
+  AlertCircle, Monitor, FileText, CheckCircle, Loader2
 } from "lucide-react";
 
 export default function SettingsPage() {
@@ -38,6 +38,7 @@ export default function SettingsPage() {
 
   // General Save State
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Load saved settings from localStorage on mount
   useEffect(() => {
@@ -60,24 +61,28 @@ export default function SettingsPage() {
   }, []);
 
   const handleSaveSettings = () => {
-    try {
-      const payload = {
-        emailApprovals,
-        emailPitchUpdates,
-        smsSlaReminders,
-        weeklySummary,
-        language,
-        currencyDisplay,
-        autoRefreshInterval,
-        defaultExportFormat,
-        updatedAt: new Date().toISOString(),
-      };
-      localStorage.setItem("mahacsr_user_settings", JSON.stringify(payload));
-      setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 3000);
-    } catch {
-      // Handle error
-    }
+    setIsSaving(true);
+    setTimeout(() => {
+      try {
+        const payload = {
+          emailApprovals,
+          emailPitchUpdates,
+          smsSlaReminders,
+          weeklySummary,
+          language,
+          currencyDisplay,
+          autoRefreshInterval,
+          defaultExportFormat,
+          updatedAt: new Date().toISOString(),
+        };
+        localStorage.setItem("mahacsr_user_settings", JSON.stringify(payload));
+        setIsSaving(false);
+        setSavedSuccess(true);
+        setTimeout(() => setSavedSuccess(false), 3000);
+      } catch {
+        setIsSaving(false);
+      }
+    }, 500);
   };
 
   const handlePasswordChangeSubmit = (e: React.FormEvent) => {
@@ -119,10 +124,25 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={handleSaveSettings}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 px-4 py-2 text-xs font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105"
+              disabled={isSaving}
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 px-4 py-2 text-xs font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105 disabled:opacity-70 disabled:cursor-wait cursor-pointer"
             >
-              {savedSuccess ? <Check size={16} className="text-emerald-400" /> : <Save size={16} />}
-              {savedSuccess ? "Preferences Saved!" : "Save All Settings"}
+              {isSaving ? (
+                <>
+                  <Loader2 size={16} className="animate-spin text-white shrink-0" />
+                  <span>Saving Settings...</span>
+                </>
+              ) : savedSuccess ? (
+                <>
+                  <Check size={16} className="text-emerald-400" />
+                  <span>Preferences Saved!</span>
+                </>
+              ) : (
+                <>
+                  <Save size={16} />
+                  <span>Save All Settings</span>
+                </>
+              )}
             </button>
           }
         />
@@ -355,10 +375,19 @@ export default function SettingsPage() {
                       <button
                         type="submit"
                         disabled={isChangingPassword}
-                        className="inline-flex items-center gap-2 rounded-xl bg-blue-900 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-blue-950 transition-all disabled:opacity-50"
+                        className="inline-flex items-center gap-2 rounded-xl bg-blue-900 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-blue-950 transition-all disabled:opacity-50 cursor-pointer"
                       >
-                        <Lock size={14} />
-                        {isChangingPassword ? "Updating Password..." : "Update Password"}
+                        {isChangingPassword ? (
+                          <>
+                            <Loader2 size={14} className="animate-spin text-white shrink-0" />
+                            <span>Updating Password...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Lock size={14} />
+                            <span>Update Password</span>
+                          </>
+                        )}
                       </button>
                     </div>
                   </form>

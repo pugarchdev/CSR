@@ -5,19 +5,19 @@ import prisma from "../config/db";
 const HERO_SLIDES_KEY = "hero_carousel_slides";
 
 const CAROUSEL_IMAGES = [
-  "Gemini_Generated_Image_5g4qcn5g4qcn5g4q.png",
-  "Gemini_Generated_Image_8tv4ar8tv4ar8tv4.png",
-  "Gemini_Generated_Image_9qvw8v9qvw8v9qvw.png",
-  "Gemini_Generated_Image_cjsjr7cjsjr7cjsj.png",
-  "Gemini_Generated_Image_d21ndd21ndd21ndd.png",
-  "Gemini_Generated_Image_dmhfhhdmhfhhdmhf.png",
-  "Gemini_Generated_Image_ij7dwmij7dwmij7d.png",
-  "Gemini_Generated_Image_jobzsgjobzsgjobz.png",
-  "Gemini_Generated_Image_lf96bqlf96bqlf96.png",
-  "Gemini_Generated_Image_pv11gcpv11gcpv11.png",
-  "Gemini_Generated_Image_q5r488q5r488q5r4.png",
-  "Gemini_Generated_Image_v5khy9v5khy9v5kh.png",
-  "Gemini_Generated_Image_ypxh9zypxh9zypxh.png"
+  "Gemini_Generated_Image_5g4qcn5g4qcn5g4q.jpg",
+  "Gemini_Generated_Image_8tv4ar8tv4ar8tv4.jpg",
+  "Gemini_Generated_Image_9qvw8v9qvw8v9qvw.jpg",
+  "Gemini_Generated_Image_cjsjr7cjsjr7cjsj.jpg",
+  "Gemini_Generated_Image_d21ndd21ndd21ndd.jpg",
+  "Gemini_Generated_Image_dmhfhhdmhfhhdmhf.jpg",
+  "Gemini_Generated_Image_ij7dwmij7dwmij7d.jpg",
+  "Gemini_Generated_Image_jobzsgjobzsgjobz.jpg",
+  "Gemini_Generated_Image_lf96bqlf96bqlf96.jpg",
+  "Gemini_Generated_Image_pv11gcpv11gcpv11.jpg",
+  "Gemini_Generated_Image_q5r488q5r488q5r4.jpg",
+  "Gemini_Generated_Image_v5khy9v5khy9v5kh.jpg",
+  "Gemini_Generated_Image_ypxh9zypxh9zypxh.jpg"
 ];
 
 const slideContent = [

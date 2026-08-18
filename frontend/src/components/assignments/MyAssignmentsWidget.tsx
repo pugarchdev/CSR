@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
 import { Briefcase, Loader2, MapPin, ArrowRight } from "lucide-react";
 import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
 import GovStatusBadge, { statusToVariant } from "@/components/gov/GovStatusBadge";
-import { apiFetch } from "@/lib/api";
+import { useApiQuery } from "@/lib/apiHooks";
 
 interface AssignmentEntry {
   id: string;
@@ -37,15 +36,13 @@ export default function MyAssignmentsWidget({
   limit?: number;
   emptyMessage?: string;
 }) {
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["my-assignments"],
-    queryFn: () =>
-      apiFetch<any>("/assignments/mine").then(
-        (response: any) => ((response?.data ?? response)?.assignments ?? []) as AssignmentEntry[]
-      ),
-  });
+  const { data, isLoading, isError } = useApiQuery<any>(
+    ["my-assignments"],
+    "/assignments/mine"
+  );
 
-  const assignments = (data ?? []).slice(0, limit);
+  const rawList = (data?.data ?? data)?.assignments ?? (Array.isArray(data) ? data : []);
+  const assignments: AssignmentEntry[] = (Array.isArray(rawList) ? rawList : []).slice(0, limit);
 
   return (
     <GovCard>

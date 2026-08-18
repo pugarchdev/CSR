@@ -1244,10 +1244,19 @@ export default function RegisterPage() {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-2/3 py-3.5 px-4 rounded-xl bg-gradient-to-r from-blue-950 via-blue-900 to-indigo-900 text-white font-extrabold text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 hover:scale-[1.01]"
+                      className="w-2/3 py-3.5 px-4 rounded-xl bg-gradient-to-r from-blue-950 via-blue-900 to-indigo-900 text-white font-extrabold text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 hover:scale-[1.01] cursor-pointer"
                     >
-                      <span>Submit & Send OTP</span>
-                      <ArrowRight size={16} />
+                      {loading ? (
+                        <>
+                          <Loader2 size={16} className="animate-spin text-white shrink-0" />
+                          <span>Submitting Details...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Submit & Send OTP</span>
+                          <ArrowRight size={16} />
+                        </>
+                      )}
                     </button>
                   </div>
                 </motion.form>

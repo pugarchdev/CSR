@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiFetch } from "./api";
+import { apiFetch, getCachedApiData } from "./api";
 
 export const useApiQuery = <T>(
   key: string[],
@@ -9,6 +9,8 @@ export const useApiQuery = <T>(
     enabled?: boolean;
     staleTime?: number;
     gcTime?: number;
+    initialData?: T | (() => T | undefined);
+    placeholderData?: any;
   }
 ) => {
   return useQuery<T>({
@@ -17,7 +19,9 @@ export const useApiQuery = <T>(
     enabled: options?.enabled ?? true,
     staleTime: options?.staleTime ?? 5 * 60 * 1000,
     gcTime: options?.gcTime ?? 15 * 60 * 1000,
-  });
+    initialData: options?.initialData ?? (() => getCachedApiData<T>(path) as any),
+    placeholderData: options?.placeholderData,
+  } as any);
 };
 
 export const useApiMutation = <TData, TVariables>(

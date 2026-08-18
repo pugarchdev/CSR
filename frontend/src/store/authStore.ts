@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { apiFetch, clearApiCache, getAccessToken } from "@/lib/api";
+import { disconnectNotificationSocket } from "@/lib/useNotifications";
 
 export interface PermissionData {
   permissions: string[];
@@ -125,8 +126,13 @@ export const useAuthStore = create<AuthState>()(
           localStorage.removeItem("token");
           localStorage.removeItem("mahacsr_access_token");
           localStorage.removeItem("user");
-          document.cookie = 'mahacsr_auth=; path=/; max-age=0';
+          localStorage.removeItem("auth-storage");
+          sessionStorage.clear();
+          document.cookie = 'mahacsr_auth=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT';
           clearApiCache();
+          try {
+            disconnectNotificationSocket();
+          } catch {}
         }
         set({
           user: null,

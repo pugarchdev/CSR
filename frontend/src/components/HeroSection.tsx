@@ -8,19 +8,19 @@ import { API_BASE_URL } from "@/lib/api";
 
 /* ─── Default slides (overridden by API fetch) ─── */
 const CAROUSEL_IMAGES = [
-  "Gemini_Generated_Image_5g4qcn5g4qcn5g4q.png",
-  "Gemini_Generated_Image_8tv4ar8tv4ar8tv4.png",
-  "Gemini_Generated_Image_9qvw8v9qvw8v9qvw.png",
-  "Gemini_Generated_Image_cjsjr7cjsjr7cjsj.png",
-  "Gemini_Generated_Image_d21ndd21ndd21ndd.png",
-  "Gemini_Generated_Image_dmhfhhdmhfhhdmhf.png",
-  "Gemini_Generated_Image_ij7dwmij7dwmij7d.png",
-  "Gemini_Generated_Image_jobzsgjobzsgjobz.png",
-  "Gemini_Generated_Image_lf96bqlf96bqlf96.png",
-  "Gemini_Generated_Image_pv11gcpv11gcpv11.png",
-  "Gemini_Generated_Image_q5r488q5r488q5r4.png",
-  "Gemini_Generated_Image_v5khy9v5khy9v5kh.png",
-  "Gemini_Generated_Image_ypxh9zypxh9zypxh.png"
+  "Gemini_Generated_Image_5g4qcn5g4qcn5g4q.jpg",
+  "Gemini_Generated_Image_8tv4ar8tv4ar8tv4.jpg",
+  "Gemini_Generated_Image_9qvw8v9qvw8v9qvw.jpg",
+  "Gemini_Generated_Image_cjsjr7cjsjr7cjsj.jpg",
+  "Gemini_Generated_Image_d21ndd21ndd21ndd.jpg",
+  "Gemini_Generated_Image_dmhfhhdmhfhhdmhf.jpg",
+  "Gemini_Generated_Image_ij7dwmij7dwmij7d.jpg",
+  "Gemini_Generated_Image_jobzsgjobzsgjobz.jpg",
+  "Gemini_Generated_Image_lf96bqlf96bqlf96.jpg",
+  "Gemini_Generated_Image_pv11gcpv11gcpv11.jpg",
+  "Gemini_Generated_Image_q5r488q5r488q5r4.jpg",
+  "Gemini_Generated_Image_v5khy9v5khy9v5kh.jpg",
+  "Gemini_Generated_Image_ypxh9zypxh9zypxh.jpg"
 ];
 
 const slideContent = [
@@ -199,12 +199,16 @@ export default function HeroSection() {
     }
   }, []);
 
-  // Preload initial carousel images for instant display
+  // Preload and GPU decode all carousel images for instant zero-lag display
   useEffect(() => {
-    slides.slice(0, 4).forEach((s) => {
-      if (s.image && typeof window !== "undefined") {
+    if (typeof window === "undefined") return;
+    slides.forEach((s) => {
+      if (s.image) {
         const img = new window.Image();
         img.src = s.image;
+        if ("decode" in img) {
+          img.decode().catch(() => {});
+        }
       }
     });
   }, [slides]);
@@ -218,11 +222,13 @@ export default function HeroSection() {
           const filtered = data.filter((s: any) => !s.image?.includes("hero_slide_"));
           if (filtered.length > 0) {
             setSlides(filtered);
-            // Preload fetched images
-            filtered.slice(0, 4).forEach((s: any) => {
+            filtered.forEach((s: any) => {
               if (s.image && typeof window !== "undefined") {
                 const img = new window.Image();
                 img.src = s.image;
+                if ("decode" in img) {
+                  img.decode().catch(() => {});
+                }
               }
             });
           }
@@ -232,6 +238,20 @@ export default function HeroSection() {
         /* Use defaults */
       });
   }, []);
+
+  // Pre-decode next and previous slides when current changes
+  useEffect(() => {
+    if (typeof window === "undefined" || slides.length === 0) return;
+    const nextIdx = (current + 1) % slides.length;
+    const prevIdx = (current - 1 + slides.length) % slides.length;
+    [slides[nextIdx], slides[prevIdx]].forEach((s) => {
+      if (s?.image) {
+        const img = new window.Image();
+        img.src = s.image;
+        if ("decode" in img) img.decode().catch(() => {});
+      }
+    });
+  }, [current, slides]);
 
   // Auto-rotate carousel
   const startTimer = useCallback(() => {
@@ -285,12 +305,10 @@ export default function HeroSection() {
       className="relative overflow-hidden bg-slate-950"
       style={{ perspective: "1200px" }}
     >
-
-
       {/* Mouse trail canvas */}
       <MouseTrailCanvas />
 
-      {/* Animated background image with 3D parallax */}
+      {/* Animated background image with 3D parallax & GPU acceleration */}
       <AnimatePresence initial={false} custom={direction} mode="popLayout">
         <motion.div
           key={slide.id}
@@ -299,17 +317,20 @@ export default function HeroSection() {
           initial="enter"
           animate="center"
           exit="exit"
-          className="absolute inset-0"
+          className="absolute inset-0 overflow-hidden pointer-events-none"
           style={{
             transformStyle: "preserve-3d",
             backfaceVisibility: "hidden",
+            willChange: "transform, opacity",
           }}
         >
-          <motion.div
-            className="absolute inset-0 bg-cover bg-center scale-105"
-            style={{
-              backgroundImage: `url('${slide.image}')`,
-            }}
+          <img
+            src={slide.image}
+            alt=""
+            aria-hidden="true"
+            loading="eager"
+            decoding="async"
+            className="absolute inset-0 w-full h-full object-cover object-center scale-105 select-none"
           />
         </motion.div>
       </AnimatePresence>

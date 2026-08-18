@@ -909,9 +909,16 @@ function InteractionLogTab({
           <button
             onClick={handleSubmit}
             disabled={submitting || note.trim().length < 3}
-            className="self-end rounded-xl bg-blue-900 px-5 py-3 text-xs font-extrabold text-white shadow-sm hover:bg-blue-950 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="self-end rounded-xl bg-blue-900 px-5 py-3 text-xs font-extrabold text-white shadow-sm hover:bg-blue-950 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5"
           >
-            {submitting ? <Loader2 size={15} className="animate-spin" /> : "Log"}
+            {submitting ? (
+              <>
+                <Loader2 size={15} className="animate-spin shrink-0" />
+                <span>Logging...</span>
+              </>
+            ) : (
+              <span>Log Interaction</span>
+            )}
           </button>
         </div>
       </div>
@@ -1354,8 +1361,17 @@ function FeasibilityWorkspace({
             disabled={submitting}
             className="ml-auto inline-flex items-center gap-2 rounded-xl bg-blue-900 px-5 py-2.5 text-xs font-extrabold text-white shadow-sm hover:bg-blue-950 transition-all disabled:opacity-50 cursor-pointer"
           >
-            {submitting ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
-            Submit to Joint Secretary
+            {submitting ? (
+              <>
+                <Loader2 size={15} className="animate-spin shrink-0" />
+                <span>Submitting Assessment...</span>
+              </>
+            ) : (
+              <>
+                <Send size={15} />
+                <span>Submit to Joint Secretary</span>
+              </>
+            )}
           </button>
         </div>
       )}

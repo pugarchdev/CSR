@@ -84,8 +84,14 @@ export default function FeedbackPortalPage() {
             />
           </div>
 
-          <Button type="submit" disabled={submitted} className="flex items-center justify-center gap-2 py-3 shadow-md">
-            <Send size={14} /> {submitted ? "Submitting..." : "Submit Feedback"}
+          <Button
+            type="submit"
+            loading={submitted}
+            loadingText="Submitting Feedback..."
+            icon={Send}
+            className="flex items-center justify-center gap-2 py-3 shadow-md"
+          >
+            Submit Feedback
           </Button>
         </form>
       </div>

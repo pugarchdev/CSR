@@ -12,12 +12,17 @@ import GovAlert from "@/components/gov/GovAlert";
 export default function ContactPage() {
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
   const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
-    setSent(true);
-    setForm({ name: "", email: "", subject: "", message: "" });
-    setTimeout(() => setSent(false), 4000);
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      setSent(true);
+      setForm({ name: "", email: "", subject: "", message: "" });
+      setTimeout(() => setSent(false), 4000);
+    }, 600);
   };
 
   return (
@@ -63,7 +68,9 @@ export default function ContactPage() {
                 <GovInput label="Subject" required value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} />
                 <GovTextarea label="Description / Query" required rows={5} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} />
                 <div>
-                  <GovButton type="submit"><Send size={16} /> Submit Message</GovButton>
+                  <GovButton type="submit" loading={loading} loadingText="Submitting Message..." icon={Send}>
+                    Submit Message
+                  </GovButton>
                 </div>
               </form>
             </GovCardBody>

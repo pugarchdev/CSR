@@ -1,6 +1,7 @@
 // Header Component
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -9,7 +10,8 @@ import {
   Search,
   Menu,
   LogOut,
-  Mail
+  Mail,
+  Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
@@ -25,8 +27,8 @@ interface HeaderProps {
 }
 
 export function Header({
-  userRole: _userRole = "User",
-  userName = "User",
+  userRole = "Admin",
+  userName = "Officer",
   userEmail = "user@example.com",
   notificationCount: _notificationCount = 0,
   messageCount: _messageCount = 0,
@@ -35,10 +37,16 @@ export function Header({
 }: HeaderProps) {
   const router = useRouter();
   const logout = useAuthStore((state) => state.logout);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = () => {
+    setIsLoggingOut(true);
     logout();
-    router.push("/login");
+    if (typeof window !== "undefined") {
+      window.location.replace("/login");
+    } else {
+      router.replace("/login");
+    }
   };
 
   return (
@@ -148,8 +156,22 @@ export function Header({
                 <p className="text-sm text-slate-500">{userEmail}</p>
               </div>
               <div className="p-2">
-                <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors w-full">
-                  <LogOut size={16} /> Log Out
+                <button
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                  className="flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors w-full disabled:opacity-60"
+                >
+                  {isLoggingOut ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin text-red-600 shrink-0" />
+                      <span>Logging out...</span>
+                    </>
+                  ) : (
+                    <>
+                      <LogOut size={16} />
+                      <span>Log Out</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>

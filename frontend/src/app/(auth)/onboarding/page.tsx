@@ -193,6 +193,7 @@ const initialForm: FormState = {
 
 export default function OnboardingPage() {
   const [currentStep, setCurrentStepState] = useState<number>(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const setCurrentStep = (indexOrFn: number | ((prev: number) => number)) => {
     const index = typeof indexOrFn === "function" ? indexOrFn(currentStep) : indexOrFn;
@@ -1936,8 +1937,14 @@ export default function OnboardingPage() {
                 {currentStep === onboardingSteps.length - 1 ? (
                   <GovButton
                     variant="primary"
+                    loading={isSubmitting}
+                    loadingText="Submitting Application..."
                     onClick={() => {
-                      alert("Application submitted for verification successfully!");
+                      setIsSubmitting(true);
+                      setTimeout(() => {
+                        setIsSubmitting(false);
+                        alert("Application submitted for verification successfully!");
+                      }, 1000);
                     }}
                   >
                     Submit for Verification

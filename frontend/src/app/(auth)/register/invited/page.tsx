@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Landmark, ArrowRight, AlertCircle, Eye, EyeOff, FileCheck } from "lucide-react";
+import { Landmark, ArrowRight, AlertCircle, Eye, EyeOff, FileCheck, Loader2 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
 import { locationData } from "@/lib/locationData";
 import { FieldFormat, sanitizeField, validateField } from "@/lib/validation";
@@ -423,9 +423,19 @@ function RegisterInvitedForm() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-indigo-750 hover:bg-indigo-800 text-white font-bold py-3.5 flex items-center justify-center gap-2 mt-2 transition-all shadow-sm rounded-lg"
+              className="w-full bg-indigo-750 hover:bg-indigo-800 text-white font-bold py-3.5 flex items-center justify-center gap-2 mt-2 transition-all shadow-sm rounded-lg disabled:opacity-60 cursor-pointer"
             >
-              {submitting ? "Registering..." : "Complete Registration"} <ArrowRight size={18} />
+              {submitting ? (
+                <>
+                  <Loader2 size={18} className="animate-spin text-white shrink-0" />
+                  <span>Registering...</span>
+                </>
+              ) : (
+                <>
+                  <span>Complete Registration</span>
+                  <ArrowRight size={18} />
+                </>
+              )}
             </button>
           </form>
         )}

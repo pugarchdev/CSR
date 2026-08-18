@@ -9,7 +9,7 @@ import {
   Layers, Sparkles, Award, Coins, Compass, FileText, BarChart2,
   HelpCircle, Menu, X, LogOut, ShieldCheck, BookOpen, ShieldAlert,
   Clock, Users, Globe2, ChevronDown, ArrowUp, MapPin, Phone, CheckCircle2, Handshake,
-  User, Settings, LayoutDashboard
+  User, Settings, LayoutDashboard, Loader2
 } from "lucide-react";
 import { Button } from "./ui/Button";
 import { Loader } from "./ui/Loader";
@@ -450,9 +450,16 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
       .catch(() => setTenantFeatures({}));
   }, [isDashboard, isLoggedIn]);
 
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
   const handleLogout = () => {
+    setIsLoggingOut(true);
     useAuthStore.getState().logout();
-    router.push("/login");
+    if (typeof window !== "undefined") {
+      window.location.replace("/login");
+    } else {
+      router.replace("/login");
+    }
   };
 
   const storedUser = typeof window !== "undefined" ? getStoredUser() : null;
@@ -695,9 +702,20 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                         setUserDropdownOpen(false);
                         handleLogout();
                       }}
-                      className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50/40 transition-colors flex items-center gap-2 border-t border-slate-100 mt-1 pt-2"
+                      disabled={isLoggingOut}
+                      className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50/40 transition-colors flex items-center gap-2 border-t border-slate-100 mt-1 pt-2 disabled:opacity-60"
                     >
-                      <LogOut size={14} className="text-red-400" /> Log Out
+                      {isLoggingOut ? (
+                        <>
+                          <Loader2 size={14} className="animate-spin text-red-600 shrink-0" />
+                          <span>Logging out...</span>
+                        </>
+                      ) : (
+                        <>
+                          <LogOut size={14} className="text-red-400" />
+                          <span>Log Out</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 )}
@@ -1093,10 +1111,20 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                   {isDashboard ? (
                     <button
                       onClick={handleLogout}
-                      className="w-full text-left px-3 py-2.5 text-xs text-[#c62828] hover:bg-[#fdecea] rounded-lg flex items-center gap-3 transition-all"
+                      disabled={isLoggingOut}
+                      className="w-full text-left px-3 py-2.5 text-xs text-[#c62828] hover:bg-[#fdecea] rounded-lg flex items-center gap-3 transition-all disabled:opacity-60"
                     >
-                      <LogOut size={16} />
-                      <span>Log Out</span>
+                      {isLoggingOut ? (
+                        <>
+                          <Loader2 size={16} className="animate-spin text-[#c62828] shrink-0" />
+                          <span>Logging out...</span>
+                        </>
+                      ) : (
+                        <>
+                          <LogOut size={16} />
+                          <span>Log Out</span>
+                        </>
+                      )}
                     </button>
                   ) : (
                     <div className="flex flex-col gap-2">

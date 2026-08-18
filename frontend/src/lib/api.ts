@@ -68,6 +68,18 @@ const getCachedData = <T>(path: string): CacheHit<T> => {
   return null;
 };
 
+export const getCachedApiData = <T>(path: string): T | undefined => {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const cached = localStorage.getItem(CACHE_PREFIX + btoa(path));
+    if (!cached) return undefined;
+    const { data } = JSON.parse(cached);
+    return data as T;
+  } catch {
+    return undefined;
+  }
+};
+
 const setCachedData = <T>(path: string, data: T): void => {
   if (typeof window === "undefined") return;
   localStorage.setItem(CACHE_PREFIX + btoa(path), JSON.stringify({ data, timestamp: Date.now() }));
