@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Users, CheckCircle2, Clock, ShieldAlert } from "lucide-react";
+import { Users, CheckCircle2, Clock, ShieldAlert, Eye } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import { StandardPageHeader } from "@/components/layout/StandardPageHeader";
@@ -252,7 +252,7 @@ return (
                         <div className="flex md:inline-flex justify-end gap-2 w-full md:w-auto">
                           <GovButton 
                             variant="secondary" 
-                            className="flex-1 md:flex-none justify-center text-xs md:text-sm"
+                            className="flex-1 md:flex-none justify-center text-xs md:text-sm inline-flex items-center gap-1.5 font-bold"
                             onClick={() => {
                               if (ngo.isDb) {
                                 router.push(`/admin/organizations/${ngo.id}`);
@@ -261,7 +261,8 @@ return (
                               }
                             }}
                           >
-                            View
+                            <Eye size={14} className="text-blue-700" />
+                            <span>View Details</span>
                           </GovButton>
                           <GovButton 
                             variant="muted" 

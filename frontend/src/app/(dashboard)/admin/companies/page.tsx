@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useApiQuery } from "@/lib/apiHooks";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import GovPageHeader from "@/components/layout/GovPageHeader";
+import { Eye } from "lucide-react";
 import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
 import GovButton from "@/components/gov/GovButton";
 import GovInput from "@/components/gov/GovInput";
@@ -259,7 +260,7 @@ return (
                         <div className="flex md:inline-flex justify-end gap-2 w-full md:w-auto">
                           <GovButton 
                             variant="secondary" 
-                            className="flex-1 md:flex-none justify-center text-xs md:text-sm"
+                            className="flex-1 md:flex-none justify-center text-xs md:text-sm inline-flex items-center gap-1.5 font-bold"
                             onClick={() => {
                               if (company.isDb) {
                                 router.push(`/admin/organizations/${company.id}`);
@@ -268,7 +269,8 @@ return (
                               }
                             }}
                           >
-                            View
+                            <Eye size={14} className="text-blue-700" />
+                            <span>View Details</span>
                           </GovButton>
                           <GovButton 
                             variant="muted" 

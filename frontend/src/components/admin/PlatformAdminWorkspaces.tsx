@@ -11,6 +11,7 @@ import { Pagination } from "@/components/ui/Pagination";
 import GovModal from "@/components/gov/GovModal";
 import { useToastActions } from "@/components/ui/Toast";
 import { useResponsiveViewMode } from "@/hooks/useResponsiveViewMode";
+import { useAuthStore } from "@/store/authStore";
 
 type Tenant = {
   id: string;
@@ -1693,6 +1694,9 @@ export function MasterAuditLogsWorkspace() {
 }
 
 export function AdminOnboardingApprovalsWorkspace() {
+  const { isAdmin, hasPermission } = useAuthStore();
+  const canApprove = isAdmin || hasPermission("organization:approve");
+
   const [items, setItems] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -1931,7 +1935,7 @@ export function AdminOnboardingApprovalsWorkspace() {
                               <Eye size={15} />
                             </Link>
 
-                            {!isApproved && (
+                            {canApprove && !isApproved && (
                               <>
                                 <Button size="sm" onClick={() => action(item.id, "approve")} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-xs">
                                   Approve
@@ -2030,7 +2034,7 @@ export function AdminOnboardingApprovalsWorkspace() {
                         <span>Details</span>
                       </Link>
 
-                      {!isApproved && (
+                      {canApprove && !isApproved && (
                         <div className="flex items-center gap-1.5">
                           <Button size="sm" onClick={() => action(item.id, "approve")} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-1 px-2.5">
                             Approve
@@ -2947,6 +2951,10 @@ export function OrganizationUsersWorkspace() {
 }
 
 export function AdminOrganizationsWorkspace() {
+  const { isAdmin, hasPermission } = useAuthStore();
+  const canApprove = isAdmin || hasPermission("organization:approve");
+  const canManage = isAdmin || hasPermission("organization:manage-users") || hasPermission("organization:create");
+
   const [items, setItems] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -2954,6 +2962,7 @@ export function AdminOrganizationsWorkspace() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [deptForm, setDeptForm] = useState({ name: "", email: "", district: "" });
+  const [viewingOrg, setViewingOrg] = useState<Organization | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -3020,15 +3029,17 @@ export function AdminOrganizationsWorkspace() {
     return `${item.name} ${typeStr} ${item.district || ""} ${statusStr}`.toLowerCase().includes(search.toLowerCase());
   });
 
-return (
+  return (
     <WorkspaceShell
       eyebrow="Portal Admin"
       title="Government Departments"
-      description="Review government department organizations in this portal instance and manage onboarding status."
+      description="Review government department organizations in this portal instance and view statutory details."
       actions={
-        <Button onClick={() => setCreateModalOpen(true)} className="w-full sm:w-auto justify-center">
-          <Plus size={16} className="mr-1.5 inline" /> Add Department
-        </Button>
+        canManage ? (
+          <Button onClick={() => setCreateModalOpen(true)} className="w-full sm:w-auto justify-center font-bold">
+            <Plus size={16} className="mr-1.5 inline" /> Add Department
+          </Button>
+        ) : null
       }
     >
       <ErrorBox error={error} />
@@ -3070,7 +3081,7 @@ return (
                           {item.name}
                         </Link>
                         <div className="text-xs font-medium text-gov-muted break-all">
-                          {item.email || "-"}
+                          {item.email || item.officialEmail || "-"}
                         </div>
                       </div>
                     </td>
@@ -3086,33 +3097,49 @@ return (
                     <td data-label="Status" className="flex md:table-cell justify-between items-center px-4 md:px-5 py-3.5 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-bold before:text-slate-400 before:md:hidden text-right md:text-left">
                       <Badge>{item.status || "ACTIVE"}</Badge>
                     </td>
-                 <td className="block md:table-cell px-4 md:px-5 py-3.5 md:py-4 text-right bg-slate-50/50 md:bg-transparent">
-  <div className="flex flex-wrap md:flex-nowrap justify-end items-center gap-2 md:min-w-max">
-    <Button 
-      size="sm" 
-      className="w-full md:w-auto justify-center text-xs whitespace-nowrap" 
-      onClick={() => action(item.id, "approve")}
-    >
-      Approve
-    </Button>
-    <Button 
-      size="sm" 
-      variant="secondary" 
-      className="w-full md:w-auto justify-center text-xs whitespace-nowrap" 
-      onClick={() => action(item.id, "request-clarification")}
-    >
-      Clarify
-    </Button>
-    <Button 
-      size="sm" 
-      variant="danger" 
-      className="w-full md:w-auto justify-center text-xs whitespace-nowrap" 
-      onClick={() => action(item.id, "suspend")}
-    >
-      Suspend
-    </Button>
-  </div>
-</td>
+                    <td className="block md:table-cell px-4 md:px-5 py-3.5 md:py-4 text-right bg-slate-50/50 md:bg-transparent">
+                      <div className="flex flex-wrap md:flex-nowrap justify-end items-center gap-2 md:min-w-max">
+                        {/* Eye Button: View Details Modal or Full Profile */}
+                        <button
+                          type="button"
+                          onClick={() => setViewingOrg(item)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50/80 hover:bg-blue-100 text-blue-900 font-bold text-xs shadow-2xs transition-colors cursor-pointer"
+                          title="View organization profile & details"
+                        >
+                          <Eye size={14} className="text-blue-700" />
+                          <span>View Details</span>
+                        </button>
+
+                        {/* Administrative action buttons only visible to authorized approvers */}
+                        {canApprove && (
+                          <>
+                            <Button 
+                              size="sm" 
+                              className="w-full md:w-auto justify-center text-xs whitespace-nowrap bg-emerald-600 hover:bg-emerald-700 text-white font-bold" 
+                              onClick={() => action(item.id, "approve")}
+                            >
+                              Approve
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="secondary" 
+                              className="w-full md:w-auto justify-center text-xs whitespace-nowrap font-bold" 
+                              onClick={() => action(item.id, "request-clarification")}
+                            >
+                              Clarify
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="danger" 
+                              className="w-full md:w-auto justify-center text-xs whitespace-nowrap font-bold" 
+                              onClick={() => action(item.id, "suspend")}
+                            >
+                              Suspend
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))
               )}
@@ -3120,6 +3147,95 @@ return (
           </table>
         </div>
       </section>
+
+      {/* QUICK VIEW ORGANIZATION MODAL */}
+      <GovModal
+        open={Boolean(viewingOrg)}
+        onClose={() => setViewingOrg(null)}
+        title={viewingOrg?.name || "Organization Details"}
+        width={650}
+      >
+        {viewingOrg && (
+          <div className="space-y-4 text-xs">
+            {/* Header Badge */}
+            <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-blue-100 text-blue-800">
+                  <Building2 size={22} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">{viewingOrg.name}</h3>
+                  <span className="text-[11px] text-slate-500 font-mono">
+                    {viewingOrg.officialEmail || viewingOrg.email || "No email registered"}
+                  </span>
+                </div>
+              </div>
+              <Badge>{viewingOrg.onboardingStatus || viewingOrg.status || "ACTIVE"}</Badge>
+            </div>
+
+            {/* Profile Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 p-3.5 rounded-xl border border-slate-200/80 bg-white">
+              <div>
+                <span className="text-slate-400 block font-bold text-[10px] uppercase">Organization Type</span>
+                <span className="font-semibold text-slate-800">
+                  {String(viewingOrg.organizationType || viewingOrg.kind || "GOVERNMENT_DEPARTMENT").replace(/_/g, " ")}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block font-bold text-[10px] uppercase">Assigned District</span>
+                <span className="font-semibold text-slate-800">
+                  {viewingOrg.district || "Statewide / Mantralaya"}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block font-bold text-[10px] uppercase">Official Contact</span>
+                <span className="font-semibold text-slate-800">
+                  {viewingOrg.phone || "-"}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block font-bold text-[10px] uppercase">Registration / Code</span>
+                <span className="font-mono font-semibold text-slate-800">
+                  {viewingOrg.registrationNumber || viewingOrg.cin || viewingOrg.pan || "-"}
+                </span>
+              </div>
+              {viewingOrg.address && (
+                <div className="sm:col-span-2">
+                  <span className="text-slate-400 block font-bold text-[10px] uppercase">Registered Address</span>
+                  <span className="font-semibold text-slate-800">
+                    {viewingOrg.address}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Read-Only Notice for RM */}
+            <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3 text-[11px] text-blue-900 flex items-start gap-2.5">
+              <Eye size={16} className="text-blue-700 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-blue-950">Read-Only Operational View</p>
+                <p className="text-blue-800 mt-0.5">
+                  Relationship Managers have full read-only visibility into statutory profiles, contact details, and department allocations.
+                </p>
+              </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex items-center justify-between pt-3 border-t border-slate-200">
+              <Link
+                href={`/admin/organizations/${viewingOrg.id}`}
+                className="inline-flex items-center gap-1.5 text-blue-700 hover:text-blue-900 font-bold text-xs"
+              >
+                <span>Open Full Verification Profile</span>
+                <ExternalLink size={13} />
+              </Link>
+              <Button type="button" variant="secondary" onClick={() => setViewingOrg(null)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
+      </GovModal>
 
       {/* CREATE DEPARTMENT MODAL */}
       <GovModal open={createModalOpen} onClose={() => setCreateModalOpen(false)} title="Add Government Department" width={560}>
@@ -3170,6 +3286,9 @@ return (
 }
 
 export function AdminOrganizationDetailsWorkspace({ organizationId }: { organizationId: string }) {
+  const { isAdmin, hasPermission } = useAuthStore();
+  const canApprove = isAdmin || hasPermission("organization:approve");
+
   const [organization, setOrganization] = useState<any | null>(null);
   const [error, setError] = useState("");
 
@@ -3643,78 +3762,95 @@ return (
             {/* Right 1 Column: Documents & Decision Actions */}
             <div className="space-y-4 lg:space-y-6">
               
-              {/* Approval Decision Controls */}
-              <div className="rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-4 md:p-6 shadow-xs space-y-4">
-                <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-3 flex items-center justify-between">
-                  <span>Decision Controls</span>
-                  {(org.onboardingStatus === "APPROVED" || org.status === "ACTIVE" || org.onboardingStatus === "ACTIVE") && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold border border-emerald-300 ml-2">
-                      ✓ APPROVED
-                    </span>
-                  )}
-                </h3>
-                <div className="flex flex-col gap-2.5">
-                  {(org.onboardingStatus === "APPROVED" || org.status === "ACTIVE" || org.onboardingStatus === "ACTIVE") ? (
-                    <div className="w-full rounded-xl bg-emerald-50 border border-emerald-200/90 p-3.5 text-center text-xs font-extrabold text-emerald-800 flex items-center justify-center gap-2 shadow-2xs">
-                      <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
-                      Approved & Active
-                    </div>
-                  ) : (
-                    <Button
-                      onClick={() => executeAction("approve")}
-                      loading={actionLoading && activeAction === "approve"}
-                      disabled={actionLoading}
-                      className="w-full justify-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 shadow-2xs cursor-pointer"
-                    >
-                      <CheckCircle2 size={16} className="mr-1.5 shrink-0" /> Approve & Activate
-                    </Button>
-                  )}
+              {/* Approval Decision Controls or Read-Only Status */}
+              {canApprove ? (
+                <div className="rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-4 md:p-6 shadow-xs space-y-4">
+                  <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-3 flex items-center justify-between">
+                    <span>Decision Controls</span>
+                    {(org.onboardingStatus === "APPROVED" || org.status === "ACTIVE" || org.onboardingStatus === "ACTIVE") && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold border border-emerald-300 ml-2">
+                        ✓ APPROVED
+                      </span>
+                    )}
+                  </h3>
+                  <div className="flex flex-col gap-2.5">
+                    {(org.onboardingStatus === "APPROVED" || org.status === "ACTIVE" || org.onboardingStatus === "ACTIVE") ? (
+                      <div className="w-full rounded-xl bg-emerald-50 border border-emerald-200/90 p-3.5 text-center text-xs font-extrabold text-emerald-800 flex items-center justify-center gap-2 shadow-2xs">
+                        <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+                        Approved & Active
+                      </div>
+                    ) : (
+                      <Button
+                        onClick={() => executeAction("approve")}
+                        loading={actionLoading && activeAction === "approve"}
+                        disabled={actionLoading}
+                        className="w-full justify-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 shadow-2xs cursor-pointer"
+                      >
+                        <CheckCircle2 size={16} className="mr-1.5 shrink-0" /> Approve & Activate
+                      </Button>
+                    )}
 
-                  <Button
-                    variant="secondary"
-                    onClick={() => openActionModal("request-clarification")}
-                    loading={actionLoading && activeAction === "request-clarification"}
-                    disabled={actionLoading}
-                    className="w-full justify-center font-bold cursor-pointer text-center text-xs sm:text-sm py-2.5"
-                  >
-                    <FileText size={16} className="mr-1.5 text-amber-600 shrink-0" /> Request Clarification
-                  </Button>
-
-                  {(org.onboardingStatus === "REJECTED" || org.status === "REJECTED") ? (
-                    <div className="w-full rounded-xl bg-rose-50 border border-rose-200 p-3.5 text-center text-xs font-extrabold text-rose-800 flex items-center justify-center gap-2">
-                      <XCircle size={16} className="text-rose-600 shrink-0" />
-                      Application Rejected
-                    </div>
-                  ) : (
-                    <Button
-                      variant="danger"
-                      onClick={() => openActionModal("reject")}
-                      loading={actionLoading && activeAction === "reject"}
-                      disabled={actionLoading}
-                      className="w-full justify-center font-bold cursor-pointer py-2.5"
-                    >
-                      Reject Application
-                    </Button>
-                  )}
-
-                  {(org.onboardingStatus === "SUSPENDED" || org.status === "SUSPENDED") ? (
-                    <div className="w-full rounded-xl bg-slate-100 border border-slate-300 p-3.5 text-center text-xs font-extrabold text-slate-700 flex items-center justify-center gap-2">
-                      <AlertCircle size={16} className="text-slate-500 shrink-0" />
-                      Access Suspended
-                    </div>
-                  ) : (
                     <Button
                       variant="secondary"
-                      onClick={() => openActionModal("suspend")}
-                      loading={actionLoading && activeAction === "suspend"}
+                      onClick={() => openActionModal("request-clarification")}
+                      loading={actionLoading && activeAction === "request-clarification"}
                       disabled={actionLoading}
-                      className="w-full justify-center font-bold text-slate-600 cursor-pointer py-2.5"
+                      className="w-full justify-center font-bold cursor-pointer text-center text-xs sm:text-sm py-2.5"
                     >
-                      Suspend Organization
+                      <FileText size={16} className="mr-1.5 text-amber-600 shrink-0" /> Request Clarification
                     </Button>
-                  )}
+
+                    {(org.onboardingStatus === "REJECTED" || org.status === "REJECTED") ? (
+                      <div className="w-full rounded-xl bg-rose-50 border border-rose-200 p-3.5 text-center text-xs font-extrabold text-rose-800 flex items-center justify-center gap-2">
+                        <XCircle size={16} className="text-rose-600 shrink-0" />
+                        Application Rejected
+                      </div>
+                    ) : (
+                      <Button
+                        variant="danger"
+                        onClick={() => openActionModal("reject")}
+                        loading={actionLoading && activeAction === "reject"}
+                        disabled={actionLoading}
+                        className="w-full justify-center font-bold cursor-pointer py-2.5"
+                      >
+                        Reject Application
+                      </Button>
+                    )}
+
+                    {(org.onboardingStatus === "SUSPENDED" || org.status === "SUSPENDED") ? (
+                      <div className="w-full rounded-xl bg-slate-100 border border-slate-300 p-3.5 text-center text-xs font-extrabold text-slate-700 flex items-center justify-center gap-2">
+                        <AlertCircle size={16} className="text-slate-500 shrink-0" />
+                        Access Suspended
+                      </div>
+                    ) : (
+                      <Button
+                        variant="secondary"
+                        onClick={() => openActionModal("suspend")}
+                        loading={actionLoading && activeAction === "suspend"}
+                        disabled={actionLoading}
+                        className="w-full justify-center font-bold text-slate-600 cursor-pointer py-2.5"
+                      >
+                        Suspend Organization
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="rounded-2xl border border-slate-200/90 bg-white p-4 md:p-5 shadow-xs space-y-3">
+                  <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2.5 flex items-center justify-between">
+                    <span>Verification Status</span>
+                    <Badge>{org.onboardingStatus || org.status || "ACTIVE"}</Badge>
+                  </h3>
+                  <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200 text-xs text-blue-950 leading-relaxed space-y-1.5">
+                    <p className="font-bold flex items-center gap-1.5 text-blue-900">
+                      <Eye size={15} className="text-blue-700" /> Read-Only Verification Access
+                    </p>
+                    <p className="text-[11px] text-blue-800">
+                      Relationship Managers have full read-only visibility into statutory records, CSR preferences, and contact directories. Administrative onboarding approvals are handled by the State CSR Cell authority.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Remarks History Banner */}
               {(org.clarificationRemarks || org.rejectionReason) && (
