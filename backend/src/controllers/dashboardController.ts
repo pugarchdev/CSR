@@ -339,26 +339,78 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
       // ─────────────────────────────────────────────────────────────────────────────
       else if (roleId === 6) {
         const staleAt = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        const startOfWeek = new Date();
+        startOfWeek.setHours(0, 0, 0, 0);
+        startOfWeek.setDate(startOfWeek.getDate() - ((startOfWeek.getDay() + 6) % 7));
+
         const base = { assignedRmId: userId };
-        const [activeCases, uncontacted, assessmentsDue, clarifications, overdueCases, staleCases, submittedJs] = await Promise.all([
+        const [
+          activeCases,
+          uncontacted,
+          assessmentsDue,
+          clarifications,
+          overdueCases,
+          staleCases,
+          submittedAssessments,
+          caseInteractionsCount,
+          appInteractionsCount
+        ] = await Promise.all([
           prisma.portalCase.count({ where: { ...base, status: { in: ACTIVE_CASES } } }),
           prisma.portalCase.count({ where: { ...base, status: { in: ACTIVE_CASES }, firstContactedAt: null } }),
           prisma.portalCase.count({ where: { ...base, currentStage: "RM_FEASIBILITY", status: { in: ACTIVE_CASES } } }),
           prisma.portalCase.count({ where: { ...base, status: { in: ["CLARIFICATION_REQUIRED", "JS_CLARIFICATION"] } } }),
           prisma.sLAEscalation.count({ where: { responsibleUserId: userId, isResolved: false, dueDate: { lt: now } } }),
           prisma.portalCase.count({ where: { ...base, status: { in: ACTIVE_CASES }, OR: [{ lastInteractionAt: { lt: staleAt } }, { lastInteractionAt: null, createdAt: { lt: staleAt } }] } }),
-          prisma.caseFeasibilityAssessment.count({ where: { assessedByUserId: userId, status: "SUBMITTED_TO_JS" } }),
+          prisma.caseFeasibilityAssessment.findMany({
+            where: { assessedByUserId: userId, status: { in: ["SUBMITTED_TO_JS", "JS_APPROVED", "JS_REJECTED"] } },
+            select: { submittedAt: true, createdAt: true, case: { select: { createdAt: true } } },
+          }),
+          prisma.caseInteraction.count({
+            where: {
+              OR: [
+                { actorUserId: userId },
+                { case: { assignedRmId: userId } }
+              ],
+              occurredAt: { gte: startOfWeek }
+            }
+          }),
+          prisma.applicationInteraction.count({
+            where: {
+              actorUserId: userId,
+              occurredAt: { gte: startOfWeek }
+            }
+          }),
         ]);
+
+        const submittedJsCount = submittedAssessments.length;
+        let avgCycleTime = "0 Days";
+        if (submittedAssessments.length > 0) {
+          let totalDays = 0;
+          let counted = 0;
+          for (const a of submittedAssessments) {
+            const start = a.case?.createdAt || a.createdAt;
+            const end = a.submittedAt || a.createdAt;
+            const diffDays = Math.max(0, (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+            totalDays += diffDays;
+            counted++;
+          }
+          if (counted > 0) {
+            const avg = (totalDays / counted).toFixed(1);
+            avgCycleTime = `${avg} Days`;
+          }
+        }
+
+        const weeklyInteractions = caseInteractionsCount + appInteractionsCount;
 
         kpis = [
           createKpi("rm_active_cases", "Active Assigned Cases", activeCases, "number", "/rm?scope=active", "Open enquiries, pitches and interests in your portfolio", "positive"),
           createKpi("rm_pending_assessments", "Feasibility Pending", assessmentsDue, "number", "/assessments?owner=me", "Cases requiring 13-point feasibility evaluation", assessmentsDue > 0 ? "warning" : "positive"),
           createKpi("rm_sla_at_risk", "SLA at Risk / Overdue", overdueCases, "number", "/escalations?owner=me", "Assigned cases approaching turnaround limit", overdueCases > 0 ? "critical" : "positive"),
-          createKpi("rm_avg_cycle_time", "Avg Processing Time", "5.4 Days", "duration", "/reports", "Average days from assignment to JS recommendation", "positive"),
+          createKpi("rm_avg_cycle_time", "Avg Processing Time", avgCycleTime, "duration", "/reports", "Average days from assignment to JS recommendation", "positive"),
           createKpi("rm_interactions_due", "Stale / Uncontacted", uncontacted + staleCases, "number", "/rm?contacted=false", "Assigned cases with no interaction in 7+ days", (uncontacted + staleCases) > 0 ? "warning" : "positive"),
-          createKpi("rm_meetings_week", "Interactions & Calls", 8, "number", "/interactions", "Logged stakeholder meetings and follow-ups this week", "neutral"),
+          createKpi("rm_meetings_week", "Interactions & Calls", weeklyInteractions, "number", "/interactions", "Logged stakeholder meetings and follow-ups this week", "neutral"),
           createKpi("rm_pitch_verification", "Clarifications Returned", clarifications, "number", "/rm?status=clarification", "Pitches and enquiries returned requiring coordination", clarifications > 0 ? "warning" : "positive"),
-          createKpi("rm_submitted_to_js", "Submitted to JS", submittedJs, "number", "/assessments", "Assessments completed and recommended to Joint Secretary", "positive"),
+          createKpi("rm_submitted_to_js", "Submitted to JS", submittedJsCount, "number", "/assessments", "Assessments completed and recommended to Joint Secretary", "positive"),
         ];
 
         // RM Work Queue
