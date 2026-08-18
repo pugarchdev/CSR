@@ -194,10 +194,17 @@ export const listCorporateEnquiries = async (req: AuthenticatedRequest, res: Res
     const user = req.user;
     if (!user) return res.status(401).json({ error: "Unauthorized" });
 
-    const roleIdNum = Number(user.roleId || user.role);
-    const isRM = roleIdNum === ROLE_ID.RELATIONSHIP_MANAGER || String(user.roleId) === String(ROLE_ID.RELATIONSHIP_MANAGER);
-    const isSuperAdmin = roleIdNum === ROLE_ID.SUPER_ADMIN || String(user.role) === "SUPER_ADMIN";
-    const isGovAdmin = ([ROLE_ID.PLANNING_SECRETARY, ROLE_ID.JOINT_SECRETARY, ROLE_ID.DISTRICT_NODAL_OFFICER, ROLE_ID.DISTRICT_NODAL_CONSULTANT, ROLE_ID.GOVERNMENT_OFFICER] as number[]).includes(roleIdNum);
+    const roleIdNum = Number(user.roleId);
+    const roleStr = String(user.role || "").toUpperCase();
+    const roleSlugStr = String(user.roleSlug || "").toLowerCase();
+    const isRM = roleIdNum === ROLE_ID.RELATIONSHIP_MANAGER || 
+      String(user.roleId) === String(ROLE_ID.RELATIONSHIP_MANAGER) || 
+      roleStr.includes("RELATIONSHIP_MANAGER") || 
+      roleStr === "RM" || 
+      roleSlugStr.includes("relationship-manager");
+    const isSuperAdmin = roleIdNum === ROLE_ID.SUPER_ADMIN || roleStr.includes("SUPER_ADMIN");
+    const isGovAdmin = ([ROLE_ID.PLANNING_SECRETARY, ROLE_ID.JOINT_SECRETARY, ROLE_ID.DISTRICT_NODAL_OFFICER, ROLE_ID.DISTRICT_NODAL_CONSULTANT, ROLE_ID.GOVERNMENT_OFFICER] as number[]).includes(roleIdNum) ||
+      roleStr.includes("SECRETARY") || roleStr.includes("GOVERNMENT_OFFICER");
 
     let where: any = {};
     if (isRM) {

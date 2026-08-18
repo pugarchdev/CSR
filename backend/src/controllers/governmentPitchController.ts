@@ -194,10 +194,17 @@ export const listGovernmentPitches = async (req: AuthenticatedRequest, res: Resp
     const user = req.user;
     if (!user) return res.status(401).json({ error: "Unauthorized" });
 
-    const roleIdNum = Number(user.roleId || user.role);
-    const isRM = roleIdNum === ROLE_ID.RELATIONSHIP_MANAGER || String(user.roleId) === String(ROLE_ID.RELATIONSHIP_MANAGER);
-    const isSuperAdmin = roleIdNum === ROLE_ID.SUPER_ADMIN || String(user.role) === "SUPER_ADMIN";
-    const isStateAdmin = ([ROLE_ID.PLANNING_SECRETARY, ROLE_ID.JOINT_SECRETARY] as number[]).includes(roleIdNum);
+    const roleIdNum = Number(user.roleId);
+    const roleStr = String(user.role || "").toUpperCase();
+    const roleSlugStr = String(user.roleSlug || "").toLowerCase();
+    const isRM = roleIdNum === ROLE_ID.RELATIONSHIP_MANAGER || 
+      String(user.roleId) === String(ROLE_ID.RELATIONSHIP_MANAGER) || 
+      roleStr.includes("RELATIONSHIP_MANAGER") || 
+      roleStr === "RM" || 
+      roleSlugStr.includes("relationship-manager");
+    const isSuperAdmin = roleIdNum === ROLE_ID.SUPER_ADMIN || roleStr.includes("SUPER_ADMIN");
+    const isStateAdmin = ([ROLE_ID.PLANNING_SECRETARY, ROLE_ID.JOINT_SECRETARY] as number[]).includes(roleIdNum) ||
+      roleStr.includes("SECRETARY");
     const isDeptOfficer = roleIdNum === ROLE_ID.GOVERNMENT_OFFICER || user.organization?.kind === "GOVERNMENT_DEPARTMENT";
 
     let where: any = {};
