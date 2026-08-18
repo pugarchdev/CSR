@@ -13,6 +13,7 @@ import {
   FileText, 
   Loader2, 
   MapPin, 
+  Search,
   ShieldCheck, 
   Target, 
   UserCheck 
@@ -126,48 +127,57 @@ export default function CompaniesPage() {
       />
 
       <div className="gov-container !px-2 sm:!px-4 md:!px-6 space-y-4">
-        {/* Sleek Search & Filters Bar */}
-        <GovCard className="overflow-hidden shadow-xs border border-slate-200/80">
-          <GovCardBody className="!p-3.5 sm:!p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-center">
-              <GovInput
-                label="Search Company"
-                placeholder="Search by name, legal entity or CIN..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <GovSelect
-                label="Status"
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  setPage(1);
-                }}
-              >
-                <option value="all">All Status</option>
-                <option value="Active">Active</option>
-                <option value="Under Review">Under Review</option>
-                <option value="Suspended">Suspended</option>
-              </GovSelect>
-              <GovSelect
-                label="Sector"
-                value={sectorFilter}
-                onChange={(e) => {
-                  setSectorFilter(e.target.value);
-                  setPage(1);
-                }}
-              >
-                <option value="all">All Focus Sectors</option>
-                <option value="Education">Education & Skill Development</option>
-                <option value="Healthcare">Healthcare & Sanitation</option>
-                <option value="Rural Development">Rural Development</option>
-                <option value="Environment">Environment & Water Conservation</option>
-                <option value="Manufacturing">Manufacturing</option>
-                <option value="IT Services">IT Services</option>
-              </GovSelect>
-            </div>
-          </GovCardBody>
-        </GovCard>
+        {/* Sleek Single-Row Search & Filters Bar */}
+        <div className="flex flex-col md:flex-row items-center gap-2.5 p-2.5 sm:p-3 bg-white rounded-2xl border border-slate-200/90 shadow-2xs">
+          {/* Search Input */}
+          <div className="relative flex-1 w-full">
+            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search company by name, legal entity or CIN..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 text-xs md:text-sm rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all font-medium"
+            />
+          </div>
+
+          {/* Status Filter */}
+          <div className="w-full md:w-44">
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
+              className="w-full px-3 py-2 text-xs md:text-sm rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all font-medium cursor-pointer"
+            >
+              <option value="all">All Status</option>
+              <option value="Active">Active</option>
+              <option value="Under Review">Under Review</option>
+              <option value="Suspended">Suspended</option>
+            </select>
+          </div>
+
+          {/* Sector Filter */}
+          <div className="w-full md:w-56">
+            <select
+              value={sectorFilter}
+              onChange={(e) => {
+                setSectorFilter(e.target.value);
+                setPage(1);
+              }}
+              className="w-full px-3 py-2 text-xs md:text-sm rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all font-medium cursor-pointer"
+            >
+              <option value="all">All Focus Sectors</option>
+              <option value="Education">Education & Skill Development</option>
+              <option value="Healthcare">Healthcare & Sanitation</option>
+              <option value="Rural Development">Rural Development</option>
+              <option value="Environment">Environment & Water Conservation</option>
+              <option value="Manufacturing">Manufacturing</option>
+              <option value="IT Services">IT Services</option>
+            </select>
+          </div>
+        </div>
 
         {/* Responsive Companies Directory Table */}
         <GovCard className="overflow-hidden shadow-xs border border-slate-200/80">
