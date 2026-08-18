@@ -92,6 +92,7 @@ export class RmAssignmentService {
           const minWorkload = eligibleRms.length
             ? Math.min(...eligibleRms.map((rm) => workloadMap.get(rm.id) || 0))
             : null;
+
           const tiedIds = minWorkload == null
             ? []
             : eligibleRms
@@ -99,7 +100,7 @@ export class RmAssignmentService {
                 .map((rm) => rm.id)
                 .sort();
 
-          const cursor = await tx.rmAllocationCursor.findUnique({ where: { poolKey: "GLOBAL" } });
+          const cursor = await (tx as any).rmAllocationCursor?.findUnique({ where: { poolKey: "GLOBAL" } });
           let selectedRmId: string | null = null;
           if (tiedIds.length > 0) {
             const lastIndex = cursor?.lastSelectedUserId ? tiedIds.indexOf(cursor.lastSelectedUserId) : -1;
@@ -110,23 +111,25 @@ export class RmAssignmentService {
             } else {
               selectedRmId = tiedIds[0];
             }
-            await tx.rmAllocationCursor.upsert({
-              where: { poolKey: "GLOBAL" },
-              create: { poolKey: "GLOBAL", lastSelectedUserId: selectedRmId, sequence: 1n },
-              update: { lastSelectedUserId: selectedRmId, sequence: { increment: 1n } },
-            });
+            if ((tx as any).rmAllocationCursor) {
+              await (tx as any).rmAllocationCursor.upsert({
+                where: { poolKey: "GLOBAL" },
+                create: { poolKey: "GLOBAL", lastSelectedUserId: selectedRmId, sequence: 1n },
+                update: { lastSelectedUserId: selectedRmId, sequence: { increment: 1n } },
+              });
+            }
           }
 
-          if (params.caseId) {
-            const trackedCase = await tx.portalCase.findUnique({ where: { id: params.caseId }, select: { id: true } });
+          if (params.caseId && (tx as any).portalCase && (tx as any).rmAllocationEvent) {
+            const trackedCase = await (tx as any).portalCase.findUnique({ where: { id: params.caseId }, select: { id: true } });
             if (!trackedCase) throw new Error("Tracked case not found for RM allocation");
-            await tx.portalCase.update({
+            await (tx as any).portalCase.update({
               where: { id: params.caseId },
               data: selectedRmId
                 ? { assignedRmId: selectedRmId, currentStage: "RM_REVIEW", status: "SUBMITTED" }
                 : { assignedRmId: null, currentStage: "RM_ALLOCATION", status: "UNASSIGNED" },
             });
-            await tx.rmAllocationEvent.create({
+            await (tx as any).rmAllocationEvent.create({
               data: {
                 caseId: params.caseId,
                 selectedRmId,
@@ -141,7 +144,11 @@ export class RmAssignmentService {
           }
 
           return selectedRmId;
-        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+        }, { 
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          maxWait: 15000,
+          timeout: 30000
+        });
       } catch (error: any) {
         if (error?.code === "P2034" && attempt < 2) continue;
         throw error;

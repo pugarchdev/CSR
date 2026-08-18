@@ -333,7 +333,8 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
         ((pathname === "/ngo" || pathname.startsWith("/ngo/")) && hasAnyAllowedRole(["NGO_ADMIN", "NGO_MEMBER", "SUPER_ADMIN"])) ||
         (pathname.startsWith("/district") && hasAnyAllowedRole(["DISTRICT_ADMIN", "SUPER_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN"])) ||
         (pathname.startsWith("/organization") && hasAnyAllowedRole(["GOVERNMENT_OFFICER", "BENEFICIARY_AGENCY", "COMPANY_ADMIN", "COMPANY_MEMBER", "CORPORATE_USER", "NGO_ADMIN", "NGO_MEMBER", "DISTRICT_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN", "SUPER_ADMIN", "JOINT_SECRETARY", "PLANNING_SECRETARY", "CSR_RELATIONSHIP_MANAGER", "DISTRICT_NODAL_OFFICER", "NODAL_OFFICER", "STATE_CSR_CELL"])) ||
-        (pathname.startsWith("/admin") && hasAnyAllowedRole(["SUPER_ADMIN", "DISTRICT_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN", "JOINT_SECRETARY", "PLANNING_SECRETARY"])) ||
+        ((pathname.startsWith("/admin") && !pathname.startsWith("/admin/sla-config")) && hasAnyAllowedRole(["SUPER_ADMIN", "DISTRICT_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN", "JOINT_SECRETARY", "PLANNING_SECRETARY"])) ||
+        (pathname.startsWith("/admin/sla-config") && hasAnyAllowedRole(["SUPER_ADMIN", "DISTRICT_ADMIN", "PORTAL_ADMIN", "CSR_ADMIN", "JOINT_SECRETARY", "PLANNING_SECRETARY", "GOVERNMENT_OFFICER"])) ||
         ((pathname.startsWith("/beneficiary") || pathname.startsWith("/department")) && hasAnyAllowedRole(["GOVERNMENT_OFFICER", "BENEFICIARY_AGENCY", "SUPER_ADMIN"])) ||
         (pathname.startsWith("/rm") && hasAnyAllowedRole(["CSR_RELATIONSHIP_MANAGER", "JOINT_SECRETARY", "PLANNING_SECRETARY", "SUPER_ADMIN"])) ||
         (pathname.startsWith("/js") && hasAnyAllowedRole(["JOINT_SECRETARY", "PLANNING_SECRETARY", "SUPER_ADMIN"])) ||

@@ -12,6 +12,7 @@ import GovAlert from "@/components/gov/GovAlert";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import GovPageHeader from "@/components/layout/GovPageHeader";
 import { Modal } from "@/components/ui/Modal";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Handshake, CheckCircle, Copy, ArrowLeft, ChevronDown, X,
   Search, ShieldCheck, CheckCircle2, Edit3, Paperclip, FileText, AlertCircle, Clock
@@ -212,6 +213,7 @@ interface FormErrors {
 
 export default function CreateCorporateEnquiryPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const user = useAuthStore((s: any) => s.user);
   const roles = useAuthStore((s: any) => s.roles);
   const activeRoles = (roles || []).length > 0 ? roles : (user?.role ? [user.role] : []);
@@ -515,6 +517,9 @@ export default function CreateCorporateEnquiryPage() {
       const data = response?.data || response;
       setReferenceId(data?.trackingId || data?.id || `ENQ-${Date.now().toString().slice(-5)}`);
       setSubmitted(true);
+      
+      // Invalidate the cache so the list reflects the new enquiry immediately
+      queryClient.invalidateQueries({ queryKey: ["corporate-enquiries"] });
     } catch (err) {
       setErrors({ submit: err instanceof Error ? err.message : "Failed to submit corporate enquiry" });
     } finally {

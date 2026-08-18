@@ -80,6 +80,13 @@ export default function OrganizationOnboardingPage() {
     apiFetch<any>("/onboarding/status")
       .then((res) => {
         const org = res?.data || res || {};
+        
+        const currentStatus = (org.onboardingStatus || org.status || "").toUpperCase();
+        if (currentStatus && currentStatus !== "PROFILE_INCOMPLETE" && currentStatus !== "DOCUMENTS_PENDING") {
+          router.replace("/organization/onboarding/status");
+          return;
+        }
+
         routeToTypeForm(org.kind || org.organizationType);
       })
       .catch(() => {
