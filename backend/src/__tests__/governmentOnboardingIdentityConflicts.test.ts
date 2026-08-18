@@ -17,7 +17,7 @@ jest.mock("../services/otpService", () => ({
   verifyOtp: jest.fn(),
 }));
 
-jest.mock("../services/emailService", () => ({ sendUserInvitationEmail: jest.fn() }));
+jest.mock("../services/emailService", () => ({ sendUserInvitationEmail: jest.fn().mockResolvedValue(true) }));
 jest.mock("bcryptjs", () => ({ __esModule: true, default: { hash: jest.fn().mockResolvedValue("password-hash") } }));
 
 const mockFindFirst = prisma.user.findFirst as jest.Mock;
@@ -106,4 +106,39 @@ describe("Government onboarding identity conflict handling", () => {
     expect(res.json).toHaveBeenCalledWith({ error: expect.stringContaining("press Verify again") });
     expect(next).not.toHaveBeenCalled();
   });
+
+  it("successfully registers when nodal officer is null", async () => {
+    mockFindFirst.mockResolvedValue(null);
+    mockVerifyOtp.mockResolvedValue({ verificationToken: "verified" });
+    mockTransaction.mockImplementation(async (cb) => {
+      const tx = {
+        organization: {
+          create: jest.fn().mockResolvedValue({ id: "org-1" }),
+          update: jest.fn().mockResolvedValue({ id: "org-1" }),
+        },
+        user: {
+          create: jest.fn().mockResolvedValue({ id: "user-head" }),
+        },
+        organizationMembership: {
+          create: jest.fn().mockResolvedValue({ id: "mem-1" }),
+        },
+        governmentOnboardingApplication: {
+          create: jest.fn().mockResolvedValue({ id: "app-1", status: "DRAFT" }),
+        },
+        auditLog: {
+          create: jest.fn().mockResolvedValue({ id: "log-1" }),
+        },
+      };
+      return cb(tx);
+    });
+    const res = response();
+    const next = jest.fn();
+
+    await registerMainGovernmentOrganization({ body: registrationBody({ nodal: null }) } as any, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true, organizationId: "org-1" }));
+    expect(next).not.toHaveBeenCalled();
+  });
 });
+
