@@ -13,6 +13,7 @@ import {
   Building2, ShieldCheck, CheckCircle2, Award,
   MapPin, Mail, Phone, Globe, ExternalLink
 } from "lucide-react";
+import { useAuthStore } from "@/store/authStore";
 
 interface AgencyItem {
   id: string;
@@ -124,6 +125,9 @@ const defaultAgencies: AgencyItem[] = [
 ];
 
 export default function AgenciesPage() {
+  const { user } = useAuthStore();
+  const isRm = user?.role === "RELATIONSHIP_MANAGER" || user?.role?.includes("RM");
+
   const { data: envelope } = useApiQuery<any>(
     ["implementing-agencies"],
     "/org?kind=NGO"
@@ -174,36 +178,38 @@ export default function AgenciesPage() {
         description="Statewide registry of NITI Aayog Darpan verified Grassroots NGOs, CSR-1 MCA compliant implementing agencies, and due diligence ledgers."
       />
 
-      {/* Metrics Bar */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard
-          label="Verified Implementing Agencies"
-          value={agenciesList.length}
-          icon={Building2}
-          index={0}
-          colorTheme="blue"
-          badge="Verified Agencies"
-          sublabel="Active agency partners"
-        />
-        <StatCard
-          label="Darpan & CSR-1 Verified"
-          value="100% Verified"
-          icon={ShieldCheck}
-          index={1}
-          colorTheme="emerald"
-          badge="100% Compliant"
-          sublabel="Regulatory cleared"
-        />
-        <StatCard
-          label="Due Diligence Grade"
-          value="Grade A"
-          icon={Award}
-          index={2}
-          colorTheme="purple"
-          badge="High Performance"
-          sublabel="Secretariat vetted"
-        />
-      </div>
+      {/* Metrics Bar - Hidden for RM */}
+      {!isRm && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <StatCard
+            label="Verified Implementing Agencies"
+            value={agenciesList.length}
+            icon={Building2}
+            index={0}
+            colorTheme="blue"
+            badge="Verified Agencies"
+            sublabel="Active agency partners"
+          />
+          <StatCard
+            label="Darpan & CSR-1 Verified"
+            value="100% Verified"
+            icon={ShieldCheck}
+            index={1}
+            colorTheme="emerald"
+            badge="100% Compliant"
+            sublabel="Regulatory cleared"
+          />
+          <StatCard
+            label="Due Diligence Grade"
+            value="Grade A"
+            icon={Award}
+            index={2}
+            colorTheme="purple"
+            badge="High Performance"
+            sublabel="Secretariat vetted"
+          />
+        </div>
+      )}
 
       {/* Main Register Container */}
       <DataView<AgencyItem>

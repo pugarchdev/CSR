@@ -2952,7 +2952,6 @@ export function OrganizationUsersWorkspace() {
 
 export function AdminOrganizationsWorkspace() {
   const { isAdmin, hasPermission } = useAuthStore();
-  const canApprove = isAdmin || hasPermission("organization:approve");
   const canManage = isAdmin || hasPermission("organization:manage-users") || hasPermission("organization:create");
 
   const [items, setItems] = useState<Organization[]>([]);
@@ -2963,6 +2962,8 @@ export function AdminOrganizationsWorkspace() {
   const [creating, setCreating] = useState(false);
   const [deptForm, setDeptForm] = useState({ name: "", email: "", district: "" });
   const [viewingOrg, setViewingOrg] = useState<Organization | null>(null);
+  const [orgDetails, setOrgDetails] = useState<any | null>(null);
+  const [modalLoading, setModalLoading] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -2989,14 +2990,18 @@ export function AdminOrganizationsWorkspace() {
 
   useEffect(() => { load(); }, []);
 
-  const action = async (id: string, type: "approve" | "reject" | "request-clarification" | "suspend") => {
-    const remarks = type === "approve" ? undefined : window.prompt("Remarks or reason") || undefined;
-    if (type !== "approve" && !remarks) return;
-    await apiFetch(`/admin/organizations/${id}/${type}`, {
-      method: "POST",
-      body: JSON.stringify(type === "reject" ? { rejectionReason: remarks } : { remarks })
-    });
-    await load();
+  const handleViewDetails = async (org: Organization) => {
+    setViewingOrg(org);
+    setOrgDetails(null);
+    setModalLoading(true);
+    try {
+      const full = await apiFetch<any>(`/admin/organizations/${org.id}`);
+      setOrgDetails(full);
+    } catch {
+      setOrgDetails(org);
+    } finally {
+      setModalLoading(false);
+    }
   };
 
   const handleCreateDept = async (e: FormEvent) => {
@@ -3098,46 +3103,17 @@ export function AdminOrganizationsWorkspace() {
                       <Badge>{item.status || "ACTIVE"}</Badge>
                     </td>
                     <td className="block md:table-cell px-4 md:px-5 py-3.5 md:py-4 text-right bg-slate-50/50 md:bg-transparent">
-                      <div className="flex flex-wrap md:flex-nowrap justify-end items-center gap-2 md:min-w-max">
-                        {/* Eye Button: View Details Modal or Full Profile */}
+                      <div className="flex justify-end items-center gap-2">
+                        {/* Only View Details button shown in actions column */}
                         <button
                           type="button"
-                          onClick={() => setViewingOrg(item)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50/80 hover:bg-blue-100 text-blue-900 font-bold text-xs shadow-2xs transition-colors cursor-pointer"
-                          title="View organization profile & details"
+                          onClick={() => handleViewDetails(item)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50/90 hover:bg-blue-100 text-blue-900 font-bold text-xs shadow-2xs transition-all hover:scale-[1.02] cursor-pointer"
+                          title="View detailed organization information"
                         >
                           <Eye size={14} className="text-blue-700" />
                           <span>View Details</span>
                         </button>
-
-                        {/* Administrative action buttons only visible to authorized approvers */}
-                        {canApprove && (
-                          <>
-                            <Button 
-                              size="sm" 
-                              className="w-full md:w-auto justify-center text-xs whitespace-nowrap bg-emerald-600 hover:bg-emerald-700 text-white font-bold" 
-                              onClick={() => action(item.id, "approve")}
-                            >
-                              Approve
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="secondary" 
-                              className="w-full md:w-auto justify-center text-xs whitespace-nowrap font-bold" 
-                              onClick={() => action(item.id, "request-clarification")}
-                            >
-                              Clarify
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="danger" 
-                              className="w-full md:w-auto justify-center text-xs whitespace-nowrap font-bold" 
-                              onClick={() => action(item.id, "suspend")}
-                            >
-                              Suspend
-                            </Button>
-                          </>
-                        )}
                       </div>
                     </td>
                   </tr>
@@ -3148,91 +3124,216 @@ export function AdminOrganizationsWorkspace() {
         </div>
       </section>
 
-      {/* QUICK VIEW ORGANIZATION MODAL */}
+      {/* COMPREHENSIVE VIEW ORGANIZATION DETAILS MODAL */}
       <GovModal
         open={Boolean(viewingOrg)}
-        onClose={() => setViewingOrg(null)}
+        onClose={() => { setViewingOrg(null); setOrgDetails(null); }}
         title={viewingOrg?.name || "Organization Details"}
-        width={650}
+        width={720}
       >
         {viewingOrg && (
           <div className="space-y-4 text-xs">
-            {/* Header Badge */}
-            <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-blue-100 text-blue-800">
-                  <Building2 size={22} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 text-sm">{viewingOrg.name}</h3>
-                  <span className="text-[11px] text-slate-500 font-mono">
-                    {viewingOrg.officialEmail || viewingOrg.email || "No email registered"}
-                  </span>
-                </div>
+            {modalLoading ? (
+              <div className="py-12 flex flex-col items-center justify-center gap-3">
+                <Loader2 size={32} className="animate-spin text-blue-600" />
+                <p className="text-xs font-bold text-slate-500">Loading comprehensive organization profile...</p>
               </div>
-              <Badge>{viewingOrg.onboardingStatus || viewingOrg.status || "ACTIVE"}</Badge>
-            </div>
+            ) : (
+              (() => {
+                const data = orgDetails || viewingOrg;
+                const type = String(data.organizationType || data.kind || "GOVERNMENT_DEPARTMENT").replace(/_/g, " ");
+                const govProf = data.govDeptProfile || {};
+                const csrProf = data.csrCompanyProfile || {};
+                const ngoProf = data.ngoProfile || {};
+                const docs = data.documents || [];
 
-            {/* Profile Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 p-3.5 rounded-xl border border-slate-200/80 bg-white">
-              <div>
-                <span className="text-slate-400 block font-bold text-[10px] uppercase">Organization Type</span>
-                <span className="font-semibold text-slate-800">
-                  {String(viewingOrg.organizationType || viewingOrg.kind || "GOVERNMENT_DEPARTMENT").replace(/_/g, " ")}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-400 block font-bold text-[10px] uppercase">Assigned District</span>
-                <span className="font-semibold text-slate-800">
-                  {viewingOrg.district || "Statewide / Mantralaya"}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-400 block font-bold text-[10px] uppercase">Official Contact</span>
-                <span className="font-semibold text-slate-800">
-                  {viewingOrg.phone || "-"}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-400 block font-bold text-[10px] uppercase">Registration / Code</span>
-                <span className="font-mono font-semibold text-slate-800">
-                  {viewingOrg.registrationNumber || viewingOrg.cin || viewingOrg.pan || "-"}
-                </span>
-              </div>
-              {viewingOrg.address && (
-                <div className="sm:col-span-2">
-                  <span className="text-slate-400 block font-bold text-[10px] uppercase">Registered Address</span>
-                  <span className="font-semibold text-slate-800">
-                    {viewingOrg.address}
-                  </span>
-                </div>
-              )}
-            </div>
+                return (
+                  <div className="space-y-4">
+                    {/* Header Card */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-slate-50 border border-slate-200">
+                      <div className="flex items-center gap-3">
+                        <div className="p-3 rounded-xl bg-blue-100 text-blue-800 shrink-0">
+                          <Building2 size={24} />
+                        </div>
+                        <div>
+                          <h3 className="font-heading font-extrabold text-slate-900 text-base">{data.name}</h3>
+                          <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                            <span className="text-[11px] text-slate-500 font-mono">
+                              {data.officialEmail || data.email || "No email registered"}
+                            </span>
+                            {data.phone && (
+                              <span className="text-[11px] text-slate-500 font-mono">
+                                • {data.phone}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge>{data.onboardingStatus || data.status || "ACTIVE"}</Badge>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200">
+                          {type}
+                        </span>
+                      </div>
+                    </div>
 
-            {/* Read-Only Notice for RM */}
-            <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3 text-[11px] text-blue-900 flex items-start gap-2.5">
-              <Eye size={16} className="text-blue-700 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-bold text-blue-950">Read-Only Operational View</p>
-                <p className="text-blue-800 mt-0.5">
-                  Relationship Managers have full read-only visibility into statutory profiles, contact details, and department allocations.
-                </p>
-              </div>
-            </div>
+                    {/* Statutory & Identity Profile */}
+                    <div className="p-4 rounded-xl border border-slate-200/90 bg-white space-y-3">
+                      <h4 className="text-[11px] font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-2">
+                        <ShieldCheck size={15} className="text-purple-600 shrink-0" /> Statutory & Registration Profile
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+                        <div>
+                          <span className="text-slate-400 block font-bold text-[10px] uppercase">Legal Name</span>
+                          <span className="font-bold text-slate-900 break-words">{data.legalName || data.name || "—"}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block font-bold text-[10px] uppercase">Registration / CIN</span>
+                          <span className="font-mono font-semibold text-slate-800 break-all">{data.registrationNumber || data.cin || "—"}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block font-bold text-[10px] uppercase">PAN Number</span>
+                          <span className="font-mono font-semibold text-slate-800">{data.pan || "—"}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block font-bold text-[10px] uppercase">GSTIN Number</span>
+                          <span className="font-mono font-semibold text-slate-800">{data.gstin || "—"}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block font-bold text-[10px] uppercase">Assigned District</span>
+                          <span className="font-semibold text-slate-800">{data.district || "Statewide / Mantralaya"}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block font-bold text-[10px] uppercase">Account Status</span>
+                          <span className="font-bold text-emerald-700">{data.status || "ACTIVE"}</span>
+                        </div>
+                      </div>
+                    </div>
 
-            {/* Footer Buttons */}
-            <div className="flex items-center justify-between pt-3 border-t border-slate-200">
-              <Link
-                href={`/admin/organizations/${viewingOrg.id}`}
-                className="inline-flex items-center gap-1.5 text-blue-700 hover:text-blue-900 font-bold text-xs"
-              >
-                <span>Open Full Verification Profile</span>
-                <ExternalLink size={13} />
-              </Link>
-              <Button type="button" variant="secondary" onClick={() => setViewingOrg(null)}>
-                Close
-              </Button>
-            </div>
+                    {/* Contact & Location Profile */}
+                    <div className="p-4 rounded-xl border border-slate-200/90 bg-white space-y-3">
+                      <h4 className="text-[11px] font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-2">
+                        <MapPin size={15} className="text-blue-600 shrink-0" /> Official Contact & Headquarters Address
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div>
+                          <span className="text-slate-400 block font-bold text-[10px] uppercase">Official Email</span>
+                          <span className="font-bold text-blue-900 break-all">{data.officialEmail || data.email || "—"}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block font-bold text-[10px] uppercase">Official Phone</span>
+                          <span className="font-semibold text-slate-800">{data.phone || data.mobile || "—"}</span>
+                        </div>
+                        <div className="sm:col-span-2">
+                          <span className="text-slate-400 block font-bold text-[10px] uppercase">Registered Address</span>
+                          <span className="font-medium text-slate-800">{data.address || "Mantralaya, Mumbai, Maharashtra"} {data.pincode ? `• PIN: ${data.pincode}` : ""}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Nodal Officer / Head (if Government Dept) */}
+                    {(govProf.nodalOfficerName || govProf.departmentType || type.includes("GOVERNMENT") || type.includes("GOVT")) && (
+                      <div className="p-4 rounded-xl border border-purple-200/80 bg-purple-50/40 space-y-3">
+                        <h4 className="text-[11px] font-extrabold text-purple-950 uppercase tracking-wider flex items-center gap-2 border-b border-purple-200/60 pb-2">
+                          <UserCheck size={15} className="text-purple-700 shrink-0" /> Department Nodal Officer
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div>
+                            <span className="text-slate-400 block font-bold text-[10px] uppercase">Nodal Officer</span>
+                            <span className="font-bold text-slate-900">{govProf.nodalOfficerName || data.nodalOfficerName || "—"}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block font-bold text-[10px] uppercase">Designation</span>
+                            <span className="font-semibold text-slate-800">{govProf.nodalOfficerDesignation || data.nodalOfficerDesignation || "—"}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block font-bold text-[10px] uppercase">Nodal Email / Mobile</span>
+                            <span className="font-semibold text-blue-900 break-all">{govProf.nodalOfficerEmail || govProf.nodalOfficerMobile || "—"}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* CSR Profile (if CSR Company) */}
+                    {(csrProf.csrHeadName || csrProf.csrRegistrationNo || csrProf.twoPercentCsrObligation || type.includes("COMPANY") || type.includes("CSR")) && (
+                      <div className="p-4 rounded-xl border border-blue-200/80 bg-blue-50/40 space-y-3">
+                        <h4 className="text-[11px] font-extrabold text-blue-950 uppercase tracking-wider flex items-center gap-2 border-b border-blue-200/60 pb-2">
+                          <Target size={15} className="text-blue-700 shrink-0" /> Corporate CSR Profile & Head
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div>
+                            <span className="text-slate-400 block font-bold text-[10px] uppercase">CSR Head</span>
+                            <span className="font-bold text-slate-900">{csrProf.csrHeadName || "—"}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block font-bold text-[10px] uppercase">CSR Reg No</span>
+                            <span className="font-mono font-semibold text-slate-800">{csrProf.csrRegistrationNo || "—"}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block font-bold text-[10px] uppercase">Contact</span>
+                            <span className="font-semibold text-blue-900">{csrProf.csrHeadEmail || csrProf.csrHeadMobile || "—"}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Uploaded Documents */}
+                    {docs.length > 0 && (
+                      <div className="p-4 rounded-xl border border-slate-200/90 bg-white space-y-2">
+                        <h4 className="text-[11px] font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-2">
+                          <FileText size={15} className="text-emerald-600 shrink-0" /> Uploaded Statutory Documents ({docs.length})
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                          {docs.map((doc: any, i: number) => (
+                            <div key={i} className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                              <span className="font-semibold text-slate-800 truncate text-[11px]">
+                                {doc.name || doc.documentType || `Document ${i + 1}`}
+                              </span>
+                              {doc.fileUrl && (
+                                <a
+                                  href={doc.fileUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-blue-600 hover:text-blue-800 font-bold inline-flex items-center gap-1 text-[11px] shrink-0 ml-2"
+                                >
+                                  <span>View</span>
+                                  <ExternalLink size={12} />
+                                </a>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Read-Only Notice */}
+                    <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3 text-[11px] text-blue-900 flex items-start gap-2.5">
+                      <Eye size={16} className="text-blue-700 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-blue-950">Read-Only Statutory Directory</p>
+                        <p className="text-blue-800 mt-0.5">
+                          View-only operational inspection of statutory profiles, registered departments, and accredited contacts.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Footer Actions */}
+                    <div className="flex items-center justify-between pt-3 border-t border-slate-200">
+                      <Link
+                        href={`/admin/organizations/${data.id}`}
+                        className="inline-flex items-center gap-1.5 text-blue-700 hover:text-blue-900 font-bold text-xs"
+                      >
+                        <span>Open Full Verification Profile</span>
+                        <ExternalLink size={13} />
+                      </Link>
+                      <Button type="button" variant="secondary" onClick={() => { setViewingOrg(null); setOrgDetails(null); }}>
+                        Close
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })()
+            )}
           </div>
         )}
       </GovModal>
