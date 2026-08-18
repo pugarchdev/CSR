@@ -196,12 +196,13 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                       pathname.startsWith("/company-dashboard") ||
                       pathname.startsWith("/government-portal") ||
                       pathname.startsWith("/department") ||
-                      pathname.startsWith("/company/") ||
-                      pathname === "/company" ||
-                      pathname.startsWith("/ngo/") ||
-                      pathname === "/ngo" ||
+                      pathname.startsWith("/departments") ||
+                      pathname.startsWith("/company") ||
+                      pathname.startsWith("/companies") ||
+                      pathname.startsWith("/ngo") ||
                       pathname.startsWith("/district") ||
                       pathname.startsWith("/organization") ||
+                      pathname.startsWith("/organizations") ||
                       pathname.startsWith("/master") ||
                       pathname.startsWith("/dashboard") ||
                       pathname.startsWith("/onboarding") ||
@@ -209,6 +210,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                       pathname.startsWith("/csr-projects") ||
                       pathname.startsWith("/payments") ||
                       pathname.startsWith("/fund-releases") ||
+                      pathname.startsWith("/funds") ||
                       pathname.startsWith("/reports") ||
                       pathname.startsWith("/audit-logs") ||
                       pathname.startsWith("/profile") ||
@@ -221,13 +223,15 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                       pathname.startsWith("/js") ||
                       pathname.startsWith("/secretary") ||
                       pathname.startsWith("/nodal") ||
+                      pathname.startsWith("/dno") ||
                       pathname.startsWith("/state-cell") ||
                       pathname.startsWith("/agency") ||
+                      pathname.startsWith("/agencies") ||
+                      pathname.startsWith("/implementing-agencies") ||
                       pathname.startsWith("/enquiries") ||
                       pathname.startsWith("/pitches") ||
                       pathname.startsWith("/interests") ||
                       pathname.startsWith("/assessments") ||
-                      pathname.startsWith("/agencies") ||
                       pathname.startsWith("/assignments") ||
                       pathname.startsWith("/milestones") ||
                       pathname.startsWith("/requirements") ||
@@ -239,6 +243,16 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                       pathname.startsWith("/helpdesk") ||
                       pathname.startsWith("/communications") ||
                       pathname.startsWith("/notifications") ||
+                      pathname.startsWith("/interactions") ||
+                      pathname.startsWith("/tasks") ||
+                      pathname.startsWith("/work-queue") ||
+                      pathname.startsWith("/meetings") ||
+                      pathname.startsWith("/evidence") ||
+                      pathname.startsWith("/field-visits") ||
+                      pathname.startsWith("/issues") ||
+                      pathname.startsWith("/oversight") ||
+                      pathname.startsWith("/platform") ||
+                      pathname.startsWith("/strategy") ||
                       (pathname === "/partner" || pathname.startsWith("/partner/")) ||
                       pathname.startsWith("/grievances") ||
                       pathname.startsWith("/convergence-projects") ||
