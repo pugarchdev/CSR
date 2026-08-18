@@ -451,13 +451,16 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
   }, [isDashboard, isLoggedIn]);
 
   const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("user");
+    useAuthStore.getState().logout();
     router.push("/login");
   };
 
+  const storedUser = typeof window !== "undefined" ? getStoredUser() : null;
+  const activeRoles = (storeRoles || []).length > 0 ? storeRoles : (storedUser?.role ? [storedUser.role] : []);
+  const storedRole = activeRoles.find(r => r !== "GOVERNMENT_OFFICER" && r !== "CORPORATE_USER") || activeRoles[0];
+  const storedOrganizationType = storedUser?.organization?.organizationType as string | undefined;
+
   // Resolve the brand-link destination off the CANONICAL role identity
-  // (numericId → slug → base enum), never the role name. See roleRouting.ts.
   const getDashboardHref = (): string =>
     resolveDashboardPath(
       {
@@ -467,11 +470,6 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
       },
       "/"
     );
-
-  const storedUser = typeof window !== "undefined" ? getStoredUser() : null;
-  const activeRoles = (storeRoles || []).length > 0 ? storeRoles : (storedUser?.role ? [storedUser.role] : []);
-  const storedRole = activeRoles.find(r => r !== "GOVERNMENT_OFFICER" && r !== "CORPORATE_USER") || activeRoles[0];
-  const storedOrganizationType = storedUser?.organization?.organizationType as string | undefined;
 
   const rawSidebarItems = resolveNavItems({
     role: storedRole,
@@ -505,20 +503,8 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
       <p className="mt-2 text-sm leading-6">Contact your Portal Admin to enable this module for your State Portal.</p>
     </div>
   ) : (
-    // Page-visibility enforcement: if the current route maps to a known page
-    // slug the user lacks `page:<slug>:view` for, PageGuard renders a 403 in
-    // place of the content. SUPER_ADMIN / isAdmin bypasses inside the guard.
     isDashboard ? <PageGuard>{children}</PageGuard> : children
   );
-
-
-  if (isDashboard && !mounted) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-[#f6f8fb] w-full">
-        <Loader label="Loading Portal..." />
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col min-h-screen bg-[#f4f5f7] text-[#333333] font-sans w-full max-w-full">

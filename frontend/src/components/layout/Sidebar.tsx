@@ -186,6 +186,7 @@ export function Sidebar({
             {visibleDashboard && (
               <Link
                 href={visibleDashboard.route}
+                prefetch={true}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all group relative no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600",
                   activeItemId === "dashboard"
@@ -268,6 +269,7 @@ export function Sidebar({
                             <Link
                               key={child.id}
                               href={child.route}
+                              prefetch={true}
                               title={child.formalTitle || child.label}
                               className={cn(
                                 "flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600",

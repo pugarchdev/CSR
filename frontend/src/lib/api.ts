@@ -156,6 +156,7 @@ const networkFetch = async <T>(path: string, init: RequestInit, isCacheable: boo
     localStorage.removeItem("accessToken");
     localStorage.removeItem("user");
     localStorage.removeItem("auth-storage");
+    document.cookie = 'mahacsr_auth=; path=/; max-age=0';
     clearApiCache();
     if (hadToken) {
       window.dispatchEvent(new CustomEvent("auth:session-expired"));
