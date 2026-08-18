@@ -29,10 +29,21 @@ export function RoleSummaryTab({
   onDeactivate,
   onDelete,
 }: RoleSummaryTabProps) {
-  const { hasPermission } = useAuthStore();
-  const canConfigure = hasPermission("role:configure");
-  const canCreate = hasPermission("role:create");
-  const canDelete = hasPermission("role:delete");
+  const { hasPermission, isAdmin, user, roles } = useAuthStore();
+  const isSuperAdmin = Boolean(
+    isAdmin ||
+    user?.role === "SUPER_ADMIN" ||
+    user?.role === "PORTAL_ADMIN" ||
+    user?.roleId === 1 ||
+    user?.roleId === "1" ||
+    (Array.isArray(roles) && roles.some((r: any) => {
+      const s = typeof r === "string" ? r.toUpperCase() : (r?.slug || r?.name || r?.role || "").toUpperCase();
+      return s.includes("SUPER_ADMIN") || s.includes("PORTAL_ADMIN") || s === "1";
+    }))
+  );
+  const canConfigure = isSuperAdmin || hasPermission("role:configure");
+  const canCreate = isSuperAdmin || hasPermission("role:create");
+  const canDelete = isSuperAdmin || hasPermission("role:delete");
   const userCount = (role._count?.roleAssignments ?? 0) + (role._count?.users ?? 0);
   const isSystemRole = role.isSystemRole || role.type === "SYSTEM" || role.isProtected;
 

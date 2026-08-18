@@ -17,8 +17,8 @@ import "@/styles/gov-theme.css";
 
 export default function RolesPage() {
   const { data: roles = [], isLoading, refetch } = useRoles();
-  const { hasPermission } = useAuthStore();
-  const canCreate = hasPermission("role:create");
+  const { hasPermission, isAdmin } = useAuthStore();
+  const canCreate = isAdmin || hasPermission("role:create");
 
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
   const [showCreateWizard, setShowCreateWizard] = useState(false);

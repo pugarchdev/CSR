@@ -1,7 +1,7 @@
 // Role Detail Panel — Tabbed interface for role management
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { FileText, Key, Users, Activity } from "lucide-react";
 import { RoleSummaryTab } from "./RoleSummaryTab";
@@ -41,14 +41,14 @@ type TabId = typeof TABS[number]["id"];
 
 export function RoleDetailPanel({ role, onRoleDeleted, onRoleUpdated, onSelectClonedRole }: RoleDetailPanelProps) {
   const [activeTab, setActiveTab] = useState<TabId>("summary");
-  const [editPermissions, setEditPermissions] = useState<string[]>(role.permissions);
+  const [editPermissions, setEditPermissions] = useState<string[]>(role.permissions || []);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [showCloneDialog, setShowCloneDialog] = useState(false);
   const [showConflictDialog, setShowConflictDialog] = useState(false);
   const [conflictServerVersion, setConflictServerVersion] = useState(0);
 
   const toast = useToastActions();
-  const { hasPermission } = useAuthStore();
+  const { hasPermission, isAdmin, user, roles } = useAuthStore();
 
   // Data queries
   const { data: allPermissions = [] } = usePermissions();
@@ -58,10 +58,22 @@ export function RoleDetailPanel({ role, onRoleDeleted, onRoleUpdated, onSelectCl
   const deleteRole = useDeleteRole();
   const impactPreviewMutation = useImpactPreview(role.id);
 
+  const isSuperAdmin = useMemo(() => {
+    if (isAdmin) return true;
+    if (user?.role === "SUPER_ADMIN" || user?.role === "PORTAL_ADMIN" || user?.roleId === 1 || user?.roleId === "1") return true;
+    if (Array.isArray(roles) && roles.some((r: any) => {
+      const s = typeof r === "string" ? r.toUpperCase() : (r?.slug || r?.name || r?.role || "").toUpperCase();
+      return s.includes("SUPER_ADMIN") || s.includes("PORTAL_ADMIN") || s === "1";
+    })) return true;
+    return false;
+  }, [isAdmin, user, roles]);
+
+  const canConfigure = isSuperAdmin || hasPermission("role:configure");
+
   // Reset local permissions when role changes
-  useState(() => {
-    setEditPermissions(role.permissions);
-  });
+  useEffect(() => {
+    setEditPermissions(role.permissions || []);
+  }, [role.id, role.permissions]);
 
   // Compute changes
   const addedKeys = editPermissions.filter((k) => !role.permissions.includes(k));
@@ -82,7 +94,9 @@ export function RoleDetailPanel({ role, onRoleDeleted, onRoleUpdated, onSelectCl
     return perm?.riskLevel === "HIGH" || perm?.riskLevel === "CRITICAL";
   });
 
-  const isReadOnly = role.isProtected || !hasPermission("role:configure");
+  // Super Admin can edit permissions of any role.
+  // Non-SuperAdmin users cannot edit protected system roles or if they lack role:configure.
+  const isReadOnly = !isSuperAdmin && (role.isProtected || !canConfigure);
 
   const handleReviewChanges = useCallback(() => {
     // Trigger impact preview
