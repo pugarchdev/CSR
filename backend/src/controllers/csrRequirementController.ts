@@ -40,7 +40,7 @@ export const getRequirementById = async (req: AuthenticatedRequest, res: Respons
     const { id } = req.params;
 
     // 1. Try finding in Project table
-    const project = await prisma.project.findUnique({
+    let project = await prisma.project.findUnique({
       where: { id },
       include: {
         organization: true,
@@ -49,11 +49,29 @@ export const getRequirementById = async (req: AuthenticatedRequest, res: Respons
       }
     }).catch(() => null);
 
+    if (!project) {
+      project = await prisma.project.findFirst({
+        where: {
+          OR: [
+            { projectCode: id },
+            { id: id }
+          ]
+        },
+        include: {
+          organization: true,
+          departmentOrganization: true,
+          milestones: true
+        }
+      }).catch(() => null);
+    }
+
     if (project) {
       return res.json({
         ...project,
+        trackingId: project.projectCode,
         category: project.sector || "DEVELOPMENT",
-        estimatedCost: project.approvedBudget || project.budgetRequested || 0,
+        estimatedCost: Number(project.approvedBudget || project.budgetRequested || 0),
+        approvedBudget: Number(project.approvedBudget || project.budgetRequested || 0),
         ngoApplications: [],
         companyInterests: [],
         beneficiaryProfile: {
@@ -64,14 +82,27 @@ export const getRequirementById = async (req: AuthenticatedRequest, res: Respons
     }
 
     // 2. Try finding in GovernmentPitch table
-    const pitch = await prisma.governmentPitch.findUnique({
+    let pitch = await prisma.governmentPitch.findUnique({
       where: { id }
     }).catch(() => null);
 
+    if (!pitch) {
+      pitch = await prisma.governmentPitch.findFirst({
+        where: {
+          OR: [
+            { pitchReferenceId: id },
+            { id: id }
+          ]
+        }
+      }).catch(() => null);
+    }
+
     if (pitch) {
+      const budgetNum = Number(pitch.estimatedCost || pitch.budget || 0);
       return res.json({
         id: pitch.id,
         projectCode: pitch.pitchReferenceId || `PITCH-${pitch.id.substring(0, 6)}`,
+        trackingId: pitch.pitchReferenceId || `PITCH-${pitch.id.substring(0, 6)}`,
         title: pitch.title,
         category: pitch.department ? pitch.department.toUpperCase().replace(/\s+/g, "_") : "PUBLIC_INFRASTRUCTURE",
         sector: pitch.department || "Public Infrastructure",
@@ -79,23 +110,44 @@ export const getRequirementById = async (req: AuthenticatedRequest, res: Respons
         description: pitch.csrRequirement || pitch.title,
         expectedImpact: "Promotes sustainable regional growth, improved social indicators, and direct community benefit.",
         district: pitch.district || (pitch.districts?.[0]) || "Maharashtra",
+        districts: pitch.districts?.length ? pitch.districts : [pitch.district].filter(Boolean),
+        divisions: pitch.divisions || [],
         taluka: pitch.talukas?.[0] || "District HQ",
+        talukas: pitch.talukas || [],
+        cities: pitch.cities || [],
         village: pitch.exactLocation || "Multiple Gram Panchayats",
         address: pitch.exactLocation || `${pitch.district || "Maharashtra"}`,
-        estimatedCost: pitch.estimatedCost || pitch.budget || 0,
-        approvedBudget: pitch.estimatedCost || pitch.budget || 0,
+        exactLocation: pitch.exactLocation,
+        estimatedCost: budgetNum,
+        approvedBudget: budgetNum,
+        budgetRequested: Number(pitch.budget || pitch.estimatedCost || 0),
         beneficiaryCount: 2500,
         completionTimeline: "12 Months",
+        officialName: pitch.officialName,
+        designation: pitch.designation,
+        department: pitch.department,
+        officeName: pitch.officeName,
+        serviceClass: pitch.serviceClass,
         contactPersonName: pitch.officialName || "Nodal Officer",
         contactPersonPhone: pitch.mobile || "N/A",
         contactPersonEmail: pitch.email || "N/A",
         beneficiaryProfile: {
           agencyName: pitch.officeName || pitch.department || "Government Department",
-          agencyType: "State Government Office"
+          agencyType: pitch.department || "State Government Office"
         },
+        organization: {
+          name: pitch.officeName || pitch.department || "Government Department"
+        },
+        govtFundDeclaration: pitch.govtFundDeclaration,
+        certificationType: pitch.certificationType,
+        hodCertificationDocument: pitch.hodCertificationDocument,
+        supportingDocuments: pitch.supportingDocuments || [],
+        geoTaggedPhotos: pitch.geoTaggedPhotos || [],
         sdgGoals: ["SDG 3: Good Health", "SDG 4: Quality Education", "SDG 11: Sustainable Cities"],
         ngoApplications: [],
-        companyInterests: []
+        companyInterests: [],
+        createdAt: pitch.createdAt,
+        updatedAt: pitch.updatedAt
       });
     }
 

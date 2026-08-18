@@ -14,7 +14,8 @@ import {
 
 export default function CSRRequirementDetail() {
   const router = useRouter();
-  const { id } = useParams();
+  const params = useParams();
+  const id = (params?.id as string) || (params?.tab as string) || "";
   const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
   const [requirement, setRequirement] = useState<any | null>(null);
@@ -95,26 +96,37 @@ export default function CSRRequirementDetail() {
     certificateUrls: [] as string[]
   });
   const [submittingCompletion, setSubmittingCompletion] = useState(false);
+
   const fetchRequirementDetails = useCallback(async () => {
+    if (!id) return;
     setLoading(true);
     try {
-      const data = await apiFetch<any>(`/csr-requirements/${id}`);
+      let data: any;
+      try {
+        data = await apiFetch<any>(`/csr-requirements/${id}`);
+      } catch (err) {
+        const res = await fetch(`${API_BASE_URL}/public/requirements/${id}`, { cache: "no-store" });
+        if (!res.ok) throw new Error("Failed to load requirement details");
+        const body = await res.json();
+        data = body.data || body;
+      }
+
       setRequirement(data);
 
       // Autofill forms
-      setNgoForm(prev => ({ ...prev, estimatedCost: data.estimatedCost }));
-      setCompanyForm(prev => ({ ...prev, fundingAmount: data.estimatedCost }));
+      setNgoForm(prev => ({ ...prev, estimatedCost: data.estimatedCost || data.approvedBudget || "" }));
+      setCompanyForm(prev => ({ ...prev, fundingAmount: data.estimatedCost || data.approvedBudget || "" }));
       setAgreementForm(prev => ({
         ...prev,
         ngoId: data.ngoApplications?.find((a: any) => a.status === "SELECTED_BY_COMPANY")?.ngoId || "",
         companyId: data.companyInterests?.[0]?.companyId || "",
-        fundingAmount: data.estimatedCost,
+        fundingAmount: data.estimatedCost || data.approvedBudget || "",
         milestonePlan: prev.milestonePlan.map(m => ({
           ...m,
-          amount: String(Number(data.estimatedCost) * Number(m.milestonePercentage) / 100)
+          amount: String(Number(data.estimatedCost || data.approvedBudget || 0) * Number(m.milestonePercentage) / 100)
         }))
       }));
-      setCompletionForm(prev => ({ ...prev, finalCost: data.estimatedCost, beneficiaryCount: data.beneficiaryCount }));
+      setCompletionForm(prev => ({ ...prev, finalCost: data.estimatedCost || data.approvedBudget || "", beneficiaryCount: data.beneficiaryCount }));
       setError(null);
     } catch (err: any) {
       console.error(err);
@@ -550,19 +562,20 @@ export default function CSRRequirementDetail() {
                   <div>
                     <h5 className="font-bold text-slate-800">Site Location</h5>
                     <p className="text-slate-600 text-xs mt-1">
-                      {requirement.address || `${requirement.village ? `${requirement.village}, ` : ""}${requirement.taluka}, ${requirement.district}`}
+                      {requirement.address || `${requirement.village ? `${requirement.village}, ` : ""}${requirement.taluka || "District HQ"}, ${requirement.district || "Maharashtra"}`}
                     </p>
                   </div>
                   <div>
                     <h5 className="font-bold text-slate-800">Timeline Scope</h5>
-                    <p className="text-slate-600 text-xs mt-1">{requirement.completionTimeline || "N/A"}</p>
+                    <p className="text-slate-600 text-xs mt-1">{requirement.completionTimeline || "6–12 Months"}</p>
                   </div>
                   <div>
-                    <h5 className="font-bold text-slate-800">Contact Details</h5>
+                    <h5 className="font-bold text-slate-800">Nodal Officer & Office</h5>
                     <p className="text-slate-600 text-xs mt-1">
-                      Name: {requirement.contactPersonName || "N/A"}<br />
-                      Phone: {requirement.contactPersonPhone || "N/A"}<br />
-                      Email: {requirement.contactPersonEmail || "N/A"}
+                      Name: {requirement.officialName || requirement.contactPersonName || "Nodal Officer"}{requirement.designation ? ` (${requirement.designation})` : ""}<br />
+                      Office: {requirement.officeName || requirement.department || "Government Department"}<br />
+                      Phone: {requirement.mobile || requirement.contactPersonPhone || "N/A"}<br />
+                      Email: {requirement.email || requirement.contactPersonEmail || "N/A"}
                     </p>
                   </div>
                   <div>
@@ -576,6 +589,50 @@ export default function CSRRequirementDetail() {
                     </div>
                   </div>
                 </div>
+
+                {/* Geo-tagged Photos */}
+                {Array.isArray(requirement.geoTaggedPhotos) && requirement.geoTaggedPhotos.length > 0 && (
+                  <div className="pt-4 border-t space-y-2">
+                    <h5 className="font-bold text-slate-800">Geo-Tagged Field Photos</h5>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {requirement.geoTaggedPhotos.map((url: string, idx: number) => (
+                        <a key={idx} href={url} target="_blank" rel="noreferrer" className="aspect-video rounded-lg overflow-hidden border border-slate-200 block bg-slate-100 hover:border-blue-500 hover:shadow-md transition">
+                          <img src={url} alt={`Site photo ${idx + 1}`} className="w-full h-full object-cover" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Official Documents */}
+                {(requirement.hodCertificationDocument || (Array.isArray(requirement.supportingDocuments) && requirement.supportingDocuments.length > 0)) && (
+                  <div className="pt-4 border-t space-y-2">
+                    <h5 className="font-bold text-slate-800">Verified Certifications & Documents</h5>
+                    <div className="flex flex-wrap gap-2">
+                      {requirement.hodCertificationDocument && (
+                        <a
+                          href={requirement.hodCertificationDocument}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-900 text-xs font-bold transition hover:no-underline"
+                        >
+                          Download HOD Certification Document (PDF)
+                        </a>
+                      )}
+                      {Array.isArray(requirement.supportingDocuments) && requirement.supportingDocuments.map((doc: string, idx: number) => (
+                        <a
+                          key={idx}
+                          href={doc}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold transition hover:no-underline"
+                        >
+                          Supporting Document #{idx + 1}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </GovCardBody>
             </GovCard>
           )}

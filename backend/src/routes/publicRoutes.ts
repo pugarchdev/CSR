@@ -8,6 +8,7 @@ import {
   getPublicPortalStats,
   getPublicRequirements,
 } from "../controllers/publicPortalController";
+import { getRequirementById } from "../controllers/csrRequirementController";
 
 const router = Router();
 
@@ -17,5 +18,6 @@ router.get("/success-stories", httpCache({ ttlSeconds: 300, keyPrefix: "success_
 router.get("/directory", httpCache({ ttlSeconds: 300, keyPrefix: "public_directory" }), getPublicDirectory);
 router.get("/portal-stats", httpCache({ ttlSeconds: 300, keyPrefix: "portal_stats" }), getPublicPortalStats);
 router.get("/requirements", httpCache({ ttlSeconds: 300, keyPrefix: "public_reqs" }), getPublicRequirements);
+router.get("/requirements/:id", httpCache({ ttlSeconds: 60, keyPrefix: "public_req_detail" }), getRequirementById);
 
 export default router;

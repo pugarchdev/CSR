@@ -1184,23 +1184,23 @@ function FeasibilityWorkspace({
     }
   };
 
-  // If viewing as JS and no assessment has been submitted yet:
-  if (isJS && !existingAssessment) {
-    return (
-      <section className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm text-center space-y-3">
-        <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center mx-auto">
-          <Clock size={24} />
-        </div>
-        <h3 className="text-base font-extrabold text-slate-900">Feasibility Assessment in Progress</h3>
-        <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-          The assigned Relationship Manager has not yet submitted the 13-Point Feasibility Assessment for this enquiry. Once completed, it will appear here for your review and sanction.
-        </p>
-      </section>
-    );
-  }
-
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-5">
+      {/* Informative banner when assessment is in progress */}
+      {!existingAssessment && (
+        <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-200 bg-amber-50/80 text-xs text-amber-900">
+          <Clock size={18} className="text-amber-700 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-bold">Awaiting Relationship Manager Assessment Submission</p>
+            <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
+              {isJS
+                ? "The assigned Relationship Manager is currently conducting the 13-Factor Feasibility Evaluation. All 13 evaluation parameters are listed below — once submitted by the RM, their recorded answers, notes, and recommendation will appear here for your sanction."
+                : "Evaluate all 13 compliance and feasibility criteria below, specify the target department and districts, and submit to the Joint Secretary for approval."}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
         <div>

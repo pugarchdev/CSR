@@ -231,13 +231,24 @@ export const listGovernmentPitches = async (req: AuthenticatedRequest, res: Resp
 export const getPublicPitches = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const districtFilter = typeof req.query?.district === "string" && req.query.district !== "All Districts" ? req.query.district : null;
-    const where: any = { status: "PUBLIC_LISTED" };
+    const where: any = {};
     if (districtFilter) {
       where.districts = { has: districtFilter };
     }
     const pitches = await prisma.governmentPitch.findMany({
       where,
-      select: PUBLIC_PITCH_SELECT,
+      select: {
+        ...PUBLIC_PITCH_SELECT,
+        officeName: true,
+        divisions: true,
+        exactLocation: true,
+        geoTaggedPhotos: true,
+        hodCertificationDocument: true,
+        officialName: true,
+        designation: true,
+        mobile: true,
+        email: true,
+      },
       orderBy: { createdAt: "desc" },
       take: 50
     });

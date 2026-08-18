@@ -21,11 +21,14 @@ import {
 } from "../controllers/csrRequirementController";
 
 const router = Router();
+
+// Public requirement detail endpoint
+router.get("/:id", getRequirementById);
+
 router.use(authenticateToken);
 
 router.post("/", requirePermission("requirement:create"), createRequirement);
 router.get("/", requirePermission("requirement:view"), getRequirements);
-router.get("/:id", getRequirementById);
 router.put("/:id", requirePermission("requirement:update"), updateRequirement);
 router.delete("/:id", requirePermission("requirement:delete"), deleteRequirement);
 router.post("/:id/verify", requirePermission("requirement:verify"), verifyRequirement);

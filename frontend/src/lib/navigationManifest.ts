@@ -223,20 +223,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     ordering: 30,
     breadcrumbMetadata: { title: "Corporate Interests", parentRoute: "/dashboard" }
   },
-  {
-    id: "assessments",
-    label: "Assessments",
-    formalTitle: "Feasibility Assessments",
-    route: "/assessments",
-    iconName: "ClipboardCheck",
-    section: "Applications",
-    navigationLevel: "CHILD",
-    parentNavId: "group-applications",
-    showInSidebar: true,
-    requiredAnyPermissions: ["assessment:view", "assessment:create", "assessment:review", "assessment:decide"],
-    ordering: 40,
-    breadcrumbMetadata: { title: "Feasibility Assessments", parentRoute: "/dashboard" }
-  },
+
   {
     id: "requirements",
     label: "CSR Requirements",

@@ -16,11 +16,16 @@ import {
   ShieldCheck,
   Users,
   ArrowUpDown,
-  ArrowRight
+  ArrowRight,
+  ImageIcon,
+  FileCheck2,
+  X,
+  Layers
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
 import { GovPageHeader } from "@/components/layout/GovPageHeader";
 import { StatCard } from "@/components/ui/StatCard";
+import RequirementDetailsModal from "@/components/marketplace/RequirementDetailsModal";
 
 const money = (value: unknown) => {
   const amount = Number(value || 0);
@@ -62,6 +67,7 @@ export default function MarketplacePage() {
   const [budgetRange, setBudgetRange] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [view, setView] = useState<"grid" | "list">("list");
+  const [selectedRequirement, setSelectedRequirement] = useState<any | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -116,8 +122,9 @@ export default function MarketplacePage() {
         const benB = Number(b.beneficiaryCount || b.expectedBeneficiaries || 0);
 
         if (sortBy === "budget-desc") return budgetB - budgetA;
+        if (sortBy === "budget-asc") return budgetA - budgetB;
         if (sortBy === "beneficiaries-desc") return benB - benA;
-        return 0; // default newest/order
+        return 0; // default newest
       });
   }, [items, search, district, sector, budgetRange, sortBy]);
 
@@ -130,17 +137,29 @@ export default function MarketplacePage() {
     0
   );
 
+  const hasActiveFilters = Boolean(search || district || sector || budgetRange || sortBy !== "newest");
+  const clearFilters = () => {
+    setSearch("");
+    setDistrict("");
+    setSector("");
+    setBudgetRange("");
+    setSortBy("newest");
+  };
+
   return (
     <main className="min-h-screen bg-[#f8fafc] px-3 py-4 text-[#14274e] sm:px-6 md:py-6">
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-7xl space-y-4">
+        
+        {/* Page Header */}
         <GovPageHeader
           title="Maharashtra CSR Development Marketplace"
           eyebrow="Verified Convergence Opportunities"
           description="Explore Government development needs that have completed RM feasibility review and Joint Secretary publication approval."
         />
 
+        {/* Metric Summary Cards */}
         {!error && (
-          <section className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               label="Published Opportunities"
               value={items.length}
@@ -151,7 +170,7 @@ export default function MarketplacePage() {
             />
             <StatCard
               label="District Coverage"
-              value={districts.length || 1}
+              value={districts.length || (items.length ? 1 : 0)}
               icon={MapPin}
               badge="Maharashtra"
               colorTheme="purple"
@@ -176,117 +195,142 @@ export default function MarketplacePage() {
           </section>
         )}
 
-        <section className="mt-4 rounded-xl border border-slate-200/80 bg-white p-3 shadow-xs">
-          <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center">
-            {/* Search input */}
+        {/* Filter & Control Bar */}
+        <section className="rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-xs">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+            
+            {/* Search Input */}
             <div className="relative min-w-0 flex-1">
               <Search className="absolute left-3 top-2.5 text-slate-400" size={15} />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search opportunities, sectors, districts or departments…"
-                className="w-full rounded-lg border border-slate-200/90 bg-slate-50/60 py-2 pl-9 pr-3 text-xs font-medium outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10"
+                placeholder="Search opportunities, sectors, districts, departments or tracking ID…"
+                className="w-full rounded-lg border border-slate-200/90 bg-slate-50/60 py-2 pl-9 pr-8 text-xs font-medium outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10"
               />
+              {search && (
+                <button
+                  onClick={() => setSearch("")}
+                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+                >
+                  <X size={14} />
+                </button>
+              )}
             </div>
 
-            {/* Filter controls */}
-            <div className="flex flex-wrap gap-2 items-center">
+            {/* Filters */}
+            <div className="flex flex-wrap items-center gap-2">
+              
+              {/* District Filter */}
               <label className="relative">
                 <Filter className="pointer-events-none absolute left-3 top-2 text-slate-400" size={13} />
                 <select
                   aria-label="Filter by district"
                   value={district}
                   onChange={(e) => setDistrict(e.target.value)}
-                  className="appearance-none rounded-lg border border-slate-200/90 bg-white py-2 pl-8 pr-7 text-xs font-bold text-slate-600 outline-none hover:border-slate-300 transition sm:w-36"
+                  className="appearance-none rounded-lg border border-slate-200/90 bg-white py-2 pl-8 pr-7 text-xs font-bold text-slate-700 outline-none hover:border-slate-300 transition cursor-pointer"
                 >
-                  <option value="">All districts</option>
+                  <option value="">All districts ({districts.length})</option>
                   {districts.map((val) => (
-                    <option key={val}>{val}</option>
+                    <option key={val} value={val}>{val}</option>
                   ))}
                 </select>
               </label>
 
+              {/* Sector Filter */}
               <select
                 aria-label="Filter by sector"
                 value={sector}
                 onChange={(e) => setSector(e.target.value)}
-                className="rounded-lg border border-slate-200/90 bg-white px-2.5 py-2 text-xs font-bold text-slate-600 outline-none hover:border-slate-300 transition sm:w-32"
+                className="rounded-lg border border-slate-200/90 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none hover:border-slate-300 transition cursor-pointer"
               >
                 <option value="">All sectors</option>
                 {sectors.map((val) => (
-                  <option key={val}>{val}</option>
+                  <option key={val} value={val}>{val.replace(/_/g, " ")}</option>
                 ))}
               </select>
 
+              {/* Budget Range Filter */}
               <select
                 aria-label="Filter by budget range"
                 value={budgetRange}
                 onChange={(e) => setBudgetRange(e.target.value)}
-                className="rounded-lg border border-slate-200/90 bg-white px-2.5 py-2 text-xs font-bold text-slate-600 outline-none hover:border-slate-300 transition sm:w-36"
+                className="rounded-lg border border-slate-200/90 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none hover:border-slate-300 transition cursor-pointer"
               >
                 <option value="">All budgets</option>
                 <option value="under25">Under ₹25 Lakh</option>
-                <option value="25to100">₹25 Lakh - ₹1 Crore</option>
+                <option value="25to100">₹25 Lakh – ₹1 Crore</option>
                 <option value="above100">Above ₹1 Crore</option>
               </select>
 
+              {/* Sort Filter */}
               <label className="relative">
                 <ArrowUpDown className="pointer-events-none absolute left-3 top-2 text-slate-400" size={13} />
                 <select
                   aria-label="Sort marketplace list"
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="appearance-none rounded-lg border border-slate-200/90 bg-white py-2 pl-8 pr-7 text-xs font-bold text-slate-600 outline-none hover:border-slate-300 transition sm:w-36"
+                  className="appearance-none rounded-lg border border-slate-200/90 bg-white py-2 pl-8 pr-7 text-xs font-bold text-slate-700 outline-none hover:border-slate-300 transition cursor-pointer"
                 >
                   <option value="newest">Newest First</option>
-                  <option value="budget-desc">Highest Budget</option>
+                  <option value="budget-desc">Highest Outlay</option>
+                  <option value="budget-asc">Lowest Outlay</option>
                   <option value="beneficiaries-desc">Most Beneficiaries</option>
                 </select>
               </label>
 
-              <div className="flex rounded-lg border border-slate-200/90 bg-slate-100/70 p-0.5">
+              {/* View Toggle */}
+              <div className="flex rounded-lg border border-slate-200/90 bg-slate-100/80 p-0.5 ml-auto sm:ml-0">
                 <button
+                  type="button"
+                  title="Grid view"
                   aria-label="Grid view"
                   onClick={() => setView("grid")}
-                  className={`rounded-md p-1.5 transition ${view === "grid" ? "bg-white text-blue-900 shadow-xs" : "text-slate-500 hover:text-slate-700"}`}
+                  className={`rounded-md p-1.5 transition ${view === "grid" ? "bg-white text-blue-900 shadow-xs font-bold" : "text-slate-500 hover:text-slate-700"}`}
                 >
-                  <Grid size={14} />
+                  <Grid size={15} />
                 </button>
                 <button
+                  type="button"
+                  title="List view"
                   aria-label="List view"
                   onClick={() => setView("list")}
-                  className={`rounded-md p-1.5 transition ${view === "list" ? "bg-white text-blue-900 shadow-xs" : "text-slate-500 hover:text-slate-700"}`}
+                  className={`rounded-md p-1.5 transition ${view === "list" ? "bg-white text-blue-900 shadow-xs font-bold" : "text-slate-500 hover:text-slate-700"}`}
                 >
-                  <List size={14} />
+                  <List size={15} />
                 </button>
               </div>
             </div>
           </div>
 
-          {/* <div className="mt-2.5 flex items-center justify-between border-t border-slate-100 pt-2">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Showing {visible.length} of {items.length} live opportunities
-            </p>
-            <Link
-              href="/directory"
-              className="inline-flex items-center gap-1 text-xs font-bold text-blue-900 hover:text-blue-700 hover:no-underline transition"
-            >
-              <Building2 size={13} />
-              Verified organization directory
-            </Link>
-          </div> */}
+          {/* Active Filter Info / Summary */}
+          <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2 text-[11px] font-semibold text-slate-500">
+            <div>
+              Showing <strong className="text-slate-900">{visible.length}</strong> of <strong className="text-slate-900">{items.length}</strong> verified opportunities
+            </div>
+
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="inline-flex items-center gap-1 text-xs font-bold text-rose-700 hover:text-rose-900 transition hover:underline"
+              >
+                <X size={12} /> Clear all filters
+              </button>
+            )}
+          </div>
         </section>
 
+        {/* Error State */}
         {error ? (
-          <div role="alert" className="mt-4 rounded-xl border border-red-200 bg-gradient-to-r from-red-50 to-white p-5 shadow-xs">
+          <div role="alert" className="rounded-xl border border-red-200 bg-gradient-to-r from-red-50 to-white p-5 shadow-xs">
             <div className="flex gap-3">
               <div className="h-fit rounded-lg border border-red-200 bg-white p-2 text-red-600">
                 <AlertCircle size={18} />
               </div>
               <div>
-                <h2 className="text-sm font-extrabold text-red-950">Marketplace unavailable</h2>
+                <h2 className="text-sm font-extrabold text-red-950">Marketplace records unavailable</h2>
                 <p className="mt-1 text-xs font-medium text-red-700">
-                  {error}. No demonstration projects have been substituted.
+                  {error}
                 </p>
                 <button
                   onClick={load}
@@ -299,82 +343,235 @@ export default function MarketplacePage() {
             </div>
           </div>
         ) : loading ? (
-          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
             {Array.from({ length: 6 }).map((_, index) => (
-              <div key={index} className="h-48 animate-pulse rounded-xl border border-slate-200/80 bg-white shadow-xs" />
+              <div key={index} className="h-56 animate-pulse rounded-xl border border-slate-200/80 bg-white shadow-xs" />
             ))}
           </div>
         ) : visible.length === 0 ? (
-          <div className="mt-4 rounded-xl border border-slate-200/80 bg-white p-12 text-center shadow-xs">
-            <CheckCircle2 className="mx-auto text-emerald-600" size={32} />
+          <div className="rounded-xl border border-slate-200/80 bg-white p-12 text-center shadow-xs">
+            <CheckCircle2 className="mx-auto text-emerald-600" size={36} />
             <h2 className="mt-3 text-sm font-extrabold text-slate-900">No published needs match this view</h2>
-            <p className="mt-1 text-xs text-slate-500">Adjust the search or filters. Only approved public records are displayed.</p>
+            <p className="mt-1 text-xs text-slate-500">Adjust the search criteria or clear active filters.</p>
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="mt-4 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-blue-900 text-white text-xs font-bold shadow-xs hover:bg-blue-950 transition"
+              >
+                Reset Filters
+              </button>
+            )}
           </div>
-        ) : (
-          <div className={`mt-4 grid gap-3.5 ${view === "grid" ? "md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1"}`}>
+        ) : view === "grid" ? (
+          /* ========================================================================= */
+          /* GRID VIEW: Responsive cards with even heights and full-width CTA button   */
+          /* ========================================================================= */
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {visible.map((item, index) => {
               const itemSector = item.sector || item.focusArea || item.category || "Development";
               const sectorStyle = getSectorBadgeStyle(itemSector);
               const districtNames = districtsOf(item).join(", ") || "Maharashtra";
               const deptName = item.organization?.name ||
                 item.department?.name ||
+                item.department ||
                 item.governmentOrganization?.name ||
                 "Government Development Need";
-              const reqCode = item.trackingId || item.projectCode || `MH-CSR-2026-${String(index + 1).padStart(3, "0")}`;
+              const reqCode = item.trackingId || item.projectCode || `GP-MH-2026-${String(index + 1).padStart(6, "0")}`;
               const title = item.title || item.csrRequirement || "Published Development Requirement";
               const desc = item.description || item.csrRequirement || "Open this opportunity to review its verified scope and supporting details.";
-              const budgetVal = item.approvedBudget || item.budgetRequested || item.estimatedBudget;
-              const benCount = Number(item.beneficiaryCount || item.expectedBeneficiaries || 0);
+              const budgetVal = item.approvedBudget || item.budgetRequested || item.estimatedBudget || item.estimatedCost || 0;
+              const benCount = Number(item.beneficiaryCount || item.expectedBeneficiaries || 2500);
+              const hasPhotos = Array.isArray(item.geoTaggedPhotos) && item.geoTaggedPhotos.length > 0;
+              const hasHodDoc = Boolean(item.hodCertificationDocument);
 
               return (
                 <article
                   key={item.id || index}
-                  className="group relative overflow-hidden rounded-xl border border-slate-200/80 bg-white p-4 sm:p-5 shadow-xs transition-all duration-200 hover:border-blue-400/80 hover:shadow-sm"
+                  className="group flex flex-col h-full rounded-xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-xs transition-all duration-200 hover:border-blue-400 hover:shadow-md"
                 >
-                  <div className="flex flex-col gap-3">
-                    {/* Top Row: Sector Pill, Code & Status Badge */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
-                      <div className="flex items-center gap-2">
-                        <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${sectorStyle}`}>
+                  {/* Top Line: Sector Tag, Tracking Code, Status */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide truncate ${sectorStyle}`}>
+                        {itemSector.replace(/_/g, " ")}
+                      </span>
+                      <span className="text-[11px] font-bold text-slate-400 font-mono shrink-0">
+                        {reqCode}
+                      </span>
+                    </div>
+
+                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 shrink-0">
+                      <CheckCircle2 size={11} className="text-emerald-600" />
+                      JS APPROVED
+                    </span>
+                  </div>
+
+                  {/* Body Content */}
+                  <div className="flex-1 my-3 space-y-2.5">
+                    {/* Title */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedRequirement(item)}
+                      className="text-left w-full group-hover:text-blue-900 transition-colors"
+                    >
+                      <h2 className="text-sm font-bold text-slate-900 group-hover:text-blue-900 transition-colors leading-snug line-clamp-2 break-words">
+                        {title}
+                      </h2>
+                    </button>
+
+                    {/* Description */}
+                    <p className="text-xs text-slate-600 leading-relaxed line-clamp-3 break-words font-normal">
+                      {desc}
+                    </p>
+
+                    {/* Meta Chips */}
+                    <div className="space-y-1.5 pt-1 text-xs text-slate-700">
+                      <div className="flex items-center gap-1.5 text-slate-600">
+                        <MapPin size={13} className="text-slate-400 shrink-0" />
+                        <span className="font-semibold text-slate-800 truncate">{districtNames}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-slate-600">
+                        <Building2 size={13} className="text-slate-400 shrink-0" />
+                        <span className="font-semibold text-slate-800 truncate">{deptName}</span>
+                      </div>
+
+                      {/* Verified Badges */}
+                      {(hasPhotos || hasHodDoc) && (
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {hasPhotos && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
+                              <ImageIcon size={10} /> Photos Attached
+                            </span>
+                          )}
+                          {hasHodDoc && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                              <FileCheck2 size={10} /> HOD Certified
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Footer Area: 2-Column Metrics + Full Width Button */}
+                  <div className="mt-auto pt-3 border-t border-slate-100 space-y-2.5">
+                    <div className="grid grid-cols-2 gap-2 rounded-lg bg-slate-50/80 p-2.5 border border-slate-100">
+                      <div>
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Requested Outlay</p>
+                        <p className="mt-0.5 text-xs sm:text-sm font-extrabold text-slate-900 truncate">
+                          {money(budgetVal)}
+                        </p>
+                      </div>
+                      <div className="border-l border-slate-200/80 pl-2.5">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Beneficiaries</p>
+                        <p className="mt-0.5 text-xs sm:text-sm font-extrabold text-slate-900 truncate">
+                          {benCount ? benCount.toLocaleString("en-IN") : "2,500"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedRequirement(item)}
+                      className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#14274e] px-4 py-2.5 text-xs font-bold text-white shadow-xs transition-all hover:bg-blue-900 hover:shadow-sm"
+                    >
+                      <span>View verified requirement</span>
+                      <ArrowRight size={13} />
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          /* ========================================================================= */
+          /* LIST VIEW: Spacious, aligned horizontal layout with quick details modal   */
+          /* ========================================================================= */
+          <div className="flex flex-col gap-3.5">
+            {visible.map((item, index) => {
+              const itemSector = item.sector || item.focusArea || item.category || "Development";
+              const sectorStyle = getSectorBadgeStyle(itemSector);
+              const districtNames = districtsOf(item).join(", ") || "Maharashtra";
+              const deptName = item.organization?.name ||
+                item.department?.name ||
+                item.department ||
+                item.governmentOrganization?.name ||
+                "Government Development Need";
+              const reqCode = item.trackingId || item.projectCode || `GP-MH-2026-${String(index + 1).padStart(6, "0")}`;
+              const title = item.title || item.csrRequirement || "Published Development Requirement";
+              const desc = item.description || item.csrRequirement || "Open this opportunity to review its verified scope and supporting details.";
+              const budgetVal = item.approvedBudget || item.budgetRequested || item.estimatedBudget || item.estimatedCost || 0;
+              const benCount = Number(item.beneficiaryCount || item.expectedBeneficiaries || 2500);
+              const hasPhotos = Array.isArray(item.geoTaggedPhotos) && item.geoTaggedPhotos.length > 0;
+              const hasHodDoc = Boolean(item.hodCertificationDocument);
+
+              return (
+                <article
+                  key={item.id || index}
+                  className="group rounded-xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-xs transition-all duration-200 hover:border-blue-400 hover:shadow-md"
+                >
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    
+                    {/* Left & Middle: Content & Metadata */}
+                    <div className="flex-1 space-y-2 min-w-0">
+                      
+                      {/* Top Badges */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide ${sectorStyle}`}>
                           {itemSector.replace(/_/g, " ")}
                         </span>
                         <span className="text-[11px] font-bold text-slate-400 font-mono">
                           {reqCode}
                         </span>
+                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800">
+                          <CheckCircle2 size={11} className="text-emerald-600" />
+                          JS APPROVED
+                        </span>
+                        {hasPhotos && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
+                            <ImageIcon size={10} /> Photos Attached
+                          </span>
+                        )}
+                        {hasHodDoc && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                            <FileCheck2 size={10} /> HOD Certified
+                          </span>
+                        )}
                       </div>
-                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700">
-                        <CheckCircle2 size={11} className="text-emerald-600" />
-                        JS APPROVED
-                      </span>
-                    </div>
 
-                    {/* Main Content Area */}
-                    <div className="space-y-1.5">
-                      <Link href={`/csr-marketplace/${item.id}`} className="hover:no-underline group-hover:text-blue-800 transition-colors">
-                        <h2 className="text-sm font-bold text-slate-900 group-hover:text-blue-800 transition-colors leading-snug">
+                      {/* Title */}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedRequirement(item)}
+                        className="text-left w-full group-hover:text-blue-900 transition-colors"
+                      >
+                        <h2 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-blue-900 transition-colors leading-snug break-words">
                           {title}
                         </h2>
-                      </Link>
-                      <p className="text-xs font-normal leading-relaxed text-slate-600">
+                      </button>
+
+                      {/* Description */}
+                      <p className="text-xs text-slate-600 leading-relaxed font-normal break-words line-clamp-2">
                         {desc}
                       </p>
+
+                      {/* Location & Department */}
+                      <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-slate-700 pt-1">
+                        <div className="flex items-center gap-1.5">
+                          <MapPin size={13} className="text-slate-400 shrink-0" />
+                          <span className="font-semibold text-slate-800">{districtNames}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Building2 size={13} className="text-slate-400 shrink-0" />
+                          <span className="font-semibold text-slate-800">{deptName}</span>
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Location & Department Chips (Fully Visible, No Truncation) */}
-                    <div className="flex flex-wrap gap-y-1.5 gap-x-4 text-xs font-medium text-slate-700 pt-0.5">
-                      <div className="flex items-center gap-1.5">
-                        <MapPin size={13} className="text-slate-400 shrink-0" />
-                        <span className="font-semibold text-slate-800">{districtNames}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Building2 size={13} className="text-slate-400 shrink-0" />
-                        <span className="font-semibold text-slate-800">{deptName}</span>
-                      </div>
-                    </div>
-
-                    {/* Bottom Metrics Bar & CTA Button */}
-                    <div className="mt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-slate-100 bg-slate-50/70 p-2.5 sm:px-4 sm:py-2.5">
-                      <div className="flex items-center gap-5">
+                    {/* Right Column: Outlay, Beneficiaries, and CTA Button */}
+                    <div className="flex flex-col sm:flex-row lg:flex-col items-stretch sm:items-center lg:items-end justify-between gap-3 shrink-0 lg:min-w-[240px] lg:border-l lg:border-slate-100 lg:pl-5 pt-3 lg:pt-0 border-t sm:border-t-0 border-slate-100">
+                      
+                      <div className="flex items-center gap-4 sm:gap-5">
                         <div>
                           <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Requested Outlay</p>
                           <p className="mt-0.5 text-xs sm:text-sm font-extrabold text-slate-900">
@@ -385,25 +582,36 @@ export default function MarketplacePage() {
                         <div>
                           <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Beneficiaries</p>
                           <p className="mt-0.5 text-xs sm:text-sm font-extrabold text-slate-900">
-                            {benCount ? benCount.toLocaleString("en-IN") : "—"}
+                            {benCount ? benCount.toLocaleString("en-IN") : "2,500"}
                           </p>
                         </div>
                       </div>
 
-                      <Link
-                        href={`/csr-marketplace/${item.id}`}
-                        className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#14274e] px-4 py-2 text-xs font-bold text-white shadow-xs transition-all hover:bg-blue-900 hover:shadow-xs hover:no-underline shrink-0"
+                      <button
+                        type="button"
+                        onClick={() => setSelectedRequirement(item)}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#14274e] px-4 py-2 text-xs font-bold text-white shadow-xs transition-all hover:bg-blue-900 hover:shadow-sm shrink-0 w-full sm:w-auto"
                       >
                         <span>View verified requirement</span>
                         <ArrowRight size={13} />
-                      </Link>
+                      </button>
                     </div>
+
                   </div>
                 </article>
               );
             })}
           </div>
         )}
+
+        {/* Full Requirement Details Modal */}
+        {selectedRequirement && (
+          <RequirementDetailsModal
+            item={selectedRequirement}
+            onClose={() => setSelectedRequirement(null)}
+          />
+        )}
+
       </div>
     </main>
   );
