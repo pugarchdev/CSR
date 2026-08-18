@@ -117,6 +117,9 @@ export default function DashboardEngine() {
   const kpiList = summary.kpis || [];
   const workQueueItems = summary.workQueue || [];
   const alertsList = summary.alerts || [];
+  const userRoleId = Number(summary.userRoleId || 0);
+  const roleCodeStr = String(summary.roleCode || "");
+  const isPartitionedRole = [2, 3, 6].includes(userRoleId) || /PLANNING_SECRETARY|JOINT_SECRETARY|RELATIONSHIP_MANAGER/i.test(roleCodeStr);
 
   return (
     <div className="space-y-6">
@@ -209,8 +212,82 @@ export default function DashboardEngine() {
             <p className="mt-3 text-sm font-bold text-slate-800">No KPI metrics assigned for this role scope.</p>
             <p className="mt-1 text-xs text-slate-500">Please select an action from the navigation workspace.</p>
           </div>
+        ) : isPartitionedRole && kpiList.length >= 4 ? (
+          (() => {
+            const half = Math.floor(kpiList.length / 2);
+            const finalCorp = kpiList.slice(0, half);
+            const finalGov = kpiList.slice(half, half * 2);
+
+            const renderCard = (kpi: any, idx: number) => {
+              const visual = kpiVisual(kpi.key, kpi.label, idx);
+              const card = (
+                <StatCard
+                  label={kpi.label}
+                  value={kpi.value}
+                  icon={visual.icon}
+                  index={idx}
+                  badge={visual.badge}
+                  sublabel={kpi.helperText || kpi.description}
+                  colorTheme={visual.theme}
+                />
+              );
+
+              return kpi.href ? (
+                <Link
+                  key={kpi.id || kpi.key || idx}
+                  href={kpi.href}
+                  title={kpi.helperText || kpi.description}
+                  className="block rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 hover:no-underline"
+                >
+                  {card}
+                </Link>
+              ) : (
+                <div key={kpi.id || kpi.key || idx}>{card}</div>
+              );
+            };
+
+            return (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-6 items-stretch">
+                {/* Left Side: Corporate & Industry Desk */}
+                <div className="flex flex-col space-y-2.5 lg:pr-6 lg:border-r lg:border-slate-200/90">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
+                    <div className="flex items-center gap-1.5">
+                      <Building2 size={13} className="text-blue-700" />
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700">
+                        Corporate & Industry Desk
+                      </span>
+                    </div>
+                    <span className="text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/70 font-mono">
+                      {finalCorp.length} Corporate KPIs
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
+                    {finalCorp.map((kpi: any, i: number) => renderCard(kpi, i))}
+                  </div>
+                </div>
+
+                {/* Right Side: Government & State Operations Desk */}
+                <div className="flex flex-col space-y-2.5 lg:pl-1">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
+                    <div className="flex items-center gap-1.5">
+                      <Landmark size={13} className="text-emerald-700" />
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700">
+                        Government & Department Desk
+                      </span>
+                    </div>
+                    <span className="text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70 font-mono">
+                      {finalGov.length} Government KPIs
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
+                    {finalGov.map((kpi: any, i: number) => renderCard(kpi, i + finalCorp.length))}
+                  </div>
+                </div>
+              </div>
+            );
+          })()
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 items-stretch">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {kpiList.map((kpi: any, idx: number) => {
               const visual = kpiVisual(kpi.key, kpi.label, idx);
               const card = (
@@ -230,7 +307,7 @@ export default function DashboardEngine() {
                   key={kpi.id || kpi.key || idx}
                   href={kpi.href}
                   title={kpi.helperText || kpi.description}
-                  className="block rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 hover:no-underline transition hover:-translate-y-0.5"
+                  className="block rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 hover:no-underline"
                 >
                   {card}
                 </Link>

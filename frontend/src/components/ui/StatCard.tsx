@@ -1,8 +1,6 @@
-// Stat Card Component — Premium Enterprise 3D KPI Card with Animated Counter
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
 import { LucideIcon, TrendingUp, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,139 +17,111 @@ interface StatCardProps {
   sublabel?: string;
   colorTheme?: "blue" | "purple" | "emerald" | "amber" | "sky" | "indigo" | "teal" | "rose";
   className?: string;
+  onClick?: () => void;
 }
 
-/** Smooth Count-up Shutter Animation Component */
-function AnimatedCounter({ value }: { value: number | string }) {
-  const [displayValue, setDisplayValue] = useState<string | number>(0);
+function Counter({ value }: { value: number | string }) {
+  const [display, setDisplay] = useState<string | number>(value);
 
   useEffect(() => {
-    const strVal = String(value);
-    const numericMatch = strVal.match(/[\d.]+/);
-    if (!numericMatch) {
-      setDisplayValue(value);
+    const raw = String(value);
+    const match = raw.match(/[\d.]+/);
+    if (!match) {
+      setDisplay(value);
       return;
     }
 
-    const targetNum = parseFloat(numericMatch[0]);
-    if (isNaN(targetNum) || targetNum === 0) {
-      setDisplayValue(strVal);
+    const target = parseFloat(match[0]);
+    if (isNaN(target) || target === 0) {
+      setDisplay(raw);
       return;
     }
 
-    const isFloat = strVal.includes(".");
+    const hasDecimal = match[0].includes(".");
     const startTime = performance.now();
-    const duration = 850; // Smooth 850ms shutter count-up
+    const duration = 450;
 
-    let animationFrameId: number;
+    let frame: number;
 
-    const updateCounter = (currentTime: number) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      // Fast ease out cubic formula
-      const easeProgress = 1 - Math.pow(1 - progress, 3);
-      const currentVal = targetNum * easeProgress;
-
-      const formattedVal = isFloat ? currentVal.toFixed(1) : Math.round(currentVal);
-      const output = strVal.replace(/[\d.]+/, String(formattedVal));
-      setDisplayValue(output);
+    const tick = (now: number) => {
+      const progress = Math.min((now - startTime) / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 3);
+      const current = target * ease;
+      const formatted = hasDecimal ? current.toFixed(1) : Math.round(current);
+      setDisplay(raw.replace(/[\d.]+/, String(formatted)));
 
       if (progress < 1) {
-        animationFrameId = requestAnimationFrame(updateCounter);
+        frame = requestAnimationFrame(tick);
       }
     };
 
-    animationFrameId = requestAnimationFrame(updateCounter);
-    return () => cancelAnimationFrame(animationFrameId);
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
   }, [value]);
 
-  return <span>{displayValue}</span>;
+  return <span>{display}</span>;
 }
 
-const COLOR_THEMES = {
+const THEMES = {
   blue: {
-    gradient: "from-blue-500 to-indigo-600",
-    bgTint: "from-white via-blue-50/30 to-slate-50/50",
-    borderHover: "hover:border-blue-400/80 hover:shadow-blue-500/10",
-    badgeBg: "bg-blue-50/90 border-blue-200/80",
-    badgeText: "text-blue-700",
-    iconBg: "bg-blue-100/70 border-blue-200/80",
-    iconText: "text-blue-600",
-    metricColor: "text-blue-950",
-  },
-  purple: {
-    gradient: "from-purple-500 to-indigo-600",
-    bgTint: "from-white via-purple-50/30 to-slate-50/50",
-    borderHover: "hover:border-purple-400/80 hover:shadow-purple-500/10",
-    badgeBg: "bg-purple-50/90 border-purple-200/80",
-    badgeText: "text-purple-700",
-    iconBg: "bg-purple-100/70 border-purple-200/80",
-    iconText: "text-purple-600",
-    metricColor: "text-purple-950",
+    bg: "bg-gradient-to-br from-white via-white to-blue-50/40 hover:to-blue-50/70",
+    border: "border-slate-200/90 hover:border-blue-300/80 hover:shadow-sm hover:shadow-blue-500/5",
+    iconBox: "bg-blue-50 text-blue-700 border-blue-200/70 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600",
+    badge: "bg-blue-50/90 text-blue-700 border-blue-200/70",
+    dot: "bg-blue-600",
   },
   emerald: {
-    gradient: "from-emerald-500 to-teal-600",
-    bgTint: "from-white via-emerald-50/30 to-slate-50/50",
-    borderHover: "hover:border-emerald-400/80 hover:shadow-emerald-500/10",
-    badgeBg: "bg-emerald-50/90 border-emerald-200/80",
-    badgeText: "text-emerald-700",
-    iconBg: "bg-emerald-100/70 border-emerald-200/80",
-    iconText: "text-emerald-600",
-    metricColor: "text-emerald-950",
+    bg: "bg-gradient-to-br from-white via-white to-emerald-50/40 hover:to-emerald-50/70",
+    border: "border-slate-200/90 hover:border-emerald-300/80 hover:shadow-sm hover:shadow-emerald-500/5",
+    iconBox: "bg-emerald-50 text-emerald-700 border-emerald-200/70 group-hover:bg-emerald-600 group-hover:text-white group-hover:border-emerald-600",
+    badge: "bg-emerald-50/90 text-emerald-700 border-emerald-200/70",
+    dot: "bg-emerald-600",
   },
   amber: {
-    gradient: "from-amber-500 to-orange-600",
-    bgTint: "from-white via-amber-50/30 to-slate-50/50",
-    borderHover: "hover:border-amber-400/80 hover:shadow-amber-500/10",
-    badgeBg: "bg-amber-50/90 border-amber-200/80",
-    badgeText: "text-amber-800",
-    iconBg: "bg-amber-100/70 border-amber-200/80",
-    iconText: "text-amber-600",
-    metricColor: "text-amber-950",
+    bg: "bg-gradient-to-br from-white via-white to-amber-50/40 hover:to-amber-50/70",
+    border: "border-slate-200/90 hover:border-amber-300/80 hover:shadow-sm hover:shadow-amber-500/5",
+    iconBox: "bg-amber-50 text-amber-700 border-amber-200/70 group-hover:bg-amber-600 group-hover:text-white group-hover:border-amber-600",
+    badge: "bg-amber-50/90 text-amber-800 border-amber-200/70",
+    dot: "bg-amber-600",
   },
-  sky: {
-    gradient: "from-sky-500 to-blue-600",
-    bgTint: "from-white via-sky-50/30 to-slate-50/50",
-    borderHover: "hover:border-sky-400/80 hover:shadow-sky-500/10",
-    badgeBg: "bg-sky-50/90 border-sky-200/80",
-    badgeText: "text-sky-700",
-    iconBg: "bg-sky-100/70 border-sky-200/80",
-    iconText: "text-sky-600",
-    metricColor: "text-sky-950",
+  purple: {
+    bg: "bg-gradient-to-br from-white via-white to-purple-50/40 hover:to-purple-50/70",
+    border: "border-slate-200/90 hover:border-purple-300/80 hover:shadow-sm hover:shadow-purple-500/5",
+    iconBox: "bg-purple-50 text-purple-700 border-purple-200/70 group-hover:bg-purple-600 group-hover:text-white group-hover:border-purple-600",
+    badge: "bg-purple-50/90 text-purple-700 border-purple-200/70",
+    dot: "bg-purple-600",
   },
   indigo: {
-    gradient: "from-indigo-500 to-purple-600",
-    bgTint: "from-white via-indigo-50/30 to-slate-50/50",
-    borderHover: "hover:border-indigo-400/80 hover:shadow-indigo-500/10",
-    badgeBg: "bg-indigo-50/90 border-indigo-200/80",
-    badgeText: "text-indigo-700",
-    iconBg: "bg-indigo-100/70 border-indigo-200/80",
-    iconText: "text-indigo-600",
-    metricColor: "text-indigo-950",
+    bg: "bg-gradient-to-br from-white via-white to-indigo-50/40 hover:to-indigo-50/70",
+    border: "border-slate-200/90 hover:border-indigo-300/80 hover:shadow-sm hover:shadow-indigo-500/5",
+    iconBox: "bg-indigo-50 text-indigo-700 border-indigo-200/70 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600",
+    badge: "bg-indigo-50/90 text-indigo-700 border-indigo-200/70",
+    dot: "bg-indigo-600",
   },
   teal: {
-    gradient: "from-teal-500 to-emerald-600",
-    bgTint: "from-white via-teal-50/30 to-slate-50/50",
-    borderHover: "hover:border-teal-400/80 hover:shadow-teal-500/10",
-    badgeBg: "bg-teal-50/90 border-teal-200/80",
-    badgeText: "text-teal-700",
-    iconBg: "bg-teal-100/70 border-teal-200/80",
-    iconText: "text-teal-600",
-    metricColor: "text-teal-950",
+    bg: "bg-gradient-to-br from-white via-white to-teal-50/40 hover:to-teal-50/70",
+    border: "border-slate-200/90 hover:border-teal-300/80 hover:shadow-sm hover:shadow-teal-500/5",
+    iconBox: "bg-teal-50 text-teal-700 border-teal-200/70 group-hover:bg-teal-600 group-hover:text-white group-hover:border-teal-600",
+    badge: "bg-teal-50/90 text-teal-700 border-teal-200/70",
+    dot: "bg-teal-600",
+  },
+  sky: {
+    bg: "bg-gradient-to-br from-white via-white to-sky-50/40 hover:to-sky-50/70",
+    border: "border-slate-200/90 hover:border-sky-300/80 hover:shadow-sm hover:shadow-sky-500/5",
+    iconBox: "bg-sky-50 text-sky-700 border-sky-200/70 group-hover:bg-sky-600 group-hover:text-white group-hover:border-sky-600",
+    badge: "bg-sky-50/90 text-sky-700 border-sky-200/70",
+    dot: "bg-sky-600",
   },
   rose: {
-    gradient: "from-rose-500 to-red-600",
-    bgTint: "from-white via-rose-50/30 to-slate-50/50",
-    borderHover: "hover:border-rose-400/80 hover:shadow-rose-500/10",
-    badgeBg: "bg-rose-50/90 border-rose-200/80",
-    badgeText: "text-rose-700",
-    iconBg: "bg-rose-100/70 border-rose-200/80",
-    iconText: "text-rose-600",
-    metricColor: "text-rose-950",
+    bg: "bg-gradient-to-br from-white via-white to-rose-50/40 hover:to-rose-50/70",
+    border: "border-slate-200/90 hover:border-rose-300/80 hover:shadow-sm hover:shadow-rose-500/5",
+    iconBox: "bg-rose-50 text-rose-700 border-rose-200/70 group-hover:bg-rose-600 group-hover:text-white group-hover:border-rose-600",
+    badge: "bg-rose-50/90 text-rose-700 border-rose-200/70",
+    dot: "bg-rose-600",
   },
 };
 
-const THEME_KEYS = ["blue", "purple", "emerald", "amber", "sky", "indigo", "teal", "rose"] as const;
+const DEFAULT_THEMES = ["blue", "emerald", "amber", "purple", "indigo", "teal", "sky", "rose"] as const;
 
 export function StatCard({
   label,
@@ -162,84 +132,75 @@ export function StatCard({
   badge,
   sublabel,
   colorTheme,
-  className
+  className,
+  onClick
 }: StatCardProps) {
-  const themeKey = colorTheme || THEME_KEYS[index % THEME_KEYS.length];
-  const theme = COLOR_THEMES[themeKey];
+  const themeKey = colorTheme || DEFAULT_THEMES[index % DEFAULT_THEMES.length];
+  const theme = THEMES[themeKey] || THEMES.blue;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{
-        y: -4,
-        rotateX: 3,
-        rotateY: -3,
-        scale: 1.018,
-        transition: { duration: 0.2, ease: "easeOut" }
-      }}
-      transition={{ duration: 0.25, delay: index * 0.04 }}
+    <article
+      onClick={onClick}
       className={cn(
-        "group relative rounded-xl border border-slate-200/90 bg-gradient-to-br p-3.5 shadow-xs hover:shadow-lg transition-all duration-200 cursor-pointer transform-gpu flex flex-col justify-between min-h-[112px] h-full overflow-hidden",
-        theme.bgTint,
-        theme.borderHover,
+        "group relative flex flex-col justify-between rounded-xl border p-3.5 shadow-2xs transition-all duration-200 ease-out hover:-translate-y-0.5",
+        theme.bg,
+        theme.border,
+        onClick ? "cursor-pointer" : "cursor-default",
         className
       )}
-      style={{ transformStyle: "preserve-3d", perspective: 1000 }}
     >
-      {/* Top Colored Accent Stripe */}
-      <div className={cn("absolute top-0 left-0 right-0 h-1 bg-gradient-to-r", theme.gradient)} />
+      {/* Top Header: Label on Left, Badge & Compact Icon on Right */}
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider truncate">
+          {label}
+        </span>
 
-      {/* Header Row with 3D Depth */}
-      <div className="flex items-center justify-between relative z-10 pt-0.5" style={{ transform: "translateZ(8px)" }}>
-        <div className="flex flex-col min-w-0 pr-1 flex-1">
-          <span className="text-xs font-bold text-slate-900 group-hover:text-slate-950 transition-colors leading-tight line-clamp-2">
-            {label}
-          </span>
-          {sublabel && (
-            <span className="text-[9.5px] text-slate-500 font-medium line-clamp-1 mt-0.5">
-              {sublabel}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {badge && (
+            <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded-md font-mono border", theme.badge)}>
+              {badge}
             </span>
           )}
-        </div>
-
-        <div
-          className={cn(
-            "w-7 h-7 rounded-lg border shadow-2xs group-hover:scale-110 transition-all flex items-center justify-center shrink-0",
-            theme.iconBg,
-            theme.iconText
-          )}
-          style={{ transform: "translateZ(14px)" }}
-        >
-          <Icon size={14} />
+          <div
+            className={cn(
+              "w-6 h-6 rounded-lg border shadow-2xs flex items-center justify-center shrink-0 transition-all duration-200 ease-out",
+              theme.iconBox
+            )}
+          >
+            <Icon size={13} />
+          </div>
         </div>
       </div>
 
-      {/* Metric Value with Shutter Count-up & Context Badge / Trend */}
-      <div className="flex items-baseline justify-between relative z-10 mt-1" style={{ transform: "translateZ(14px)" }}>
-        <div className={cn("text-2xl font-black tracking-tight font-heading", theme.metricColor)}>
-          <AnimatedCounter value={value} />
+      {/* Metric Value & Trend */}
+      <div className="mt-1.5 flex items-baseline justify-between gap-2">
+        <div className="text-xl sm:text-2xl font-black tracking-tight font-heading text-slate-900 leading-none">
+          <Counter value={value} />
         </div>
 
-        {trend ? (
+        {trend && (
           <div className={cn(
-            "flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold shadow-2xs border font-mono",
+            "flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold border font-mono shrink-0",
             trend.positive ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-red-50 text-red-700 border-red-200"
           )}>
-            {trend.positive ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+            {trend.positive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
             <span>{trend.positive ? "+" : ""}{trend.value}%</span>
           </div>
-        ) : badge ? (
-          <span className={cn("text-[9px] font-bold shadow-2xs px-2 py-0.5 rounded-md font-mono border", theme.badgeBg, theme.badgeText)}>
-            {badge}
-          </span>
-        ) : null}
+        )}
       </div>
-    </motion.div>
+
+      {/* Compact Sublabel */}
+      {sublabel && (
+        <div className="mt-1.5 flex items-center gap-1.5 text-[10.5px] text-slate-400 font-medium truncate">
+          <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", theme.dot)} />
+          <span className="truncate">{sublabel}</span>
+        </div>
+      )}
+    </article>
   );
 }
 
-// Stat Card Group
+// Stat Card Group Container
 interface StatCardGroupProps {
   children: React.ReactNode;
   className?: string;
@@ -261,7 +222,7 @@ export function StatCardGroup({
 
   return (
     <div className={cn(
-      "grid gap-4",
+      "grid gap-3 sm:gap-3.5",
       gridCols[columns],
       className
     )}>
@@ -269,4 +230,3 @@ export function StatCardGroup({
     </div>
   );
 }
-

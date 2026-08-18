@@ -177,12 +177,12 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
 
         kpis = [
           createKpi("ps_state_commitment", "State CSR Commitments", formatCurrency(committedSum), "currency", "/strategy/state-portfolio", "Total corporate funds committed across Maharashtra", "positive", "up"),
+          createKpi("ps_corporate_participation", "Corporate Sponsors", 28, "number", "/companies", "Distinct companies actively funding state initiatives", "neutral"),
+          createKpi("ps_sector_balance", "Funded Sectors", "9 Priority Sectors", "status", "/strategy/sector-analytics", "Health, Education, Water, Agriculture & Skills", "positive"),
+          createKpi("ps_funding_pipeline", "Committed CSR Outlay", "₹52.0 Cr", "currency", "/funds", "Total committed funds across registered projects", "positive"),
           createKpi("ps_active_projects", "Active State Projects", activeProjectsCount, "number", "/strategy/state-portfolio", "Non-closed convergence and corporate projects", "positive"),
           createKpi("ps_district_coverage", "District Coverage", `${districtCoveragePct}%`, "percentage", "/strategy/state-portfolio", `${distinctDistricts.length} of 36 Maharashtra districts covered`, "positive"),
-          createKpi("ps_corporate_participation", "Participating Corporates", 28, "number", "/strategy/sector-analytics", "Distinct companies actively funding state initiatives", "neutral"),
-          createKpi("ps_avg_approval_time", "Avg. JS Approval Time", "4.2 Days", "duration", "/oversight/approvals", "Average turnaround for routine State CSR Cell decisions", "positive"),
           createKpi("ps_critical_escalations", "Critical Escalations", escalationsCount, "number", "/escalations", "High-severity unresolved state-level escalations", escalationsCount > 0 ? "critical" : "positive"),
-          createKpi("ps_sector_balance", "Sectors Funded", "9 Priority Sectors", "status", "/strategy/sector-analytics", "Health, Education, Water, Agriculture & Skills", "positive"),
           createKpi("ps_impact_progress", "Impact Beneficiaries", "1.42 Lakh", "number", "/strategy/impact", "Validated citizens reached across funded projects", "positive"),
         ];
 
@@ -219,14 +219,14 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
         const spread = maxWl - minWl;
 
         kpis = [
+          createKpi("js_feasibility_queue", "Feasibility Decisions Due", jsCases, "number", "/enquiries", "RM-assessed corporate proposals ready for JS decision", jsCases > 0 ? "warning" : "positive"),
+          createKpi("js_corporate_proposals", "Corporate CSR Enquiries", jsCases + unassignedRms, "number", "/enquiries", "Total incoming corporate partnership submissions", "positive"),
+          createKpi("js_fund_pipeline", "State Funding Pipeline", "₹48.50 Cr", "currency", "/funds", "Total proposed amount in active assessment pipeline", "positive"),
+          createKpi("js_rm_balance", "RM Workload Spread", `${spread} Cases`, "number", "/admin/user-management", `Active spread across ${rms.length} RMs (Max: ${maxWl}, Min: ${minWl})`, spread > 5 ? "warning" : "positive"),
+          createKpi("js_pitch_queue", "Pitch Publication Queue", pendingPitches, "number", "/pitches", "Verified government pitches awaiting marketplace publication", pendingPitches > 0 ? "warning" : "positive"),
+          createKpi("js_assignment_queue", "Pending Assignments", awaitingAssignment, "number", "/assignments", "JS-approved cases awaiting district/DNO assignment", awaitingAssignment > 0 ? "warning" : "positive"),
           createKpi("js_onboarding_queue", "Onboarding Queue", onboardingQueue, "number", "/admin/onboarding-approvals", "Main org & sub-dept applications awaiting decision", onboardingQueue > 0 ? "warning" : "positive"),
-          createKpi("js_feasibility_queue", "Feasibility Decisions Due", jsCases, "number", "/decisions?stage=JS_REVIEW", "RM-assessed cases ready for JS final decision", jsCases > 0 ? "warning" : "positive"),
-          createKpi("js_pitch_queue", "Pitch Publication Queue", pendingPitches, "number", "/pitches?status=RECOMMENDED_TO_JS", "Verified government pitches awaiting marketplace publication", pendingPitches > 0 ? "warning" : "positive"),
-          createKpi("js_assignment_queue", "Pending Assignments", awaitingAssignment, "number", "/assignments?status=JS_APPROVED", "JS-approved cases awaiting district/DNO assignment", awaitingAssignment > 0 ? "warning" : "positive"),
-          createKpi("js_rm_balance", "RM Workload Spread", `${spread} Cases`, "number", "/rm-management", `Active spread across ${rms.length} RMs (Max: ${maxWl}, Min: ${minWl})`, spread > 5 ? "warning" : "positive"),
           createKpi("js_critical_escalations", "Critical Escalations", escalations, "number", "/escalations", "Rejected Nodal assignments & routing escalations", escalations > 0 ? "critical" : "positive"),
-          createKpi("js_fund_pipeline", "State Funding Pipeline", "₹48.50 Cr", "currency", "/reports", "Total proposed amount in active assessment pipeline", "positive"),
-          createKpi("js_multi_district", "Multi-District Projects", 6, "number", "/assignments/multi-district", "Inter-district convergence projects under coordination", "neutral"),
         ];
 
         // JS Work Queue Items
@@ -406,14 +406,14 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
         const weeklyInteractions = caseInteractionsCount + appInteractionsCount;
 
         kpis = [
-          createKpi("rm_active_cases", "Active Assigned Cases", activeCases, "number", "/rm?scope=active", "Open enquiries, pitches and interests in your portfolio", "positive"),
-          createKpi("rm_pending_assessments", "Feasibility Pending", assessmentsDue, "number", "/assessments?owner=me", "Cases requiring 13-point feasibility evaluation", assessmentsDue > 0 ? "warning" : "positive"),
-          createKpi("rm_sla_at_risk", "SLA at Risk / Overdue", overdueCases, "number", "/escalations?owner=me", "Assigned cases approaching turnaround limit", overdueCases > 0 ? "critical" : "positive"),
+          createKpi("rm_active_cases", "Active Corporate Cases", activeCases, "number", "/enquiries", "Open corporate enquiries and proposals in your portfolio", "positive"),
+          createKpi("rm_pending_assessments", "13-Point Feasibilities Due", assessmentsDue, "number", "/enquiries", "Cases requiring 13-point feasibility evaluation", assessmentsDue > 0 ? "warning" : "positive"),
+          createKpi("rm_interactions_due", "Stale / Follow-ups Due", uncontacted + staleCases, "number", "/interactions", "Corporate accounts with no interaction in 7+ days", (uncontacted + staleCases) > 0 ? "warning" : "positive"),
+          createKpi("rm_meetings_week", "Stakeholder Interactions", weeklyInteractions, "number", "/interactions", "Logged corporate meetings and coordination calls this week", "neutral"),
+          createKpi("rm_pitch_verification", "Department Pitch Reviews", clarifications, "number", "/pitches", "Government department pitches requiring RM coordination", clarifications > 0 ? "warning" : "positive"),
+          createKpi("rm_submitted_to_js", "Recommended to JS", submittedJsCount, "number", "/enquiries", "Assessments completed and recommended to Joint Secretary", "positive"),
+          createKpi("rm_sla_at_risk", "SLA at Risk / Overdue", overdueCases, "number", "/escalations", "Assigned cases approaching turnaround limit", overdueCases > 0 ? "critical" : "positive"),
           createKpi("rm_avg_cycle_time", "Avg Processing Time", avgCycleTime, "duration", "/reports", "Average days from assignment to JS recommendation", "positive"),
-          createKpi("rm_interactions_due", "Stale / Uncontacted", uncontacted + staleCases, "number", "/rm?contacted=false", "Assigned cases with no interaction in 7+ days", (uncontacted + staleCases) > 0 ? "warning" : "positive"),
-          createKpi("rm_meetings_week", "Interactions & Calls", weeklyInteractions, "number", "/interactions", "Logged stakeholder meetings and follow-ups this week", "neutral"),
-          createKpi("rm_pitch_verification", "Clarifications Returned", clarifications, "number", "/rm?status=clarification", "Pitches and enquiries returned requiring coordination", clarifications > 0 ? "warning" : "positive"),
-          createKpi("rm_submitted_to_js", "Submitted to JS", submittedJsCount, "number", "/assessments", "Assessments completed and recommended to Joint Secretary", "positive"),
         ];
 
         // RM Work Queue
