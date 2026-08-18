@@ -629,6 +629,48 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
   }
 ];
 
+export function isInternalAuthorityUser(roles?: string[] | string | null, isSuperAdmin?: boolean): boolean {
+  if (isSuperAdmin) return true;
+  let activeRoles: string[] = [];
+  if (Array.isArray(roles)) {
+    activeRoles = roles;
+  } else if (typeof roles === "string" && roles) {
+    activeRoles = [roles];
+  } else if (typeof window !== "undefined") {
+    try {
+      const stored = localStorage.getItem("user");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.role) activeRoles.push(parsed.role);
+        if (parsed?.roleSlug) activeRoles.push(parsed.roleSlug);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  const normalized = activeRoles.map((r) => String(r).toUpperCase());
+  return normalized.some((r) =>
+    r.includes("SUPER_ADMIN") ||
+    r.includes("PLANNING_SECRETARY") ||
+    r.includes("JOINT_SECRETARY") ||
+    r.includes("CSR_RELATIONSHIP_MANAGER") ||
+    r.includes("RELATIONSHIP_MANAGER") ||
+    r.includes("STATE_CSR_CELL") ||
+    r.includes("DISTRICT_NODAL") ||
+    r.includes("PORTAL_ADMIN") ||
+    r.includes("CSR_ADMIN") ||
+    r === "ROLE_1" ||
+    r === "ROLE_2" ||
+    r === "ROLE_3" ||
+    r === "ROLE_4" ||
+    r === "ROLE_5" ||
+    r === "ROLE_6" ||
+    r === "RM" ||
+    r === "JS"
+  );
+}
+
 export function getNavItemForRoute(pathname: string): NavItemDef | undefined {
   let matched: NavItemDef | undefined;
   for (const item of NAVIGATION_MANIFEST) {

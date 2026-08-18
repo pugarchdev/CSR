@@ -38,105 +38,149 @@ export class RmAssignmentService {
     sector?: string | null;
     entityType?: "ENQUIRY" | "PITCH";
     entityId?: string;
+    caseId?: string;
   } = {}): Promise<string | null> {
     const { district, sector } = params || {};
 
-    return await prisma.$transaction(async (tx) => {
-      // Find all active Relationship Managers (Role ID 6 or code RELATIONSHIP_MANAGER)
-      const rms = await tx.user.findMany({
-        where: {
-          roleId: ROLE_ID.RELATIONSHIP_MANAGER,
-          accountStatus: "ACTIVE",
-          deletedAt: null,
-        },
-        select: {
-          id: true,
-          email: true,
-          firstName: true,
-          lastName: true,
-          officerProfile: true,
-        },
-      });
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        return await prisma.$transaction(async (tx) => {
+          // Find all active Relationship Managers (Role ID 6 or code RELATIONSHIP_MANAGER)
+          const rms = await tx.user.findMany({
+            where: {
+              roleId: ROLE_ID.RELATIONSHIP_MANAGER,
+              accountStatus: "ACTIVE",
+              deletedAt: null,
+            },
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              officerProfile: true,
+              rmProfile: true,
+            },
+          });
 
-      if (rms.length === 0) {
-        console.warn("[RM Auto-Assign] No active Relationship Managers found in system");
-        return null;
+          if (rms.length === 0) {
+            console.warn("[RM Auto-Assign] No active Relationship Managers found in system");
+            return null;
+          }
+
+          const rmIds = rms.map((r) => r.id);
+
+          // Count active assigned enquiries per RM
+          const enquiryCounts = await tx.corporateEnquiry.groupBy({
+            by: ["assignedRelationshipManagerId"],
+            where: {
+              assignedRelationshipManagerId: { in: rmIds },
+              status: { notIn: ["RESOLVED", "REJECTED", "CLOSED"] },
+            },
+            _count: { id: true },
+          });
+
+          // Count active assigned pitches per RM
+          const pitchCounts = await tx.governmentPitch.groupBy({
+            by: ["assignedRelationshipManagerId"],
+            where: {
+              assignedRelationshipManagerId: { in: rmIds },
+              status: { notIn: ["APPROVED", "REJECTED", "CANCELLED"] },
+            },
+            _count: { id: true },
+          });
+
+          const workloadMap = new Map<string, number>();
+          rmIds.forEach((id) => workloadMap.set(id, 0));
+
+          enquiryCounts.forEach((c) => {
+            if (c.assignedRelationshipManagerId) {
+              workloadMap.set(
+                c.assignedRelationshipManagerId,
+                (workloadMap.get(c.assignedRelationshipManagerId) || 0) + c._count.id
+              );
+            }
+          });
+
+          pitchCounts.forEach((c) => {
+            if (c.assignedRelationshipManagerId) {
+              workloadMap.set(
+                c.assignedRelationshipManagerId,
+                (workloadMap.get(c.assignedRelationshipManagerId) || 0) + c._count.id
+              );
+            }
+          });
+
+          const eligibleRms = rms.filter((rm: any) => {
+            const max = rm.rmProfile?.maxActiveWorkload;
+            return max == null || (workloadMap.get(rm.id) || 0) < max;
+          });
+
+          const minWorkload = eligibleRms.length
+            ? Math.min(...eligibleRms.map((rm) => workloadMap.get(rm.id) || 0))
+            : null;
+
+          const tiedIds = minWorkload == null
+            ? []
+            : eligibleRms
+                .filter((rm) => (workloadMap.get(rm.id) || 0) === minWorkload)
+                .map((rm) => rm.id)
+                .sort();
+
+          const cursor = await (tx as any).rmAllocationCursor?.findUnique({ where: { poolKey: "GLOBAL" } });
+          let selectedRmId: string | null = null;
+          if (tiedIds.length > 0) {
+            const lastIndex = cursor?.lastSelectedUserId ? tiedIds.indexOf(cursor.lastSelectedUserId) : -1;
+            if (lastIndex >= 0) {
+              selectedRmId = tiedIds[(lastIndex + 1) % tiedIds.length];
+            } else if (cursor?.lastSelectedUserId) {
+              selectedRmId = tiedIds.find((id) => id > cursor.lastSelectedUserId!) || tiedIds[0];
+            } else {
+              selectedRmId = tiedIds[0];
+            }
+            if ((tx as any).rmAllocationCursor) {
+              await (tx as any).rmAllocationCursor.upsert({
+                where: { poolKey: "GLOBAL" },
+                create: { poolKey: "GLOBAL", lastSelectedUserId: selectedRmId, sequence: 1n },
+                update: { lastSelectedUserId: selectedRmId, sequence: { increment: 1n } },
+              });
+            }
+          }
+
+          if (params.caseId && (tx as any).portalCase && (tx as any).rmAllocationEvent) {
+            const trackedCase = await (tx as any).portalCase.findUnique({ where: { id: params.caseId }, select: { id: true } });
+            if (!trackedCase) throw new Error("Tracked case not found for RM allocation");
+            await (tx as any).portalCase.update({
+              where: { id: params.caseId },
+              data: selectedRmId
+                ? { assignedRmId: selectedRmId, currentStage: "RM_REVIEW", status: "SUBMITTED" }
+                : { assignedRmId: null, currentStage: "RM_ALLOCATION", status: "UNASSIGNED" },
+            });
+            await (tx as any).rmAllocationEvent.create({
+              data: {
+                caseId: params.caseId,
+                selectedRmId,
+                ruleVersion: "lowest-active-workload-round-robin-v1",
+                workloadSnapshot: Object.fromEntries([...workloadMap.entries()].map(([id, workload]) => [id, { activeWorkload: workload }])),
+                tieCandidateIds: tiedIds,
+                cursorBefore: cursor?.lastSelectedUserId || null,
+                cursorAfter: selectedRmId,
+                outcome: selectedRmId ? "ASSIGNED" : "UNASSIGNED",
+              },
+            });
+          }
+
+          return selectedRmId;
+        }, { 
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          maxWait: 15000,
+          timeout: 30000
+        });
+      } catch (error: any) {
+        if (error?.code === "P2034" && attempt < 2) continue;
+        throw error;
       }
-
-      const rmIds = rms.map((r) => r.id);
-
-      // Count active assigned enquiries per RM
-      const enquiryCounts = await tx.corporateEnquiry.groupBy({
-        by: ["assignedRelationshipManagerId"],
-        where: {
-          assignedRelationshipManagerId: { in: rmIds },
-          status: { notIn: ["RESOLVED", "REJECTED", "CLOSED"] },
-        },
-        _count: { id: true },
-      });
-
-      // Count active assigned pitches per RM
-      const pitchCounts = await tx.governmentPitch.groupBy({
-        by: ["assignedRelationshipManagerId"],
-        where: {
-          assignedRelationshipManagerId: { in: rmIds },
-          status: { notIn: ["APPROVED", "REJECTED", "CANCELLED"] },
-        },
-        _count: { id: true },
-      });
-
-      const workloadMap = new Map<string, number>();
-      rmIds.forEach((id) => workloadMap.set(id, 0));
-
-      enquiryCounts.forEach((c) => {
-        if (c.assignedRelationshipManagerId) {
-          workloadMap.set(
-            c.assignedRelationshipManagerId,
-            (workloadMap.get(c.assignedRelationshipManagerId) || 0) + c._count.id
-          );
-        }
-      });
-
-      pitchCounts.forEach((c) => {
-        if (c.assignedRelationshipManagerId) {
-          workloadMap.set(
-            c.assignedRelationshipManagerId,
-            (workloadMap.get(c.assignedRelationshipManagerId) || 0) + c._count.id
-          );
-        }
-      });
-
-      // Score each RM deterministically:
-      // Primary: preference match score (district + sector match)
-      // Secondary: lowest active workload
-      // Tertiary: alphabetical ID for deterministic tie-breaker
-      let bestRmId: string | null = null;
-      let maxScore = -1;
-      let minWorkload = Infinity;
-
-      for (const rm of rms) {
-        const workload = workloadMap.get(rm.id) || 0;
-        let score = 0;
-
-        const userDistrict = rm.officerProfile?.district;
-        if (district && userDistrict && userDistrict.toLowerCase() === district.toLowerCase()) {
-          score += 10;
-        }
-
-        // Selection priority: higher preference score first, then lower workload, then deterministic ID order
-        if (
-          score > maxScore ||
-          (score === maxScore && workload < minWorkload) ||
-          (score === maxScore && workload === minWorkload && (bestRmId === null || rm.id < bestRmId))
-        ) {
-          maxScore = score;
-          minWorkload = workload;
-          bestRmId = rm.id;
-        }
-      }
-
-      return bestRmId;
-    });
+    }
+    return null;
   }
 
   /**
