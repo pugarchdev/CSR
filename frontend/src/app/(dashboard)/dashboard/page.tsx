@@ -21,15 +21,9 @@ export default function DashboardPage() {
 
   return (
     <GovPortalLayout userRole={user?.role || ""}>
-      <GovPageHeader
-        breadcrumb="Home / Dashboard"
-        title="Dashboard"
-        description="Your unified view — the cards and sections shown reflect your permissions."
-      />
-
       <DashboardEngine />
 
-      <div className="mt-6">
+      <div className="mt-5">
         <MyAssignmentsWidget />
       </div>
     </GovPortalLayout>

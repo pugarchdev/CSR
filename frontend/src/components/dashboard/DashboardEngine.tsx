@@ -14,6 +14,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { WorkQueueSection } from "./WorkQueueSection";
 import { AlertsSection } from "./AlertsSection";
 import dynamic from "next/dynamic";
+import { useAuthStore } from "@/store/authStore";
 
 const DashboardCharts = dynamic(
   () => import("./DashboardCharts").then((mod) => mod.DashboardCharts),
@@ -79,7 +80,37 @@ function DashboardSkeleton() {
   );
 }
 
+function formatRoleName(roleCode: any, userRoleId: any, fallbackRole?: string): string {
+  if (roleCode && typeof roleCode === "object") {
+    if (typeof roleCode.name === "string" && roleCode.name.trim() && isNaN(Number(roleCode.name))) return roleCode.name;
+    if (typeof roleCode.code === "string" && roleCode.code.trim() && isNaN(Number(roleCode.code))) {
+      return roleCode.code.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+    }
+  }
+  if (typeof roleCode === "string" && isNaN(Number(roleCode)) && roleCode.trim()) {
+    return roleCode.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+  }
+  const numeric = Number(userRoleId || (typeof roleCode === "number" ? roleCode : (!isNaN(Number(roleCode)) ? Number(roleCode) : 0)));
+  const ROLE_MAP: Record<number, string> = {
+    1: "Super Admin",
+    2: "Planning Secretary",
+    3: "Joint Secretary",
+    4: "State CSR Cell",
+    5: "District Nodal Officer",
+    6: "CSR Relationship Manager",
+    7: "Implementing Agency",
+    8: "Corporate Partner",
+    9: "Government Officer",
+  };
+  if (ROLE_MAP[numeric]) return ROLE_MAP[numeric];
+  if (fallbackRole && typeof fallbackRole === "string" && isNaN(Number(fallbackRole))) {
+    return fallbackRole.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+  }
+  return "Authorized User";
+}
+
 export default function DashboardEngine() {
+  const storeUser = useAuthStore((s) => s.user);
   const query = useApiQuery<SummaryEnvelope>(["dashboard", "summary"], "/dashboard/summary", {
     staleTime: 45_000,
     gcTime: 300_000,
@@ -91,19 +122,19 @@ export default function DashboardEngine() {
   if (query.isLoading) return <DashboardSkeleton />;
   if (query.isError || !summary) {
     return (
-      <section className="rounded-2xl border border-red-200 bg-gradient-to-r from-red-50 to-rose-50 p-6 shadow-xs" role="alert">
+      <section className="rounded-2xl border border-red-200 bg-gradient-to-r from-red-50 to-rose-50 p-5 shadow-xs" role="alert">
         <div className="flex items-start gap-3">
-          <div className="rounded-xl border border-red-200 bg-white p-2.5 text-red-600">
-            <AlertCircle size={22} />
+          <div className="rounded-xl border border-red-200 bg-white p-2 text-red-600">
+            <AlertCircle size={20} />
           </div>
           <div>
-            <h2 className="font-heading font-bold text-red-950">Dashboard metrics currently unavailable</h2>
-            <p className="mt-1 text-xs font-medium text-red-700">Live operational data could not be retrieved from the server.</p>
+            <h2 className="font-heading font-bold text-red-950 text-sm">Dashboard metrics currently unavailable</h2>
+            <p className="mt-0.5 text-xs font-medium text-red-700">Live operational data could not be retrieved from the server.</p>
             <button
               onClick={() => query.refetch()}
-              className="mt-3 inline-flex items-center gap-2 rounded-xl bg-red-700 px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-red-800"
+              className="mt-2.5 inline-flex items-center gap-2 rounded-xl bg-red-700 px-3 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-red-800"
             >
-              <RefreshCcw size={14} />
+              <RefreshCcw size={13} />
               Retry Connection
             </button>
           </div>
@@ -120,70 +151,60 @@ export default function DashboardEngine() {
   const userRoleId = Number(summary.userRoleId || 0);
   const roleCodeStr = String(summary.roleCode || "");
   const isPartitionedRole = [2, 3, 6].includes(userRoleId) || /PLANNING_SECRETARY|JOINT_SECRETARY|RELATIONSHIP_MANAGER/i.test(roleCodeStr);
+  const roleDisplayName = formatRoleName(summary.roleCode, summary.userRoleId, storeUser?.role);
 
   return (
-    <div className="space-y-6">
-      {/* 1. Page Header & Active Context Badge */}
-      <section className="flex flex-wrap items-end justify-between gap-3 border-b border-slate-200/80 pb-4">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1 rounded-md bg-blue-100/80 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-blue-900">
-              <ShieldCheck size={12} />
-              {typeof summary.roleCode === "string"
-                ? summary.roleCode.replace(/_/g, " ")
-                : typeof summary.roleCode?.code === "string"
-                ? summary.roleCode.code.replace(/_/g, " ")
-                : typeof summary.roleCode?.name === "string"
-                ? summary.roleCode.name.replace(/_/g, " ")
-                : String(summary.roleCode || "Authorized User")}
-            </span>
-            {summary.orgName && (
-              <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700">
-                <Building2 size={11} />
-                {summary.orgName}
-              </span>
-            )}
-          </div>
-          <h1 className="mt-1 font-heading text-xl font-extrabold text-slate-950">
+    <div className="space-y-4">
+      {/* 1. Ultra-Clean Single-Row Workspace Header */}
+      <section className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 pb-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <h1 className="font-heading text-lg sm:text-xl font-extrabold text-slate-950 tracking-tight">
             Executive Operations Workspace
           </h1>
-          <p className="text-xs text-slate-500 font-medium">
-            Live metrics, case queues, and government convergence oversight
-          </p>
+          <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-[10.5px] font-bold text-blue-800 border border-blue-200/70">
+            <ShieldCheck size={12} className="text-blue-600" />
+            {roleDisplayName}
+          </span>
+          {summary.orgName && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[10.5px] font-semibold text-slate-700">
+              <Building2 size={11} className="text-slate-500" />
+              {summary.orgName}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-2xs">
-            <Clock3 size={13} className="text-slate-400" />
+          <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 shadow-2xs">
+            <Clock3 size={12} className="text-slate-400" />
             <span>Updated {Number.isNaN(asOf.getTime()) ? "just now" : asOf.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
           </span>
           <button
             onClick={() => query.refetch()}
             title="Refresh dashboard data"
-            className="rounded-xl border border-slate-200 bg-white p-2 text-slate-600 shadow-2xs transition hover:bg-slate-50 hover:text-blue-900"
+            className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-600 shadow-2xs transition hover:bg-slate-50 hover:text-blue-900"
           >
-            <RefreshCcw size={14} className={query.isFetching ? "animate-spin text-blue-700" : ""} />
+            <RefreshCcw size={13} className={query.isFetching ? "animate-spin text-blue-700" : ""} />
           </button>
         </div>
       </section>
 
       {/* 2. Onboarding Status Banner if pending */}
       {summary.onboardingStatus?.isPending && (
-        <section className="relative overflow-hidden rounded-2xl border border-amber-200/90 bg-gradient-to-r from-amber-50 via-orange-50/70 to-white p-4 shadow-xs">
+        <section className="relative overflow-hidden rounded-2xl border border-amber-200/90 bg-gradient-to-r from-amber-50 via-orange-50/70 to-white p-3.5 shadow-xs">
           <div className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-amber-400 to-orange-500" />
           <div className="flex items-start gap-3">
-            <div className="rounded-xl border border-amber-200 bg-white p-2.5 text-amber-700">
-              <Landmark size={20} />
+            <div className="rounded-xl border border-amber-200 bg-white p-2 text-amber-700">
+              <Landmark size={18} />
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="text-sm font-extrabold text-amber-950">{summary.onboardingStatus.title}</h2>
-              <p className="mt-1 text-xs font-medium leading-relaxed text-amber-900/80">{summary.onboardingStatus.message}</p>
+              <h2 className="text-xs font-extrabold text-amber-950">{summary.onboardingStatus.title}</h2>
+              <p className="mt-0.5 text-xs font-medium leading-relaxed text-amber-900/80">{summary.onboardingStatus.message}</p>
               <Link
                 href={summary.onboardingStatus.actionUrl}
-                className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg bg-amber-700 px-3 py-1 text-xs font-bold text-white shadow-2xs hover:bg-amber-800 hover:no-underline"
+                className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-amber-700 px-3 py-1 text-xs font-bold text-white shadow-2xs hover:bg-amber-800 hover:no-underline"
               >
                 <span>{summary.onboardingStatus.actionText}</span>
-                <ArrowRight size={13} />
+                <ArrowRight size={12} />
               </Link>
             </div>
           </div>
@@ -193,18 +214,20 @@ export default function DashboardEngine() {
       {/* 3. Alerts & Exceptions Section */}
       <AlertsSection alerts={alertsList} />
 
-      {/* 4. Primary KPI Cards Grid (4 Columns Desktop, 2 Columns Tablet, 1 Column Mobile) */}
-      <section aria-labelledby="primary-kpis-heading" className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-100 text-blue-800">
-              <Target size={15} />
+      {/* 4. Primary KPI Cards Grid */}
+      <section aria-labelledby="primary-kpis-heading" className="space-y-2.5">
+        {(!isPartitionedRole || kpiList.length < 4) && kpiList.length > 0 && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <div className="flex h-5 w-5 items-center justify-center rounded-md bg-blue-100 text-blue-800">
+                <Target size={13} />
+              </div>
+              <h2 id="primary-kpis-heading" className="font-heading text-xs font-extrabold uppercase tracking-wider text-slate-900">
+                Key Performance Indicators ({kpiList.length})
+              </h2>
             </div>
-            <h2 id="primary-kpis-heading" className="font-heading text-xs font-extrabold uppercase tracking-wider text-slate-900">
-              Key Performance Indicators ({kpiList.length})
-            </h2>
           </div>
-        </div>
+        )}
 
         {kpiList.length === 0 ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-xs">

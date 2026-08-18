@@ -845,7 +845,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
       )}
 
       {/* Main Workspace */}
-      <div className={isDashboard ? "flex flex-1 pt-[60px]" : (pathname === "/" || pathname === "/login" || pathname === "/register" || pathname.startsWith("/register/")) ? "flex flex-1 pt-0" : "flex flex-1 pt-20 sm:pt-24"}>
+      <div className={isDashboard ? "flex flex-1 pt-[58px]" : (pathname === "/" || pathname === "/login" || pathname === "/register" || pathname.startsWith("/register/")) ? "flex flex-1 pt-0" : "flex flex-1 pt-20 sm:pt-24"}>
 
         {/* Desktop Sidebar */}
         {isDashboard && (
@@ -1122,7 +1122,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
 
         {/* Main Content */}
         <div className={`flex-grow flex flex-col min-w-0 transition-all duration-300 ease-in-out ${isDashboard ? (isExpanded ? "lg:ml-64" : "lg:ml-[68px]") : ""}`}>
-          <main id="main-content" className={`flex-grow ${isDashboard ? "px-4 py-4 md:px-6 md:py-5" : ""}`}>
+          <main id="main-content" className={`flex-grow ${isDashboard ? "px-3.5 py-3.5 md:px-6 md:py-4" : ""}`}>
             {dashboardContent}
           </main>
           {isDashboard ? (

@@ -24,13 +24,13 @@ export function GovPageHeader({
 }: GovPageHeaderProps) {
   const badgeText = eyebrow || breadcrumb;
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/60 pb-3 mb-4">
-      <div className="flex items-center gap-3">
-        <h1 className="text-lg font-extrabold tracking-tight text-slate-900 font-heading">
+    <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-slate-200/60 pb-2.5 mb-3.5">
+      <div className="flex flex-wrap items-center gap-2.5">
+        <h1 className="text-lg font-black tracking-tight text-slate-950 font-heading">
           {title}
         </h1>
         {badgeText && (
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700 bg-blue-50 border border-blue-100 px-2.5 py-0.5 rounded-full">
+          <span className="text-[10.5px] font-bold text-blue-800 bg-blue-50 border border-blue-200/70 px-2.5 py-0.5 rounded-full">
             {badgeText}
           </span>
         )}
