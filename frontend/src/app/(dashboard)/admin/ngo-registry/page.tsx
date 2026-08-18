@@ -229,9 +229,13 @@ export default function ImplementingAgencyRegistryPage() {
                           className="flex md:table-cell flex-col md:flex-row items-start md:items-center px-4 md:px-5 py-3 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden before:mb-0.5"
                         >
                           <div className="flex flex-col">
-                            <span className="font-bold text-slate-900 hover:text-blue-700 transition-colors">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenDetails(ngo)}
+                              className="font-bold text-slate-900 hover:text-blue-700 transition-colors text-left cursor-pointer"
+                            >
                               {ngo.name}
-                            </span>
+                            </button>
                             <span className="text-[11px] text-slate-400 font-medium break-all">
                               {ngo.email}
                             </span>
@@ -480,15 +484,8 @@ export default function ImplementingAgencyRegistryPage() {
                       </div>
                     )}
 
-                    {/* Footer Actions */}
-                    <div className="flex items-center justify-between pt-3 border-t border-slate-200">
-                      <Link
-                        href={`/admin/organizations/${data.id}`}
-                        className="inline-flex items-center gap-1.5 text-blue-700 hover:text-blue-900 font-bold text-xs"
-                      >
-                        <span>Open Full Verification Profile</span>
-                        <ExternalLink size={13} />
-                      </Link>
+                    {/* Footer Actions - View Only */}
+                    <div className="flex items-center justify-end pt-3 border-t border-slate-200">
                       <Button type="button" variant="secondary" onClick={() => { setViewingAgency(null); setAgencyDetails(null); }}>
                         Close
                       </Button>

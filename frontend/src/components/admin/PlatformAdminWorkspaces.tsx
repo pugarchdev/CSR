@@ -2957,6 +2957,8 @@ export function AdminOrganizationsWorkspace() {
   const [items, setItems] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [districtFilter, setDistrictFilter] = useState("all");
   const [error, setError] = useState("");
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -3030,8 +3032,25 @@ export function AdminOrganizationsWorkspace() {
 
   const filtered = items.filter((item) => {
     const typeStr = String(item.organizationType || item.kind || "");
-    const statusStr = String(item.onboardingStatus || item.status || "");
-    return `${item.name} ${typeStr} ${item.district || ""} ${statusStr}`.toLowerCase().includes(search.toLowerCase());
+    const statusStr = String(item.onboardingStatus || item.status || "").toUpperCase();
+    const districtStr = String(item.district || "");
+    
+    // Search match
+    const matchesSearch = !search.trim() || `${item.name} ${typeStr} ${districtStr} ${statusStr} ${item.email || item.officialEmail || ""}`.toLowerCase().includes(search.toLowerCase());
+    
+    // Status match
+    const matchesStatus = statusFilter === "all" || (
+      statusFilter === "ACTIVE" ? (statusStr === "ACTIVE" || statusStr === "APPROVED") :
+      statusFilter === "PROFILE_INCOMPLETE" ? (statusStr.includes("INCOMPLETE") || statusStr.includes("DRAFT")) :
+      statusFilter === "PENDING" ? (statusStr === "PENDING" || statusStr.includes("VERIFICATION") || statusStr.includes("REVIEW")) :
+      statusFilter === "SUSPENDED" ? statusStr === "SUSPENDED" :
+      statusStr === statusFilter
+    );
+
+    // District match
+    const matchesDistrict = districtFilter === "all" || districtStr.toLowerCase().includes(districtFilter.toLowerCase());
+
+    return matchesSearch && matchesStatus && matchesDistrict;
   });
 
   return (
@@ -3048,12 +3067,66 @@ export function AdminOrganizationsWorkspace() {
       }
     >
       <ErrorBox error={error} />
+      
+      {/* Sleek Single-Row Search & Filters Bar */}
+      <div className="flex flex-col md:flex-row items-center gap-2.5 p-2.5 sm:p-3 bg-white rounded-2xl border border-slate-200/90 shadow-2xs mb-4">
+        {/* Search Input */}
+        <div className="relative flex-1 w-full">
+          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search department by name, email, or keyword..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-3 py-2 text-xs md:text-sm rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all font-medium"
+          />
+        </div>
+
+        {/* Status Filter */}
+        <div className="w-full md:w-48">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="w-full px-3 py-2 text-xs md:text-sm rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all font-medium cursor-pointer"
+          >
+            <option value="all">All Onboarding Status</option>
+            <option value="ACTIVE">Active & Operational</option>
+            <option value="PROFILE_INCOMPLETE">Profile Incomplete</option>
+            <option value="PENDING">Under Verification</option>
+            <option value="SUSPENDED">Suspended</option>
+          </select>
+        </div>
+
+        {/* District Filter */}
+        <div className="w-full md:w-52">
+          <select
+            value={districtFilter}
+            onChange={(e) => setDistrictFilter(e.target.value)}
+            className="w-full px-3 py-2 text-xs md:text-sm rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all font-medium cursor-pointer"
+          >
+            <option value="all">All 36 Districts</option>
+            <option value="Mumbai">Mumbai</option>
+            <option value="Pune">Pune</option>
+            <option value="Nagpur">Nagpur</option>
+            <option value="Nashik">Nashik</option>
+            <option value="Thane">Thane</option>
+            <option value="Yavatmal">Yavatmal</option>
+            <option value="Wardha">Wardha</option>
+            <option value="Raigad">Raigad</option>
+            <option value="Satara">Satara</option>
+            <option value="Gadchiroli">Gadchiroli</option>
+            <option value="Aurangabad">Chhatrapati Sambhajinagar</option>
+          </select>
+        </div>
+      </div>
+
       <section className="border border-slate-200/60 bg-white/70 backdrop-blur-xl rounded-2xl shadow-glass overflow-hidden">
-        <div className="flex flex-col gap-3 border-b border-gov-line p-4 md:flex-row md:items-center md:justify-between">
-          <div className="w-full md:max-w-sm">
-            <SearchBox value={search} onChange={setSearch} placeholder="Search departments..." />
+        <div className="flex items-center justify-between border-b border-gov-line px-5 py-3.5 bg-slate-50/50">
+          <div className="text-sm font-bold text-slate-800 flex items-center gap-2">
+            <Building2 size={16} className="text-blue-700" />
+            <span>Government Departments Directory</span>
           </div>
-          <div className="text-xs font-bold text-gov-muted text-right">{filtered.length} department(s)</div>
+          <div className="text-xs font-bold text-gov-muted">{filtered.length} department(s)</div>
         </div>
         
         {/* Wrapper: Handles overflow on desktop, full width on mobile */}
@@ -3073,7 +3146,7 @@ export function AdminOrganizationsWorkspace() {
               {loading ? (
                 <LoadingRow colSpan={6} />
               ) : filtered.length === 0 ? (
-                <EmptyRow colSpan={6} text="No government departments found." />
+                <EmptyRow colSpan={6} text="No government departments found matching the criteria." />
               ) : (
                 filtered.map((item) => (
                   <tr 
@@ -3082,9 +3155,13 @@ export function AdminOrganizationsWorkspace() {
                   >
                     <td data-label="Organization" className="flex md:table-cell flex-col md:flex-row items-start md:items-center px-4 md:px-5 py-3.5 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-bold before:text-slate-400 before:md:hidden before:mb-1">
                       <div className="flex flex-col items-start md:items-start w-full text-left">
-                        <Link href={`/admin/organizations/${item.id}`} className="font-bold text-gov-blue hover:underline break-words">
+                        <button
+                          type="button"
+                          onClick={() => handleViewDetails(item)}
+                          className="font-bold text-gov-blue hover:underline break-words text-left cursor-pointer"
+                        >
                           {item.name}
-                        </Link>
+                        </button>
                         <div className="text-xs font-medium text-gov-muted break-all">
                           {item.email || item.officialEmail || "-"}
                         </div>
@@ -3317,15 +3394,8 @@ export function AdminOrganizationsWorkspace() {
                       </div>
                     </div>
 
-                    {/* Footer Actions */}
-                    <div className="flex items-center justify-between pt-3 border-t border-slate-200">
-                      <Link
-                        href={`/admin/organizations/${data.id}`}
-                        className="inline-flex items-center gap-1.5 text-blue-700 hover:text-blue-900 font-bold text-xs"
-                      >
-                        <span>Open Full Verification Profile</span>
-                        <ExternalLink size={13} />
-                      </Link>
+                    {/* Footer Actions - View Only */}
+                    <div className="flex items-center justify-end pt-3 border-t border-slate-200">
                       <Button type="button" variant="secondary" onClick={() => { setViewingOrg(null); setOrgDetails(null); }}>
                         Close
                       </Button>
