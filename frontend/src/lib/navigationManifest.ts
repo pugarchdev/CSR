@@ -817,6 +817,36 @@ export function getNavItemForRoute(pathname: string): NavItemDef | undefined {
   return matched;
 }
 
+export function isRmUser(roles?: string[] | string | null): boolean {
+  let activeRoles: string[] = [];
+  if (Array.isArray(roles)) {
+    activeRoles = roles;
+  } else if (typeof roles === "string" && roles) {
+    activeRoles = [roles];
+  } else if (typeof window !== "undefined") {
+    try {
+      const stored = localStorage.getItem("user");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.role) activeRoles.push(parsed.role);
+        if (parsed?.roleSlug) activeRoles.push(parsed.roleSlug);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  const normalized = activeRoles.map((r) => String(r).toUpperCase());
+  return normalized.some((r) =>
+    r.includes("RELATIONSHIP_MANAGER") ||
+    r.includes("CSR_RELATIONSHIP_MANAGER") ||
+    r === "ROLE_6" ||
+    r === "SYSTEM_ROLE_6" ||
+    r === "6" ||
+    r === "RM"
+  );
+}
+
 export function isNavItemAllowed(
   item: NavItemDef,
   hasPermission: (perm: string) => boolean,
@@ -824,6 +854,7 @@ export function isNavItemAllowed(
   userRoles?: string[] | string | null
 ): boolean {
   const isInternalAuthority = isInternalAuthorityUser(userRoles, isSuperAdmin);
+  const isRm = isRmUser(userRoles);
 
   if (item.id === "organization-onboarding") {
     if (isInternalAuthority) return false;
@@ -831,6 +862,11 @@ export function isNavItemAllowed(
 
   if (item.id === "sub-logins") {
     if (isInternalAuthority) return false;
+  }
+
+  // Relationship Managers have no permission to view or access the administrative onboarding approvals queue
+  if (item.id === "onboarding-approvals" && isRm) {
+    return false;
   }
 
   if (isSuperAdmin) return true;

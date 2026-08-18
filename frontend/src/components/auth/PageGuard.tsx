@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
-import { getNavItemForRoute, isNavItemAllowed, isInternalAuthorityUser } from "@/lib/navigationManifest";
+import { getNavItemForRoute, isNavItemAllowed, isInternalAuthorityUser, isRmUser } from "@/lib/navigationManifest";
 import { Loader2, RefreshCw, AlertCircle } from "lucide-react";
 
 export default function PageGuard({ children }: { children: React.ReactNode }) {
@@ -83,6 +83,12 @@ export default function PageGuard({ children }: { children: React.ReactNode }) {
     const isInternal = isInternalAuthorityUser(userRoles, isAdmin);
     if (pathname.startsWith("/organization/onboarding") && isInternal) {
       return { allowed: false, requiredPerm: "organization:onboard", reason: "Internal authority roles do not undergo organization onboarding." };
+    }
+
+    // Relationship Managers have view-only directory access and cannot access administrative onboarding approvals
+    const isRm = isRmUser(userRoles);
+    if (pathname.startsWith("/admin/onboarding-approvals") && isRm) {
+      return { allowed: false, requiredPerm: "organization:approve", reason: "Relationship Managers have view-only directory access and cannot access administrative onboarding approvals." };
     }
 
     // Universal authenticated routes — always allowed for any logged-in user
