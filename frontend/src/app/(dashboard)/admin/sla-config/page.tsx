@@ -46,7 +46,12 @@ export default function SlaConfigurationPage() {
   }, []);
 
   const { hasPermission, isAdmin: storeIsAdmin } = useAuthStore();
-  const canAccess = storeIsAdmin || hasPermission("role:configure") || isAdmin();
+  const canAccess =
+    storeIsAdmin ||
+    hasPermission("page:sla-config:view") ||
+    hasPermission("sla:configure") ||
+    hasPermission("role:configure") ||
+    isAdmin();
 
   if (!canAccess) {
     return <AccessDenied requiredRoles={["Super Admin", "Administrator"]} />;

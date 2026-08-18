@@ -710,7 +710,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-administration",
     showInSidebar: true,
-    requiredAnyPermissions: ["role:configure", "user:view"],
+    requiredAnyPermissions: ["page:sla-config:view", "sla:configure"],
     ordering: 40,
     breadcrumbMetadata: { title: "SLA Configuration", parentRoute: "/dashboard" }
   },
