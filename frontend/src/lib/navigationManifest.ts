@@ -46,7 +46,7 @@ export const NAVIGATION_GROUPS: NavGroupDef[] = [
     iconName: "FileText",
     section: "Applications",
     ordering: 20,
-    childIds: ["enquiries", "pitches", "track-pitch", "interests", "assessments", "marketplace"]
+    childIds: ["enquiries", "pitches", "meetings", "track-pitch", "interests", "assessments", "marketplace"]
   },
   {
     id: "group-projects",
@@ -298,10 +298,11 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     route: "/meetings",
     iconName: "Calendar",
     section: "Applications",
-    navigationLevel: "HIDDEN",
-    showInSidebar: false,
+    navigationLevel: "CHILD",
+    parentNavId: "group-applications",
+    showInSidebar: true,
     requiredAnyPermissions: ["enquiry:view", "pitch:view", "project:view", "dashboard:view"],
-    ordering: 100,
+    ordering: 45,
     breadcrumbMetadata: { title: "Meetings", parentRoute: "/dashboard" }
   },
   {

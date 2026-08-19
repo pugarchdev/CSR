@@ -462,6 +462,16 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
         pathname.startsWith("/communications") ||
         pathname.startsWith("/notifications") ||
         pathname.startsWith("/helpdesk") ||
+        pathname.startsWith("/meetings") ||
+        pathname.startsWith("/interactions") ||
+        pathname.startsWith("/tasks") ||
+        pathname.startsWith("/work-queue") ||
+        pathname.startsWith("/evidence") ||
+        pathname.startsWith("/field-visits") ||
+        pathname.startsWith("/issues") ||
+        pathname.startsWith("/oversight") ||
+        pathname.startsWith("/platform") ||
+        pathname.startsWith("/strategy") ||
         pathname.startsWith("/track");
 
       if (!allowed) {

@@ -5,7 +5,8 @@ import {
   FileText, BarChart3, HelpCircle, ShieldCheck, ShieldAlert,
   Clock, Users, Globe2, LayoutDashboard, User, Settings, Bell,
   ListTodo, Store, AlertTriangle, Briefcase, UserCheck, Flag, Search,
-  CheckCircle, Building, FileCheck, UserPlus, UserCog, Sliders, CheckSquare, Send
+  CheckCircle, Building, FileCheck, UserPlus, UserCog, Sliders, CheckSquare, Send,
+  Calendar
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { NAVIGATION_MANIFEST, isNavItemAllowed } from "./navigationManifest";
@@ -29,6 +30,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Bell,
   FileText,
   Send,
+  Calendar,
   Heart: Sparkles,
   ClipboardCheck: FileText,
   ListTodo,
