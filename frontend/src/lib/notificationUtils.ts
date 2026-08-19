@@ -52,12 +52,7 @@ export function resolveNotificationUrl(
     return "/grievances";
   }
 
-  // 6. Requirement notifications
-  if (title.includes("requirement") || message.includes("requirement")) {
-    return "/requirements";
-  }
-
-  // 7. Project / Convergence Project notifications
+  // 6. Project / Convergence Project notifications
   if (title.includes("project") || message.includes("project")) {
     return "/convergence-projects";
   }

@@ -73,7 +73,7 @@ const AREA_RULES: AreaRule[] = [
       "/partner-with-maharashtra", "/track", "/enquiries", "/pitches",
       "/interests", "/assessments", "/companies", "/communications",
       "/escalations", "/decisions", "/inspections", "/handover", "/agencies",
-      "/requirements", "/nodal-appointments", "/helpdesk",
+      "/nodal-appointments", "/helpdesk",
     ],
     allow: null,
   },

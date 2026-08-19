@@ -78,7 +78,14 @@ export function validateGovernmentPitchSubmission(body: unknown): ValidationResu
   const districts = strings(input.districts ?? (input.district ? [input.district] : []));
   const photos = strings(input.geoTaggedPhotos);
   const serviceClass = text(input.serviceClass);
-  const certificationType = text(input.certificationType);
+  let certificationType = text(input.certificationType);
+  if (!certificationType) {
+    if (["CLASS_1", "CLASS_2"].includes(serviceClass)) {
+      certificationType = "SELF";
+    } else if (serviceClass === "BELOW_CLASS_2") {
+      certificationType = "HOD";
+    }
+  }
   const hodDocument = text(input.hodCertificationDocument) || null;
   const estimatedCost = Number(input.estimatedCost ?? input.budget);
   const value = {

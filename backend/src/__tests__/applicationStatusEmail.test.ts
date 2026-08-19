@@ -98,4 +98,51 @@ describe("Application Status Change Email Notifications", () => {
     expect(html).toContain("Please upload the revised project timeline breakdown.");
     expect(html).toContain("#b45309"); // Clarification text color
   });
+
+  test("4. Renders UNDER_VERIFICATION status email with indigo branding", async () => {
+    const payload = {
+      to: "collector.pune@maharashtra.gov.in",
+      templateName: "workflow_notification",
+      trackingId: "GOV-2026-101",
+      applicantName: "Pune Collectorate CSR Cell",
+      currentStatus: "UNDER_VERIFICATION",
+      workflowStatus: "Your government department profile has been submitted and is under verification.",
+      actionButtonUrl: "https://mahacsr.gov.in/government-onboarding",
+      subject: "Government Department Onboarding Under Verification"
+    };
+
+    const result = await sendTemplateEmail(payload);
+
+    expect(result.messageId).toBeDefined();
+    const mailArgs = sendMailMock.mock.calls[0][0];
+    const html = mailArgs.html;
+
+    expect(html).toContain("UNDER VERIFICATION");
+    expect(html).toContain("Pune Collectorate CSR Cell");
+    expect(html).toContain("GOV-2026-101");
+    expect(html).toContain("#3730a3"); // Under review / verification text color
+  });
+
+  test("5. Renders SUSPENDED status email with deep red branding", async () => {
+    const payload = {
+      to: "ngo@example.org",
+      templateName: "workflow_notification",
+      trackingId: "ORG-2026-888",
+      applicantName: "Seva Samiti",
+      currentStatus: "SUSPENDED",
+      workflowStatus: "Account suspended due to compliance audit findings.",
+      actionButtonUrl: "https://mahacsr.gov.in/organization/onboarding/status",
+      subject: "Organization Account Suspended"
+    };
+
+    const result = await sendTemplateEmail(payload);
+
+    expect(result.messageId).toBeDefined();
+    const mailArgs = sendMailMock.mock.calls[0][0];
+    const html = mailArgs.html;
+
+    expect(html).toContain("ACCOUNT SUSPENDED");
+    expect(html).toContain("Seva Samiti");
+    expect(html).toContain("#991b1b");
+  });
 });

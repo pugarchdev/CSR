@@ -24,16 +24,20 @@ import GovInput from "@/components/gov/GovInput";
 import GovSelect from "@/components/gov/GovSelect";
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
 import GovModal from "@/components/gov/GovModal";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { apiFetch } from "@/lib/api";
 import { MAHARASHTRA_DISTRICTS } from "@/lib/locationData";
 import { useTableSort } from "@/hooks/useTableSort";
 import { SortableTh } from "@/components/ui/SortableTh";
+import { ViewToggle } from "@/components/ui/ViewToggle";
+import { useResponsiveViewMode } from "@/hooks/useResponsiveViewMode";
 import "@/styles/gov-theme.css";
 
 export default function CompaniesPage() {
   const router = useRouter();
+  const [viewMode, setViewMode] = useResponsiveViewMode();
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -135,55 +139,36 @@ export default function CompaniesPage() {
 
       <div className="gov-container space-y-6">
         {/* Metric Cards Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <GovCard className="bg-gradient-to-br from-blue-50/60 via-white to-white border-blue-100 shadow-xs">
-            <GovCardBody className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-2xl bg-blue-100/70 text-blue-700">
-                <Building2 size={22} />
-              </div>
-              <div>
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Companies</span>
-                <p className="text-xl font-extrabold text-slate-900 mt-0.5">{pagination.total}</p>
-              </div>
-            </GovCardBody>
-          </GovCard>
-
-          <GovCard className="bg-gradient-to-br from-emerald-50/60 via-white to-white border-emerald-100 shadow-xs">
-            <GovCardBody className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-2xl bg-emerald-100/70 text-emerald-700">
-                <ShieldCheck size={22} />
-              </div>
-              <div>
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Active Verified</span>
-                <p className="text-xl font-extrabold text-emerald-950 mt-0.5">{pagination.active}</p>
-              </div>
-            </GovCardBody>
-          </GovCard>
-
-          <GovCard className="bg-gradient-to-br from-amber-50/60 via-white to-white border-amber-100 shadow-xs">
-            <GovCardBody className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-2xl bg-amber-100/70 text-amber-700">
-                <UserCheck size={22} />
-              </div>
-              <div>
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Pending Review</span>
-                <p className="text-xl font-extrabold text-amber-950 mt-0.5">{pagination.pending}</p>
-              </div>
-            </GovCardBody>
-          </GovCard>
-
-          <GovCard className="bg-gradient-to-br from-purple-50/60 via-white to-white border-purple-100 shadow-xs">
-            <GovCardBody className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-2xl bg-purple-100/70 text-purple-700">
-                <Target size={22} />
-              </div>
-              <div>
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total CSR Pool</span>
-                <p className="text-xl font-extrabold text-purple-950 mt-0.5">₹425+ Cr</p>
-              </div>
-            </GovCardBody>
-          </GovCard>
-        </div>
+        <StatCardGroup columns={4}>
+          <StatCard
+            label="Total Companies"
+            value={pagination.total}
+            icon={Building2}
+            colorTheme="blue"
+            sublabel="Registered corporate entities"
+          />
+          <StatCard
+            label="Active Verified"
+            value={pagination.active}
+            icon={ShieldCheck}
+            colorTheme="emerald"
+            sublabel="Approved & participating"
+          />
+          <StatCard
+            label="Pending Review"
+            value={pagination.pending}
+            icon={UserCheck}
+            colorTheme="amber"
+            sublabel="Awaiting verification"
+          />
+          <StatCard
+            label="Total CSR Pool"
+            value="₹425+ Cr"
+            icon={Target}
+            colorTheme="purple"
+            sublabel="Aggregate allocated fund"
+          />
+        </StatCardGroup>
 
         {/* Filter and Search Bar */}
         <div className="flex flex-col md:flex-row items-center gap-3 bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
@@ -263,116 +248,182 @@ export default function CompaniesPage() {
               <span>Registered Companies</span>
               <span className="text-xs font-bold text-slate-500 ml-1">({pagination.total})</span>
             </GovCardTitle>
+            <ViewToggle view={viewMode} onChange={setViewMode} />
           </GovCardHeader>
 
           <GovCardBody className="!p-0">
-            <div className="w-full md:overflow-x-auto">
-              <table className="w-full block md:table text-left border-collapse text-xs md:text-sm">
-                <thead className="hidden md:table-header-group border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider font-extrabold text-slate-500">
-                  <tr>
-                    <SortableTh sortKey="name" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-5 py-3.5">Company Name</SortableTh>
-                    <SortableTh sortKey="cin" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3.5">CIN / Reg No</SortableTh>
-                    <SortableTh sortKey="district" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3.5">District / Region</SortableTh>
-                    <SortableTh sortKey="sector" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3.5">Sector</SortableTh>
-                    <SortableTh sortKey="csrObligation" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3.5">CSR Obligation</SortableTh>
-                    <SortableTh sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3.5">Status</SortableTh>
-                    <th className="px-5 py-3.5 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="block md:table-row-group divide-y-0 md:divide-y md:divide-slate-100">
-                  {loading ? (
+            {viewMode === "list" ? (
+              <div className="w-full md:overflow-x-auto">
+                <table className="w-full block md:table text-left border-collapse text-xs md:text-sm">
+                  <thead className="hidden md:table-header-group border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider font-extrabold text-slate-500">
                     <tr>
-                      <td colSpan={7} className="p-8 text-center text-slate-500 font-medium">
-                        <div className="flex flex-col items-center justify-center gap-2">
-                          <Loader2 size={24} className="animate-spin text-blue-600" />
-                          <span>Loading companies directory...</span>
-                        </div>
-                      </td>
+                      <SortableTh sortKey="name" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-5 py-3.5">Company Name</SortableTh>
+                      <SortableTh sortKey="cin" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3.5">CIN / Reg No</SortableTh>
+                      <SortableTh sortKey="district" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3.5">District / Region</SortableTh>
+                      <SortableTh sortKey="sector" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3.5">Sector</SortableTh>
+                      <SortableTh sortKey="csrObligation" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3.5">CSR Obligation</SortableTh>
+                      <SortableTh sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3.5">Status</SortableTh>
+                      <th className="px-5 py-3.5 text-right">Actions</th>
                     </tr>
-                  ) : sortedItems.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="p-8 text-center text-slate-500 font-medium">
-                        No corporate company partners found matching the selected criteria.
-                      </td>
-                    </tr>
-                  ) : (
-                    sortedItems.map((company) => (
-                      <tr 
-                        key={company.id}
-                        className="block md:table-row mb-3 md:mb-0 bg-white border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-xs md:shadow-none hover:bg-slate-50/80 transition-colors overflow-hidden"
-                      >
-                        <td 
-                          data-label="Company" 
-                          className="flex md:table-cell flex-col md:flex-row items-start md:items-center px-4 md:px-5 py-3 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden before:mb-0.5"
-                        >
-                          <div className="flex flex-col">
-                            <button
-                              type="button"
-                              onClick={() => handleOpenDetails(company)}
-                              className="font-bold text-slate-900 hover:text-blue-700 transition-colors text-left cursor-pointer"
-                            >
-                              {company.name}
-                            </button>
-                            <span className="text-[11px] text-slate-400 font-medium break-all">
-                              {company.email}
-                            </span>
-                          </div>
-                        </td>
-                        <td 
-                          data-label="CIN / Reg" 
-                          className="flex md:table-cell justify-between items-center px-4 md:px-4 py-2.5 md:py-4 border-b border-slate-100 md:border-none font-mono text-xs before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
-                        >
-                          <span className="font-semibold text-slate-700 break-all max-w-[200px]">
-                            {formatCin(company.cin)}
-                          </span>
-                        </td>
-                        <td 
-                          data-label="District" 
-                          className="flex md:table-cell justify-between items-center px-4 md:px-4 py-2.5 md:py-4 border-b border-slate-100 md:border-none font-medium text-slate-700 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
-                        >
-                          {company.district}
-                        </td>
-                        <td 
-                          data-label="Sector" 
-                          className="flex md:table-cell justify-between items-center px-4 md:px-4 py-2.5 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
-                        >
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-50 text-blue-900 border border-blue-200">
-                            {company.sector}
-                          </span>
-                        </td>
-                        <td 
-                          data-label="CSR Obligation" 
-                          className="flex md:table-cell justify-between items-center px-4 md:px-4 py-2.5 md:py-4 border-b border-slate-100 md:border-none font-bold text-slate-900 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
-                        >
-                          {company.csrObligation}
-                        </td>
-                        <td 
-                          data-label="Status" 
-                          className="flex md:table-cell justify-between items-center px-4 md:px-4 py-2.5 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
-                        >
-                          <GovStatusBadge variant={company.statusVariant}>
-                            {company.status}
-                          </GovStatusBadge>
-                        </td>
-                        <td className="block md:table-cell px-4 md:px-5 py-3 md:py-4 bg-slate-50/50 md:bg-transparent text-right">
-                          <div className="flex justify-end items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleOpenDetails(company)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50/90 hover:bg-blue-100 text-blue-900 font-bold text-xs shadow-2xs transition-all hover:scale-[1.02] cursor-pointer"
-                              title="View detailed company profile"
-                            >
-                              <Eye size={14} className="text-blue-700" />
-                              <span>View Details</span>
-                            </button>
+                  </thead>
+                  <tbody className="block md:table-row-group divide-y-0 md:divide-y md:divide-slate-100">
+                    {loading ? (
+                      <tr>
+                        <td colSpan={7} className="p-8 text-center text-slate-500 font-medium">
+                          <div className="flex flex-col items-center justify-center gap-2">
+                            <Loader2 size={24} className="animate-spin text-blue-600" />
+                            <span>Loading companies directory...</span>
                           </div>
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    ) : sortedItems.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="p-8 text-center text-slate-500 font-medium">
+                          No corporate company partners found matching the selected criteria.
+                        </td>
+                      </tr>
+                    ) : (
+                      sortedItems.map((company) => (
+                        <tr 
+                          key={company.id}
+                          className="block md:table-row mb-3 md:mb-0 bg-white border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-xs md:shadow-none hover:bg-slate-50/80 transition-colors overflow-hidden"
+                        >
+                          <td 
+                            data-label="Company" 
+                            className="flex md:table-cell flex-col md:flex-row items-start md:items-center px-4 md:px-5 py-3 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden before:mb-0.5"
+                          >
+                            <div className="flex flex-col">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenDetails(company)}
+                                className="font-bold text-slate-900 hover:text-blue-700 transition-colors text-left cursor-pointer"
+                              >
+                                {company.name}
+                              </button>
+                              <span className="text-[11px] text-slate-400 font-medium break-all">
+                                {company.email}
+                              </span>
+                            </div>
+                          </td>
+                          <td 
+                            data-label="CIN / Reg" 
+                            className="flex md:table-cell justify-between items-center px-4 md:px-4 py-2.5 md:py-4 border-b border-slate-100 md:border-none font-mono text-xs before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
+                          >
+                            <span className="font-semibold text-slate-700 break-all max-w-[200px]">
+                              {formatCin(company.cin)}
+                            </span>
+                          </td>
+                          <td 
+                            data-label="District" 
+                            className="flex md:table-cell justify-between items-center px-4 md:px-4 py-2.5 md:py-4 border-b border-slate-100 md:border-none font-medium text-slate-700 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
+                          >
+                            {company.district}
+                          </td>
+                          <td 
+                            data-label="Sector" 
+                            className="flex md:table-cell justify-between items-center px-4 md:px-4 py-2.5 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
+                          >
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-50 text-blue-900 border border-blue-200">
+                              {company.sector}
+                            </span>
+                          </td>
+                          <td 
+                            data-label="CSR Obligation" 
+                            className="flex md:table-cell justify-between items-center px-4 md:px-4 py-2.5 md:py-4 border-b border-slate-100 md:border-none font-bold text-slate-900 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
+                          >
+                            {company.csrObligation}
+                          </td>
+                          <td 
+                            data-label="Status" 
+                            className="flex md:table-cell justify-between items-center px-4 md:px-4 py-2.5 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
+                          >
+                            <GovStatusBadge variant={company.statusVariant}>
+                              {company.status}
+                            </GovStatusBadge>
+                          </td>
+                          <td className="block md:table-cell px-4 md:px-5 py-3 md:py-4 bg-slate-50/50 md:bg-transparent text-right">
+                            <div className="flex justify-end items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenDetails(company)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50/90 hover:bg-blue-100 text-blue-900 font-bold text-xs shadow-2xs transition-all hover:scale-[1.02] cursor-pointer"
+                                title="View detailed company profile"
+                              >
+                                <Eye size={14} className="text-blue-700" />
+                                <span>View Details</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              /* GRID VIEW: Responsive Company Cards */
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {loading ? (
+                  <div className="col-span-full py-12 text-center text-slate-500 font-medium">
+                    <Loader2 size={24} className="animate-spin text-blue-600 mx-auto mb-2" />
+                    <span>Loading companies...</span>
+                  </div>
+                ) : sortedItems.length === 0 ? (
+                  <div className="col-span-full py-12 text-center text-slate-500 font-medium">
+                    No corporate company partners found matching the selected criteria.
+                  </div>
+                ) : (
+                  sortedItems.map((company) => (
+                    <div
+                      key={company.id}
+                      className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs hover:border-slate-300 hover:shadow-sm transition-all space-y-3"
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-blue-50 text-blue-900 border border-blue-200">
+                            {company.sector}
+                          </span>
+                          <GovStatusBadge variant={company.statusVariant}>{company.status}</GovStatusBadge>
+                        </div>
+
+                        <h3 className="font-extrabold text-slate-900 text-sm line-clamp-2">
+                          {company.name}
+                        </h3>
+
+                        <div className="space-y-1 text-xs text-slate-500">
+                          <div className="flex items-center gap-1.5 truncate">
+                            <MapPin size={12} className="text-slate-400 shrink-0" />
+                            <span>{company.district}</span>
+                          </div>
+                          {company.email && (
+                            <div className="text-slate-400 truncate text-[11px]">
+                              {company.email}
+                            </div>
+                          )}
+                          <div className="pt-1 text-[11px] font-bold text-slate-700">
+                            Obligation: <span className="text-blue-900 font-black">{company.csrObligation}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-mono font-bold text-slate-400 truncate max-w-[140px]">
+                          {formatCin(company.cin)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenDetails(company)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-xs border border-blue-200 transition-colors cursor-pointer"
+                        >
+                          <Eye size={12} className="text-blue-700" />
+                          <span>View Details</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
 
             {/* Pagination Controls */}
             {pagination.totalPages > 1 && (

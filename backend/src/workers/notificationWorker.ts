@@ -22,17 +22,21 @@ export interface NotificationJobPayload {
 
 async function processNotificationDirect(payload: NotificationJobPayload): Promise<void> {
   let inAppRecord: any = null;
-  if (payload.channels.includes("IN_APP")) {
-    inAppRecord = await prisma.notification.create({
-      data: {
-        recipientId: payload.recipientId,
-        userId: payload.recipientId,
-        title: payload.title,
-        message: payload.message,
-        type: payload.notificationType || "INFO",
-        ...(payload.actionButtonUrl ? { actionUrl: payload.actionButtonUrl } as any : {})
-      }
-    });
+  if (payload.channels.includes("IN_APP") && prisma?.notification?.create) {
+    try {
+      inAppRecord = await prisma.notification.create({
+        data: {
+          recipientId: payload.recipientId,
+          userId: payload.recipientId,
+          title: payload.title,
+          message: payload.message,
+          type: payload.notificationType || "INFO",
+          ...(payload.actionButtonUrl ? { actionUrl: payload.actionButtonUrl } as any : {})
+        }
+      });
+    } catch (inAppErr) {
+      console.warn("[NotificationWorker] Failed to create in-app notification:", inAppErr);
+    }
   }
 
   if (payload.channels.includes("SOCKET") && inAppRecord) {
@@ -40,14 +44,21 @@ async function processNotificationDirect(payload: NotificationJobPayload): Promi
   }
 
   if (payload.channels.includes("EMAIL") && payload.recipientEmail) {
-    const emailLog = await prisma.notificationLog.create({
-      data: {
-        recipientId: payload.recipientId,
-        recipient: payload.recipientEmail,
-        channel: "EMAIL",
-        status: "PENDING"
+    let emailLog: any = null;
+    if (prisma?.notificationLog?.create) {
+      try {
+        emailLog = await prisma.notificationLog.create({
+          data: {
+            recipientId: payload.recipientId,
+            recipient: payload.recipientEmail,
+            channel: "EMAIL",
+            status: "PENDING"
+          }
+        });
+      } catch (logErr) {
+        console.warn("[NotificationWorker] Failed to create email notification log:", logErr);
       }
-    });
+    }
 
     try {
       const mailResult = await sendTemplateEmail({
@@ -61,35 +72,46 @@ async function processNotificationDirect(payload: NotificationJobPayload): Promi
         subject: payload.title
       });
 
-      await prisma.notificationLog.update({
-        where: { id: emailLog.id },
-        data: {
-          status: "SENT",
-          providerMessageId: mailResult.messageId,
-          sentAt: new Date()
-        }
-      });
+      if (emailLog?.id && prisma?.notificationLog?.update) {
+        await prisma.notificationLog.update({
+          where: { id: emailLog.id },
+          data: {
+            status: "SENT",
+            providerMessageId: mailResult.messageId,
+            sentAt: new Date()
+          }
+        });
+      }
     } catch (err: any) {
-      await prisma.notificationLog.update({
-        where: { id: emailLog.id },
-        data: {
-          status: "FAILED",
-          retryCount: 0,
-          error: err.message || String(err)
-        }
-      });
+      if (emailLog?.id && prisma?.notificationLog?.update) {
+        await prisma.notificationLog.update({
+          where: { id: emailLog.id },
+          data: {
+            status: "FAILED",
+            retryCount: 0,
+            error: err.message || String(err)
+          }
+        });
+      }
     }
   }
 
   if (payload.channels.includes("SMS") && payload.recipientPhone) {
-    const smsLog = await prisma.notificationLog.create({
-      data: {
-        recipientId: payload.recipientId,
-        recipient: payload.recipientPhone,
-        channel: "SMS",
-        status: "PENDING"
+    let smsLog: any = null;
+    if (prisma?.notificationLog?.create) {
+      try {
+        smsLog = await prisma.notificationLog.create({
+          data: {
+            recipientId: payload.recipientId,
+            recipient: payload.recipientPhone,
+            channel: "SMS",
+            status: "PENDING"
+          }
+        });
+      } catch (logErr) {
+        console.warn("[NotificationWorker] Failed to create sms notification log:", logErr);
       }
-    });
+    }
 
     try {
       const smsResult = await sendSMS({
@@ -100,23 +122,27 @@ async function processNotificationDirect(payload: NotificationJobPayload): Promi
         message: payload.message
       });
 
-      await prisma.notificationLog.update({
-        where: { id: smsLog.id },
-        data: {
-          status: "SENT",
-          providerMessageId: smsResult.providerMessageId,
-          sentAt: new Date()
-        }
-      });
+      if (smsLog?.id && prisma?.notificationLog?.update) {
+        await prisma.notificationLog.update({
+          where: { id: smsLog.id },
+          data: {
+            status: "SENT",
+            providerMessageId: smsResult.providerMessageId,
+            sentAt: new Date()
+          }
+        });
+      }
     } catch (err: any) {
-      await prisma.notificationLog.update({
-        where: { id: smsLog.id },
-        data: {
-          status: "FAILED",
-          retryCount: 0,
-          error: err.message || String(err)
-        }
-      });
+      if (smsLog?.id && prisma?.notificationLog?.update) {
+        await prisma.notificationLog.update({
+          where: { id: smsLog.id },
+          data: {
+            status: "FAILED",
+            retryCount: 0,
+            error: err.message || String(err)
+          }
+        });
+      }
     }
   }
 }

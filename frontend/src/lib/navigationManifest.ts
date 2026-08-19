@@ -225,20 +225,6 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
   },
 
   {
-    id: "requirements",
-    label: "CSR Requirements",
-    formalTitle: "CSR Requirements Directory",
-    route: "/requirements",
-    iconName: "ListTodo",
-    section: "Applications",
-    navigationLevel: "CHILD",
-    parentNavId: "group-applications",
-    showInSidebar: true,
-    requiredAnyPermissions: ["requirement:view", "requirement:create", "requirement:verify", "requirement:approve"],
-    ordering: 50,
-    breadcrumbMetadata: { title: "CSR Requirements", parentRoute: "/dashboard" }
-  },
-  {
     id: "marketplace",
     label: "Marketplace",
     formalTitle: "CSR Marketplace",
@@ -248,7 +234,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-applications",
     showInSidebar: true,
-    requiredAnyPermissions: ["requirement:view", "pitch:view", "project:view"],
+    requiredAnyPermissions: ["pitch:view", "project:view"],
     ordering: 60,
     breadcrumbMetadata: { title: "CSR Marketplace", parentRoute: "/dashboard" }
   },
@@ -479,7 +465,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-projects",
     showInSidebar: true,
-    requiredAnyPermissions: ["requirement:handover", "project:close"],
+    requiredAnyPermissions: ["project:close", "project:update", "project:view"],
     ordering: 50,
     breadcrumbMetadata: { title: "Project Handover", parentRoute: "/convergence-projects" }
   },

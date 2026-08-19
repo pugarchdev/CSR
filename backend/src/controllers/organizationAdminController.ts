@@ -256,7 +256,15 @@ export const listPendingOrganizations = async (req: AuthenticatedRequest, res: R
 
     const orgs = await prisma.organization.findMany({
       where: whereClause,
-      include: { csrCompanyProfile: true, ngoProfile: true, govDeptProfile: true, documents: true },
+      include: {
+        csrCompanyProfile: true,
+        ngoProfile: true,
+        govDeptProfile: true,
+        documents: true,
+        users: {
+          select: { id: true, email: true, firstName: true, lastName: true, designation: true, mobile: true, roleId: true }
+        }
+      },
       orderBy: { createdAt: "desc" }
     });
     return res.json(orgs);
@@ -317,13 +325,19 @@ export const approveOrganization = async (req: AuthenticatedRequest, res: Respon
     });
     notifyHierarchy({
       title: "Organization Onboarding Approved",
-      message: `Organization "${updated.name}" has been approved and activated.`,
+      message: `Organization "${updated.name}" has been approved and activated on the MahaCSR Portal.`,
       organizationId: updated.id,
+      district: updated.district,
       includeOrgUsers: true,
-      includePortalAdmins: false,
-      includeRms: false,
-      includeStateOfficers: false,
-      actionButtonUrl: `/organization/onboarding/status`
+      includePortalAdmins: true,
+      includeRms: true,
+      includeStateOfficers: true,
+      includeDistrictOfficers: true,
+      actionButtonUrl: `/organization/onboarding/status`,
+      variables: {
+        currentStatus: "APPROVED",
+        workflowStatus: `Organization "${updated.name}" has been approved and activated.`
+      }
     }).catch((err) => console.error("[NotifyHierarchy] Error sending approval notification:", err));
     return res.json(updated);
   } catch (error) {
@@ -342,10 +356,17 @@ export const rejectOrganization = async (req: AuthenticatedRequest, res: Respons
       title: "Organization Onboarding Rejected",
       message: `Organization "${updated.name}" onboarding request has been rejected. Reason: ${reason}`,
       organizationId: updated.id,
+      district: updated.district,
       includeOrgUsers: true,
-      includePortalAdmins: false,
-      includeRms: false,
-      actionButtonUrl: `/organization/onboarding/status`
+      includePortalAdmins: true,
+      includeRms: true,
+      includeStateOfficers: true,
+      includeDistrictOfficers: true,
+      actionButtonUrl: `/organization/onboarding/status`,
+      variables: {
+        currentStatus: "REJECTED",
+        workflowStatus: reason
+      }
     }).catch((err) => console.error("[NotifyHierarchy] Error sending rejection notification:", err));
     return res.json(updated);
   } catch (error) {
@@ -364,10 +385,17 @@ export const suspendOrganization = async (req: AuthenticatedRequest, res: Respon
       title: "Organization Account Suspended",
       message: `Organization "${updated.name}" status has been updated to suspended. Reason: ${reason}`,
       organizationId: updated.id,
+      district: updated.district,
       includeOrgUsers: true,
-      includePortalAdmins: false,
-      includeRms: false,
-      actionButtonUrl: `/organization/onboarding/status`
+      includePortalAdmins: true,
+      includeRms: true,
+      includeStateOfficers: true,
+      includeDistrictOfficers: true,
+      actionButtonUrl: `/organization/onboarding/status`,
+      variables: {
+        currentStatus: "SUSPENDED",
+        workflowStatus: reason
+      }
     }).catch((err) => console.error("[NotifyHierarchy] Error sending suspension notification:", err));
     return res.json(updated);
   } catch (error) {
@@ -386,9 +414,12 @@ export const requestClarification = async (req: AuthenticatedRequest, res: Respo
       title: "Clarification Required for Onboarding",
       message: `Clarification requested for organization "${updated.name}". Remarks: ${remarks}`,
       organizationId: updated.id,
+      district: updated.district,
       includeOrgUsers: true,
-      includePortalAdmins: false,
-      includeRms: false,
+      includePortalAdmins: true,
+      includeRms: true,
+      includeStateOfficers: true,
+      includeDistrictOfficers: true,
       actionButtonUrl: `/organization/onboarding/status`,
       variables: {
         currentStatus: "CLARIFICATION_REQUIRED",
@@ -1098,6 +1129,37 @@ export const submitDepartmentOnboarding = async (req: AuthenticatedRequest, res:
         status: "UNDER_VERIFICATION"
       }
     });
+
+    const currentApp = await prisma.governmentOnboardingApplication.findFirst({
+      where: { organizationId: org.id },
+      orderBy: { version: "desc" }
+    });
+
+    if (currentApp) {
+      await prisma.governmentOnboardingApplication.update({
+        where: { id: currentApp.id },
+        data: {
+          status: "UNDER_VERIFICATION",
+          submittedByUserId: req.user?.id || currentApp.submittedByUserId,
+          submittedAt: new Date(),
+          decision: null,
+          decisionRemarks: null
+        }
+      });
+    } else {
+      await prisma.governmentOnboardingApplication.create({
+        data: {
+          organizationId: org.id,
+          organizationLevel: org.governmentLevel === "SUB_DEPARTMENT" ? "SUB_DEPARTMENT" : "MAIN",
+          reviewerRoleCode: org.governmentLevel === "SUB_DEPARTMENT" ? "PLANNING_SECRETARY" : "JOINT_SECRETARY",
+          status: "UNDER_VERIFICATION",
+          formData: (org.govDeptProfile as any) || {},
+          submittedByUserId: req.user?.id || null,
+          submittedAt: new Date()
+        }
+      });
+    }
+
     notifyHierarchy({
       title: "New Government Department Onboarding Submitted",
       message: `Government Department "${updated.name}" submitted onboarding application for verification.`,

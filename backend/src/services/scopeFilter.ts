@@ -17,7 +17,6 @@ export type ScopableEntity =
   | "governmentPitch"
   | "convergenceProject"
   | "projectAssignment"
-  | "csrRequirement"
   | "feasibilityAssessment";
 
 export type ScopeFilter = Record<string, unknown>;
@@ -58,7 +57,6 @@ export function buildScopeFilter(
         return { preferredDistricts: { has: district } };
       case "governmentPitch":
       case "convergenceProject":
-      case "csrRequirement":
         return { district };
       case "projectAssignment":
         return { assignedToId: user.id };

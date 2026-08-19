@@ -49,8 +49,7 @@ export interface NavGroup {
  * ```tsx
  * const navItems: NavItem[] = [
  *   { label: "Dashboard", href: "/dashboard" },
- *   { label: "Requirements", href: "/requirements", permission: "requirement:view" },
- *   { label: "Create", href: "/requirements/create", permission: "requirement:create" },
+ *   { label: "Projects", href: "/convergence-projects", permission: "project:view" },
  *   {
  *     label: "Admin",
  *     href: "/admin",
@@ -177,8 +176,6 @@ export const getDashboardNavItems = (userRole?: string): NavItem[] => {
   const departmentItems: NavItem[] = [
     { label: "Organization Onboarding", href: "/organization/onboarding", permission: "page:organization/onboarding:view" },
     { label: "Onboarding Status", href: "/organization/onboarding/status", permission: "page:organization/onboarding:view" },
-    { label: "Create Requirement", href: "/department/requirements/create", permission: "requirement:create", featureKey: "enableRequirementCreation" },
-    { label: "My Requirements", href: "/department/requirements", permission: "requirement:view", featureKey: "enableRequirementCreation" },
     { label: "Company Interest", href: "/department/interests", permission: "interest:view", featureKey: "enableCompanyInterest" },
     { label: "Projects", href: "/convergence-projects", permission: "project:view" },
     { label: "Handover", href: "/department/handover", permission: "project:view" },
@@ -221,7 +218,6 @@ export const getDashboardNavItems = (userRole?: string): NavItem[] => {
     { label: "Government Departments", href: "/admin/organizations", permission: "organization:approve" },
     { label: "Implementing Agencies", href: "/admin/ngo-registry", permission: "organization:approve" },
     { label: "Companies", href: "/admin/companies", permission: "organization:approve" },
-    { label: "Requirements Pending", href: "/admin/requirements/pending", permission: "requirement:approve", featureKey: "enableRequirementCreation" },
     { label: "Company Interests", href: "/admin/company-interests", permission: "interest:view", featureKey: "enableCompanyInterest" },
     { label: "Agency Selection", href: "/admin/ngo-selection", permission: "project:approve", featureKey: "enableNGOSelection" },
     { label: "Fund Monitoring", href: "/admin/fund-monitoring", permission: "fund:view", featureKey: "enableFundDisbursement" },

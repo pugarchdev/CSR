@@ -176,17 +176,6 @@ export function isLoggedIn(): boolean {
 // ============================================================================
 
 export const PERMISSIONS = {
-  // Requirement permissions
-  REQUIREMENT: {
-    CREATE: "requirement:create",
-    VIEW: "requirement:view",
-    UPDATE: "requirement:update",
-    DELETE: "requirement:delete",
-    SUBMIT: "requirement:submit",
-    APPROVE: "requirement:approve",
-    PUBLISH: "requirement:publish",
-  },
-
   // Interest permissions
   INTEREST: {
     CREATE: "interest:create",

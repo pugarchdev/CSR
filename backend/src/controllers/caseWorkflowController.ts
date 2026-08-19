@@ -2,6 +2,7 @@ import { NextFunction, Response } from "express";
 import prisma from "../config/db";
 import { AuthenticatedRequest } from "../middlewares/authMiddleware";
 import { PortalCaseService } from "../services/portalCaseService";
+import { notifyHierarchy } from "../services/hierarchyNotificationService";
 
 export const listMyCases = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
@@ -47,6 +48,24 @@ export const submitCaseFeasibility = async (req: AuthenticatedRequest, res: Resp
       await tx.auditLog.create({ data: { actorUserId: req.user!.id, userId: req.user!.id, action: last ? "CASE_FEASIBILITY_RESUBMITTED" : "CASE_FEASIBILITY_SUBMITTED", entityType: "PortalCase", entityId: caseRecord.id, details: { assessmentId: assessment.id, version: nextVersion, recommendation, targetDistricts } } });
       return assessment;
     });
+
+    notifyHierarchy({
+      title: "Case Feasibility Assessment Submitted",
+      message: `Feasibility assessment for case ${caseRecord.trackingId} has been submitted for Joint Secretary review.`,
+      organizationId: caseRecord.submittingOrganizationId,
+      assignedRmId: caseRecord.assignedRmId,
+      district: targetDistricts[0] || null,
+      includePortalAdmins: true,
+      includeStateOfficers: true,
+      includeRms: true,
+      includeOrgUsers: false,
+      actionButtonUrl: `/cases/${caseRecord.id}`,
+      variables: {
+        currentStatus: "UNDER_REVIEW",
+        workflowStatus: `Feasibility assessment submitted (v${nextVersion}) with recommendation: ${recommendation}`
+      }
+    }).catch((err) => console.error("[CaseWorkflow] Notification failed:", err));
+
     return res.status(201).json({ success: true, data: result });
   } catch (error) { next(error); }
 };
@@ -74,6 +93,27 @@ export const decideCaseFeasibility = async (req: AuthenticatedRequest, res: Resp
       await tx.caseStatusHistory.create({ data: { caseId: assessment.caseId, version: updated.version, fromStatus: assessment.case.status, toStatus: caseStatus, stage, action: `JS_${decision}`, actorUserId: req.user!.id, remarks: reason || null, metadata: { assessmentId: assessment.id, assessmentVersion: assessment.version, conditions: conditions || null } } });
       await tx.auditLog.create({ data: { actorUserId: req.user!.id, userId: req.user!.id, action: `CASE_FEASIBILITY_JS_${decision}`, entityType: "PortalCase", entityId: assessment.caseId, details: { assessmentId: assessment.id, version: assessment.version, reason: reason || null, conditions: conditions || null } } });
     });
+
+    notifyHierarchy({
+      title: decision === "APPROVE" ? "Case Feasibility Approved" : decision === "CLARIFICATION" ? "Clarification Required for Case Feasibility" : "Case Feasibility Rejected",
+      message: decision === "APPROVE"
+        ? `Joint Secretary approved feasibility for case ${assessment.case.trackingId}.`
+        : decision === "CLARIFICATION"
+        ? `Clarification requested for case ${assessment.case.trackingId}. Remarks: ${reason}`
+        : `Feasibility assessment for case ${assessment.case.trackingId} has been rejected. Reason: ${reason}`,
+      organizationId: assessment.case.submittingOrganizationId,
+      assignedRmId: assessment.case.assignedRmId,
+      includePortalAdmins: true,
+      includeStateOfficers: true,
+      includeRms: true,
+      includeOrgUsers: true,
+      actionButtonUrl: `/cases/${assessment.case.id}`,
+      variables: {
+        currentStatus: assessmentStatus,
+        workflowStatus: reason || `JS Decision: ${decision}`
+      }
+    }).catch((err) => console.error("[CaseWorkflow] Decision notification failed:", err));
+
     return res.json({ success: true, status: caseStatus, stage });
   } catch (error) { next(error); }
 };

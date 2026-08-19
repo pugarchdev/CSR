@@ -32,7 +32,6 @@ export const PAGE_REGISTRY = [
   ["nodal-appointments", "Nodal Appointments", "/nodal-appointments", "Workflow"],
   ["helpdesk", "Helpdesk", "/helpdesk", "Workflow"],
   ["grievances", "Grievances", "/grievances", "Workflow"],
-  ["requirements", "Requirements", "/requirements", "Workflow"],
   ["marketplace", "Marketplace", "/marketplace", "Workflow"],
   ["agencies", "Implementing Agencies", "/agencies", "Workflow"],
 
@@ -57,17 +56,7 @@ export const PERMISSIONS = [
   ["dashboard:widget-quick-actions", "See quick-action shortcuts on the dashboard", "dashboard"],
   ["dashboard:analytics-global", "See platform-wide (unscoped) analytics on the dashboard", "dashboard"],
 
-  // ── Requirements & Pitches ──
-  ["requirement:view", "View CSR requirements", "requirements"],
-  ["requirement:create", "Create department CSR requirements", "requirements"],
-  ["requirement:update", "Update CSR requirements", "requirements"],
-  ["requirement:delete", "Delete requirements", "requirements"],
-  ["requirement:submit", "Submit requirements for approval", "requirements"],
-  ["requirement:approve", "Approve requirements", "requirements"],
-  ["requirement:publish", "Publish requirements", "requirements"],
-  ["requirement:assign", "Assign requirements to officers", "requirements"],
-  ["requirement:export", "Export requirements data", "requirements"],
-
+  // ── Government Pitches ──
   ["pitch:view", "View government pitches", "pitches"],
   ["pitch:create", "Create government development pitches", "pitches"],
   ["pitch:edit_before_approval", "Edit pitch before final approval", "pitches"],
@@ -297,7 +286,7 @@ export const SEED_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
     "dashboard:widget-charts", "dashboard:widget-activity", "dashboard:widget-quick-actions",
     "dashboard:analytics-global",
     "pitch:view", "pitch:approve", "pitch:reject", "pitch:verify", "enquiry:view", "assessment:view", "assessment:review",
-    "project:view", "organization:view", "requirement:view", "interest:view",
+    "project:view", "organization:view", "interest:view",
     "override:js_decision", "assign:joint_secretary", "escalation:resolve", "grievance:final_decision",
     "report:view", "report:export", "audit:view", "audit:export",
     "fund:view", "fund:release", "fund:verify-utilization", "fund:export",
@@ -328,7 +317,7 @@ export const SEED_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
 
   // 5. District Nodal Consultant: District field coordinator
   DISTRICT_NODAL_CONSULTANT: [
-    "dashboard:view", "project:view_district", "organization:view", "requirement:view",
+    "dashboard:view", "project:view_district", "organization:view",
     "inspection:upload", "photo:upload", "site_visit:submit", "completion:recommend", "issue:raise",
     "report:view",
     "verification:execute", "verification:reverify", "verification:view-history",
@@ -349,7 +338,7 @@ export const SEED_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
     "user:view", "user:create", "user:update", "user:assign-role",
     "role:view", "role:create", "role:configure",
     "pitch:view", "pitch:create", "pitch:edit_before_approval", "photo:upload", "project:view_assigned",
-    "status:track", "query:respond", "requirement:create", "requirement:view", "organization:view",
+    "status:track", "query:respond", "organization:view",
     "report:view",
     "verification:execute", "verification:reverify", "verification:view-history",
   ],
@@ -362,7 +351,7 @@ export const SEED_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
     "organization:view", "organization:create", "organization:update",
     "pitch:view", "pitch:create", "pitch:edit_before_approval", "photo:upload",
     "project:view_district", "project:view_assigned", "project:record_rejection_reason",
-    "status:track", "query:respond", "requirement:create", "requirement:view",
+    "status:track", "query:respond",
     "report:view", "report:view_district", "report:generate",
     "verification:execute", "verification:reverify", "verification:view-history",
   ],
@@ -446,7 +435,7 @@ export const SEED_ROLE_PAGES: Record<string, readonly string[]> = {
   ],
   DISTRICT_NODAL_CONSULTANT: [
     "dashboard", "profile", "reports",
-    "convergence-projects", "requirements", "inspections",
+    "convergence-projects", "inspections",
   ],
   DISTRICT_NODAL_OFFICER: [
     "dashboard", "profile", "reports",
@@ -454,15 +443,15 @@ export const SEED_ROLE_PAGES: Record<string, readonly string[]> = {
   ],
   GOVERNMENT_OFFICER: [
     "dashboard", "profile", "reports", "admin/user-management", "admin/access-control",
-    "organization/onboarding", "pitches", "requirements", "interests", "convergence-projects", "handover",
+    "organization/onboarding", "pitches", "interests", "convergence-projects", "handover",
   ],
   GOV_MAIN_ORG_HEAD: [
     "dashboard", "profile", "reports", "admin/user-management", "admin/access-control",
-    "organization/onboarding", "pitches", "requirements", "convergence-projects", "escalations", "handover",
+    "organization/onboarding", "pitches", "convergence-projects", "escalations", "handover",
   ],
   GOV_SUB_DEPARTMENT_HEAD: [
     "dashboard", "profile", "reports", "admin/user-management", "admin/access-control",
-    "pitches", "requirements", "convergence-projects", "milestones", "grievances",
+    "pitches", "convergence-projects", "milestones", "grievances",
   ],
   STATE_NODAL_OFFICER: [
     "dashboard", "profile", "reports",

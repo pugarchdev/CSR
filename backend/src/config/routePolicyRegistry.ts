@@ -28,9 +28,6 @@ export const ROUTE_POLICY_REGISTRY: RoutePolicy[] = [
   { method: "POST", path: "/api/auth/logout", controller: "logout", classification: "AUTHENTICATED", auditRequired: false },
 
   // Public Endpoints
-  { method: "GET", path: "/api/public/requirements", controller: "getPublicRequirements", classification: "PUBLIC", auditRequired: false },
-  { method: "GET", path: "/api/public/requirements/:id", controller: "getRequirementById", classification: "PUBLIC", auditRequired: false },
-  { method: "GET", path: "/api/csr-requirements/:id", controller: "getRequirementById", classification: "PUBLIC", auditRequired: false },
   { method: "GET", path: "/api/public/stats", controller: "getPublicStats", classification: "PUBLIC", auditRequired: false },
   { method: "GET", path: "/api/public/districts", controller: "getPublicDistricts", classification: "PUBLIC", auditRequired: false },
 
@@ -65,17 +62,7 @@ export const ROUTE_POLICY_REGISTRY: RoutePolicy[] = [
   { method: "POST", path: "/api/assessments/:id/review", controller: "reviewAssessment", classification: "PROTECTED", permission: "assessment:review", scope: "GLOBAL", allowedWorkflowStates: ["SUBMITTED"], auditRequired: true },
   { method: "POST", path: "/api/assessments/:id/decide", controller: "decideAssessment", classification: "PROTECTED", permission: "assessment:decide", scope: "GLOBAL", allowedWorkflowStates: ["UNDER_REVIEW"], auditRequired: true },
 
-  // CSR Requirements
-  { method: "POST", path: "/api/requirements", controller: "createRequirement", classification: "PROTECTED", permission: "requirement:create", scope: "ORGANIZATION", auditRequired: true },
-  { method: "GET", path: "/api/requirements", controller: "getRequirements", classification: "PROTECTED", permission: "requirement:view", scope: "ORGANIZATION", auditRequired: false },
-  { method: "PUT", path: "/api/requirements/:id", controller: "updateRequirement", classification: "PROTECTED", permission: "requirement:update", scope: "ORGANIZATION", auditRequired: true },
-  { method: "DELETE", path: "/api/requirements/:id", controller: "deleteRequirement", classification: "PROTECTED", permission: "requirement:delete", scope: "ORGANIZATION", auditRequired: true },
-  { method: "POST", path: "/api/requirements/:id/submit", controller: "submitRequirement", classification: "PROTECTED", permission: "requirement:submit", scope: "ORGANIZATION", allowedWorkflowStates: ["DRAFT"], auditRequired: true },
-  { method: "POST", path: "/api/requirements/:id/verify", controller: "verifyRequirement", classification: "PROTECTED", permission: "requirement:verify", scope: "DISTRICT", allowedWorkflowStates: ["SUBMITTED"], auditRequired: true },
-  { method: "POST", path: "/api/requirements/:id/approve", controller: "approveRequirement", classification: "PROTECTED", permission: "requirement:approve", scope: "GLOBAL", allowedWorkflowStates: ["VERIFIED"], auditRequired: true },
-  { method: "POST", path: "/api/requirements/:id/reject", controller: "rejectRequirement", classification: "PROTECTED", permission: "requirement:reject", scope: "GLOBAL", allowedWorkflowStates: ["SUBMITTED", "VERIFIED"], auditRequired: true },
-  { method: "POST", path: "/api/requirements/:id/publish", controller: "publishRequirement", classification: "PROTECTED", permission: "requirement:publish", scope: "GLOBAL", allowedWorkflowStates: ["APPROVED"], auditRequired: true },
-  { method: "POST", path: "/api/requirements/:id/handover", controller: "handoverRequirement", classification: "PROTECTED", permission: "requirement:handover", scope: "GLOBAL", allowedWorkflowStates: ["PUBLISHED"], auditRequired: true },
+
 
   // Project Execution & Life Cycle
   { method: "GET", path: "/api/projects", controller: "getProjects", classification: "PROTECTED", permission: "project:view", scope: "ORGANIZATION", auditRequired: false },

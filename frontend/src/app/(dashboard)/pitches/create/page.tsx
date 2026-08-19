@@ -26,16 +26,6 @@ const SERVICE_CLASSES = [
   { value: "BELOW_CLASS_2", label: "below Class-2 Officer" },
 ];
 
-const getCertificationOptions = (serviceClass: string) => {
-  if (serviceClass === "CLASS_1" || serviceClass === "CLASS_2") {
-    return [{ value: "SELF", label: "Self Certification" }];
-  }
-  if (serviceClass === "BELOW_CLASS_2") {
-    return [{ value: "HOD", label: "HOD Certification Required" }];
-  }
-  return [{ value: "", label: "Select Service Class first" }];
-};
-
 const DIVISION_TO_DISTRICTS: Record<string, string[]> = {
   Amravati: ["Akola", "Amravati", "Buldhana", "Washim", "Yavatmal"],
   Aurangabad: ["Aurangabad", "Beed", "Hingoli", "Jalna", "Latur", "Nanded", "Osmanabad", "Parbhani"],
@@ -43,6 +33,18 @@ const DIVISION_TO_DISTRICTS: Record<string, string[]> = {
   Nagpur: ["Bhandara", "Chandrapur", "Gadchiroli", "Gondia", "Nagpur", "Wardha"],
   Nashik: ["Ahmednagar", "Dhule", "Jalgaon", "Nandurbar", "Nashik"],
   Pune: ["Kolhapur", "Pune", "Sangli", "Satara", "Solapur"],
+};
+
+const getDivisionAndDistrict = (rawDistrict?: string | null) => {
+  if (!rawDistrict || typeof rawDistrict !== "string") return { division: "", district: "" };
+  const dClean = rawDistrict.trim().toLowerCase();
+  for (const [division, districts] of Object.entries(DIVISION_TO_DISTRICTS)) {
+    const matched = districts.find((d) => d.toLowerCase() === dClean);
+    if (matched) {
+      return { division, district: matched };
+    }
+  }
+  return { division: "", district: "" };
 };
 
 function MultiSelectField({
@@ -293,25 +295,94 @@ export default function CreatePitchDashboardPage() {
     geoTaggedPhotos: [],
   });
 
-  // Prepopulate from session
+  // Auto-fetch and prepopulate official identity, credentials, department and location from user session and verified organization profile
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const raw = localStorage.getItem("user");
-    if (!raw) return;
-    try {
-      const u = JSON.parse(raw);
-      setForm((prev) => ({
-        ...prev,
-        officialName: u.officialName || u.name || prev.officialName,
-        department: u.organization?.name || u.department || prev.department,
-        officeName: u.organization?.name || prev.officeName,
-        email: u.email || prev.email,
-        mobile: u.mobile || prev.mobile,
-      }));
-    } catch {
-      /* ignore */
+    let isMounted = true;
+
+    const applyUserData = (u: any, orgData?: any, profileData?: any) => {
+      if (!u && !orgData && !profileData) return;
+      const org = orgData || u?.organization || u?.company || {};
+      const profile = profileData || u?.govDeptProfile || org?.govDeptProfile || {};
+
+      const fullName = [u?.firstName, u?.lastName].filter(Boolean).join(" ").trim();
+      const officialName = u?.officialName || fullName || u?.name || profile?.nodalOfficerName || profile?.headOfDepartmentName || "";
+      const designation = u?.designation || profile?.nodalOfficerDesignation || profile?.headDesignation || "";
+      const department = org?.name || org?.legalName || org?.displayName || u?.department || "";
+      const officeName = org?.name || org?.legalName || org?.displayName || u?.officeName || "";
+      const email = u?.email || org?.officialEmail || org?.officialOfficeEmail || profile?.nodalOfficerEmail || profile?.headEmail || "";
+      const mobile = u?.mobile || u?.phone || org?.officialPhone || org?.officialOfficePhone || profile?.nodalOfficerMobile || profile?.headMobile || "";
+
+      const rawDistrict = org?.district || u?.assignedDistrict || u?.district || profile?.district || "";
+      const { division, district } = getDivisionAndDistrict(rawDistrict);
+
+      setForm((prev) => {
+        const nextDivisions = prev.divisions.length > 0 ? prev.divisions : (division ? [division] : []);
+        const nextDistricts = prev.districts.length > 0 ? prev.districts : (district ? [district] : []);
+
+        return {
+          ...prev,
+          officialName: officialName || prev.officialName,
+          designation: designation || prev.designation,
+          department: department || prev.department,
+          officeName: officeName || prev.officeName,
+          email: email || prev.email,
+          mobile: mobile ? String(mobile).replace(/\D/g, "").slice(0, 10) : prev.mobile,
+          divisions: nextDivisions,
+          districts: nextDistricts,
+        };
+      });
+    };
+
+    // 1. Immediate sync prepopulate from localStorage session or active authStore user
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem("user");
+        if (raw) {
+          applyUserData(JSON.parse(raw));
+        } else if (user) {
+          applyUserData(user);
+        }
+      } catch {
+        if (user) applyUserData(user);
+      }
     }
-  }, []);
+
+    // 2. Async fetch verified department profile and current auth profile from backend
+    const fetchDepartmentDetails = async () => {
+      try {
+        const [deptRes, meRes] = await Promise.allSettled([
+          apiFetch<any>("/onboarding/department"),
+          apiFetch<any>("/auth/me")
+        ]);
+
+        if (!isMounted) return;
+
+        let resolvedOrg: any = null;
+        let resolvedProfile: any = null;
+        let resolvedUser: any = user;
+
+        if (deptRes.status === "fulfilled" && deptRes.value) {
+          resolvedOrg = deptRes.value?.organization || deptRes.value?.data?.organization || deptRes.value;
+          resolvedProfile = deptRes.value?.profile || deptRes.value?.data?.profile || resolvedOrg?.govDeptProfile;
+        }
+
+        if (meRes.status === "fulfilled" && meRes.value) {
+          resolvedUser = meRes.value?.user || meRes.value?.data?.user || meRes.value;
+          if (!resolvedOrg && resolvedUser?.organization) {
+            resolvedOrg = resolvedUser.organization;
+          }
+        }
+
+        applyUserData(resolvedUser, resolvedOrg, resolvedProfile);
+      } catch {
+        /* fallback to session data */
+      }
+    };
+
+    fetchDepartmentDetails();
+
+    return () => { isMounted = false; };
+  }, [user]);
 
   const maharashtraState = locationData.find(s => s.name === "Maharashtra");
   const districtsList = maharashtraState ? maharashtraState.districts : [];
@@ -381,14 +452,8 @@ export default function CreatePitchDashboardPage() {
     if (words > 200) e.csrRequirement = "Requirement must not exceed 200 words";
     if (!form.estimatedCost.trim() || Number.isNaN(parseFloat(form.estimatedCost))) e.estimatedCost = "Valid estimated cost is required";
     if (!form.govtFundDeclaration) e.govtFundDeclaration = "You must declare government fund status";
-    if ((form.serviceClass === "CLASS_1" || form.serviceClass === "CLASS_2") && form.certificationType !== "SELF") {
-      e.certificationType = "Class-1 and Class-2 officials must use self certification";
-    }
-    if (form.serviceClass === "BELOW_CLASS_2" && form.certificationType !== "HOD") {
-      e.certificationType = "below Class-2 officials must use HOD certification";
-    }
-    if (form.certificationType === "HOD" && !form.hodDocument) {
-      e.hodDocument = "HOD certification document is required";
+    if (form.serviceClass === "BELOW_CLASS_2" && !form.hodDocument) {
+      e.hodDocument = "HOD certification document is required for officials below Class-2";
     }
     if (form.geoTaggedPhotos.length < 2) e.geoTaggedPhotos = "At least 2 geo-tagged site photos are required";
     setErrors(e);
@@ -626,7 +691,7 @@ export default function CreatePitchDashboardPage() {
             </GovCardHeader>
             <GovCardBody className="p-6 md:p-8 overflow-visible">
               <div className="gov-form-grid">
-                <div className="gov-field third">
+                <div className="gov-field">
                   <GovInput
                     label="Official Name"
                     required
@@ -637,7 +702,7 @@ export default function CreatePitchDashboardPage() {
                   />
                 </div>
 
-                <div className="gov-field third">
+                <div className="gov-field">
                   <GovInput
                     label="Designation"
                     required
@@ -648,7 +713,7 @@ export default function CreatePitchDashboardPage() {
                   />
                 </div>
 
-                <div className="gov-field third">
+                <div className="gov-field">
                   <GovInput
                     label="Department"
                     required
@@ -659,7 +724,7 @@ export default function CreatePitchDashboardPage() {
                   />
                 </div>
 
-                <div className="gov-field third">
+                <div className="gov-field">
                   <GovInput
                     label="Office / Institution Name"
                     required
@@ -668,40 +733,6 @@ export default function CreatePitchDashboardPage() {
                     onChange={(e) => set("officeName", e.target.value)}
                     placeholder="Office / Division"
                   />
-                </div>
-
-                <div className="gov-field third">
-                  <GovSelect
-                    label="Service Class Cadre"
-                    required
-                    value={form.serviceClass}
-                    error={errors.serviceClass}
-                    onChange={(e) => {
-                      const sc = e.target.value;
-                      set("serviceClass", sc);
-                      if (sc === "CLASS_1" || sc === "CLASS_2") set("certificationType", "SELF");
-                      else if (sc === "BELOW_CLASS_2") set("certificationType", "HOD");
-                      else set("certificationType", "");
-                    }}
-                  >
-                    {SERVICE_CLASSES.map((sc) => (
-                      <option key={sc.value} value={sc.value}>{sc.label}</option>
-                    ))}
-                  </GovSelect>
-                </div>
-
-                <div className="gov-field third">
-                  <GovSelect
-                    label="Certification Protocol"
-                    required
-                    value={form.certificationType}
-                    error={errors.certificationType}
-                    onChange={(e) => set("certificationType", e.target.value)}
-                  >
-                    {getCertificationOptions(form.serviceClass).map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </GovSelect>
                 </div>
 
                 <div className="gov-field">
@@ -727,6 +758,26 @@ export default function CreatePitchDashboardPage() {
                     onChange={(e) => set("email", e.target.value)}
                     placeholder="official@maharashtra.gov.in"
                   />
+                </div>
+
+                <div className="gov-field full">
+                  <GovSelect
+                    label="Service Class Cadre"
+                    required
+                    value={form.serviceClass}
+                    error={errors.serviceClass}
+                    onChange={(e) => {
+                      const sc = e.target.value;
+                      set("serviceClass", sc);
+                      if (sc === "CLASS_1" || sc === "CLASS_2") set("certificationType", "SELF");
+                      else if (sc === "BELOW_CLASS_2") set("certificationType", "HOD");
+                      else set("certificationType", "");
+                    }}
+                  >
+                    {SERVICE_CLASSES.map((sc) => (
+                      <option key={sc.value} value={sc.value}>{sc.label}</option>
+                    ))}
+                  </GovSelect>
                 </div>
               </div>
             </GovCardBody>
@@ -970,7 +1021,7 @@ export default function CreatePitchDashboardPage() {
               </div>
 
               {/* HOD Document Upload */}
-              {form.certificationType === "HOD" && (
+              {(form.serviceClass === "BELOW_CLASS_2" || form.certificationType === "HOD") && (
                 <div className="p-4 rounded-2xl border border-amber-200 bg-amber-50/50">
                   <label className="text-xs font-bold text-amber-950 block mb-1.5">HOD Certification Document Upload *</label>
                   <input

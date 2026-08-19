@@ -13,6 +13,10 @@ import { useToastActions } from "@/components/ui/Toast";
 import { useResponsiveViewMode } from "@/hooks/useResponsiveViewMode";
 import { useAuthStore } from "@/store/authStore";
 import { MAHARASHTRA_DISTRICTS } from "@/lib/locationData";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
+import { ViewToggle } from "@/components/ui/ViewToggle";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 
 type Tenant = {
   id: string;
@@ -3015,6 +3019,7 @@ export function AdminOrganizationsWorkspace() {
   // Sub-dept admins cannot add departments; main-dept and platform admins can
   const canManage = isMainDeptAdmin || (isPlatformAdmin && (isAdmin || hasPermission("organization:manage-users") || hasPermission("organization:create")));
 
+  const [viewMode, setViewMode] = useResponsiveViewMode();
   const [items, setItems] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -3116,30 +3121,56 @@ export function AdminOrganizationsWorkspace() {
     }
   };
 
-  const filtered = items.filter((item) => {
-    const typeStr = String(item.organizationType || item.kind || "");
-    const statusStr = String(item.onboardingStatus || item.status || "").toUpperCase();
-    const districtStr = String(item.district || "");
-    
-    // Search match
-    const matchesSearch = !search.trim() || `${item.name} ${typeStr} ${districtStr} ${statusStr} ${item.email || item.officialEmail || ""}`.toLowerCase().includes(search.toLowerCase());
-    
-    // Status match
-    const matchesStatus = statusFilter === "all" || (
-      statusFilter === "ACTIVE" ? (statusStr === "ACTIVE" || statusStr === "APPROVED") :
-      statusFilter === "PROFILE_INCOMPLETE" ? (statusStr.includes("INCOMPLETE") || statusStr.includes("DRAFT")) :
-      statusFilter === "PENDING" ? (statusStr === "PENDING" || statusStr.includes("VERIFICATION") || statusStr.includes("REVIEW")) :
-      statusFilter === "SUSPENDED" ? statusStr === "SUSPENDED" :
-      statusStr === statusFilter
-    );
+  const filtered = useMemo(() => {
+    return items.filter((item) => {
+      const typeStr = String(item.organizationType || item.kind || "");
+      const statusStr = String(item.onboardingStatus || item.status || "").toUpperCase();
+      const districtStr = String(item.district || "");
+      
+      // Search match
+      const matchesSearch = !search.trim() || `${item.name} ${typeStr} ${districtStr} ${statusStr} ${item.email || item.officialEmail || ""}`.toLowerCase().includes(search.toLowerCase());
+      
+      // Status match
+      const matchesStatus = statusFilter === "all" || (
+        statusFilter === "ACTIVE" ? (statusStr === "ACTIVE" || statusStr === "APPROVED") :
+        statusFilter === "PROFILE_INCOMPLETE" ? (statusStr.includes("INCOMPLETE") || statusStr.includes("DRAFT")) :
+        statusFilter === "PENDING" ? (statusStr === "PENDING" || statusStr.includes("VERIFICATION") || statusStr.includes("REVIEW")) :
+        statusFilter === "SUSPENDED" ? statusStr === "SUSPENDED" :
+        statusStr === statusFilter
+      );
 
-    // District match
-    const matchesDistrict = districtFilter === "all" || 
-      districtStr.toLowerCase().includes(districtFilter.toLowerCase()) || 
-      districtFilter.toLowerCase().includes(districtStr.toLowerCase());
+      // District match
+      const matchesDistrict = districtFilter === "all" || 
+        districtStr.toLowerCase().includes(districtFilter.toLowerCase()) || 
+        districtFilter.toLowerCase().includes(districtStr.toLowerCase());
 
-    return matchesSearch && matchesStatus && matchesDistrict;
-  });
+      return matchesSearch && matchesStatus && matchesDistrict;
+    });
+  }, [items, search, statusFilter, districtFilter]);
+
+  const { sortedItems, sortKey, sortDirection, requestSort } = useTableSort(filtered);
+
+  const kpiStats = useMemo(() => {
+    const total = items.length;
+    const active = items.filter((i) => {
+      const s = String(i.onboardingStatus || i.status || "").toUpperCase();
+      return s === "ACTIVE" || s === "APPROVED";
+    }).length;
+    const pending = items.filter((i) => {
+      const s = String(i.onboardingStatus || i.status || "").toUpperCase();
+      return s !== "ACTIVE" && s !== "APPROVED" && s !== "SUSPENDED";
+    }).length;
+    const uniqueDistricts = new Set(items.map((i) => i.district).filter(Boolean)).size;
+    return { total, active, pending, uniqueDistricts };
+  }, [items]);
+
+  const hasActiveFilters = Boolean(search.trim() || statusFilter !== "all" || districtFilter !== "all");
+
+  const resetFilters = () => {
+    setSearch("");
+    setStatusFilter("all");
+    setDistrictFilter("all");
+  };
 
   return (
     <WorkspaceShell
@@ -3153,14 +3184,51 @@ export function AdminOrganizationsWorkspace() {
             : "Review government department organizations in this portal instance and view statutory details."
       }
       actions={
-        canManage ? (
-          <Button onClick={() => setCreateModalOpen(true)} className="w-full sm:w-auto justify-center font-bold">
-            <Plus size={16} className="mr-1.5 inline" /> Add Department
-          </Button>
-        ) : null
+        <div className="flex items-center gap-2">
+          <ViewToggle view={viewMode} onChange={setViewMode} />
+          {canManage && (
+            <Button onClick={() => setCreateModalOpen(true)} className="w-full sm:w-auto justify-center font-bold">
+              <Plus size={16} className="mr-1.5 inline" /> Add Department
+            </Button>
+          )}
+        </div>
       }
     >
       <ErrorBox error={error} />
+
+      {/* KPI Stats Bar */}
+      <div className="mb-4">
+        <StatCardGroup columns={4}>
+          <StatCard
+            label="Total Departments"
+            value={kpiStats.total}
+            icon={Building2}
+            colorTheme="purple"
+            sublabel="Registered government entities"
+          />
+          <StatCard
+            label="Active & Operational"
+            value={kpiStats.active}
+            icon={ShieldCheck}
+            colorTheme="emerald"
+            sublabel="Verified departments"
+          />
+          <StatCard
+            label="Pending Review"
+            value={kpiStats.pending}
+            icon={Clock}
+            colorTheme="amber"
+            sublabel="Incomplete / verification"
+          />
+          <StatCard
+            label="Districts Covered"
+            value={kpiStats.uniqueDistricts}
+            icon={MapPin}
+            colorTheme="indigo"
+            sublabel="Across Maharashtra"
+          />
+        </StatCardGroup>
+      </div>
       
       {/* Sleek Single-Row Search & Filters Bar */}
       <div className="flex flex-col md:flex-row items-center gap-2.5 p-2.5 sm:p-3 bg-white rounded-2xl border border-slate-200/90 shadow-2xs mb-4">
@@ -3172,8 +3240,17 @@ export function AdminOrganizationsWorkspace() {
             placeholder="Search department by name, email, or keyword..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-xs md:text-sm rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all font-medium"
+            className="w-full pl-9 pr-8 py-2 text-xs md:text-sm rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all font-medium"
           />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            >
+              <XCircle size={14} />
+            </button>
+          )}
         </div>
 
         {/* Status Filter */}
@@ -3191,7 +3268,7 @@ export function AdminOrganizationsWorkspace() {
           </select>
         </div>
 
-        {/* District Filter — hidden for sub-dept, locked for main-dept */}
+        {/* District Filter */}
         {!isSubDeptAdmin && (
           <div className="w-full md:w-56">
             <select
@@ -3217,87 +3294,169 @@ export function AdminOrganizationsWorkspace() {
             </select>
           </div>
         )}
+
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={resetFilters}
+            className="px-3 py-2 text-xs font-bold text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200 transition-colors shrink-0"
+          >
+            Reset
+          </button>
+        )}
       </div>
 
       <section className="border border-slate-200/60 bg-white/70 backdrop-blur-xl rounded-2xl shadow-glass overflow-hidden">
         <div className="flex items-center justify-between border-b border-gov-line px-5 py-3.5 bg-slate-50/50">
           <div className="text-sm font-bold text-slate-800 flex items-center gap-2">
-            <Building2 size={16} className="text-blue-700" />
+            <Building2 size={16} className="text-purple-700" />
             <span>{isSubDeptAdmin ? "Your Organization" : "Government Departments Directory"}</span>
           </div>
           <div className="text-xs font-bold text-gov-muted">{filtered.length} department(s)</div>
         </div>
         
-        {/* Wrapper: Handles overflow on desktop, full width on mobile */}
-        <div className="w-full md:overflow-x-auto p-4 md:p-0 bg-slate-50/50 md:bg-transparent">
-          <table className="w-full block md:table text-left text-sm border-collapse">
-            <thead className="hidden md:table-header-group bg-gov-mist text-[11px] uppercase tracking-wider text-gov-muted">
-              <tr>
-                <th className="px-5 py-3 font-bold">Organization</th>
-                <th className="px-5 py-3 font-bold">Type</th>
-                <th className="px-5 py-3 font-bold">District</th>
-                <th className="px-5 py-3 font-bold">Onboarding</th>
-                <th className="px-5 py-3 font-bold">Status</th>
-                <th className="px-5 py-3 font-bold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="block md:table-row-group divide-y-0 md:divide-y md:divide-gov-line">
-              {loading ? (
-                <LoadingRow colSpan={6} />
-              ) : filtered.length === 0 ? (
-                <EmptyRow colSpan={6} text="No government departments found matching the criteria." />
-              ) : (
-                filtered.map((item) => (
-                  <tr 
-                    key={item.id} 
-                    className="block md:table-row mb-4 md:mb-0 bg-white md:bg-transparent border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-sm md:shadow-none hover:bg-slate-50/50 transition-colors overflow-hidden"
-                  >
-                    <td data-label="Organization" className="flex md:table-cell flex-col md:flex-row items-start md:items-center px-4 md:px-5 py-3.5 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-bold before:text-slate-400 before:md:hidden before:mb-1">
-                      <div className="flex flex-col items-start md:items-start w-full text-left">
-                        <button
-                          type="button"
-                          onClick={() => handleViewDetails(item)}
-                          className="font-bold text-gov-blue hover:underline break-words text-left cursor-pointer"
-                        >
-                          {item.name}
-                        </button>
-                        <div className="text-xs font-medium text-gov-muted break-all">
-                          {item.email || item.officialEmail || "-"}
+        {viewMode === "list" ? (
+          /* LIST VIEW: Sortable High-Density Table */
+          <div className="w-full md:overflow-x-auto p-4 md:p-0 bg-slate-50/50 md:bg-transparent">
+            <table className="w-full block md:table text-left text-sm border-collapse">
+              <thead className="hidden md:table-header-group bg-gov-mist text-[11px] uppercase tracking-wider text-gov-muted border-b border-slate-200">
+                <tr>
+                  <SortableTh sortKey="name" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-5 py-3 font-bold">
+                    Organization
+                  </SortableTh>
+                  <SortableTh sortKey="organizationType" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-5 py-3 font-bold">
+                    Type
+                  </SortableTh>
+                  <SortableTh sortKey="district" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-5 py-3 font-bold">
+                    District
+                  </SortableTh>
+                  <SortableTh sortKey="onboardingStatus" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-5 py-3 font-bold">
+                    Onboarding
+                  </SortableTh>
+                  <SortableTh sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-5 py-3 font-bold">
+                    Status
+                  </SortableTh>
+                  <th className="px-5 py-3 font-bold text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="block md:table-row-group divide-y-0 md:divide-y md:divide-gov-line">
+                {loading ? (
+                  <LoadingRow colSpan={6} />
+                ) : sortedItems.length === 0 ? (
+                  <EmptyRow colSpan={6} text="No government departments found matching the criteria." />
+                ) : (
+                  sortedItems.map((item) => (
+                    <tr 
+                      key={item.id} 
+                      className="block md:table-row mb-4 md:mb-0 bg-white md:bg-transparent border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-sm md:shadow-none hover:bg-slate-50/50 transition-colors overflow-hidden"
+                    >
+                      <td data-label="Organization" className="flex md:table-cell flex-col md:flex-row items-start md:items-center px-4 md:px-5 py-3.5 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-bold before:text-slate-400 before:md:hidden before:mb-1">
+                        <div className="flex flex-col items-start md:items-start w-full text-left">
+                          <button
+                            type="button"
+                            onClick={() => handleViewDetails(item)}
+                            className="font-bold text-gov-blue hover:underline break-words text-left cursor-pointer"
+                          >
+                            {item.name}
+                          </button>
+                          <div className="text-xs font-medium text-gov-muted break-all">
+                            {item.email || item.officialEmail || "-"}
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td data-label="Type" className="flex md:table-cell justify-between items-center px-4 md:px-5 py-3.5 md:py-4 border-b border-slate-100 md:border-none text-gov-muted font-medium before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-bold before:text-slate-400 before:md:hidden text-right md:text-left">
-                      {String(item.organizationType || item.kind || "GOVERNMENT_DEPARTMENT").replace(/_/g, " ")}
-                    </td>
-                    <td data-label="District" className="flex md:table-cell justify-between items-center px-4 md:px-5 py-3.5 md:py-4 border-b border-slate-100 md:border-none text-gov-muted font-medium before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-bold before:text-slate-400 before:md:hidden text-right md:text-left">
-                      {item.district || "-"}
-                    </td>
-                    <td data-label="Onboarding" className="flex md:table-cell justify-between items-center px-4 md:px-5 py-3.5 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-bold before:text-slate-400 before:md:hidden text-right md:text-left">
-                      <Badge>{item.onboardingStatus || item.status || "ACTIVE"}</Badge>
-                    </td>
-                    <td data-label="Status" className="flex md:table-cell justify-between items-center px-4 md:px-5 py-3.5 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-bold before:text-slate-400 before:md:hidden text-right md:text-left">
+                      </td>
+                      <td data-label="Type" className="flex md:table-cell justify-between items-center px-4 md:px-5 py-3.5 md:py-4 border-b border-slate-100 md:border-none text-gov-muted font-medium before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-bold before:text-slate-400 before:md:hidden text-right md:text-left">
+                        {String(item.organizationType || item.kind || "GOVERNMENT_DEPARTMENT").replace(/_/g, " ")}
+                      </td>
+                      <td data-label="District" className="flex md:table-cell justify-between items-center px-4 md:px-5 py-3.5 md:py-4 border-b border-slate-100 md:border-none text-gov-muted font-medium before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-bold before:text-slate-400 before:md:hidden text-right md:text-left">
+                        {item.district || "-"}
+                      </td>
+                      <td data-label="Onboarding" className="flex md:table-cell justify-between items-center px-4 md:px-5 py-3.5 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-bold before:text-slate-400 before:md:hidden text-right md:text-left">
+                        <Badge>{item.onboardingStatus || item.status || "ACTIVE"}</Badge>
+                      </td>
+                      <td data-label="Status" className="flex md:table-cell justify-between items-center px-4 md:px-5 py-3.5 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-bold before:text-slate-400 before:md:hidden text-right md:text-left">
+                        <Badge>{item.status || "ACTIVE"}</Badge>
+                      </td>
+                      <td className="block md:table-cell px-4 md:px-5 py-3.5 md:py-4 text-right bg-slate-50/50 md:bg-transparent">
+                        <div className="flex justify-end items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleViewDetails(item)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50/90 hover:bg-blue-100 text-blue-900 font-bold text-xs shadow-2xs transition-all hover:scale-[1.02] cursor-pointer"
+                            title="View detailed organization information"
+                          >
+                            <Eye size={14} className="text-blue-700" />
+                            <span>View Details</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          /* GRID VIEW: Responsive Cards */
+          <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {loading ? (
+              <div className="col-span-full py-12 text-center text-slate-500 font-medium">
+                <Loader2 size={24} className="animate-spin text-blue-600 mx-auto mb-2" />
+                <span>Loading departments...</span>
+              </div>
+            ) : sortedItems.length === 0 ? (
+              <div className="col-span-full py-12 text-center text-slate-500 font-medium">
+                No government departments found matching the criteria.
+              </div>
+            ) : (
+              sortedItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs hover:border-slate-300 hover:shadow-sm transition-all space-y-3"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-purple-50 text-purple-900 border border-purple-200">
+                        {String(item.organizationType || item.kind || "GOVERNMENT_DEPARTMENT").replace(/_/g, " ")}
+                      </span>
                       <Badge>{item.status || "ACTIVE"}</Badge>
-                    </td>
-                    <td className="block md:table-cell px-4 md:px-5 py-3.5 md:py-4 text-right bg-slate-50/50 md:bg-transparent">
-                      <div className="flex justify-end items-center gap-2">
-                        {/* Only View Details button shown in actions column */}
-                        <button
-                          type="button"
-                          onClick={() => handleViewDetails(item)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50/90 hover:bg-blue-100 text-blue-900 font-bold text-xs shadow-2xs transition-all hover:scale-[1.02] cursor-pointer"
-                          title="View detailed organization information"
-                        >
-                          <Eye size={14} className="text-blue-700" />
-                          <span>View Details</span>
-                        </button>
+                    </div>
+
+                    <h3 className="font-extrabold text-slate-900 text-sm line-clamp-2">
+                      {item.name}
+                    </h3>
+
+                    <div className="space-y-1 text-xs text-slate-500">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <MapPin size={12} className="text-slate-400 shrink-0" />
+                        <span>{item.district || "Maharashtra"}</span>
                       </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                      {item.officialEmail || item.email ? (
+                        <div className="flex items-center gap-1.5 truncate">
+                          <Mail size={12} className="text-slate-400 shrink-0" />
+                          <span className="truncate">{item.officialEmail || item.email}</span>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">
+                      Status: {item.onboardingStatus || "ACTIVE"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleViewDetails(item)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-xs border border-blue-200 transition-colors cursor-pointer"
+                    >
+                      <Eye size={12} className="text-blue-700" />
+                      <span>View Details</span>
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </section>
 
       {/* COMPREHENSIVE VIEW ORGANIZATION DETAILS MODAL */}

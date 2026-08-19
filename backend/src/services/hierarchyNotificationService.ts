@@ -62,12 +62,12 @@ export async function notifyHierarchy(input: HierarchyNotifyInput): Promise<void
       }
     }
 
-    // 4. Portal Admins & Super Admins
+    // 4. Portal Admins & Super Admins / Executive Reviewers
     if (input.includePortalAdmins !== false && prisma.user?.findMany) {
       const admins = await prisma.user.findMany({
         where: {
           OR: [
-            { roleId: ROLE_ID.SUPER_ADMIN },
+            { roleId: { in: [ROLE_ID.SUPER_ADMIN, ROLE_ID.PLANNING_SECRETARY, ROLE_ID.JOINT_SECRETARY, 1, 2, 3] } },
             { role: { name: { contains: "Admin", mode: "insensitive" } } }
           ],
           deletedAt: null
@@ -82,7 +82,7 @@ export async function notifyHierarchy(input: HierarchyNotifyInput): Promise<void
       const districtOfficers = await prisma.user.findMany({
         where: {
           OR: [
-            { roleId: { in: [ROLE_ID.DISTRICT_NODAL_OFFICER, ROLE_ID.DISTRICT_NODAL_CONSULTANT] } },
+            { roleId: { in: [ROLE_ID.DISTRICT_NODAL_OFFICER, ROLE_ID.DISTRICT_NODAL_CONSULTANT, 4, 5] } },
             { officerProfile: { district: { equals: input.district, mode: "insensitive" } } }
           ],
           deletedAt: null
@@ -96,7 +96,7 @@ export async function notifyHierarchy(input: HierarchyNotifyInput): Promise<void
     if (input.includeStateOfficers && prisma.user?.findMany) {
       const stateOfficers = await prisma.user.findMany({
         where: {
-          roleId: { in: [ROLE_ID.PLANNING_SECRETARY, ROLE_ID.JOINT_SECRETARY] },
+          roleId: { in: [ROLE_ID.PLANNING_SECRETARY, ROLE_ID.JOINT_SECRETARY, 2, 3] },
           deletedAt: null
         },
         select: { id: true }
@@ -104,7 +104,9 @@ export async function notifyHierarchy(input: HierarchyNotifyInput): Promise<void
       stateOfficers.forEach((u) => recipientIds.add(u.id));
     }
 
-    const recipientList = Array.from(recipientIds);
+    const recipientList = Array.from(recipientIds).filter(
+      (id): id is string => typeof id === "string" && id.trim().length > 0
+    );
     if (recipientList.length === 0) return;
 
     const templateName = input.templateName || "hierarchy_notification";

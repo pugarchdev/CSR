@@ -6,8 +6,8 @@ export default function PublicImpactDashboardPage() {
       area="Public Transparency"
       title="Maharashtra CSR Impact Dashboard"
       description="Public-safe impact dashboard for published CSR requirements, funded projects, district ranking, top contributors, top NGOs, and success stories."
-      primaryHref="/csr-requirements"
-      primaryLabel="View Published Requirements"
+      primaryHref="/marketplace"
+      primaryLabel="View Opportunities Marketplace"
     />
   );
 }

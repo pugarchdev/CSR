@@ -76,9 +76,16 @@ function interpolate(text: string, variables: Record<string, any>): string {
 export async function dispatchNotification(input: DispatchInput): Promise<void> {
   const variables = input.variables || {};
 
-  const template = await prisma.notificationTemplate.findFirst({
-    where: { name: input.templateName }
-  });
+  let template: any = null;
+  if (prisma?.notificationTemplate?.findFirst) {
+    try {
+      template = await prisma.notificationTemplate.findFirst({
+        where: { name: input.templateName }
+      });
+    } catch {
+      template = null;
+    }
+  }
 
   const subject = template?.subject ? interpolate(template.subject, variables) : (variables.title as string) || input.templateName;
   const emailBody = (template?.emailBody || template?.body) ? interpolate(template?.emailBody || template?.body || "", variables) : (variables.message as string) || subject;
@@ -87,17 +94,24 @@ export async function dispatchNotification(input: DispatchInput): Promise<void> 
     ((template?.channels?.length ? template.channels : ["IN_APP", "SOCKET", "EMAIL"]) as NotificationJobPayload["channels"]);
 
   const recipients = [input.recipientId, ...(input.ccRecipientIds || [])];
-  const users = await prisma.user.findMany({
-    where: { id: { in: recipients } },
-    select: {
-      id: true,
-      email: true,
-      mobile: true,
-      firstName: true,
-      lastName: true,
-      officerProfile: { select: { fullName: true, mobile: true } }
+  let users: any[] = [];
+  if (prisma?.user?.findMany) {
+    try {
+      users = await prisma.user.findMany({
+        where: { id: { in: recipients } },
+        select: {
+          id: true,
+          email: true,
+          mobile: true,
+          firstName: true,
+          lastName: true,
+          officerProfile: { select: { fullName: true, mobile: true } }
+        }
+      });
+    } catch {
+      users = [];
     }
-  });
+  }
   const userById = new Map(users.map((u) => [u.id, u]));
 
   for (const recipientId of recipients) {

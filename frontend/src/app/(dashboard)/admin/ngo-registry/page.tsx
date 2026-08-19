@@ -5,14 +5,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { 
   Building2, 
+  Clock,
   ExternalLink, 
   Eye, 
   FileText, 
   HeartHandshake, 
   Loader2, 
+  Mail,
   MapPin, 
   Search,
-  ShieldCheck 
+  ShieldCheck,
+  XCircle
 } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
@@ -29,6 +32,9 @@ import { useAuthStore } from "@/store/authStore";
 import { MAHARASHTRA_DISTRICTS } from "@/lib/locationData";
 import { useTableSort } from "@/hooks/useTableSort";
 import { SortableTh } from "@/components/ui/SortableTh";
+import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
+import { ViewToggle } from "@/components/ui/ViewToggle";
+import { useResponsiveViewMode } from "@/hooks/useResponsiveViewMode";
 
 import "@/styles/gov-theme.css";
 
@@ -37,6 +43,7 @@ export default function ImplementingAgencyRegistryPage() {
   const { user, isAdmin } = useAuthStore();
   const isRm = user?.role === "RELATIONSHIP_MANAGER" || user?.role?.includes("RM");
 
+  const [viewMode, setViewMode] = useResponsiveViewMode();
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -119,14 +126,62 @@ export default function ImplementingAgencyRegistryPage() {
 
   const { sortedItems, sortKey, sortDirection, requestSort } = useTableSort(items);
 
+  const hasActiveFilters = Boolean(searchTerm.trim() || statusFilter !== "all" || districtFilter !== "all");
+
+  const resetFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setDistrictFilter("all");
+    setPage(1);
+  };
+
+  const districtsCovered = new Set(items.map((i) => i.district).filter(Boolean)).size;
+
   return (
     <GovPortalLayout>
       <div className="mx-auto flex max-w-7xl flex-col gap-5 px-3 py-5 md:px-6 md:py-6 text-slate-900">
-        <StandardPageHeader
-          title="Implementing Agencies (NGOs)"
-          category="Admin / Agencies"
-          description="Verified registry of NITI Aayog DARPAN & MCA CSR-1 accredited Grassroots NGOs, non-profit trusts, and implementing partners in Maharashtra."
-        />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <StandardPageHeader
+            title="Implementing Agencies (NGOs)"
+            category="Admin / Agencies"
+            description="Verified registry of NITI Aayog DARPAN & MCA CSR-1 accredited Grassroots NGOs, non-profit trusts, and implementing partners in Maharashtra."
+          />
+          <div className="flex items-center gap-2">
+            <ViewToggle view={viewMode} onChange={setViewMode} />
+          </div>
+        </div>
+
+        {/* KPI Stats Bar */}
+        <StatCardGroup columns={4}>
+          <StatCard
+            label="Total Implementing Agencies"
+            value={pagination.total}
+            icon={HeartHandshake}
+            colorTheme="emerald"
+            sublabel="NITI Aayog & CSR-1 registered"
+          />
+          <StatCard
+            label="Active & Verified"
+            value={pagination.active}
+            icon={ShieldCheck}
+            colorTheme="blue"
+            sublabel="Approved for CSR partnerships"
+          />
+          <StatCard
+            label="Under Review"
+            value={pagination.pending}
+            icon={Clock}
+            colorTheme="amber"
+            sublabel="Pending compliance check"
+          />
+          <StatCard
+            label="Districts Covered"
+            value={districtsCovered || 1}
+            icon={MapPin}
+            colorTheme="purple"
+            sublabel="Grassroots footprint"
+          />
+        </StatCardGroup>
 
         {/* Sleek Single-Row Search & Filters Bar */}
         <div className="flex flex-col md:flex-row items-center gap-2.5 p-2.5 sm:p-3 bg-white rounded-2xl border border-slate-200/90 shadow-2xs">
@@ -138,8 +193,17 @@ export default function ImplementingAgencyRegistryPage() {
               placeholder="Search agency by name, DARPAN ID or registration..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-xs md:text-sm rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all font-medium"
+              className="w-full pl-9 pr-8 py-2 text-xs md:text-sm rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all font-medium"
             />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <XCircle size={14} />
+              </button>
+            )}
           </div>
 
           {/* Status Filter */}
@@ -177,9 +241,19 @@ export default function ImplementingAgencyRegistryPage() {
               ))}
             </select>
           </div>
+
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="px-3 py-2 text-xs font-bold text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200 transition-colors shrink-0"
+            >
+              Reset
+            </button>
+          )}
         </div>
 
-        {/* Responsive Implementing Agencies List */}
+        {/* Responsive Implementing Agencies List / Grid */}
         <GovCard className="overflow-hidden shadow-xs border border-slate-200/80">
           <GovCardHeader className="!px-4 !py-3.5 md:!px-5 md:!py-4 flex flex-row items-center justify-between border-b border-slate-100">
             <GovCardTitle className="text-sm md:text-base font-extrabold text-slate-900 flex items-center gap-2">
@@ -190,105 +264,171 @@ export default function ImplementingAgencyRegistryPage() {
           </GovCardHeader>
 
           <GovCardBody className="!p-0">
-            <div className="w-full md:overflow-x-auto">
-              <table className="w-full block md:table text-left border-collapse text-xs md:text-sm">
-                <thead className="hidden md:table-header-group border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider font-extrabold text-slate-500">
-                  <tr>
-                    <SortableTh sortKey="name" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-5 py-3.5">Organization Name</SortableTh>
-                    <SortableTh sortKey="registrationNo" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3.5">Registration / DARPAN</SortableTh>
-                    <SortableTh sortKey="district" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3.5">District Scope</SortableTh>
-                    <SortableTh sortKey="focusArea" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3.5">Accreditation</SortableTh>
-                    <SortableTh sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3.5">Status</SortableTh>
-                    <th className="px-5 py-3.5 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="block md:table-row-group divide-y-0 md:divide-y md:divide-slate-100">
-                  {loading ? (
+            {viewMode === "list" ? (
+              /* LIST VIEW: Sortable Table */
+              <div className="w-full md:overflow-x-auto">
+                <table className="w-full block md:table text-left border-collapse text-xs md:text-sm">
+                  <thead className="hidden md:table-header-group border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider font-extrabold text-slate-500">
                     <tr>
-                      <td colSpan={6} className="p-8 text-center text-slate-500 font-medium">
-                        <div className="flex flex-col items-center justify-center gap-2">
-                          <Loader2 size={24} className="animate-spin text-blue-600" />
-                          <span>Loading implementing agencies...</span>
-                        </div>
-                      </td>
+                      <SortableTh sortKey="name" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-5 py-3.5">Organization Name</SortableTh>
+                      <SortableTh sortKey="registrationNo" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3.5">Registration / DARPAN</SortableTh>
+                      <SortableTh sortKey="district" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3.5">District Scope</SortableTh>
+                      <SortableTh sortKey="focusArea" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3.5">Accreditation</SortableTh>
+                      <SortableTh sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3.5">Status</SortableTh>
+                      <th className="px-5 py-3.5 text-right">Actions</th>
                     </tr>
-                  ) : sortedItems.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="p-8 text-center text-slate-500 font-medium">
-                        No implementing agency partners found matching the selected criteria.
-                      </td>
-                    </tr>
-                  ) : (
-                    sortedItems.map((ngo) => (
-                      <tr 
-                        key={ngo.id}
-                        className="block md:table-row mb-3 md:mb-0 bg-white border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-xs md:shadow-none hover:bg-slate-50/80 transition-colors overflow-hidden"
-                      >
-                        <td 
-                          data-label="Organization" 
-                          className="flex md:table-cell flex-col md:flex-row items-start md:items-center px-4 md:px-5 py-3 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden before:mb-0.5"
-                        >
-                          <div className="flex flex-col">
-                            <button
-                              type="button"
-                              onClick={() => handleOpenDetails(ngo)}
-                              className="font-bold text-slate-900 hover:text-blue-700 transition-colors text-left cursor-pointer"
-                            >
-                              {ngo.name}
-                            </button>
-                            <span className="text-[11px] text-slate-400 font-medium break-all">
-                              {ngo.email}
-                            </span>
-                          </div>
-                        </td>
-                        <td 
-                          data-label="Reg / DARPAN" 
-                          className="flex md:table-cell justify-between items-center px-4 md:px-4 py-2.5 md:py-4 border-b border-slate-100 md:border-none font-mono text-xs before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
-                        >
-                          <span className="font-semibold text-slate-700 break-all">
-                            {ngo.registrationNo}
-                          </span>
-                        </td>
-                        <td 
-                          data-label="District" 
-                          className="flex md:table-cell justify-between items-center px-4 md:px-4 py-2.5 md:py-4 border-b border-slate-100 md:border-none font-medium text-slate-700 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
-                        >
-                          {ngo.district}
-                        </td>
-                        <td 
-                          data-label="Accreditation" 
-                          className="flex md:table-cell justify-between items-center px-4 md:px-4 py-2.5 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
-                        >
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                            Verified NGO
-                          </span>
-                        </td>
-                        <td 
-                          data-label="Status" 
-                          className="flex md:table-cell justify-between items-center px-4 md:px-4 py-2.5 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
-                        >
-                          <GovStatusBadge variant={ngo.statusVariant}>{ngo.status}</GovStatusBadge>
-                        </td>
-                        <td className="block md:table-cell px-4 md:px-5 py-3 md:py-4 bg-slate-50/50 md:bg-transparent text-right">
-                          <div className="flex justify-end items-center gap-2">
-                            {/* Only View Details button shown */}
-                            <button
-                              type="button"
-                              onClick={() => handleOpenDetails(ngo)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50/90 hover:bg-blue-100 text-blue-900 font-bold text-xs shadow-2xs transition-all hover:scale-[1.02] cursor-pointer"
-                              title="View detailed agency profile"
-                            >
-                              <Eye size={14} className="text-blue-700" />
-                              <span>View Details</span>
-                            </button>
+                  </thead>
+                  <tbody className="block md:table-row-group divide-y-0 md:divide-y md:divide-slate-100">
+                    {loading ? (
+                      <tr>
+                        <td colSpan={6} className="p-8 text-center text-slate-500 font-medium">
+                          <div className="flex flex-col items-center justify-center gap-2">
+                            <Loader2 size={24} className="animate-spin text-blue-600" />
+                            <span>Loading implementing agencies...</span>
                           </div>
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    ) : sortedItems.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="p-8 text-center text-slate-500 font-medium">
+                          No implementing agency partners found matching the selected criteria.
+                        </td>
+                      </tr>
+                    ) : (
+                      sortedItems.map((ngo) => (
+                        <tr 
+                          key={ngo.id}
+                          className="block md:table-row mb-3 md:mb-0 bg-white border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-xs md:shadow-none hover:bg-slate-50/80 transition-colors overflow-hidden"
+                        >
+                          <td 
+                            data-label="Organization" 
+                            className="flex md:table-cell flex-col md:flex-row items-start md:items-center px-4 md:px-5 py-3 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden before:mb-0.5"
+                          >
+                            <div className="flex flex-col">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenDetails(ngo)}
+                                className="font-bold text-slate-900 hover:text-blue-700 transition-colors text-left cursor-pointer"
+                              >
+                                {ngo.name}
+                              </button>
+                              <span className="text-[11px] text-slate-400 font-medium break-all">
+                                {ngo.email}
+                              </span>
+                            </div>
+                          </td>
+                          <td 
+                            data-label="Reg / DARPAN" 
+                            className="flex md:table-cell justify-between items-center px-4 md:px-4 py-2.5 md:py-4 border-b border-slate-100 md:border-none font-mono text-xs before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
+                          >
+                            <span className="font-semibold text-slate-700 break-all">
+                              {ngo.registrationNo}
+                            </span>
+                          </td>
+                          <td 
+                            data-label="District" 
+                            className="flex md:table-cell justify-between items-center px-4 md:px-4 py-2.5 md:py-4 border-b border-slate-100 md:border-none font-medium text-slate-700 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
+                          >
+                            {ngo.district}
+                          </td>
+                          <td 
+                            data-label="Accreditation" 
+                            className="flex md:table-cell justify-between items-center px-4 md:px-4 py-2.5 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
+                          >
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                              Verified NGO
+                            </span>
+                          </td>
+                          <td 
+                            data-label="Status" 
+                            className="flex md:table-cell justify-between items-center px-4 md:px-4 py-2.5 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
+                          >
+                            <GovStatusBadge variant={ngo.statusVariant}>{ngo.status}</GovStatusBadge>
+                          </td>
+                          <td className="block md:table-cell px-4 md:px-5 py-3 md:py-4 bg-slate-50/50 md:bg-transparent text-right">
+                            <div className="flex justify-end items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenDetails(ngo)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50/90 hover:bg-blue-100 text-blue-900 font-bold text-xs shadow-2xs transition-all hover:scale-[1.02] cursor-pointer"
+                                title="View detailed agency profile"
+                              >
+                                <Eye size={14} className="text-blue-700" />
+                                <span>View Details</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              /* GRID VIEW: Responsive Agency Cards */
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {loading ? (
+                  <div className="col-span-full py-12 text-center text-slate-500 font-medium">
+                    <Loader2 size={24} className="animate-spin text-blue-600 mx-auto mb-2" />
+                    <span>Loading agencies...</span>
+                  </div>
+                ) : sortedItems.length === 0 ? (
+                  <div className="col-span-full py-12 text-center text-slate-500 font-medium">
+                    No implementing agency partners found matching the selected criteria.
+                  </div>
+                ) : (
+                  sortedItems.map((ngo) => (
+                    <div
+                      key={ngo.id}
+                      className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs hover:border-slate-300 hover:shadow-sm transition-all space-y-3"
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-900 border border-emerald-200">
+                            Verified NGO
+                          </span>
+                          <GovStatusBadge variant={ngo.statusVariant}>{ngo.status}</GovStatusBadge>
+                        </div>
+
+                        <h3 className="font-extrabold text-slate-900 text-sm line-clamp-2">
+                          {ngo.name}
+                        </h3>
+
+                        <div className="space-y-1 text-xs text-slate-500">
+                          <div className="flex items-center gap-1.5 truncate">
+                            <MapPin size={12} className="text-slate-400 shrink-0" />
+                            <span>{ngo.district}</span>
+                          </div>
+                          {ngo.email && ngo.email !== "—" && (
+                            <div className="flex items-center gap-1.5 truncate">
+                              <Mail size={12} className="text-slate-400 shrink-0" />
+                              <span className="truncate">{ngo.email}</span>
+                            </div>
+                          )}
+                          <div className="pt-1 text-[11px] font-mono text-slate-600">
+                            Reg: {ngo.registrationNo}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">
+                          {ngo.focusArea}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenDetails(ngo)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-xs border border-blue-200 transition-colors cursor-pointer"
+                        >
+                          <Eye size={12} className="text-blue-700" />
+                          <span>View Details</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
 
             {/* Pagination Controls */}
             {pagination.totalPages > 1 && (

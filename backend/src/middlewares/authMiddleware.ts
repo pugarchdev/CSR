@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { Role } from "../types/role";
-import { userHasAnyRole } from "../services/roleResolver";
+import { userHasAnyRole, isSuperAdmin } from "../services/roleResolver";
 import { getJwtSecret } from "../config/env";
 import prisma from "../config/db";
 
@@ -162,10 +162,10 @@ export const authorizeRoles = (allowedRoles: Role[]) => {
       return res.status(401).json({ error: "Unauthorized access" });
     }
 
-    if (!userHasAnyRole(req.user, allowedRoles)) {
-      return res.status(403).json({ error: `Forbidden: role '${req.user.role}' lacks permissions` });
+    if (isSuperAdmin(req.user) || userHasAnyRole(req.user, allowedRoles)) {
+      return next();
     }
 
-    next();
+    return res.status(403).json({ error: `Forbidden: role '${req.user.role}' lacks permissions` });
   };
 };

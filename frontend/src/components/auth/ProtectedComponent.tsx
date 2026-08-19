@@ -58,18 +58,16 @@ interface ProtectedComponentProps {
  * @example
  * ```tsx
  * // Check single permission
- * <ProtectedComponent permission="requirement:create">
- *   <CreateRequirementButton />
+ * <ProtectedComponent permission="pitch:create">
+ *   <button>Create Pitch</button>
  * </ProtectedComponent>
  *
- * // Check all permissions
- * <ProtectedComponent permissions={["requirement:view", "requirement:update"]}>
- *   <EditRequirementForm />
+ * <ProtectedComponent permissions={["pitch:view", "pitch:edit_before_approval"]}>
+ *   <PitchEditor />
  * </ProtectedComponent>
  *
- * // Check any permission
- * <ProtectedComponent anyPermission={["requirement:approve", "requirement:submit"]}>
- *   <ActionButtons />
+ * <ProtectedComponent anyPermission={["pitch:approve", "pitch:submit"]}>
+ *   <ApprovalControls />
  * </ProtectedComponent>
  *
  * // Check role

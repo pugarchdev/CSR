@@ -103,12 +103,12 @@ export default function CSRRequirementDetail() {
     try {
       let data: any;
       try {
-        data = await apiFetch<any>(`/csr-requirements/${id}`);
-      } catch (err) {
         const res = await fetch(`${API_BASE_URL}/public/requirements/${id}`, { cache: "no-store" });
         if (!res.ok) throw new Error("Failed to load requirement details");
         const body = await res.json();
         data = body.data || body;
+      } catch (err) {
+        data = await apiFetch<any>(`/public/requirements/${id}`);
       }
 
       setRequirement(data);
@@ -453,8 +453,6 @@ export default function CSRRequirementDetail() {
           onClick={() => {
             const backDest = pathname.startsWith("/company/marketplace")
               ? "/company/marketplace"
-              : pathname.startsWith("/department/requirements")
-              ? "/department/requirements"
               : "/csr-marketplace";
             router.push(backDest);
           }}

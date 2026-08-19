@@ -4,6 +4,7 @@ import crypto from "crypto";
 import prisma from "../config/db";
 import { AuthenticatedRequest } from "../middlewares/authMiddleware";
 import { sendUserInvitationEmail } from "../services/emailService";
+import { notifyHierarchy } from "../services/hierarchyNotificationService";
 
 const normalize = (value: unknown) => String(value || "").trim().toLowerCase();
 const tempPassword = () => `Ngo!${crypto.randomBytes(8).toString("base64url")}7a`;
@@ -89,6 +90,21 @@ export const submitNgoMasterProfile = async (req: AuthenticatedRequest, res: Res
       prisma.corporateNgoMembership.updateMany({ where: { id: access.membershipId }, data: { status: "PENDING_CORPORATE_REVIEW" } }),
       prisma.auditLog.create({ data: { actorUserId: req.user.id, userId: req.user.id, action: "NGO_MASTER_PROFILE_SUBMITTED", entityType: "Organization", entityId: req.user.ngoId, details: { ngoAccessId: req.user.ngoAccessId, corporateOrganizationId: req.user.companyId } } }),
     ]);
+    notifyHierarchy({
+      title: "NGO Profile Submitted for Review",
+      message: `NGO master profile submitted for verification.`,
+      organizationId: req.user.ngoId,
+      district: district || undefined,
+      includeOrgUsers: false,
+      includePortalAdmins: true,
+      includeRms: true,
+      actionButtonUrl: `/admin/onboarding-approvals`,
+      variables: {
+        currentStatus: "UNDER_VERIFICATION",
+        workflowStatus: "Profile submitted for corporate and admin review"
+      }
+    }).catch(err => console.error("[ImplementingAgency] Profile submit notification failed:", err));
+
     return res.json({ success: true, status: "PENDING_CORPORATE_REVIEW" });
   } catch (error) { next(error); }
 };
@@ -127,7 +143,7 @@ export const decideSubLogin = async (req: AuthenticatedRequest, res: Response, n
   try {
     const { action, remarks } = req.body;
     await requireCorporateScope(req);
-    const membership = await prisma.corporateNgoMembership.findFirst({ where: { id: req.params.id, corporateOrganizationId: req.user!.organizationId! }, include: { accesses: true } });
+    const membership = await prisma.corporateNgoMembership.findFirst({ where: { id: req.params.id, corporateOrganizationId: req.user!.organizationId! }, include: { accesses: true, ngoOrganization: true } });
     if (!membership) return res.status(404).json({ error: "NGO membership not found in your corporate scope" });
     if (!["APPROVE", "CLARIFY", "REJECT"].includes(action)) return res.status(400).json({ error: "Action must be APPROVE, CLARIFY, or REJECT" });
     if (action !== "APPROVE" && !String(remarks || "").trim()) return res.status(400).json({ error: "Remarks are required" });
@@ -138,6 +154,25 @@ export const decideSubLogin = async (req: AuthenticatedRequest, res: Response, n
       await tx.projectImplementingAgency.updateMany({ where: { agencyOrganizationId: membership.ngoOrganizationId, projectId: { in: membership.accesses.flatMap(a => a.projectIds) } }, data: { status: action === "APPROVE" ? "ACTIVE" : action === "REJECT" ? "REVOKED" : "INVITED", acceptedAt: action === "APPROVE" ? new Date() : null } });
       await tx.auditLog.create({ data: { actorUserId: req.user!.id, userId: req.user!.id, action: `CORPORATE_NGO_${action}`, entityType: "CorporateNgoMembership", entityId: membership.id, details: { remarks: remarks || null, accessIds: membership.accesses.map(a => a.id) } } });
     });
+
+    notifyHierarchy({
+      title: action === "APPROVE" ? "NGO Partner Membership Approved" : action === "CLARIFY" ? "Clarification Required for NGO Membership" : "NGO Partner Membership Rejected",
+      message: action === "APPROVE"
+        ? `NGO partner "${membership.ngoOrganization?.name || 'NGO'}" has been approved for project implementation.`
+        : action === "CLARIFY"
+        ? `Clarification requested for NGO partner "${membership.ngoOrganization?.name || 'NGO'}". Remarks: ${remarks}`
+        : `NGO partner "${membership.ngoOrganization?.name || 'NGO'}" membership was rejected. Reason: ${remarks}`,
+      organizationId: membership.ngoOrganizationId,
+      includeOrgUsers: true,
+      includePortalAdmins: true,
+      includeRms: true,
+      actionButtonUrl: `/organization/onboarding/status`,
+      variables: {
+        currentStatus: status,
+        workflowStatus: remarks || `Corporate decision: ${action}`
+      }
+    }).catch(err => console.error("[ImplementingAgency] Decision notification failed:", err));
+
     return res.json({ success: true, status });
   } catch (error) { next(error); }
 };

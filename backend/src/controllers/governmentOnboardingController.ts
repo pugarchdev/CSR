@@ -3,8 +3,10 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import prisma from "../config/db";
 import { AuthenticatedRequest } from "../middlewares/authMiddleware";
+import { isSuperAdmin } from "../services/roleResolver";
 import { OtpSendLimitError, sendOtp, verifyOtp } from "../services/otpService";
 import { sendUserInvitationEmail } from "../services/emailService";
+import { notifyHierarchy } from "../services/hierarchyNotificationService";
 
 const MAIN_DESIGNATIONS: Record<string, string> = {
   COLLECTORATE: "Collector",
@@ -211,6 +213,27 @@ export const submitGovernmentOnboarding = async (req: AuthenticatedRequest, res:
       await tx.auditLog.create({ data: { actorUserId: req.user!.id, userId: req.user!.id, action: "GOVERNMENT_ONBOARDING_SUBMITTED", entityType: "GovernmentOnboardingApplication", entityId: updated.id, details: { version: updated.version, previousVersionId: current.status === "CLARIFICATION_REQUIRED" ? current.id : null, reviewerRoleCode: current.reviewerRoleCode } } });
       return updated;
     });
+
+    const org = await prisma.organization.findUnique({ where: { id: organizationId } });
+    notifyHierarchy({
+      title: current.status === "CLARIFICATION_REQUIRED" ? "Government Onboarding Clarification Resubmitted" : "Government Department Onboarding Submitted",
+      message: current.status === "CLARIFICATION_REQUIRED"
+        ? `Government organization "${org?.name || organizationId}" responded to clarification request and resubmitted onboarding profile for review.`
+        : `Government organization "${org?.name || organizationId}" submitted onboarding profile for verification.`,
+      organizationId,
+      district: org?.district,
+      includeOrgUsers: false,
+      includePortalAdmins: true,
+      includeRms: true,
+      includeStateOfficers: true,
+      includeDistrictOfficers: true,
+      actionButtonUrl: `/admin/onboarding-approvals`,
+      variables: {
+        currentStatus: "UNDER_VERIFICATION",
+        workflowStatus: "Submitted for verification"
+      }
+    }).catch((err) => console.error("[GovernmentOnboarding] Notification dispatch failed:", err));
+
     return res.json({ success: true, application });
   } catch (error) { next(error); }
 };
@@ -268,33 +291,74 @@ export const listOnboardingReviews = async (req: AuthenticatedRequest, res: Resp
     const userRole = String(req.user?.role || "").toUpperCase();
     const roleId = Number(req.user?.roleId);
 
-    const isSuperAdmin = roleId === 1 || userRole === "SUPER_ADMIN";
-    const isJointSecretary = roleId === 3 || userRole === "JOINT_SECRETARY";
-    const isPlanningSecretary = roleId === 2 || userRole === "PLANNING_SECRETARY";
+    const isSuperAdminUser = isSuperAdmin(req.user) || roleId === 1 || userRole === "SUPER_ADMIN" || req.user?.role === 1 || req.user?.role === "1";
+    const isJointSecretary = roleId === 3 || userRole === "JOINT_SECRETARY" || req.user?.role === 3 || req.user?.role === "3";
+    const isPlanningSecretary = roleId === 2 || userRole === "PLANNING_SECRETARY" || req.user?.role === 2 || req.user?.role === "2";
 
-    if (!isSuperAdmin && !isJointSecretary && !isPlanningSecretary) {
+    if (!isSuperAdminUser && !isJointSecretary && !isPlanningSecretary) {
       return res.status(403).json({ error: "Reviewer role required" });
     }
 
     // Joint Secretary / SuperAdmin evaluates ALL applications; Planning Secretary evaluates sub-departments
-    const reviewerFilter = (isSuperAdmin || isJointSecretary)
+    const reviewerFilter = (isSuperAdminUser || isJointSecretary)
       ? {}
       : { reviewerRoleCode: "PLANNING_SECRETARY" };
+
+    const statusParam = req.query.status as string;
+    const statusWhere: any = {};
+    if (statusParam && statusParam !== "ALL") {
+      statusWhere.status = statusParam;
+    }
 
     const applications = await prisma.governmentOnboardingApplication.findMany({
       where: {
         ...reviewerFilter,
-        status: { in: ["UNDER_VERIFICATION", "CLARIFICATION_REQUIRED"] }
+        ...statusWhere
       },
-      include: { organization: true },
-      orderBy: { submittedAt: "asc" }
+      include: {
+        organization: {
+          include: {
+            documents: true,
+            govDeptProfile: true,
+            csrCompanyProfile: true,
+            ngoProfile: true,
+            users: {
+              select: { id: true, email: true, firstName: true, lastName: true, designation: true, mobile: true, roleId: true }
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: "desc" }
+    });
+
+    const awaitingDecision = await prisma.governmentOnboardingApplication.count({
+      where: {
+        ...reviewerFilter,
+        status: { in: ["UNDER_VERIFICATION", "REGISTERED", "SUBMITTED_FOR_REVIEW"] }
+      }
+    });
+
+    const clarificationRequired = await prisma.governmentOnboardingApplication.count({
+      where: {
+        ...reviewerFilter,
+        status: "CLARIFICATION_REQUIRED"
+      }
+    });
+
+    const approvedCount = await prisma.governmentOnboardingApplication.count({
+      where: {
+        ...reviewerFilter,
+        status: "APPROVED"
+      }
     });
 
     return res.json({
       data: applications,
       counts: {
-        awaitingDecision: applications.filter(a => a.status === "UNDER_VERIFICATION").length,
-        clarificationRequired: applications.filter(a => a.status === "CLARIFICATION_REQUIRED").length
+        awaitingDecision,
+        clarificationRequired,
+        approved: approvedCount,
+        total: applications.length
       }
     });
   } catch (error) { next(error); }
@@ -306,11 +370,11 @@ export const decideGovernmentOnboarding = async (req: AuthenticatedRequest, res:
     const userRole = String(req.user?.role || "").toUpperCase();
     const roleId = Number(req.user?.roleId);
 
-    const isSuperAdmin = roleId === 1 || userRole === "SUPER_ADMIN";
-    const isJointSecretary = roleId === 3 || userRole === "JOINT_SECRETARY";
-    const isPlanningSecretary = roleId === 2 || userRole === "PLANNING_SECRETARY";
+    const isSuperAdminUser = isSuperAdmin(req.user) || roleId === 1 || userRole === "SUPER_ADMIN" || req.user?.role === 1 || req.user?.role === "1";
+    const isJointSecretary = roleId === 3 || userRole === "JOINT_SECRETARY" || req.user?.role === 3 || req.user?.role === "3";
+    const isPlanningSecretary = roleId === 2 || userRole === "PLANNING_SECRETARY" || req.user?.role === 2 || req.user?.role === "2";
 
-    if (!isSuperAdmin && !isJointSecretary && !isPlanningSecretary) {
+    if (!isSuperAdminUser && !isJointSecretary && !isPlanningSecretary) {
       return res.status(403).json({ error: "You are not authorized to make onboarding decisions" });
     }
 
@@ -322,7 +386,7 @@ export const decideGovernmentOnboarding = async (req: AuthenticatedRequest, res:
     if (!application) return res.status(404).json({ error: "Application not found" });
 
     // Planning Secretary cannot review Joint Secretary main cell applications
-    if (isPlanningSecretary && !isJointSecretary && !isSuperAdmin && application.reviewerRoleCode === "JOINT_SECRETARY") {
+    if (isPlanningSecretary && !isJointSecretary && !isSuperAdminUser && application.reviewerRoleCode === "JOINT_SECRETARY") {
       return res.status(403).json({ error: "Planning Secretary cannot review Joint Secretary main cell applications" });
     }
 
@@ -368,6 +432,31 @@ export const decideGovernmentOnboarding = async (req: AuthenticatedRequest, res:
       });
       return record;
     });
+
+    notifyHierarchy({
+      title: decision === "APPROVE"
+        ? "Government Department Onboarding Approved"
+        : decision === "CLARIFICATION"
+        ? "Clarification Required for Government Onboarding"
+        : "Government Department Onboarding Rejected",
+      message: decision === "APPROVE"
+        ? `Government organization "${application.organization.name}" onboarding has been approved and activated on the MahaCSR Portal.`
+        : decision === "CLARIFICATION"
+        ? `Clarification requested for government organization "${application.organization.name}". Remarks: ${remarks}`
+        : `Government organization "${application.organization.name}" onboarding request has been rejected. Reason: ${remarks}`,
+      organizationId: application.organizationId,
+      district: application.organization.district,
+      includeOrgUsers: true,
+      includePortalAdmins: true,
+      includeRms: true,
+      includeStateOfficers: true,
+      includeDistrictOfficers: true,
+      actionButtonUrl: `/government-onboarding`,
+      variables: {
+        currentStatus: status,
+        workflowStatus: remarks || `Government onboarding decision: ${decision}`
+      }
+    }).catch((err) => console.error("[GovernmentOnboarding] Decision notification dispatch failed:", err));
 
     return res.json({ success: true, application: updated, organizationStatus });
   } catch (error) { next(error); }

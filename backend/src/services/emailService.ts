@@ -81,7 +81,7 @@ export async function sendTemplateEmail(payload: EmailPayload): Promise<{ messag
     introMessage: "Your application or workflow status has been updated on the MahaCSR Portal."
   };
 
-  if (status.includes("APPROVED") || status.includes("VERIFIED") || status.includes("ACTIVE")) {
+  if (status.includes("APPROVED") || status.includes("VERIFIED") || status === "ACTIVE") {
     theme = {
       badgeBg: "#dcfce7",
       badgeText: "#15803d",
@@ -98,6 +98,24 @@ export async function sendTemplateEmail(payload: EmailPayload): Promise<{ messag
       statusBoxBg: "#fffbeb",
       badgeLabel: "CLARIFICATION REQUIRED",
       introMessage: "Your application requires clarification or minor corrections before proceeding. Please review the details below:"
+    };
+  } else if (status.includes("UNDER_REVIEW") || status.includes("UNDER_VERIFICATION") || status.includes("SUBMITTED")) {
+    theme = {
+      badgeBg: "#e0e7ff",
+      badgeText: "#3730a3",
+      borderAccent: "#6366f1",
+      statusBoxBg: "#eef2ff",
+      badgeLabel: "UNDER VERIFICATION",
+      introMessage: "Your application is currently under active review and verification by the Maharashtra State CSR Portal administrative team."
+    };
+  } else if (status.includes("SUSPENDED")) {
+    theme = {
+      badgeBg: "#fef2f2",
+      badgeText: "#991b1b",
+      borderAccent: "#ef4444",
+      statusBoxBg: "#fff1f2",
+      badgeLabel: "ACCOUNT SUSPENDED",
+      introMessage: "Your organization account or workflow has been temporarily suspended on the Maharashtra State CSR Convergence Portal."
     };
   } else if (status.includes("REJECTED")) {
     theme = {

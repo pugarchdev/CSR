@@ -22,7 +22,6 @@ import trackingRoutes from "./trackingRoutes";
 import onboardingRoutes from "./onboardingRoutes";
 import companyInterestRoutes from "./companyInterestRoutes";
 import roleRoutes from "./roleRoutes";
-import csrRequirementRoutes from "./csrRequirementRoutes";
 import csrDashboardRoutes from "./csrDashboardRoutes";
 import dashboardRoutes from "./dashboardRoutes";
 
@@ -94,7 +93,6 @@ router.use("/company-interests", companyInterestRoutes);
 router.use("/roles", roleRoutes);
 router.use("/dashboard", dashboardRoutes);
 router.use("/csr-dashboard", csrDashboardRoutes);
-router.use("/csr-requirements", csrRequirementRoutes);
 
 router.use("/corporate-enquiries", corporateEnquiryRoutes);
 router.use("/rm", relationshipManagerRoutes);

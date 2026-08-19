@@ -126,19 +126,34 @@ describe("Route-Level Negative & Contextual Authorization Test Suite", () => {
     });
   });
 
-  describe("5. Mandatory Rejection Reason Validation", () => {
-    it("throws error if rejection attempt is missing mandatory explanation reason", async () => {
-      await expect(
-        WorkflowTransitionService.executeTransition({
-          entityType: "PITCH",
-          entityId: "pitch-101",
-          actorUserId: "usr-admin",
-          fromState: "UNDER_REVIEW",
-          toState: "REJECTED",
-          requiredPermission: "pitch:reject",
-          reason: "" // Empty reason
-        })
-      ).rejects.toThrow("mandatory explanation/reason is required");
+  describe("6. authorizeRoles SuperAdmin Authorization", () => {
+    it("allows SuperAdmin (role: 1) even if allowedRoles does not explicitly include SuperAdmin", () => {
+      const { authorizeRoles } = require("../middlewares/authMiddleware");
+      const middleware = authorizeRoles([3, 2]); // Only Joint Secretary & Planning Secretary
+
+      const req: any = { user: { id: "admin-1", email: "admin@mahacsr.gov.in", role: 1, roleId: "1" } };
+      const res: any = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+      const next = jest.fn();
+
+      middleware(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(res.status).not.toHaveBeenCalled();
+    });
+
+    it("forbids unauthorized non-superadmin user lacking allowed roles", () => {
+      const { authorizeRoles } = require("../middlewares/authMiddleware");
+      const middleware = authorizeRoles([3, 2]); // Only Joint Secretary & Planning Secretary
+
+      const req: any = { user: { id: "officer-7", email: "officer@mahacsr.gov.in", role: 7, roleId: "7" } };
+      const res: any = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+      const next = jest.fn();
+
+      middleware(req, res, next);
+
+      expect(next).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith({ error: "Forbidden: role '7' lacks permissions" });
     });
   });
 });

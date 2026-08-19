@@ -9,7 +9,7 @@ import {
   Layers, Sparkles, Award, Coins, Compass, FileText, BarChart2,
   HelpCircle, Menu, X, LogOut, ShieldCheck, BookOpen, ShieldAlert,
   Clock, Users, Globe2, ChevronDown, ArrowUp, MapPin, Phone, CheckCircle2, Handshake,
-  User, Settings, LayoutDashboard, Loader2
+  User, Settings, LayoutDashboard
 } from "lucide-react";
 import { Button } from "./ui/Button";
 import { Loader } from "./ui/Loader";
@@ -238,7 +238,6 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                       pathname.startsWith("/assessments") ||
                       pathname.startsWith("/assignments") ||
                       pathname.startsWith("/milestones") ||
-                      pathname.startsWith("/requirements") ||
                       pathname.startsWith("/handover") ||
                       pathname.startsWith("/inspections") ||
                       pathname.startsWith("/escalations") ||
@@ -391,7 +390,6 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
         pathname.startsWith("/agencies") ||
         pathname.startsWith("/assignments") ||
         pathname.startsWith("/milestones") ||
-        pathname.startsWith("/requirements") ||
         pathname.startsWith("/marketplace") ||
         pathname.startsWith("/escalations") ||
         pathname.startsWith("/decisions") ||
@@ -450,15 +448,12 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
       .catch(() => setTenantFeatures({}));
   }, [isDashboard, isLoggedIn]);
 
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-
   const handleLogout = () => {
-    setIsLoggingOut(true);
+    setUserDropdownOpen(false);
     useAuthStore.getState().logout();
+    router.replace("/login");
     if (typeof window !== "undefined") {
-      window.location.replace("/login");
-    } else {
-      router.replace("/login");
+      window.location.href = "/login";
     }
   };
 
@@ -491,7 +486,6 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
 
   const dashboardNavigationItems = filteredNavItems;
   const routeFeatureKey =
-    pathname.includes("/requirements") ? "enableRequirementCreation" :
     pathname.includes("/marketplace") ? "enableCSRMarketplace" :
     pathname.includes("/interests") ? "enableCompanyInterest" :
     pathname.includes("/funds") ? "enableFundDisbursement" :
@@ -702,20 +696,10 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                         setUserDropdownOpen(false);
                         handleLogout();
                       }}
-                      disabled={isLoggingOut}
-                      className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50/40 transition-colors flex items-center gap-2 border-t border-slate-100 mt-1 pt-2 disabled:opacity-60"
+                      className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50/40 transition-colors flex items-center gap-2 border-t border-slate-100 mt-1 pt-2"
                     >
-                      {isLoggingOut ? (
-                        <>
-                          <Loader2 size={14} className="animate-spin text-red-600 shrink-0" />
-                          <span>Logging out...</span>
-                        </>
-                      ) : (
-                        <>
-                          <LogOut size={14} className="text-red-400" />
-                          <span>Log Out</span>
-                        </>
-                      )}
+                      <LogOut size={14} className="text-red-400" />
+                      <span>Log Out</span>
                     </button>
                   </div>
                 )}
@@ -1111,20 +1095,10 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                   {isDashboard ? (
                     <button
                       onClick={handleLogout}
-                      disabled={isLoggingOut}
-                      className="w-full text-left px-3 py-2.5 text-xs text-[#c62828] hover:bg-[#fdecea] rounded-lg flex items-center gap-3 transition-all disabled:opacity-60"
+                      className="w-full text-left px-3 py-2.5 text-xs text-[#c62828] hover:bg-[#fdecea] rounded-lg flex items-center gap-3 transition-all"
                     >
-                      {isLoggingOut ? (
-                        <>
-                          <Loader2 size={16} className="animate-spin text-[#c62828] shrink-0" />
-                          <span>Logging out...</span>
-                        </>
-                      ) : (
-                        <>
-                          <LogOut size={16} />
-                          <span>Log Out</span>
-                        </>
-                      )}
+                      <LogOut size={16} />
+                      <span>Log Out</span>
                     </button>
                   ) : (
                     <div className="flex flex-col gap-2">
