@@ -46,12 +46,27 @@ async function createAndSendOtp(email: string): Promise<void> {
     console.log(`[DEV OTP] Email: ${normalizedEmail} | OTP: ${otpCode}`);
   }
 
-  // Fire-and-forget: send email in background, don't block the response
-  sendOtpEmail(normalizedEmail, otpCode).then(() => {
-    console.log(`[Email] OTP sent to ${normalizedEmail}`);
-  }).catch((err: any) => {
-    console.warn(`[Email] OTP email delivery notification (${err?.message || err})`);
-  });
+  // Await email send with retry — do NOT fire-and-forget in production
+  const MAX_RETRIES = 2;
+  let lastError: any = null;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      await sendOtpEmail(normalizedEmail, otpCode);
+      console.log(`[Email] OTP sent to ${normalizedEmail} (attempt ${attempt})`);
+      return; // Success — exit
+    } catch (err: any) {
+      lastError = err;
+      console.warn(`[Email] OTP send attempt ${attempt}/${MAX_RETRIES} failed for ${normalizedEmail}: ${err?.message || err}`);
+      if (attempt < MAX_RETRIES) {
+        // Wait 1 second before retry
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
+  }
+
+  // All retries exhausted — log but do NOT throw for register flow
+  // (OTP record is already in DB, user can use resend-otp endpoint)
+  console.error(`[Email] OTP email delivery FAILED after ${MAX_RETRIES} attempts for ${normalizedEmail}: ${lastError?.message || lastError}`);
 }
 
 const generateTokens = (user: {

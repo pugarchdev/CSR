@@ -1,19 +1,29 @@
 import nodemailer from "nodemailer";
 import { getPrimaryFrontendUrl } from "../config/env";
 
+const smtpHost = process.env.SMTP_HOST;
+const smtpPort = parseInt(process.env.SMTP_PORT || "587", 10);
+const smtpSecure = process.env.SMTP_SECURE === "true";
+const smtpUser = process.env.SMTP_USER;
+const smtpPass = process.env.SMTP_PASS;
+
+const hasSmtpConfig = Boolean(smtpHost && smtpUser && smtpPass);
+
 // SMTP connection pool config
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "localhost",
-  port: parseInt(process.env.SMTP_PORT || "1025", 10),
-  secure: process.env.SMTP_SECURE === "true",
-  auth: process.env.SMTP_USER ? {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS || ""
-  } : undefined,
-  connectionTimeout: 5000,
-  greetingTimeout: 5000,
-  socketTimeout: 5000
-});
+const transporter = hasSmtpConfig
+  ? nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpSecure,
+      auth: {
+        user: smtpUser,
+        pass: smtpPass,
+      },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
+    })
+  : nodemailer.createTransport({ jsonTransport: true });
 
 interface EmailPayload {
   to: string;

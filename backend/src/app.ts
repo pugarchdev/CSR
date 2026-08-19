@@ -1,3 +1,12 @@
+// Suppress the url.parse() DEP0169 deprecation warning emitted by nodemailer internals.
+// This must execute before any imports that trigger the warning at module load time.
+const _origEmitWarning = process.emitWarning;
+process.emitWarning = function (warning: any, ...args: any[]) {
+  if (typeof warning === "string" && warning.includes("url.parse()")) return;
+  if (warning && typeof warning === "object" && (warning as any).code === "DEP0169") return;
+  return (_origEmitWarning as Function).call(process, warning, ...args);
+} as typeof process.emitWarning;
+
 import express from "express";
 import http from "http";
 import cors from "cors";

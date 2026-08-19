@@ -7,9 +7,22 @@ const smtpSecure = process.env.SMTP_SECURE === "true";
 const smtpUser = process.env.SMTP_USER;
 const smtpPass = process.env.SMTP_PASS;
 
-const transporter = smtpHost && smtpUser && smtpPass
+const hasSmtpConfig = Boolean(smtpHost && smtpUser && smtpPass);
+
+const transporter = hasSmtpConfig
   ? nodemailer.createTransport({ host: smtpHost, port: smtpPort, secure: smtpSecure, auth: { user: smtpUser, pass: smtpPass } })
   : nodemailer.createTransport({ jsonTransport: true });
+
+if (!hasSmtpConfig) {
+  console.warn("[Mailer] ⚠️ SMTP_HOST/SMTP_USER/SMTP_PASS not configured — emails will be logged to console only (jsonTransport). Set SMTP environment variables in production.");
+} else {
+  // Verify SMTP connection on startup (non-blocking)
+  transporter.verify().then(() => {
+    console.log(`[Mailer] ✅ SMTP connection verified (${smtpHost}:${smtpPort})`);
+  }).catch((err: any) => {
+    console.error(`[Mailer] ❌ SMTP connection FAILED (${smtpHost}:${smtpPort}): ${err?.message || err}`);
+  });
+}
 
 export const sendOtpEmail = async (toEmail: string, otp: string) => {
   const htmlContent = `
