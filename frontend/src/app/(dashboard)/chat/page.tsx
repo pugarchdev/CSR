@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Send, Paperclip, CheckCheck, Landmark, Building2,
   Search, Pin, Smile, Mic, Play, Pause,
-  FileText, ShieldCheck, Sparkles, Phone, Plus, X, Download, Trash2
+  FileText, ShieldCheck, Sparkles, Phone, Plus, X, Download, Trash2,
+  MapPin, CheckCircle2, MessageSquare, Tag
 } from "lucide-react";
-import { getStoredUser, API_BASE_URL } from "@/lib/api";
+import { getStoredUser, API_BASE_URL, apiFetch } from "@/lib/api";
 import { GovPageHeader } from "@/components/layout/GovPageHeader";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
@@ -47,6 +48,302 @@ interface ChatRoom {
   onlineStatus?: "ONLINE" | "OFFLINE" | "IN_SESSION";
   avatarColor: string;
 }
+
+export interface PartnerDirectoryItem {
+  id: string;
+  name: string;
+  type: "NGO" | "COMPANY" | "GOVT";
+  roleTitle?: string;
+  project: string;
+  district: string;
+  sector: string;
+  badge: string;
+  phone: string;
+  avatarColor: string;
+}
+
+const verifiedStakeholdersDirectory: PartnerDirectoryItem[] = [
+  // NGOs & Implementing Agencies
+  {
+    id: "partner-ngo-1",
+    name: "Swades Foundation",
+    type: "NGO",
+    roleTitle: "Implementing Agency (Lead)",
+    project: "Raigad 360° Water Security & Community Livelihoods",
+    district: "Raigad, MH",
+    sector: "Water & Livelihoods",
+    badge: "80G / 12A Verified",
+    phone: "+91 22 6107 7100",
+    avatarColor: "from-emerald-500 to-teal-600"
+  },
+  {
+    id: "partner-ngo-2",
+    name: "Paani Foundation Trust",
+    type: "NGO",
+    roleTitle: "Water Conservation NGO",
+    project: "Water Cup & Watershed Replenishment Mission",
+    district: "Satara & Solapur, MH",
+    sector: "Water Conservation",
+    badge: "Grade A+ Verified",
+    phone: "+91 22 4001 2233",
+    avatarColor: "from-teal-600 to-cyan-600"
+  },
+  {
+    id: "partner-ngo-3",
+    name: "Pratham Education Foundation",
+    type: "NGO",
+    roleTitle: "Education NGO Partner",
+    project: "Digital Literacy & STEM Rural Classrooms",
+    district: "Statewide Maharashtra",
+    sector: "Primary Education",
+    badge: "CSR-1 Registered",
+    phone: "+91 22 2498 8578",
+    avatarColor: "from-emerald-600 to-green-600"
+  },
+  {
+    id: "partner-ngo-4",
+    name: "Vidarbha Rural Development Trust",
+    type: "NGO",
+    roleTitle: "Healthcare Implementing Agency",
+    project: "Gadchiroli Tribal Telemedicine Network & Primary Clinics",
+    district: "Gadchiroli, MH",
+    sector: "Tribal Healthcare",
+    badge: "Aspirational Dist NGO",
+    phone: "+91 7132 224105",
+    avatarColor: "from-amber-500 to-orange-600"
+  },
+  {
+    id: "partner-ngo-5",
+    name: "Watershed Organisation Trust (WOTR)",
+    type: "NGO",
+    roleTitle: "Climate & Watershed Agency",
+    project: "Climate-Resilient Watershed Agriculture & Check Dams",
+    district: "Ahmednagar, MH",
+    sector: "Climate Agriculture",
+    badge: "Verified NGO",
+    phone: "+91 20 2422 6211",
+    avatarColor: "from-emerald-600 to-teal-700"
+  },
+  {
+    id: "partner-ngo-6",
+    name: "BAIF Development Research Foundation",
+    type: "NGO",
+    roleTitle: "Livelihood & Agri Foundation",
+    project: "Livestock & Rural Agri-Livelihoods Center",
+    district: "Pune, MH",
+    sector: "Sustainable Livelihoods",
+    badge: "Verified NGO",
+    phone: "+91 20 2523 1661",
+    avatarColor: "from-teal-500 to-emerald-700"
+  },
+  {
+    id: "partner-ngo-7",
+    name: "Yuva Parivartan Trust",
+    type: "NGO",
+    roleTitle: "Youth Skilling Partner",
+    project: "Youth Vocational Training & Micro-Enterprise Hubs",
+    district: "Thane & Palghar, MH",
+    sector: "Vocational Skilling",
+    badge: "Verified NGO",
+    phone: "+91 22 2686 0001",
+    avatarColor: "from-emerald-500 to-cyan-600"
+  },
+  {
+    id: "partner-ngo-8",
+    name: "Sahyadri Eco Foundation",
+    type: "NGO",
+    roleTitle: "Forest & Ecology Partner",
+    project: "Gadchiroli Watershed & Afforestation Initiative",
+    district: "Gadchiroli & Chandrapur, MH",
+    sector: "Ecology & Forestry",
+    badge: "Verified NGO",
+    phone: "+91 98230 41102",
+    avatarColor: "from-emerald-500 to-teal-600"
+  },
+
+  // Corporates & CSR Contributors
+  {
+    id: "partner-corp-1",
+    name: "Tata CSR Foundation Desk",
+    type: "COMPANY",
+    roleTitle: "Corporate CSR Contributor",
+    project: "Maharashtra Skill Labs & Industrial Training Centers",
+    district: "Mumbai & Statewide",
+    sector: "Skill Development",
+    badge: "Corporate Contributor",
+    phone: "+91 22 6665 8282",
+    avatarColor: "from-blue-600 to-indigo-600"
+  },
+  {
+    id: "partner-corp-2",
+    name: "Sahyadri Technology Ventures Ltd",
+    type: "COMPANY",
+    roleTitle: "Corporate CSR Partner",
+    project: "Pune Rural Digital Classrooms & IT Hardware Labs",
+    district: "Pune, MH",
+    sector: "Digital Education",
+    badge: "Corporate Contributor",
+    phone: "+91 98221 04958",
+    avatarColor: "from-blue-600 to-indigo-600"
+  },
+  {
+    id: "partner-corp-3",
+    name: "Mahindra & Mahindra CSR Desk",
+    type: "COMPANY",
+    roleTitle: "Corporate CSR Cell",
+    project: "Nashik Jalyukt Shivar & Women SHG Livelihoods",
+    district: "Nashik, MH",
+    sector: "Water & Women SHGs",
+    badge: "Corporate Contributor",
+    phone: "+91 22 2490 1441",
+    avatarColor: "from-indigo-600 to-blue-700"
+  },
+  {
+    id: "partner-corp-4",
+    name: "Bajaj Auto CSR Trust",
+    type: "COMPANY",
+    roleTitle: "Corporate Foundation",
+    project: "Marathwada Community Healthcare & Dialysis Units",
+    district: "Chhatrapati Sambhajinagar, MH",
+    sector: "Healthcare & Education",
+    badge: "Corporate Contributor",
+    phone: "+91 20 6610 6501",
+    avatarColor: "from-blue-700 to-indigo-800"
+  },
+  {
+    id: "partner-corp-5",
+    name: "Bharat Petroleum CSR Cell",
+    type: "COMPANY",
+    roleTitle: "PSU CSR Department",
+    project: "Solar Water Purifiers & Community RO Plants",
+    district: "Solapur, MH",
+    sector: "Clean Water Supply",
+    badge: "PSU CSR Partner",
+    phone: "+91 22 2271 3000",
+    avatarColor: "from-blue-600 to-cyan-600"
+  },
+  {
+    id: "partner-corp-6",
+    name: "Larsen & Toubro CSR",
+    type: "COMPANY",
+    roleTitle: "Corporate CSR Desk",
+    project: "Polytechnic Modernization & Solar Rooftop Classrooms",
+    district: "Thane, MH",
+    sector: "STEM & Solar",
+    badge: "Corporate Contributor",
+    phone: "+91 22 6752 5656",
+    avatarColor: "from-indigo-500 to-blue-600"
+  },
+  {
+    id: "partner-corp-7",
+    name: "JSW Foundation CSR Desk",
+    type: "COMPANY",
+    roleTitle: "Corporate CSR Partner",
+    project: "Palghar Child Nutrition & Model Anganwadi Infrastructure",
+    district: "Palghar & Raigad, MH",
+    sector: "Child Nutrition",
+    badge: "Corporate Contributor",
+    phone: "+91 22 4286 1000",
+    avatarColor: "from-blue-600 to-indigo-700"
+  },
+
+  // Government Desks & District Nodal Officers
+  {
+    id: "partner-govt-1",
+    name: "State CSR Facilitation Desk",
+    type: "GOVT",
+    roleTitle: "State Secretariat Nodal Desk",
+    project: "Official CSR Support, Escalations & Tripartite MoUs",
+    district: "Mantralaya, Mumbai",
+    sector: "State Governance",
+    badge: "State Secretariat Desk",
+    phone: "+91 22 2202 5500",
+    avatarColor: "from-purple-600 to-indigo-600"
+  },
+  {
+    id: "partner-govt-2",
+    name: "District Collectorate Gadchiroli",
+    type: "GOVT",
+    roleTitle: "District Nodal Officer (DNO)",
+    project: "Tribal Area Development & Aspirational District CSR",
+    district: "Gadchiroli, MH",
+    sector: "Aspirational District",
+    badge: "DNO Nodal Desk",
+    phone: "+91 7132 222001",
+    avatarColor: "from-purple-600 to-violet-700"
+  },
+  {
+    id: "partner-govt-3",
+    name: "Pune District CSR Nodal Cell",
+    type: "GOVT",
+    roleTitle: "District Nodal Officer (DNO)",
+    project: "Zilla Parishad Smart Schools & Solar Lighting Projects",
+    district: "Pune, MH",
+    sector: "District CSR Desk",
+    badge: "DNO Nodal Desk",
+    phone: "+91 20 2612 3344",
+    avatarColor: "from-purple-700 to-indigo-600"
+  },
+  {
+    id: "partner-govt-4",
+    name: "State CSR Cell (Nodal Officer Desk)",
+    type: "GOVT",
+    roleTitle: "State Nodal Officer",
+    project: "Solapur Solar Drinking Water Tripartite MoU",
+    district: "Mumbai / Solapur, MH",
+    sector: "State CSR Cell",
+    badge: "State Nodal Desk",
+    phone: "+91 94220 18392",
+    avatarColor: "from-purple-600 to-indigo-600"
+  },
+  {
+    id: "partner-govt-5",
+    name: "State Public Health Department CSR",
+    type: "GOVT",
+    roleTitle: "Departmental Nodal Desk",
+    project: "Sub-District Hospitals Telemedicine Tele-ICU Network",
+    district: "Mumbai / Statewide",
+    sector: "Public Health Infra",
+    badge: "State Dept Desk",
+    phone: "+91 22 2261 1441",
+    avatarColor: "from-purple-600 to-pink-600"
+  },
+  {
+    id: "partner-govt-6",
+    name: "Satara District Water Conservation Desk",
+    type: "GOVT",
+    roleTitle: "District Nodal Officer (DNO)",
+    project: "Taluka Check Dam Rejuvenation & Geo-tagging Monitoring",
+    district: "Satara, MH",
+    sector: "Water Conservation",
+    badge: "DNO Nodal Desk",
+    phone: "+91 2162 234120",
+    avatarColor: "from-purple-600 to-indigo-700"
+  },
+  {
+    id: "partner-govt-7",
+    name: "Chhatrapati Sambhajinagar Collectorate",
+    type: "GOVT",
+    roleTitle: "District Nodal Officer (DNO)",
+    project: "Marathwada Drought Mitigation & Industrial Water Recycling",
+    district: "Chhatrapati Sambhajinagar, MH",
+    sector: "District CSR Desk",
+    badge: "DNO Nodal Desk",
+    phone: "+91 240 233 4501",
+    avatarColor: "from-violet-600 to-purple-800"
+  }
+];
+
+const SUGGESTION_TAGS = [
+  { id: "all", label: "All Suggestions", icon: "✨" },
+  { id: "water", label: "Water & Watershed", query: "Water", icon: "💧" },
+  { id: "education", label: "Digital Classrooms", query: "Education", icon: "🏫" },
+  { id: "health", label: "Tribal Healthcare", query: "Health", icon: "🏥" },
+  { id: "dno", label: "District Nodal Desks", query: "Nodal", icon: "🏛️" },
+  { id: "gadchiroli", label: "Gadchiroli Aspirational", query: "Gadchiroli", icon: "📍" },
+  { id: "corporate", label: "Corporate Donors", query: "Corporate", icon: "💼" },
+  { id: "skilling", label: "Skilling & Livelihoods", query: "Skill", icon: "⚡" },
+];
 
 const initialChats: ChatRoom[] = [
   {
@@ -233,6 +530,7 @@ export default function ChatSystem() {
   const [messagesStore, setMessagesStore] = useState<Record<string, Message[]>>(initialMessagesStore);
   const [inputVal, setInputVal] = useState("");
   const [filterMode, setFilterMode] = useState<"all" | "unread" | "pinned">("all");
+  const [sidebarSearch, setSidebarSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -242,6 +540,12 @@ export default function ChatSystem() {
   const [newChatModalOpen, setNewChatModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [mobileTab, setMobileTab] = useState<"list" | "chat">("chat");
+
+  // New Conversation Search & Filter State
+  const [partnerSearchQuery, setPartnerSearchQuery] = useState("");
+  const [partnerCategoryFilter, setPartnerCategoryFilter] = useState<"ALL" | "NGO" | "COMPANY" | "GOVT">("ALL");
+  const [selectedSuggestionTag, setSelectedSuggestionTag] = useState("all");
+  const [apiPartners, setApiPartners] = useState<PartnerDirectoryItem[]>([]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -260,6 +564,177 @@ export default function ChatSystem() {
       setMessagesStore(userStore);
     }
   }, []);
+
+  // Fetch verified organizations from API if available to merge with curated directory
+  useEffect(() => {
+    let isMounted = true;
+    const fetchOrgDirectory = async () => {
+      try {
+        const res = await apiFetch<any>("/admin/organizations?limit=25");
+        const list = Array.isArray(res?.data) ? res.data : Array.isArray(res?.organizations) ? res.organizations : Array.isArray(res) ? res : [];
+        if (isMounted && list.length > 0) {
+          const mapped: PartnerDirectoryItem[] = list.map((org: any) => {
+            const orgType: "NGO" | "COMPANY" | "GOVT" =
+              org.type === "CSR_COMPANY" || org.type === "COMPANY" ? "COMPANY" :
+              org.type === "GOVERNMENT" || org.type === "GOVT" ? "GOVT" : "NGO";
+            return {
+              id: `api-org-${org.id}`,
+              name: org.name || org.legalName || "Registered Partner",
+              type: orgType,
+              roleTitle: orgType === "GOVT" ? "Government Department" : orgType === "COMPANY" ? "Corporate CSR Contributor" : "Registered Implementing Agency",
+              project: org.description || org.mission || `${org.name} District CSR Program`,
+              district: org.district || "Maharashtra",
+              sector: org.sector || "Social Development",
+              badge: "Verified Registry",
+              phone: org.phone || "+91 22 2202 5500",
+              avatarColor: orgType === "NGO" ? "from-emerald-500 to-teal-600" : orgType === "GOVT" ? "from-purple-600 to-indigo-600" : "from-blue-600 to-indigo-600"
+            };
+          });
+          setApiPartners(mapped);
+        }
+      } catch {
+        // Fallback gracefully to verified stakeholders directory
+      }
+    };
+    fetchOrgDirectory();
+    return () => { isMounted = false; };
+  }, []);
+
+  // Combined directory with deduplication
+  const combinedDirectory = useMemo(() => {
+    const seenNames = new Set<string>();
+    const result: PartnerDirectoryItem[] = [];
+
+    for (const item of verifiedStakeholdersDirectory) {
+      if (!seenNames.has(item.name.toLowerCase())) {
+        seenNames.add(item.name.toLowerCase());
+        result.push(item);
+      }
+    }
+
+    for (const item of apiPartners) {
+      if (!seenNames.has(item.name.toLowerCase())) {
+        seenNames.add(item.name.toLowerCase());
+        result.push(item);
+      }
+    }
+
+    return result;
+  }, [apiPartners]);
+
+  // Filtered directory for modal search & suggestions
+  const filteredDirectory = useMemo(() => {
+    return combinedDirectory.filter(partner => {
+      // Category filter
+      if (partnerCategoryFilter !== "ALL" && partner.type !== partnerCategoryFilter) {
+        return false;
+      }
+
+      // Suggestion tag filter
+      if (selectedSuggestionTag !== "all") {
+        const tagObj = SUGGESTION_TAGS.find(t => t.id === selectedSuggestionTag);
+        if (tagObj && tagObj.query) {
+          const q = tagObj.query.toLowerCase();
+          const matchTag =
+            partner.sector.toLowerCase().includes(q) ||
+            partner.project.toLowerCase().includes(q) ||
+            partner.district.toLowerCase().includes(q) ||
+            partner.name.toLowerCase().includes(q) ||
+            (partner.roleTitle && partner.roleTitle.toLowerCase().includes(q)) ||
+            (partner.badge && partner.badge.toLowerCase().includes(q));
+          if (!matchTag) return false;
+        }
+      }
+
+      // Search Query
+      if (partnerSearchQuery.trim()) {
+        const q = partnerSearchQuery.toLowerCase().trim();
+        const matchSearch =
+          partner.name.toLowerCase().includes(q) ||
+          partner.project.toLowerCase().includes(q) ||
+          partner.district.toLowerCase().includes(q) ||
+          partner.sector.toLowerCase().includes(q) ||
+          (partner.roleTitle && partner.roleTitle.toLowerCase().includes(q)) ||
+          (partner.badge && partner.badge.toLowerCase().includes(q)) ||
+          partner.type.toLowerCase().includes(q);
+        if (!matchSearch) return false;
+      }
+
+      return true;
+    });
+  }, [combinedDirectory, partnerCategoryFilter, selectedSuggestionTag, partnerSearchQuery]);
+
+  const handleSelectPartner = (partner: PartnerDirectoryItem | { name: string; type: "NGO" | "COMPANY" | "GOVT"; project?: string; phone?: string; district?: string }) => {
+    // Check if room with this partner name already exists
+    const existingRoom = chats.find(c =>
+      c.partnerName.toLowerCase().trim() === partner.name.toLowerCase().trim()
+    );
+
+    if (existingRoom) {
+      setActiveChat(existingRoom);
+      setChats(prev => prev.map(c => c.id === existingRoom.id ? { ...c, unread: false } : c));
+      setMobileTab("chat");
+      setNewChatModalOpen(false);
+      setPartnerSearchQuery("");
+      setSelectedSuggestionTag("all");
+      return;
+    }
+
+    const partnerType = partner.type || "NGO";
+    const partnerDistrict = (partner as any).district ? ` in ${(partner as any).district}` : "";
+    const initialWelcomeMessage = partnerType === "GOVT"
+      ? `Welcome to the official communication desk for ${partner.name}${partnerDistrict}. This is a direct government coordination channel.`
+      : partnerType === "COMPANY"
+      ? `Hello! Official collaboration channel opened with ${partner.name}. Use this desk to coordinate CSR proposals, approvals, and fund disbursements.`
+      : `Namaste! Collaboration channel opened with ${partner.name}. Ready to coordinate on ${partner.project || "CSR field initiatives"}.`;
+
+    const newChatId = `chat-room-${Date.now()}`;
+    const newRoom: ChatRoom = {
+      id: newChatId,
+      partnerName: partner.name,
+      partnerType: partnerType,
+      phone: partner.phone || "+91 22 2202 5500",
+      lastMessage: initialWelcomeMessage,
+      updatedAt: "Just now",
+      unread: false,
+      pinned: false,
+      projectTitle: partner.project || (partner as any).sector || "CSR Collaboration Channel",
+      onlineStatus: "ONLINE",
+      avatarColor: (partner as any).avatarColor || (partnerType === "NGO" ? "from-emerald-500 to-teal-600" : partnerType === "GOVT" ? "from-purple-600 to-indigo-600" : "from-blue-600 to-indigo-600")
+    };
+
+    const initialMsgObj: Message = {
+      id: `m-init-${Date.now()}`,
+      senderName: partner.name,
+      senderRole: partnerType === "GOVT" ? "GOVT_ADMIN" : partnerType === "COMPANY" ? "COMPANY_ADMIN" : "NGO_ADMIN",
+      text: initialWelcomeMessage,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      createdTimestamp: Date.now(),
+      reactions: []
+    };
+
+    const updatedChats = [newRoom, ...chats];
+    const updatedStore = {
+      ...messagesStore,
+      [newChatId]: [initialMsgObj]
+    };
+
+    setChats(updatedChats);
+    setActiveChat(newRoom);
+    setMessagesStore(updatedStore);
+    setMobileTab("chat");
+    setNewChatModalOpen(false);
+    setPartnerSearchQuery("");
+    setSelectedSuggestionTag("all");
+
+    if (typeof window !== "undefined" && user) {
+      const userId = user?.id || user?.email || "anonymous";
+      try {
+        localStorage.setItem(`mahacsr_chats_${userId}`, JSON.stringify(updatedChats));
+        localStorage.setItem(`mahacsr_store_${userId}`, JSON.stringify(updatedStore));
+      } catch {}
+    }
+  };
 
   const messages = messagesStore[activeChat.id] || [];
 
@@ -540,9 +1015,17 @@ export default function ChatSystem() {
   };
 
   const filteredChats = chats.filter(chat => {
-    if (filterMode === "pinned") return chat.pinned;
-    if (filterMode === "unread") return chat.unread;
-    return true;
+    const matchesFilter =
+      filterMode === "pinned" ? chat.pinned :
+      filterMode === "unread" ? chat.unread : true;
+
+    const matchesSearch =
+      !sidebarSearch.trim() ||
+      chat.partnerName.toLowerCase().includes(sidebarSearch.toLowerCase()) ||
+      (chat.projectTitle && chat.projectTitle.toLowerCase().includes(sidebarSearch.toLowerCase())) ||
+      chat.lastMessage.toLowerCase().includes(sidebarSearch.toLowerCase());
+
+    return matchesFilter && matchesSearch;
   });
 
   const displayMessages = messages.filter(m =>
@@ -558,7 +1041,12 @@ export default function ChatSystem() {
         description="Encrypted multi-stakeholder messaging channel for Corporate CSR teams, Government Nodal Officers, and Implementing Agencies."
         actions={
           <Button
-            onClick={() => setNewChatModalOpen(true)}
+            onClick={() => {
+              setNewChatModalOpen(true);
+              setPartnerSearchQuery("");
+              setSelectedSuggestionTag("all");
+              setPartnerCategoryFilter("ALL");
+            }}
             variant="primary"
             className="flex items-center gap-1.5 shadow-md px-3 sm:px-4"
           >
@@ -576,7 +1064,7 @@ export default function ChatSystem() {
         }`}>
 
           {/* Filter & Search Header */}
-          <div className="p-4 border-b border-slate-200/80 flex flex-col gap-3 bg-white">
+          <div className="p-3.5 sm:p-4 border-b border-slate-200/80 flex flex-col gap-2.5 bg-white">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
                 <Sparkles size={14} className="text-blue-600" /> Active Channels
@@ -584,6 +1072,27 @@ export default function ChatSystem() {
               <span className="text-[10px] font-extrabold text-blue-900 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full font-mono">
                 {chats.length} Rooms
               </span>
+            </div>
+
+            {/* Sidebar Channel Search Input */}
+            <div className="relative">
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                value={sidebarSearch}
+                onChange={(e) => setSidebarSearch(e.target.value)}
+                placeholder="Search active channels..."
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-1.5 pl-8 pr-7 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition-all shadow-2xs"
+              />
+              {sidebarSearch && (
+                <button
+                  type="button"
+                  onClick={() => setSidebarSearch("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                >
+                  <X size={12} />
+                </button>
+              )}
             </div>
 
             <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
@@ -609,44 +1118,57 @@ export default function ChatSystem() {
 
           {/* Rooms List */}
           <div className="flex-grow overflow-y-auto flex flex-col divide-y divide-slate-100/80">
-            {filteredChats.map((chat) => (
-              <motion.div
-                key={chat.id}
-                whileHover={{ x: 3, transition: { duration: 0.15 } }}
-                onClick={() => {
-                  setActiveChat(chat);
-                  setMobileTab("chat");
-                  setChats(prev => prev.map(c => c.id === chat.id ? { ...c, unread: false } : c));
-                }}
-                className={`p-4 flex gap-3.5 items-start cursor-pointer transition-all relative ${
-                  activeChat.id === chat.id
-                    ? "bg-gradient-to-r from-blue-50/80 via-blue-50/30 to-transparent border-l-4 border-blue-900"
-                    : "hover:bg-slate-50/80"
-                }`}
-              >
-                {/* Avatar Icon */}
-                <div className={`w-10 h-10 rounded-2xl bg-gradient-to-br ${chat.avatarColor} text-white flex items-center justify-center font-bold text-xs shadow-sm shrink-0`}>
-                  {chat.partnerType === "NGO" ? <Landmark size={18} /> : chat.partnerType === "GOVT" ? <ShieldCheck size={18} /> : <Building2 size={18} />}
-                </div>
-
-                <div className="flex-grow min-w-0">
-                  <div className="flex justify-between items-center">
-                    <h4 className="font-bold text-xs text-slate-900 truncate pr-1">{chat.partnerName}</h4>
-                    <span className="text-[10px] text-slate-400 font-semibold shrink-0">{chat.updatedAt}</span>
+            {filteredChats.length === 0 ? (
+              <div className="p-6 text-center text-slate-400 text-xs flex flex-col items-center gap-2">
+                <MessageSquare size={24} className="text-slate-300" />
+                <span>No channels match "{sidebarSearch}"</span>
+                <button
+                  onClick={() => setSidebarSearch("")}
+                  className="text-blue-600 font-bold hover:underline"
+                >
+                  Clear search
+                </button>
+              </div>
+            ) : (
+              filteredChats.map((chat) => (
+                <motion.div
+                  key={chat.id}
+                  whileHover={{ x: 3, transition: { duration: 0.15 } }}
+                  onClick={() => {
+                    setActiveChat(chat);
+                    setMobileTab("chat");
+                    setChats(prev => prev.map(c => c.id === chat.id ? { ...c, unread: false } : c));
+                  }}
+                  className={`p-4 flex gap-3.5 items-start cursor-pointer transition-all relative ${
+                    activeChat.id === chat.id
+                      ? "bg-gradient-to-r from-blue-50/80 via-blue-50/30 to-transparent border-l-4 border-blue-900"
+                      : "hover:bg-slate-50/80"
+                  }`}
+                >
+                  {/* Avatar Icon */}
+                  <div className={`w-10 h-10 rounded-2xl bg-gradient-to-br ${chat.avatarColor} text-white flex items-center justify-center font-bold text-xs shadow-sm shrink-0`}>
+                    {chat.partnerType === "NGO" ? <Landmark size={18} /> : chat.partnerType === "GOVT" ? <ShieldCheck size={18} /> : <Building2 size={18} />}
                   </div>
 
-                  {chat.projectTitle && (
-                    <p className="text-[10px] font-bold text-blue-700 truncate mt-0.5">{chat.projectTitle}</p>
+                  <div className="flex-grow min-w-0">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-bold text-xs text-slate-900 truncate pr-1">{chat.partnerName}</h4>
+                      <span className="text-[10px] text-slate-400 font-semibold shrink-0">{chat.updatedAt}</span>
+                    </div>
+
+                    {chat.projectTitle && (
+                      <p className="text-[10px] font-bold text-blue-700 truncate mt-0.5">{chat.projectTitle}</p>
+                    )}
+
+                    <p className="text-xs text-slate-500 truncate mt-1 font-medium">{chat.lastMessage}</p>
+                  </div>
+
+                  {chat.unread && (
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0 mt-1 shadow-sm animate-pulse" />
                   )}
-
-                  <p className="text-xs text-slate-500 truncate mt-1 font-medium">{chat.lastMessage}</p>
-                </div>
-
-                {chat.unread && (
-                  <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0 mt-1 shadow-sm animate-pulse" />
-                )}
-              </motion.div>
-            ))}
+                </motion.div>
+              ))
+            )}
           </div>
         </div>
 
@@ -701,8 +1223,6 @@ export default function ChatSystem() {
               >
                 <Search size={16} />
               </button>
-
-
 
               <a
                 href={`tel:${activeChat.phone || '+91 98230 41102'}`}
@@ -1019,54 +1539,240 @@ export default function ChatSystem() {
 
       </div>
 
-      {/* Modal for Starting New Conversation */}
+      {/* Modal for Starting New Conversation with Interactive Search & Smart Suggestions */}
       <Modal
         isOpen={newChatModalOpen}
         onClose={() => setNewChatModalOpen(false)}
         title="Start New Partner Conversation"
-        className="max-w-md"
+        className="max-w-2xl"
       >
         <div className="space-y-4 text-xs font-medium text-slate-700">
-          <p>Select a verified organization or Secretariat desk to initiate a direct collaboration channel:</p>
-          <div className="space-y-2">
-            {[
-              { name: "Swades Foundation", type: "NGO", project: "Raigad Water & Livelihoods" },
-              { name: "Paani Foundation Trust", type: "NGO", project: "Satara Water Conservation" },
-              { name: "Tata CSR Desk", type: "COMPANY", project: "Maharashtra Skill Labs" },
-              { name: "District Collectorate Gadchiroli", type: "GOVT", project: "Tribal Development" },
-            ].map((partner, idx) => (
-              <div
-                key={idx}
-                onClick={() => {
-                  const newRoom: ChatRoom = {
-                    id: `chat-${Date.now()}`,
-                    partnerName: partner.name,
-                    partnerType: partner.type as any,
-                    lastMessage: "Conversation initiated",
-                    updatedAt: "Just now",
-                    unread: false,
-                    pinned: false,
-                    projectTitle: partner.project,
-                    onlineStatus: "ONLINE",
-                    avatarColor: "from-blue-600 to-indigo-600"
-                  };
-                  setChats([newRoom, ...chats]);
-                  setActiveChat(newRoom);
-                  setNewChatModalOpen(false);
-                }}
-                className="p-3.5 rounded-2xl border border-slate-200/80 bg-slate-50 hover:bg-blue-50/60 hover:border-blue-300 cursor-pointer transition-all flex items-center justify-between"
-              >
-                <div>
-                  <h4 className="font-bold text-slate-900">{partner.name}</h4>
-                  <span className="text-[10px] text-blue-700 font-semibold">{partner.project}</span>
-                </div>
-                <span className="text-[10px] font-black uppercase text-blue-900 bg-blue-100 border border-blue-200 px-2 py-0.5 rounded-md">
-                  {partner.type}
-                </span>
-              </div>
-            ))}
+          <p className="text-slate-500 text-xs leading-relaxed -mt-1">
+            Search verified NGOs, Corporate CSR desks, Government District Nodal Officers (DNOs), or active CSR projects to initiate an encrypted messaging channel.
+          </p>
+
+          {/* Interactive Search Bar */}
+          <div className="relative">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-blue-600 pointer-events-none" />
+            <input
+              type="text"
+              autoFocus
+              value={partnerSearchQuery}
+              onChange={(e) => setPartnerSearchQuery(e.target.value)}
+              placeholder="Search by organization name, sector, district (e.g. Pune, Gadchiroli), project, or nodal desk..."
+              className="w-full bg-slate-50 border border-slate-300/80 rounded-2xl py-2.5 pl-10 pr-24 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition-all shadow-xs"
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+              {partnerSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setPartnerSearchQuery("")}
+                  className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-200 transition-colors"
+                  title="Clear search"
+                >
+                  <X size={14} />
+                </button>
+              )}
+              <span className="text-[10px] font-bold text-slate-500 bg-slate-200/70 border border-slate-300/60 px-2 py-0.5 rounded-full font-mono">
+                {filteredDirectory.length} found
+              </span>
+            </div>
           </div>
-          <div className="flex justify-end pt-3">
+
+          {/* Smart Trending Suggestion Pills */}
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+              <span className="flex items-center gap-1 text-slate-700">
+                <Sparkles size={13} className="text-amber-500" /> Focus Area Suggestions
+              </span>
+              {selectedSuggestionTag !== "all" && (
+                <button
+                  onClick={() => setSelectedSuggestionTag("all")}
+                  className="text-[10px] text-blue-600 hover:underline font-semibold"
+                >
+                  Reset focus
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+              {SUGGESTION_TAGS.map((tag) => {
+                const isActive = selectedSuggestionTag === tag.id;
+                return (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedSuggestionTag(isActive && tag.id !== "all" ? "all" : tag.id);
+                    }}
+                    className={`px-2.5 py-1 rounded-xl text-xs whitespace-nowrap flex items-center gap-1.5 transition-all shrink-0 ${
+                      isActive
+                        ? "bg-blue-900 text-white font-bold shadow-xs scale-102"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200/80 font-medium"
+                    }`}
+                  >
+                    <span>{tag.icon}</span>
+                    <span>{tag.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Category Filter Tabs */}
+          <div className="flex items-center gap-1.5 bg-slate-100/90 p-1 rounded-2xl border border-slate-200/70">
+            {[
+              { id: "ALL", label: `All (${combinedDirectory.length})`, icon: Landmark },
+              { id: "NGO", label: `NGOs (${combinedDirectory.filter(p => p.type === "NGO").length})`, icon: Landmark },
+              { id: "COMPANY", label: `Corporates (${combinedDirectory.filter(p => p.type === "COMPANY").length})`, icon: Building2 },
+              { id: "GOVT", label: `Govt & DNO (${combinedDirectory.filter(p => p.type === "GOVT").length})`, icon: ShieldCheck }
+            ].map(tab => {
+              const Icon = tab.icon;
+              const isActive = partnerCategoryFilter === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setPartnerCategoryFilter(tab.id as any)}
+                  className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                    isActive
+                      ? "bg-white text-blue-900 shadow-xs border border-slate-200/80"
+                      : "text-slate-500 hover:text-slate-900"
+                  }`}
+                >
+                  <Icon size={13} className={isActive ? "text-blue-600" : "text-slate-400"} />
+                  <span className="truncate">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Suggestions & Partner Cards Stream */}
+          <div className="overflow-y-auto max-h-[380px] space-y-2.5 pr-1 divide-y divide-slate-100">
+            {filteredDirectory.length === 0 ? (
+              <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 flex flex-col items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <Search size={22} />
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-800 text-sm">No stakeholders found</h4>
+                  <p className="text-slate-500 text-xs mt-0.5">
+                    No verified partner matched "{partnerSearchQuery || selectedSuggestionTag}".
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setPartnerSearchQuery("");
+                      setSelectedSuggestionTag("all");
+                      setPartnerCategoryFilter("ALL");
+                    }}
+                  >
+                    Reset All Filters
+                  </Button>
+                  {partnerSearchQuery.trim() && (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => handleSelectPartner({
+                        name: partnerSearchQuery.trim(),
+                        type: partnerCategoryFilter === "ALL" ? "NGO" : partnerCategoryFilter,
+                        project: "Direct CSR Coordination",
+                        district: "Maharashtra"
+                      })}
+                      className="flex items-center gap-1.5"
+                    >
+                      <Plus size={13} /> Start Direct Channel with "{partnerSearchQuery.trim()}"
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              filteredDirectory.map((partner) => {
+                const isExisting = chats.some(c =>
+                  c.partnerName.toLowerCase().trim() === partner.name.toLowerCase().trim()
+                );
+
+                return (
+                  <motion.div
+                    key={partner.id}
+                    whileHover={{ y: -1, transition: { duration: 0.1 } }}
+                    onClick={() => handleSelectPartner(partner)}
+                    className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3.5 ${
+                      isExisting
+                        ? "bg-blue-50/40 border-blue-200/80 hover:bg-blue-50/90 hover:border-blue-300"
+                        : "bg-white border-slate-200/80 hover:bg-slate-50/90 hover:border-blue-300 shadow-2xs"
+                    }`}
+                  >
+                    {/* Left: Avatar + Details */}
+                    <div className="flex items-center gap-3 min-w-0 flex-grow">
+                      <div className={`w-10 h-10 rounded-2xl bg-gradient-to-br ${partner.avatarColor} text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0`}>
+                        {partner.type === "NGO" ? <Landmark size={18} /> : partner.type === "GOVT" ? <ShieldCheck size={18} /> : <Building2 size={18} />}
+                      </div>
+
+                      <div className="min-w-0 flex-grow">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-bold text-slate-900 text-xs sm:text-sm truncate">{partner.name}</h4>
+                          <span className="text-[9px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md shrink-0 flex items-center gap-1">
+                            <CheckCircle2 size={10} className="text-emerald-600" /> {partner.badge}
+                          </span>
+                          <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md border shrink-0 ${
+                            partner.type === "NGO" ? "bg-emerald-50 text-emerald-900 border-emerald-200" :
+                            partner.type === "GOVT" ? "bg-purple-50 text-purple-900 border-purple-200" :
+                            "bg-blue-50 text-blue-900 border-blue-200"
+                          }`}>
+                            {partner.type}
+                          </span>
+                        </div>
+
+                        <p className="text-[11px] text-blue-700 font-semibold truncate mt-0.5">
+                          {partner.project}
+                        </p>
+
+                        <div className="flex items-center gap-3 text-[10px] text-slate-500 font-medium mt-1 flex-wrap">
+                          <span className="flex items-center gap-1">
+                            <MapPin size={11} className="text-slate-400" /> {partner.district}
+                          </span>
+                          <span className="text-slate-300">•</span>
+                          <span className="flex items-center gap-1 text-slate-600 font-semibold">
+                            <Tag size={10} className="text-slate-400" /> {partner.sector}
+                          </span>
+                          {partner.phone && (
+                            <>
+                              <span className="text-slate-300">•</span>
+                              <span className="font-mono text-slate-500">{partner.phone}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right: Action Indicator */}
+                    <div className="shrink-0 flex items-center">
+                      {isExisting ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-900 bg-blue-100/80 border border-blue-300 px-3 py-1.5 rounded-xl hover:bg-blue-200 transition-colors shadow-2xs">
+                          <MessageSquare size={12} className="text-blue-700" />
+                          <span className="hidden sm:inline">Active</span> Channel →
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-white bg-blue-900 hover:bg-blue-800 px-3 py-1.5 rounded-xl shadow-xs transition-colors">
+                          <Plus size={12} /> Connect
+                        </span>
+                      )}
+                    </div>
+                  </motion.div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Modal Footer */}
+          <div className="flex items-center justify-between pt-3 border-t border-slate-200/80">
+            <span className="text-[11px] text-slate-500 font-medium">
+              Showing {filteredDirectory.length} of {combinedDirectory.length} verified Maharashtra stakeholders
+            </span>
             <Button variant="outline" size="sm" onClick={() => setNewChatModalOpen(false)}>
               Cancel
             </Button>

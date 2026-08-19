@@ -4,7 +4,8 @@ import { useAuthStore } from "@/store/authStore";
 import type { LucideIcon } from "lucide-react";
 import {
   BarChart2, Bell, Clock, Compass, FileText, ShieldAlert, ShieldCheck,
-  Users, Building2, CheckCircle2, FolderKanban, HeartHandshake, TrendingUp, Send, FileCheck
+  Users, Building2, CheckCircle2, FolderKanban, HeartHandshake, TrendingUp, Send, FileCheck,
+  AlertTriangle, HelpCircle
 } from "lucide-react";
 
 export interface OnboardingStatus {
@@ -118,6 +119,8 @@ export const QUICK_ACTIONS: QuickActionDef[] = [
   { key: "interactions_log", label: "Stakeholder Interactions", href: "/interactions", permission: "dashboard:view", icon: HeartHandshake },
   { key: "marketplace_view", label: "State CSR Marketplace", href: "/marketplace", permission: "dashboard:view", icon: Building2 },
   { key: "projects_view", label: "Funded Projects", href: "/convergence-projects", permission: "dashboard:view", icon: ShieldCheck },
+  { key: "grievances_portal", label: "Grievance Redressal", href: "/grievances", permission: "dashboard:view", icon: AlertTriangle },
+  { key: "helpdesk_support", label: "Helpdesk & Support", href: "/helpdesk", permission: "dashboard:view", icon: HelpCircle },
   { key: "reports_view", label: "Executive Analytics", href: "/reports", permission: "dashboard:view", icon: BarChart2 },
   { key: "escalations_view", label: "SLA Escalations", href: "/escalations", permission: "dashboard:view", icon: ShieldAlert },
 ];

@@ -174,11 +174,38 @@ export const createAdminUser = async (req: AuthenticatedRequest, res: Response, 
     const userRole = String(req.user?.role || "").toUpperCase();
     const isGlobalAdmin = ["SUPER_ADMIN", "PLANNING_SECRETARY", "JOINT_SECRETARY", "CSR_ADMIN", "PORTAL_ADMIN"].includes(userRole) || String(req.user?.roleId) === "1" || Number(req.user?.roleId) === 1;
 
+    let targetDistrict = district;
+    let targetDepartment = department;
+
+    if (req.user?.organizationId) {
+      const creatorOrg = await prisma.organization.findUnique({
+        where: { id: req.user.organizationId },
+        select: { id: true, name: true, district: true, kind: true }
+      });
+      if (creatorOrg) {
+        if (!targetDistrict && creatorOrg.district) {
+          targetDistrict = creatorOrg.district;
+        }
+        if ((!rawDepartment || rawDepartment === "MahaCSR Portal") && creatorOrg.name) {
+          targetDepartment = creatorOrg.name;
+        }
+      }
+    }
+
+    if (!targetDistrict && req.user?.assignedDistrict) {
+      targetDistrict = req.user.assignedDistrict;
+    }
+
     const roleRecord = await prisma.role.findUnique({ where: { id: roleId }, select: { id: true, name: true, isSystemRole: true, organizationId: true } });
     if (!roleRecord) return res.status(400).json({ error: "Selected role does not exist." });
 
     if (!isGlobalAdmin) {
-      const allowedSystemRoleIds: number[] = [ROLE_ID.COMPANY_ADMIN, ROLE_ID.NGO_ADMIN, ROLE_ID.GOVERNMENT_OFFICER];
+      const allowedSystemRoleIds: number[] = [
+        ROLE_ID.COMPANY_ADMIN,
+        ROLE_ID.NGO_ADMIN,
+        ROLE_ID.GOVERNMENT_OFFICER,
+        ROLE_ID.DISTRICT_NODAL_OFFICER,
+      ];
       const isAllowedSystemRole = roleRecord.isSystemRole && allowedSystemRoleIds.includes(Number(roleRecord.id));
       const isOwnOrgCustomRole = !roleRecord.isSystemRole && roleRecord.organizationId === req.user?.organizationId;
 
@@ -187,7 +214,7 @@ export const createAdminUser = async (req: AuthenticatedRequest, res: Response, 
       }
     }
 
-    if ((roleId === ROLE_ID.DISTRICT_NODAL_OFFICER || roleId === ROLE_ID.DISTRICT_NODAL_CONSULTANT) && !district) {
+    if ((roleId === ROLE_ID.DISTRICT_NODAL_OFFICER || roleId === ROLE_ID.DISTRICT_NODAL_CONSULTANT) && !targetDistrict) {
       return res.status(400).json({ error: "A district is required for district nodal officers and consultants." });
     }
 
@@ -239,8 +266,8 @@ export const createAdminUser = async (req: AuthenticatedRequest, res: Response, 
           create: {
             fullName: `${firstName} ${lastName}`.trim(),
             designation,
-            department,
-            district: district || null,
+            department: targetDepartment,
+            district: targetDistrict || null,
             taluka: taluka ? String(taluka).trim() : null,
             mobile
           }

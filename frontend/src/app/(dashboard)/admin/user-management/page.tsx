@@ -27,7 +27,8 @@ import {
   ArrowRightLeft,
   Filter,
   RefreshCw,
-  X
+  X,
+  Building2,
 } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
 import { apiFetch } from "@/lib/api";
@@ -475,39 +476,209 @@ export default function AdminUserManagementPage() {
   const [creatingRole, setCreatingRole] = useState(false);
   const [roleError, setRoleError] = useState("");
 
-  const { isAdmin } = useAuthStore();
+  const { user, isAdmin, permissions: userPermissions = [] } = useAuthStore();
+
+  const ALL_PERMISSION_GROUPS = [
+    {
+      title: "Team & User Administration",
+      icon: "👥",
+      color: "blue",
+      permissions: [
+        { key: "user:view", label: "View Team Users", desc: "View organization officers, profiles, and directory" },
+        { key: "user:create", label: "Create Team Users", desc: "Register new sub-logins and invite officers" },
+        { key: "user:update", label: "Update Profiles & Roles", desc: "Modify designations, contact numbers, and status" },
+        { key: "user:invite", label: "Send Email Invitations", desc: "Dispatch activation credentials and invitation links" },
+        { key: "user:assign-role", label: "Assign Custom Roles", desc: "Attach organization custom roles to team members" },
+        { key: "ngo_login:create", label: "Create Agency Logins", desc: "Provision sub-accounts for executing partner agencies" },
+      ]
+    },
+    {
+      title: "Projects & Field Milestones",
+      icon: "📊",
+      color: "emerald",
+      permissions: [
+        { key: "project:view", label: "View Projects", desc: "Access convergence initiatives, milestones, and timelines" },
+        { key: "project:create", label: "Register Projects", desc: "Submit new developmental project proposals" },
+        { key: "milestone:update", label: "Update Progress", desc: "Log milestone execution stages and completion percentages" },
+        { key: "progress:verify", label: "Verify Deliverables", desc: "Approve milestone deliverables and inspection reports" },
+        { key: "photo:upload", label: "Upload Site Photos", desc: "Upload geotagged field inspection images & proofs" },
+      ]
+    },
+    {
+      title: "Funding & Financial Tracking",
+      icon: "💰",
+      color: "amber",
+      permissions: [
+        { key: "fund:view", label: "View Financials", desc: "Inspect allocations, budgets, and expenditure summaries" },
+        { key: "fund:commit", label: "Commit CSR Funds", desc: "Authorize fund commitments and sign bilateral MoUs" },
+        { key: "bill:upload", label: "Upload Bills & Invoices", desc: "Attach vendor invoices and expenditure statements" },
+        { key: "uc:upload", label: "Upload UCs", desc: "Submit signed Utilization Certificates" },
+      ]
+    },
+    {
+      title: "Pitches & Corporate Collaboration",
+      icon: "🎯",
+      color: "purple",
+      permissions: [
+        { key: "pitch:view", label: "Browse Pitches", desc: "Explore published district requirements and public needs" },
+        { key: "pitch:create", label: "Submit Pitches", desc: "Draft and publish new developmental pitch requests" },
+        { key: "enquiry:create", label: "Corporate Enquiries", desc: "Send queries regarding project participation" },
+        { key: "interest:express", label: "Express Interest", desc: "Indicate formal intent to fund or adopt a project" },
+      ]
+    },
+    {
+      title: "Reports & Analytics",
+      icon: "📈",
+      color: "cyan",
+      permissions: [
+        { key: "report:view", label: "View Analytics", desc: "Access executive dashboards, charts, and district KPIs" },
+        { key: "report:generate", label: "Export Reports", desc: "Generate and download impact analysis PDFs and spreadsheets" },
+      ]
+    }
+  ];
+
+  const availablePermissionGroups = ALL_PERMISSION_GROUPS.map((group) => ({
+    ...group,
+    permissions: group.permissions.filter(
+      (p) => isAdmin || userPermissions.includes(p.key) || userPermissions.includes("*")
+    )
+  })).filter((group) => group.permissions.length > 0);
+
+  const openCustomRoleModal = () => {
+    setRoleError("");
+    const allAvailableKeys = availablePermissionGroups.flatMap((g) => g.permissions.map((p) => p.key));
+    const defaultPerms = ["user:view", "project:view", "fund:view", "report:view"].filter((k) =>
+      allAvailableKeys.includes(k)
+    );
+    setSelectedRolePermissions(defaultPerms.length > 0 ? defaultPerms : allAvailableKeys.slice(0, 3));
+    setCustomRoleModalOpen(true);
+  };
+
+  const userRoleStr = String(user?.role || "").toUpperCase();
+  const roleNumericId = Number(user?.roleNumericId || user?.roleId || 0);
+
+  const isPlatformAdmin =
+    isAdmin ||
+    [1, 2, 3].includes(roleNumericId) ||
+    ["SUPER_ADMIN", "PLANNING_SECRETARY", "JOINT_SECRETARY", "CSR_ADMIN", "PORTAL_ADMIN"].includes(userRoleStr);
+
+  const isGov =
+    !isPlatformAdmin &&
+    (roleNumericId === 7 ||
+      user?.orgKind === "GOVERNMENT_DEPARTMENT" ||
+      userRoleStr.includes("GOVERNMENT") ||
+      userRoleStr.includes("GOV_") ||
+      Boolean(user?.organization?.governmentType));
+
+  const isCorporate =
+    !isPlatformAdmin &&
+    (roleNumericId === 8 ||
+      user?.orgKind === "CSR_COMPANY" ||
+      userRoleStr.includes("COMPANY") ||
+      userRoleStr.includes("CORPORATE"));
+
+  const isNgo =
+    !isPlatformAdmin &&
+    (roleNumericId === 9 ||
+      user?.orgKind === "NGO" ||
+      userRoleStr.includes("NGO"));
+
+  const userDistrict = user?.organization?.district || user?.assignedDistrict || "";
+  const userOrgName = user?.organization?.name || user?.company?.name || user?.ngo?.name || "";
 
   const activeDynamicRoles = dynamicRoles.filter((r) => r.status === "ACTIVE");
   const customRoles = activeDynamicRoles.filter((r) => !r.isSystemRole && Number(r.id) > 9);
 
-  const roleOptions = isAdmin ? (
-    <>
-      <optgroup label="System Roles (1 to 9)">
-        {SYSTEM_ROLES_LIST.map((r) => (
-          <option key={r.id} value={r.name}>{r.name}</option>
-        ))}
-      </optgroup>
-      {customRoles.length > 0 && (
-        <optgroup label="Organization Custom Roles">
-          {customRoles.map((r) => (
+  let roleOptions;
+  if (isGov) {
+    roleOptions = (
+      <>
+        <optgroup label="Government Department Standard Roles">
+          <option value="GOVERNMENT_OFFICER">
+            Organization Nodal Officer (Same administrative rights as main organization head)
+          </option>
+          <option value="DISTRICT_NODAL_OFFICER">
+            Nodal Officer (Project Monitoring — handles &amp; views assigned projects only)
+          </option>
+        </optgroup>
+        {customRoles.length > 0 && (
+          <optgroup label="Custom Created Department Roles">
+            {customRoles.map((r) => (
+              <option key={r.id} value={r.name}>{r.name}</option>
+            ))}
+          </optgroup>
+        )}
+      </>
+    );
+  } else if (isCorporate) {
+    roleOptions = (
+      <>
+        <optgroup label="Corporate CSR Standard Roles">
+          <option value="COMPANY_ADMIN">Company Administrator</option>
+          <option value="CORPORATE_USER">Corporate CSR Member</option>
+        </optgroup>
+        {customRoles.length > 0 && (
+          <optgroup label="Custom Created Corporate Roles">
+            {customRoles.map((r) => (
+              <option key={r.id} value={r.name}>{r.name}</option>
+            ))}
+          </optgroup>
+        )}
+      </>
+    );
+  } else if (isNgo) {
+    roleOptions = (
+      <>
+        <optgroup label="Implementing Agency Standard Roles">
+          <option value="NGO_ADMIN">NGO Administrator</option>
+          <option value="NGO_MEMBER">Implementing Agency Member</option>
+        </optgroup>
+        {customRoles.length > 0 && (
+          <optgroup label="Custom Created Agency Roles">
+            {customRoles.map((r) => (
+              <option key={r.id} value={r.name}>{r.name}</option>
+            ))}
+          </optgroup>
+        )}
+      </>
+    );
+  } else {
+    // Platform Administrator (Super Admin, Joint Secretary, Planning Secretary)
+    roleOptions = (
+      <>
+        <optgroup label="System Roles (1 to 9)">
+          {SYSTEM_ROLES_LIST.map((r) => (
             <option key={r.id} value={r.name}>{r.name}</option>
           ))}
         </optgroup>
-      )}
-    </>
-  ) : (
-    <>
-      {customRoles.length > 0 ? (
-        <optgroup label="Organization Custom Roles">
-          {customRoles.map((r) => (
-            <option key={r.id} value={r.name}>{r.name}</option>
-          ))}
-        </optgroup>
-      ) : (
-        <option value="" disabled>No custom roles found. Create a custom role first in Access Control.</option>
-      )}
-    </>
-  );
+        {customRoles.length > 0 && (
+          <optgroup label="Platform Custom Roles">
+            {customRoles.map((r) => (
+              <option key={r.id} value={r.name}>{r.name}</option>
+            ))}
+          </optgroup>
+        )}
+      </>
+    );
+  }
+
+  const openCreateModal = () => {
+    setError("");
+    setSuccess("");
+    let initialRole = "GOVERNMENT_OFFICER";
+    if (isCorporate) initialRole = "COMPANY_ADMIN";
+    else if (isNgo) initialRole = "NGO_ADMIN";
+    else if (isPlatformAdmin) initialRole = "GOVERNMENT_OFFICER";
+
+    setUserForm({
+      ...EMPTY_USER_FORM,
+      role: initialRole,
+      department: "",
+      assignedDistrict: isGov ? userDistrict : "",
+      sendInvitation: true,
+    });
+    setCreateModalOpen(true);
+  };
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -517,6 +688,8 @@ export default function AdminUserManagementPage() {
     try {
       const isPasswordBlank = !userForm.password.trim();
       const sendInvitation = isPasswordBlank ? true : userForm.sendInvitation;
+      const targetDistrict = isGov ? userDistrict : (userForm.assignedDistrict || undefined);
+      const targetDept = userForm.department.trim() || userOrgName || "MahaCSR Portal";
 
       const created = await apiFetch<any>("/admin/users", {
         method: "POST",
@@ -526,10 +699,10 @@ export default function AdminUserManagementPage() {
           email: userForm.email.trim(),
           mobile: userForm.mobile.trim(),
           designation: userForm.designation.trim(),
-          department: userForm.department.trim() || "MahaCSR Portal",
+          department: targetDept,
           role: userForm.role,
-          district: userForm.assignedDistrict || undefined,
-          assignedDistrict: userForm.assignedDistrict || undefined,
+          district: targetDistrict,
+          assignedDistrict: targetDistrict,
           password: userForm.password.trim() || undefined,
           sendInvitation,
         }),
@@ -720,14 +893,14 @@ export default function AdminUserManagementPage() {
               Bulk Import RMs / Users
             </button>
             <button
-              onClick={() => setCustomRoleModalOpen(true)}
+              onClick={openCustomRoleModal}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-300 hover:border-slate-400 hover:bg-slate-50 text-slate-700 hover:text-slate-900 text-xs font-bold shadow-2xs transition-colors cursor-pointer"
             >
               <Shield size={14} className="text-purple-600" />
               + Create Custom Role
             </button>
             <button
-              onClick={() => setCreateModalOpen(true)}
+              onClick={openCreateModal}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs shadow-blue-500/20 transition-all hover:scale-[1.02] cursor-pointer"
             >
               <Plus size={15} />
@@ -1157,248 +1330,415 @@ export default function AdminUserManagementPage() {
       </div>
 
       {/* CREATE USER MODAL */}
-      <GovModal open={createModalOpen} onClose={() => { setError(""); setCreateModalOpen(false); }} title="Create Platform User" width={680}>
-        <form onSubmit={handleCreateUser}>
-          {error && <div className="gov-alert gov-alert-danger gov-mb-4">{error}</div>}
+      <GovModal
+        open={createModalOpen}
+        onClose={() => { setError(""); setCreateModalOpen(false); }}
+        title={
+          isGov
+            ? "Create Department User"
+            : isCorporate
+            ? "Create Corporate Member"
+            : isNgo
+            ? "Create Agency Member"
+            : "Create Platform User"
+        }
+        width={680}
+      >
+        <form onSubmit={handleCreateUser} className="space-y-3.5">
+          {error && <div className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-semibold">{error}</div>}
 
-          {!userForm.password.trim() ? (
-            <div className="gov-alert gov-alert-info gov-mb-4" style={{ fontSize: 13, display: "flex", gap: 8, alignItems: "center" }}>
-              <span>💡</span>
-              <div>
-                <strong>Password left blank:</strong> A secure temporary password and portal login/activation link will be automatically generated and emailed to the user (<strong>Sending Email Invitation is Compulsory</strong>).
+          {/* Context Header */}
+          {isGov && (
+            <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Building2 size={16} className="text-blue-700 shrink-0" />
+                <div className="truncate">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 block leading-tight">Parent Organization</span>
+                  <span className="font-bold text-slate-900 text-xs truncate block leading-tight">{userOrgName || "Main Government Department"}</span>
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="gov-alert gov-alert-success gov-mb-4" style={{ fontSize: 13, display: "flex", gap: 8, alignItems: "center" }}>
-              <span>💡</span>
-              <div>
-                <strong>Password set manually:</strong> The user account will be activated with this password. Sending an email invitation with credentials & reset link is <strong>Optional</strong>.
+              <div className="flex items-center gap-1.5 bg-white border border-slate-200 px-2.5 py-1 rounded shrink-0">
+                <MapPin size={12} className="text-blue-600 shrink-0" />
+                <span className="font-bold text-slate-800 text-xs">{userDistrict || "Maharashtra"}</span>
+                <span className="text-[9px] font-bold uppercase text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                  Auto-Assigned
+                </span>
               </div>
             </div>
           )}
 
-          <div className="gov-grid gov-grid-cols-1 sm:gov-grid-cols-2 gov-gap-4">
-            <GovInput
-              label="First Name"
-              required
-              type="text"
-              value={userForm.firstName}
-              onChange={(e) => setUserForm((prev) => ({ ...prev, firstName: e.target.value }))}
-              placeholder="e.g. John"
-            />
-            <GovInput
-              label="Last Name"
-              required
-              type="text"
-              value={userForm.lastName}
-              onChange={(e) => setUserForm((prev) => ({ ...prev, lastName: e.target.value }))}
-              placeholder="e.g. Doe"
-            />
-            <GovInput
-              label="Official Email"
-              required
-              type="email"
-              value={userForm.email}
-              onChange={(e) => setUserForm((prev) => ({ ...prev, email: e.target.value }))}
-              placeholder="john.doe@example.com"
-            />
-            <GovInput
-              label="Mobile Number"
-              required
-              type="tel"
-              maxLength={10}
-              value={userForm.mobile}
-              onChange={(e) => setUserForm((prev) => ({ ...prev, mobile: e.target.value }))}
-              placeholder="e.g. 1234567890"
-            />
-            <GovInput
-              label="Designation"
-              required
-              type="text"
-              value={userForm.designation}
-              onChange={(e) => setUserForm((prev) => ({ ...prev, designation: e.target.value }))}
-              placeholder="e.g. Deputy Collector / Officer"
-            />
-            <GovInput
-              label="Department / Organization"
-              type="text"
-              value={userForm.department}
-              onChange={(e) => setUserForm((prev) => ({ ...prev, department: e.target.value }))}
-              placeholder="e.g. Planning Department / MahaCSR"
-            />
-            <GovSelect
-              label="Role"
-              required
-              value={userForm.role}
-              onChange={(e) => setUserForm((prev) => ({ ...prev, role: e.target.value }))}
-              help="System and custom roles are listed."
-            >
-              {roleOptions}
-            </GovSelect>
-            <GovSelect
-              label="Assigned District"
-              value={userForm.assignedDistrict}
-              onChange={(e) => setUserForm((prev) => ({ ...prev, assignedDistrict: e.target.value }))}
-              help="Applies to district officers & consultants."
-            >
-              <option value="">State level / not applicable</option>
-              {MAHARASHTRA_DISTRICTS.map((district) => (
-                <option key={district} value={district}>{district}</option>
-              ))}
-            </GovSelect>
-            <GovInput
-              label="Password (Optional)"
-              type="password"
-              value={userForm.password}
-              onChange={(e) => setUserForm((prev) => ({ ...prev, password: e.target.value }))}
-              placeholder="Leave blank to autogenerate"
-              help="If left blank, password is generated & emailed automatically."
-            />
-            <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", paddingTop: 18 }}>
+          {isCorporate && (
+            <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg">
+              <div className="flex items-center gap-2.5">
+                <Building2 size={16} className="text-purple-700 shrink-0" />
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-500 block leading-tight">Corporate Entity</span>
+                  <span className="font-bold text-slate-900 text-xs block leading-tight">{userOrgName || "CSR Company"}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 2-Column Form Grid (Strictly 2 Columns) */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: "14px", rowGap: "10px" }}>
+            {/* Row 1: First Name & Last Name */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                First Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                required
+                type="text"
+                value={userForm.firstName}
+                onChange={(e) => setUserForm((prev) => ({ ...prev, firstName: e.target.value }))}
+                placeholder="e.g. Anand"
+                className="w-full h-9 px-3 rounded-md border border-slate-300 bg-white text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Last Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                required
+                type="text"
+                value={userForm.lastName}
+                onChange={(e) => setUserForm((prev) => ({ ...prev, lastName: e.target.value }))}
+                placeholder="e.g. Sharma"
+                className="w-full h-9 px-3 rounded-md border border-slate-300 bg-white text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600"
+              />
+            </div>
+
+            {/* Row 2: Official Email & Mobile Number */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Official Email <span className="text-red-500">*</span>
+              </label>
+              <input
+                required
+                type="email"
+                value={userForm.email}
+                onChange={(e) => setUserForm((prev) => ({ ...prev, email: e.target.value }))}
+                placeholder="officer@maharashtra.gov.in"
+                className="w-full h-9 px-3 rounded-md border border-slate-300 bg-white text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Mobile Number <span className="text-red-500">*</span>
+              </label>
+              <input
+                required
+                type="tel"
+                maxLength={10}
+                value={userForm.mobile}
+                onChange={(e) => setUserForm((prev) => ({ ...prev, mobile: e.target.value }))}
+                placeholder="10-digit mobile number"
+                className="w-full h-9 px-3 rounded-md border border-slate-300 bg-white text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600"
+              />
+            </div>
+
+            {/* Row 3: Designation & Department (Optional) */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Designation <span className="text-red-500">*</span>
+              </label>
+              <input
+                required
+                type="text"
+                value={userForm.designation}
+                onChange={(e) => setUserForm((prev) => ({ ...prev, designation: e.target.value }))}
+                placeholder={isGov ? "e.g. Deputy Collector / Officer" : "e.g. CSR Lead"}
+                className="w-full h-9 px-3 rounded-md border border-slate-300 bg-white text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Department / Unit <span className="text-slate-400 font-normal">(Optional)</span>
+              </label>
+              <input
+                type="text"
+                value={userForm.department}
+                onChange={(e) => setUserForm((prev) => ({ ...prev, department: e.target.value }))}
+                placeholder={userOrgName ? `Defaults to ${userOrgName}` : "e.g. Planning Branch"}
+                className="w-full h-9 px-3 rounded-md border border-slate-300 bg-white text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600"
+              />
+            </div>
+
+            {/* Row 4: Role Select */}
+            <div style={{ gridColumn: isPlatformAdmin ? "span 1" : "1 / -1" }}>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Role <span className="text-red-500">*</span>
+              </label>
+              <select
+                required
+                value={userForm.role}
+                onChange={(e) => setUserForm((prev) => ({ ...prev, role: e.target.value }))}
+                className="w-full h-9 px-3 rounded-md border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
+              >
+                {roleOptions}
+              </select>
+              {isGov && (
+                <div className="mt-1 text-xs text-slate-500 leading-none">
+                  {userForm.role === "GOVERNMENT_OFFICER" && (
+                    <span className="text-blue-800 font-medium">
+                      ★ <strong>Organization Nodal Officer:</strong> Full administrative &amp; statutory approval rights.
+                    </span>
+                  )}
+                  {userForm.role === "DISTRICT_NODAL_OFFICER" && (
+                    <span className="text-emerald-800 font-medium">
+                      ★ <strong>Project Nodal Officer:</strong> On-ground milestone verification &amp; monitoring for assigned projects.
+                    </span>
+                  )}
+                  {userForm.role !== "GOVERNMENT_OFFICER" && userForm.role !== "DISTRICT_NODAL_OFFICER" && (
+                    <span className="text-purple-800 font-medium">
+                      ★ <strong>Custom Role ({userForm.role}):</strong> Permissions delegated according to organization matrix.
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Assigned District (Platform Admin Only) */}
+            {isPlatformAdmin && (
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Assigned District
+                </label>
+                <select
+                  value={userForm.assignedDistrict}
+                  onChange={(e) => setUserForm((prev) => ({ ...prev, assignedDistrict: e.target.value }))}
+                  className="w-full h-9 px-3 rounded-md border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
+                >
+                  <option value="">State level / not applicable</option>
+                  {MAHARASHTRA_DISTRICTS.map((district) => (
+                    <option key={district} value={district}>{district}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Row 5: Password (Optional) & Send Invitation Checkbox */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Password <span className="text-slate-400 font-normal">(Optional)</span>
+              </label>
+              <input
+                type="password"
+                value={userForm.password}
+                onChange={(e) => setUserForm((prev) => ({ ...prev, password: e.target.value }))}
+                placeholder="Leave blank to autogenerate"
+                className="w-full h-9 px-3 rounded-md border border-slate-300 bg-white text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600"
+              />
+            </div>
+
+            <div className="flex flex-col justify-end">
               <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: "#334155",
-                  cursor: !userForm.password.trim() ? "not-allowed" : "pointer",
-                }}
+                className={`flex items-center gap-2.5 h-9 px-3 rounded-md border text-xs font-semibold cursor-pointer ${
+                  !userForm.password.trim()
+                    ? "bg-slate-50 border-slate-200 text-slate-500 cursor-not-allowed"
+                    : "bg-blue-50/60 border-blue-200 text-slate-800 hover:bg-blue-50"
+                }`}
               >
                 <input
                   type="checkbox"
                   checked={!userForm.password.trim() ? true : userForm.sendInvitation}
                   disabled={!userForm.password.trim()}
                   onChange={(e) => setUserForm((prev) => ({ ...prev, sendInvitation: e.target.checked }))}
-                  style={{ width: 18, height: 18, accentColor: "#1e3a8a" }}
+                  className="w-4 h-4 rounded text-blue-600 border-slate-300 shrink-0"
                 />
-                Send invitation email to user
+                <div className="min-w-0">
+                  <span className="text-xs font-bold block leading-tight text-slate-800">
+                    Send email invitation
+                  </span>
+                  <span className="text-[10px] text-slate-500 block leading-tight">
+                    {!userForm.password.trim() ? "Compulsory for auto-generated password" : "Optional for manual password"}
+                  </span>
+                </div>
               </label>
-              <span style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>
-                {!userForm.password.trim()
-                  ? "(Compulsory when password is left blank)"
-                  : "(Optional when password is set manually)"}
-              </span>
             </div>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column-reverse", justifyContent: "flex-end", gap: 8, marginTop: 24 }} className="sm:flex-row">
-            <GovButton type="button" variant="secondary" onClick={() => setCreateModalOpen(false)} className="w-full sm:w-auto justify-center">
+          {/* Modal Footer Actions */}
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-3 border-t border-slate-200 mt-2">
+            <button
+              type="button"
+              onClick={() => setCreateModalOpen(false)}
+              className="w-full sm:w-auto px-4 py-2 rounded-md border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold cursor-pointer"
+            >
               Cancel
-            </GovButton>
-            <GovButton type="submit" variant="primary" disabled={saving} className="w-full sm:w-auto justify-center">
-              {saving ? "Creating..." : "Create & Send Invitation"}
-            </GovButton>
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="w-full sm:w-auto px-5 py-2 rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              {saving ? (
+                <>
+                  <RefreshCw size={12} className="animate-spin" />
+                  <span>Creating Account...</span>
+                </>
+              ) : (
+                <>
+                  <Plus size={13} />
+                  <span>Create User &amp; Send Invite</span>
+                </>
+              )}
+            </button>
           </div>
         </form>
       </GovModal>
 
       {/* EDIT USER MODAL */}
       <GovModal open={editModalOpen} onClose={() => { setError(""); setEditModalOpen(false); }} title={`Edit User: ${editForm.email}`} width={680}>
-        <form onSubmit={handleSaveEdit}>
-          {error && <div className="gov-alert gov-alert-danger gov-mb-4">{error}</div>}
-          <div className="gov-grid gov-grid-cols-1 sm:gov-grid-cols-2 gov-gap-4">
-            <GovInput
-              label="First Name"
-              required
-              type="text"
-              value={editForm.firstName}
-              onChange={(e) => setEditForm((prev) => ({ ...prev, firstName: e.target.value }))}
-            />
-            <GovInput
-              label="Last Name"
-              required
-              type="text"
-              value={editForm.lastName}
-              onChange={(e) => setEditForm((prev) => ({ ...prev, lastName: e.target.value }))}
-            />
-            <GovInput
-              label="Official Email"
-              required
-              type="email"
-              value={editForm.email}
-              onChange={(e) => setEditForm((prev) => ({ ...prev, email: e.target.value }))}
-            />
-            <GovInput
-              label="Mobile Number"
-              required
-              type="tel"
-              value={editForm.mobile}
-              onChange={(e) => setEditForm((prev) => ({ ...prev, mobile: e.target.value }))}
-            />
-            <GovInput
-              label="Designation"
-              required
-              type="text"
-              value={editForm.designation}
-              onChange={(e) => setEditForm((prev) => ({ ...prev, designation: e.target.value }))}
-            />
-            <GovInput
-              label="Department / Organization"
-              type="text"
-              value={editForm.department}
-              onChange={(e) => setEditForm((prev) => ({ ...prev, department: e.target.value }))}
-            />
-            <GovSelect
-              label="Role"
-              value={editForm.role}
-              onChange={(e) => setEditForm((prev) => ({ ...prev, role: e.target.value }))}
-            >
-              <option value="">None (dynamic roles only)</option>
-              {roleOptions}
-            </GovSelect>
-            <GovSelect
-              label="Account Status"
-              required
-              value={editForm.accountStatus}
-              onChange={(e) => setEditForm((prev) => ({ ...prev, accountStatus: e.target.value }))}
-            >
-              <option value="ACTIVE">ACTIVE</option>
-              <option value="INACTIVE">INACTIVE</option>
-              <option value="SUSPENDED">SUSPENDED</option>
-              <option value="PENDING_ACTIVATION">PENDING_ACTIVATION</option>
-            </GovSelect>
-            <GovSelect
-              label="Assigned District"
-              value={editForm.assignedDistrict}
-              onChange={(e) => setEditForm((prev) => ({ ...prev, assignedDistrict: e.target.value }))}
-            >
-              <option value="">State level / not applicable</option>
-              {MAHARASHTRA_DISTRICTS.map((district) => (
-                <option key={district} value={district}>{district}</option>
-              ))}
-            </GovSelect>
-            <GovInput
-              label="New Password (Optional)"
-              type="password"
-              value={editForm.password}
-              onChange={(e) => setEditForm((prev) => ({ ...prev, password: e.target.value }))}
-              placeholder="Leave blank to keep current"
-              help="Only fill if resetting password."
-            />
+        <form onSubmit={handleSaveEdit} className="space-y-3.5">
+          {error && <div className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-semibold">{error}</div>}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: "14px", rowGap: "10px" }}>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                First Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                required
+                type="text"
+                value={editForm.firstName}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, firstName: e.target.value }))}
+                className="w-full h-9 px-3 rounded-md border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Last Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                required
+                type="text"
+                value={editForm.lastName}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, lastName: e.target.value }))}
+                className="w-full h-9 px-3 rounded-md border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Official Email <span className="text-red-500">*</span>
+              </label>
+              <input
+                required
+                type="email"
+                value={editForm.email}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, email: e.target.value }))}
+                className="w-full h-9 px-3 rounded-md border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Mobile Number <span className="text-red-500">*</span>
+              </label>
+              <input
+                required
+                type="tel"
+                value={editForm.mobile}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, mobile: e.target.value }))}
+                className="w-full h-9 px-3 rounded-md border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Designation <span className="text-red-500">*</span>
+              </label>
+              <input
+                required
+                type="text"
+                value={editForm.designation}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, designation: e.target.value }))}
+                className="w-full h-9 px-3 rounded-md border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Department / Organization
+              </label>
+              <input
+                type="text"
+                value={editForm.department}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, department: e.target.value }))}
+                className="w-full h-9 px-3 rounded-md border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Role
+              </label>
+              <select
+                value={editForm.role}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, role: e.target.value }))}
+                className="w-full h-9 px-3 rounded-md border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
+              >
+                <option value="">None (dynamic roles only)</option>
+                {roleOptions}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Account Status <span className="text-red-500">*</span>
+              </label>
+              <select
+                required
+                value={editForm.accountStatus}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, accountStatus: e.target.value }))}
+                className="w-full h-9 px-3 rounded-md border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
+              >
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="INACTIVE">INACTIVE</option>
+                <option value="SUSPENDED">SUSPENDED</option>
+                <option value="PENDING_ACTIVATION">PENDING_ACTIVATION</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Assigned District
+              </label>
+              <select
+                value={editForm.assignedDistrict}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, assignedDistrict: e.target.value }))}
+                className="w-full h-9 px-3 rounded-md border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
+              >
+                <option value="">State level / not applicable</option>
+                {MAHARASHTRA_DISTRICTS.map((district) => (
+                  <option key={district} value={district}>{district}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                New Password <span className="text-slate-400 font-normal">(Optional)</span>
+              </label>
+              <input
+                type="password"
+                value={editForm.password}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, password: e.target.value }))}
+                placeholder="Leave blank to keep current"
+                className="w-full h-9 px-3 rounded-md border border-slate-300 bg-white text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600"
+              />
+            </div>
           </div>
 
-          <div style={{ marginTop: 18 }}>
-            <div style={{ fontWeight: 600, fontSize: 13, color: "#1e3a8a", borderBottom: "1px solid #e2e8f0", paddingBottom: 6, marginBottom: 10 }}>
+          <div className="pt-2">
+            <div className="text-xs font-bold text-slate-900 mb-1.5">
               Additional Dynamic Role Assignments
             </div>
-            <div className="gov-modal-scroll" style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 180, overflowY: "auto", padding: 8, border: "1px solid #cbd5e1", borderRadius: 8, backgroundColor: "#f8fafc", overscrollBehavior: "contain" }}>
+            <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto p-2 border border-slate-200 rounded-lg bg-slate-50">
               {activeDynamicRoles.map((role) => {
                 const isChecked = editForm.dynamicRoleIds.includes(role.id);
                 return (
                   <label
                     key={role.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      padding: "8px 12px",
-                      borderRadius: 6,
-                      border: "1px solid #e2e8f0",
-                      cursor: "pointer",
-                      backgroundColor: isChecked ? "#eff6ff" : "#ffffff",
-                    }}
+                    className={`flex items-center gap-2 p-1.5 rounded border text-xs cursor-pointer ${
+                      isChecked ? "bg-blue-50 border-blue-300 text-blue-900" : "bg-white border-slate-200 text-slate-700"
+                    }`}
                   >
                     <input
                       type="checkbox"
@@ -1406,48 +1746,50 @@ export default function AdminUserManagementPage() {
                       onChange={() =>
                         setEditForm((prev) => ({
                           ...prev,
-                          dynamicRoleIds: prev.dynamicRoleIds.includes(role.id)
+                          dynamicRoleIds: isChecked
                             ? prev.dynamicRoleIds.filter((id) => id !== role.id)
                             : [...prev.dynamicRoleIds, role.id],
                         }))
                       }
-                      style={{ width: 16, height: 16, accentColor: "#1e3a8a" }}
+                      className="w-4 h-4 rounded text-blue-600 border-slate-300"
                     />
-                    <div>
-                      <span style={{ fontWeight: 600, fontSize: 13, color: "#334155" }}>{role.name}</span>
-                      {role.isSystemRole && (
-                        <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, color: "#991b1b", backgroundColor: "#fee2e2", padding: "1px 6px", borderRadius: 4 }}>
-                          SYSTEM
-                        </span>
-                      )}
-                    </div>
+                    <span className="font-semibold">{role.name}</span>
                   </label>
                 );
               })}
               {activeDynamicRoles.length === 0 && (
-                <span className="gov-text-muted" style={{ fontSize: 12 }}>No dynamic roles configured yet.</span>
+                <div className="text-xs text-slate-500 italic p-2">
+                  No additional custom roles created for this organization yet.
+                </div>
               )}
             </div>
           </div>
 
-          <div style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 10,
-            marginTop: 18,
-            paddingTop: 12,
-            borderTop: "1px solid #e2e8f0",
-            backgroundColor: "#ffffff",
-            position: "sticky",
-            bottom: 0,
-            zIndex: 10,
-          }} className="flex-col-reverse sm:flex-row">
-            <GovButton type="button" variant="secondary" onClick={() => setEditModalOpen(false)} className="w-full sm:w-auto justify-center">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-3 border-t border-slate-200 mt-2">
+            <button
+              type="button"
+              onClick={() => setEditModalOpen(false)}
+              className="w-full sm:w-auto px-4 py-2 rounded-md border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold cursor-pointer"
+            >
               Cancel
-            </GovButton>
-            <GovButton type="submit" variant="primary" disabled={saving} className="w-full sm:w-auto justify-center">
-              {saving ? "Saving..." : "Save Changes"}
-            </GovButton>
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="w-full sm:w-auto px-5 py-2 rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              {saving ? (
+                <>
+                  <RefreshCw size={12} className="animate-spin" />
+                  <span>Saving Changes...</span>
+                </>
+              ) : (
+                <>
+                  <Check size={13} />
+                  <span>Save Changes</span>
+                </>
+              )}
+            </button>
           </div>
         </form>
       </GovModal>
@@ -1487,11 +1829,20 @@ export default function AdminUserManagementPage() {
       </GovModal>
 
       {/* CREATE CUSTOM ROLE MODAL */}
-      <GovModal open={customRoleModalOpen} onClose={() => { setRoleError(""); setCustomRoleModalOpen(false); }} title="Create Custom Organization Role" width={680}>
+      <GovModal
+        open={customRoleModalOpen}
+        onClose={() => { setRoleError(""); setCustomRoleModalOpen(false); }}
+        title="Create Custom Organization Role"
+        width={720}
+      >
         <form onSubmit={async (e) => {
           e.preventDefault();
           if (!newRoleName.trim()) {
             setRoleError("Role name is required.");
+            return;
+          }
+          if (selectedRolePermissions.length === 0) {
+            setRoleError("Please select at least one permission for this role.");
             return;
           }
           setCreatingRole(true);
@@ -1509,152 +1860,192 @@ export default function AdminUserManagementPage() {
             setCustomRoleModalOpen(false);
             setNewRoleName("");
             setNewRoleDescription("");
-            setSelectedRolePermissions(["user:view", "project:view", "fund:view", "report:view"]);
             queryClient.invalidateQueries({ queryKey: ["admin", "dynamic-roles"] });
           } catch (err: any) {
             setRoleError(err.message || "Failed to create custom role");
           } finally {
             setCreatingRole(false);
           }
-        }}>
-          {roleError && <div className="gov-alert gov-alert-danger gov-mb-4">{roleError}</div>}
-          
-          <div className="gov-grid gov-grid-cols-1 sm:gov-grid-cols-2 gov-gap-4">
-            <GovInput
-              label="Role Name"
-              required
-              type="text"
-              value={newRoleName}
-              onChange={(e) => setNewRoleName(e.target.value)}
-              placeholder="e.g. CSR Finance Lead"
-            />
-            <GovInput
-              label="Description (Optional)"
-              type="text"
-              value={newRoleDescription}
-              onChange={(e) => setNewRoleDescription(e.target.value)}
-              placeholder="e.g. Responsible for reviewing CSR fund utilization and project bills."
-            />
+        }} className="space-y-4">
+          {roleError && <div className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-semibold">{roleError}</div>}
+
+          {/* Org Ownership Context Banner */}
+          <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Shield size={16} className="text-blue-700 shrink-0" />
+              <div className="truncate">
+                <span className="text-[10px] uppercase font-bold text-slate-500 block leading-tight">Role Owner</span>
+                <span className="font-bold text-slate-900 text-xs truncate block leading-tight">{userOrgName || "Main Organization"}</span>
+              </div>
+            </div>
+            <span className="text-[10px] font-bold text-slate-600 bg-white border border-slate-300 px-2 py-0.5 rounded">
+              Delegation Ceiling Enforced
+            </span>
           </div>
 
-          <div style={{ marginTop: 14 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <label style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
-                Select Role Permissions Matrix
+          {/* Role Inputs (Strictly 2 Columns) */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: "14px", rowGap: "10px" }}>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Role Name <span className="text-red-500">*</span>
               </label>
-              <span style={{ fontSize: 11, fontWeight: 600, color: "#1e3a8a", backgroundColor: "#eff6ff", padding: "2px 8px", borderRadius: 12, border: "1px solid #bfdbfe" }}>
-                {selectedRolePermissions.length} selected
-              </span>
+              <input
+                required
+                type="text"
+                value={newRoleName}
+                onChange={(e) => setNewRoleName(e.target.value)}
+                placeholder="e.g. Field Inspection Lead"
+                className="w-full h-9 px-3 rounded-md border border-slate-300 bg-white text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600"
+              />
             </div>
-            
-            <div className="gov-modal-scroll" style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-              maxHeight: 280,
-              overflowY: "auto",
-              paddingRight: 6,
-              padding: 10,
-              borderRadius: 10,
-              border: "1px solid #cbd5e1",
-              backgroundColor: "#f8fafc",
-              overscrollBehavior: "contain",
-            }}>
-              {[
-                {
-                  title: "User Management & Sub-logins",
-                  permissions: [
-                    { key: "user:view", label: "View Team Users" },
-                    { key: "user:create", label: "Create Team Users" },
-                    { key: "user:update", label: "Update User Profiles & Roles" },
-                    { key: "user:invite", label: "Send Email Invitations" },
-                    { key: "user:assign-role", label: "Assign Custom Roles to Team" },
-                    { key: "ngo_login:create", label: "Create NGO / Sub-agency Logins" },
-                  ]
-                },
-                {
-                  title: "Projects & Milestones",
-                  permissions: [
-                    { key: "project:view", label: "View Corporate & Convergence Projects" },
-                    { key: "project:create", label: "Create / Register Projects" },
-                    { key: "milestone:update", label: "Update Milestone Progress" },
-                    { key: "progress:verify", label: "Verify Project Deliverables" },
-                    { key: "photo:upload", label: "Upload Geotagged Field Photos" },
-                  ]
-                },
-                {
-                  title: "Funding & Financials",
-                  permissions: [
-                    { key: "fund:view", label: "View Fund Allocation & Financial Summaries" },
-                    { key: "fund:commit", label: "Commit CSR Funds & Sign MoUs" },
-                    { key: "bill:upload", label: "Upload Expenditure Bills & Invoices" },
-                    { key: "uc:upload", label: "Upload Utilization Certificates (UC)" },
-                  ]
-                },
-                {
-                  title: "Pitches & Corporate Enquiries",
-                  permissions: [
-                    { key: "pitch:view", label: "Browse Government Pitches & Public Needs" },
-                    { key: "pitch:create", label: "Create & Submit Government Pitches" },
-                    { key: "enquiry:create", label: "Submit Corporate Enquiries" },
-                    { key: "interest:express", label: "Express Corporate Interest in Pitches" },
-                  ]
-                },
-                {
-                  title: "Reports & Analytics",
-                  permissions: [
-                    { key: "report:view", label: "View Analytical Reports & KPIs" },
-                    { key: "report:generate", label: "Generate & Export Impact Statements" },
-                  ]
-                }
-              ].map((group) => (
-                <div key={group.title} style={{ backgroundColor: "#ffffff", padding: 12, borderRadius: 8, border: "1px solid #cbd5e1" }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#1e3a8a", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                    {group.title}
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))", gap: 8 }}>
-                    {group.permissions.map((p) => {
-                      const isChecked = selectedRolePermissions.includes(p.key);
-                      return (
-                        <label key={p.key} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#334155", cursor: "pointer", padding: "2px 0" }}>
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => {
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Description <span className="text-slate-400 font-normal">(Optional)</span>
+              </label>
+              <input
+                type="text"
+                value={newRoleDescription}
+                onChange={(e) => setNewRoleDescription(e.target.value)}
+                placeholder="e.g. Reviews milestones and site verification"
+                className="w-full h-9 px-3 rounded-md border border-slate-300 bg-white text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600"
+              />
+            </div>
+          </div>
+
+          {/* Permissions Matrix with Clean Flat Categories */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-bold text-slate-900">
+                  Select Delegatable Permissions
+                </label>
+                <span className="text-[10px] font-bold text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                  {selectedRolePermissions.length} selected
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const allKeys = availablePermissionGroups.flatMap((g) => g.permissions.map((p) => p.key));
+                    setSelectedRolePermissions(allKeys);
+                  }}
+                  className="text-xs font-bold text-blue-700 hover:text-blue-900 hover:underline cursor-pointer"
+                >
+                  Select All
+                </button>
+                <span className="text-slate-300 text-xs">|</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedRolePermissions([])}
+                  className="text-xs font-bold text-slate-500 hover:text-slate-700 hover:underline cursor-pointer"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            <div className="gov-modal-scroll flex flex-col gap-3 max-h-72 overflow-y-auto p-2.5 rounded-lg border border-slate-200 bg-slate-50">
+              {availablePermissionGroups.map((group) => {
+                const groupKeys = group.permissions.map((p) => p.key);
+                const allGroupSelected = groupKeys.every((k) => selectedRolePermissions.includes(k));
+                return (
+                  <div key={group.title} className="bg-white p-3 rounded-md border border-slate-200">
+                    <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-100">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs">{group.icon}</span>
+                        <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                          {group.title}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (allGroupSelected) {
+                            setSelectedRolePermissions((prev) => prev.filter((k) => !groupKeys.includes(k)));
+                          } else {
+                            setSelectedRolePermissions((prev) => Array.from(new Set([...prev, ...groupKeys])));
+                          }
+                        }}
+                        className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                      >
+                        {allGroupSelected ? "Deselect All" : "Select All"}
+                      </button>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                      {group.permissions.map((p) => {
+                        const isChecked = selectedRolePermissions.includes(p.key);
+                        return (
+                          <div
+                            key={p.key}
+                            onClick={() => {
                               setSelectedRolePermissions((prev) =>
                                 isChecked ? prev.filter((k) => k !== p.key) : [...prev, p.key]
                               );
                             }}
-                            style={{ accentColor: "#1e3a8a", width: 15, height: 15, cursor: "pointer" }}
-                          />
-                          <span>{p.label}</span>
-                        </label>
-                      );
-                    })}
+                            className={`flex items-start gap-2 p-2 rounded-md border text-left cursor-pointer transition-colors ${
+                              isChecked
+                                ? "bg-blue-50 border-blue-400 text-blue-950"
+                                : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {}}
+                              className="w-4 h-4 mt-0.5 rounded text-blue-600 border-slate-300 shrink-0 pointer-events-none"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="text-xs font-bold leading-tight">
+                                {p.label}
+                              </div>
+                              {p.desc && (
+                                <div className="text-[10px] text-slate-500 leading-tight mt-0.5">
+                                  {p.desc}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
+                );
+              })}
+              {availablePermissionGroups.length === 0 && (
+                <div className="p-4 text-center text-slate-500 text-xs">
+                  No delegatable permissions available for your current account permissions.
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
-          <div style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 10,
-            marginTop: 16,
-            paddingTop: 12,
-            borderTop: "1px solid #e2e8f0",
-            backgroundColor: "#ffffff",
-            position: "sticky",
-            bottom: 0,
-            zIndex: 10,
-          }} className="flex-col-reverse sm:flex-row">
-            <GovButton type="button" variant="secondary" onClick={() => setCustomRoleModalOpen(false)} className="w-full sm:w-auto justify-center">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-3 border-t border-slate-200 mt-2">
+            <button
+              type="button"
+              onClick={() => setCustomRoleModalOpen(false)}
+              className="w-full sm:w-auto px-4 py-2 rounded-md border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold cursor-pointer"
+            >
               Cancel
-            </GovButton>
-            <GovButton type="submit" variant="primary" disabled={creatingRole} className="w-full sm:w-auto justify-center">
-              {creatingRole ? "Creating Role..." : "Create Custom Role"}
-            </GovButton>
+            </button>
+            <button
+              type="submit"
+              disabled={creatingRole}
+              className="w-full sm:w-auto px-5 py-2 rounded-md bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              {creatingRole ? (
+                <>
+                  <RefreshCw size={12} className="animate-spin" />
+                  <span>Creating Role...</span>
+                </>
+              ) : (
+                <>
+                  <Plus size={13} />
+                  <span>Create Custom Role</span>
+                </>
+              )}
+            </button>
           </div>
         </form>
       </GovModal>

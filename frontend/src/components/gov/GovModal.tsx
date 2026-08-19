@@ -12,7 +12,7 @@ interface GovModalProps {
 }
 
 /**
- * Simple modal overlay for government-styled forms.
+ * Clean, flat modal overlay for government-styled forms.
  */
 export default function GovModal({ open, onClose, title, children, width = 600 }: GovModalProps) {
   useEffect(() => {
@@ -37,7 +37,7 @@ export default function GovModal({ open, onClose, title, children, width = 600 }
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: 16,
+        padding: "16px",
         overflowY: "auto",
       }}
     >
@@ -47,48 +47,66 @@ export default function GovModal({ open, onClose, title, children, width = 600 }
         style={{
           position: "absolute",
           inset: 0,
-          background: "rgba(0, 0, 0, 0.45)",
+          background: "rgba(15, 23, 42, 0.65)",
           zIndex: 1,
         }}
       />
 
       {/* Panel */}
       <div
-        className="gov-card"
         style={{
           position: "relative",
           zIndex: 2,
           width: "100%",
           maxWidth: width,
-          maxHeight: "85vh",
+          maxHeight: "90vh",
           display: "flex",
           flexDirection: "column",
+          borderRadius: "12px",
+          backgroundColor: "#ffffff",
+          border: "1px solid #cbd5e1",
+          boxShadow: "0 10px 25px -5px rgba(15, 23, 42, 0.15)",
           overflow: "hidden",
-          animation: "govFadeInUp 0.25s ease forwards",
         }}
       >
         {/* Header */}
         <div
-          className="gov-card-header"
           style={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
+            padding: "14px 20px",
+            borderBottom: "1px solid #e2e8f0",
+            backgroundColor: "#f8fafc",
             flexShrink: 0,
           }}
         >
-          <h3 className="gov-card-title">{title}</h3>
+          <h3
+            style={{
+              margin: 0,
+              fontSize: "15px",
+              fontWeight: 700,
+              color: "#0f172a",
+            }}
+          >
+            {title}
+          </h3>
           <button
             onClick={onClose}
             type="button"
             style={{
-              background: "none",
-              border: "none",
-              fontSize: 20,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "28px",
+              height: "28px",
+              borderRadius: "6px",
+              background: "#ffffff",
+              border: "1px solid #cbd5e1",
+              fontSize: "13px",
               cursor: "pointer",
-              color: "var(--gov-text-muted)",
+              color: "#64748b",
               lineHeight: 1,
-              padding: "4px 8px",
             }}
             aria-label="Close"
           >
@@ -98,13 +116,13 @@ export default function GovModal({ open, onClose, title, children, width = 600 }
 
         {/* Body */}
         <div
-          className="gov-card-body gov-modal-scroll"
+          className="gov-modal-scroll"
           style={{
             flex: "1 1 auto",
             minHeight: 0,
             overflowY: "auto",
+            padding: "18px 20px",
             WebkitOverflowScrolling: "touch",
-            overscrollBehavior: "contain",
           }}
         >
           {children}

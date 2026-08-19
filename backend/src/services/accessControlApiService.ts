@@ -13,8 +13,35 @@ export class AccessControlApiService {
   /**
    * 1. Overview Statistics
    */
-  public static async getOverview(organizationId?: string | null) {
-    const roleWhere = organizationId ? { OR: [{ organizationId }, { isSystemRole: true }] } : {};
+  public static async getOverview(
+    organizationId?: string | null,
+    userContext?: { isSuper: boolean; orgType?: string; userRoleId?: number }
+  ) {
+    let applicableSystemRoleIds: number[] = [];
+    if (userContext?.isSuper || (!userContext && !organizationId)) {
+      applicableSystemRoleIds = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    } else if (userContext?.orgType === "GOVERNMENT_DEPARTMENT" || userContext?.userRoleId === 7 || userContext?.userRoleId === 4) {
+      applicableSystemRoleIds = [7, 4];
+    } else if (userContext?.orgType === "CSR_COMPANY" || userContext?.userRoleId === 8) {
+      applicableSystemRoleIds = [8];
+    } else if (userContext?.orgType === "NGO" || userContext?.orgType === "IMPLEMENTING_AGENCY" || userContext?.userRoleId === 9) {
+      applicableSystemRoleIds = [9];
+    } else {
+      applicableSystemRoleIds = [7, 4];
+    }
+
+    let roleWhere: any = {};
+    if (!userContext?.isSuper && organizationId) {
+      roleWhere = {
+        OR: [
+          { id: { in: applicableSystemRoleIds } },
+          { organizationId, isSystemRole: false }
+        ]
+      };
+    } else if (organizationId) {
+      roleWhere = { OR: [{ organizationId }, { isSystemRole: true }] };
+    }
+
     const assignmentWhere = organizationId ? { organizationId } : {};
 
     const [totalRoles, systemRoles, customRoles, totalAssignments, highRiskPermissionsCount] = await Promise.all([

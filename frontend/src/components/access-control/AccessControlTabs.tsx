@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Shield, Key, Users, Activity, LayoutGrid } from "lucide-react";
+import { Shield, Key, Users, Activity } from "lucide-react";
 
 const TABS = [
-  { label: "Overview", href: "/admin/access-control", icon: LayoutGrid },
   { label: "Roles", href: "/admin/access-control/roles", icon: Shield },
   { label: "Permissions", href: "/admin/access-control/permissions", icon: Key },
   { label: "Role Assignments", href: "/admin/access-control/assignments", icon: Users },

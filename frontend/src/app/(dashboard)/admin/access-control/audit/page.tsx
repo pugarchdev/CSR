@@ -15,6 +15,44 @@ import "@/styles/gov-theme.css";
 
 import AccessControlTabs from "@/components/access-control/AccessControlTabs";
 
+const formatDate = (isoString?: string) => {
+  if (!isoString) return "Recent";
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return "Recent";
+  return d.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const formatFullDate = (isoString?: string) => {
+  if (!isoString) return "—";
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleString();
+};
+
+const getResourceDisplay = (entry: any) => {
+  if (entry.resourceLabel && !entry.resourceLabel.includes("undefined")) {
+    return entry.resourceLabel;
+  }
+  if (
+    entry.resourceType &&
+    entry.resourceId &&
+    entry.resourceType !== "undefined" &&
+    entry.resourceId !== "undefined"
+  ) {
+    return `${entry.resourceType} #${String(entry.resourceId).slice(0, 8)}`;
+  }
+  if (entry.resourceType && entry.resourceType !== "undefined") {
+    return entry.resourceType;
+  }
+  return "Access Control Event";
+};
+
 export default function AuditPage() {
   const [page, setPage] = useState(1);
   const [actionFilter, setActionFilter] = useState("");
@@ -99,6 +137,7 @@ export default function AuditPage() {
           <div className="space-y-2">
             {filtered.map((entry) => {
               const isExpanded = expandedId === entry.id;
+              const dateVal = entry.timestamp || (entry as any).createdAt;
               return (
                 <div key={entry.id} className="border border-slate-200/60 rounded-xl overflow-hidden bg-white/70 backdrop-blur-sm">
                   <button
@@ -113,25 +152,23 @@ export default function AuditPage() {
                     <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
                       <Badge variant={actionVariant(entry.action)} size="sm">{entry.action}</Badge>
                       <span className="text-xs font-semibold text-slate-700 truncate">
-                        {entry.actorEmail || entry.actor}
+                        {entry.actorEmail || entry.actor || "System User"}
                       </span>
                       <span className="text-[10px] text-slate-400">→</span>
-                      <span className="text-xs text-slate-500 truncate">
-                        {entry.resourceLabel || `${entry.resourceType}:${entry.resourceId}`}
+                      <span className="text-xs text-slate-600 truncate font-medium">
+                        {getResourceDisplay(entry)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {entry.scope && (
-                        <span className="text-[9px] font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">
+                        <span className="text-[9px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
                           {entry.scope}
                         </span>
                       )}
-                      <div className="flex items-center gap-1 text-xs text-slate-400">
+                      <div className="flex items-center gap-1 text-xs text-slate-500">
                         <Clock size={11} aria-hidden="true" />
-                        <time dateTime={entry.timestamp}>
-                          {new Date(entry.timestamp).toLocaleString(undefined, {
-                            month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
-                          })}
+                        <time dateTime={dateVal}>
+                          {formatDate(dateVal)}
                         </time>
                       </div>
                     </div>
@@ -148,11 +185,11 @@ export default function AuditPage() {
                       >
                         <div className="px-4 pb-4 pt-1 border-t border-slate-100/60 space-y-3">
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <DetailField label="Actor" value={entry.actorEmail || entry.actor} icon={<User size={11} />} />
+                            <DetailField label="Actor" value={entry.actorEmail || entry.actor || "System User"} icon={<User size={11} />} />
                             <DetailField label="Action" value={entry.action} icon={<Activity size={11} />} />
-                            <DetailField label="Date/Time" value={new Date(entry.timestamp).toLocaleString()} icon={<Clock size={11} />} />
-                            <DetailField label="Resource" value={`${entry.resourceType}:${entry.resourceId}`} />
-                            <DetailField label="Scope" value={entry.scope || "—"} />
+                            <DetailField label="Date & Time" value={formatFullDate(dateVal)} icon={<Clock size={11} />} />
+                            <DetailField label="Resource" value={getResourceDisplay(entry)} />
+                            <DetailField label="Scope" value={entry.scope || "Organization"} />
                             <DetailField label="Correlation ID" value={entry.correlationId || "—"} mono />
                           </div>
                           {entry.reason && (
@@ -173,7 +210,7 @@ export default function AuditPage() {
                               )}
                               {entry.after && (
                                 <div className="p-3 bg-emerald-50/60 rounded-lg border border-emerald-200/40">
-                                  <p className="text-[10px] font-bold text-emerald-600 uppercase mb-1">After</p>
+                                  <p className="text-[10px] font-bold text-emerald-600 uppercase mb-1">Details / After</p>
                                   <pre className="text-[10px] font-mono text-emerald-700 whitespace-pre-wrap break-words max-h-40 overflow-y-auto" data-lenis-prevent>
                                     {JSON.stringify(entry.after, null, 2)}
                                   </pre>

@@ -345,10 +345,23 @@ export const createRole = async (
       }
     }
 
+    // Calculate next available integer ID (above system roles 1-9 and max existing role)
+    const maxRole = await prisma.role.findFirst({
+      orderBy: { id: "desc" },
+      select: { id: true }
+    });
+    const nextRoleId = Math.max((maxRole?.id || 0) + 1, 10);
+
+    const baseCode = name.toUpperCase().replace(/[^A-Z0-9_]/g, "_").slice(0, 30);
+    const orgSuffix = targetOrgId ? `_${targetOrgId.replace(/[^A-Z0-9]/gi, "").slice(0, 6).toUpperCase()}` : "";
+    const uniqueSuffix = `_${Date.now().toString().slice(-4)}`;
+    const roleCode = `${baseCode}${orgSuffix}${uniqueSuffix}`;
+
     const role = await prisma.$transaction(async (tx) => {
       const createdRole = await tx.role.create({
         data: {
-          code: name.toUpperCase().replace(/[^A-Z0-9_]/g, "_"),
+          id: nextRoleId,
+          code: roleCode,
           name,
           displayName: displayName || name,
           description: description || null,

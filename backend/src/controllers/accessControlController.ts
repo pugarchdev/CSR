@@ -22,11 +22,27 @@ export const getOverview = async (
     const isSuper =
       req.user?.role === 1 ||
       req.user?.role === "SUPER_ADMIN" ||
-      req.user?.roleId === "1";
+      req.user?.roleId === "1" ||
+      req.user?.role === 2 ||
+      req.user?.role === 3;
     const orgId = isSuper
       ? (req.query.organizationId as string | undefined)
       : req.user?.organizationId;
-    const stats = await AccessControlApiService.getOverview(orgId);
+
+    let orgType: string | undefined;
+    if (req.user?.id) {
+      const u = await prisma.user.findUnique({
+        where: { id: req.user.id },
+        select: { organization: { select: { kind: true } } },
+      });
+      orgType = u?.organization?.kind;
+    }
+
+    const stats = await AccessControlApiService.getOverview(orgId, {
+      isSuper,
+      orgType,
+      userRoleId: Number(req.user?.roleId || 0),
+    });
     return res.json(stats);
   } catch (error) {
     next(error);
@@ -42,21 +58,73 @@ export const getRoles = async (
     const isSuper =
       req.user?.role === 1 ||
       req.user?.role === "SUPER_ADMIN" ||
-      req.user?.roleId === "1";
-    const userOrgId = req.user?.organizationId;
+      req.user?.roleId === "1" ||
+      req.user?.role === 2 ||
+      req.user?.role === 3;
     const { status, type, search } = req.query;
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user!.id },
+      include: { organization: true, officerProfile: true },
+    });
+
+    const userOrgId = user?.organizationId || req.user?.organizationId;
+    const orgKind = user?.organization?.kind || (user?.organization as any)?.type;
+    const userRoleId = Number(user?.roleId || req.user?.roleId || 0);
+
+    const isGovDept =
+      !isSuper &&
+      (orgKind === "GOVERNMENT_DEPARTMENT" ||
+        userRoleId === 7 ||
+        userRoleId === 4 ||
+        userRoleId === 5 ||
+        req.user?.role === "GOVERNMENT_OFFICER" ||
+        req.user?.role === "DISTRICT_NODAL_OFFICER" ||
+        Boolean(user?.officerProfile));
+
+    const isCorporate =
+      !isSuper &&
+      (orgKind === "CSR_COMPANY" ||
+        userRoleId === 8 ||
+        req.user?.role === "COMPANY_ADMIN");
+
+    const isNgo =
+      !isSuper &&
+      (orgKind === "NGO" ||
+        orgKind === "IMPLEMENTING_AGENCY" ||
+        userRoleId === 9 ||
+        req.user?.role === "NGO_ADMIN");
+
+    let applicableSystemRoleIds: number[] = [];
+    if (isSuper) {
+      applicableSystemRoleIds = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    } else if (isGovDept) {
+      applicableSystemRoleIds = [7, 4];
+    } else if (isCorporate) {
+      applicableSystemRoleIds = [8];
+    } else if (isNgo) {
+      applicableSystemRoleIds = [9];
+    } else {
+      applicableSystemRoleIds = [7, 4];
+    }
 
     const where: any = {};
     if (!isSuper) {
-      if (!userOrgId) {
-        where.id = -1;
+      if (userOrgId) {
+        where.OR = [
+          { id: { in: applicableSystemRoleIds } },
+          { organizationId: userOrgId, isSystemRole: false },
+        ];
+      } else if (applicableSystemRoleIds.length > 0) {
+        where.id = { in: applicableSystemRoleIds };
       } else {
-        where.organizationId = userOrgId;
-        where.isSystemRole = false;
-        where.id = { gt: 9 };
+        where.id = -1;
       }
     } else if (req.query.organizationId) {
-      where.organizationId = String(req.query.organizationId);
+      where.OR = [
+        { isSystemRole: true },
+        { organizationId: String(req.query.organizationId) },
+      ];
     }
 
     if (status) where.status = String(status);
@@ -82,12 +150,100 @@ export const getRoles = async (
       orderBy: { id: "asc" },
     });
 
-    return res.json({
-      data: roles.map((r) => ({
+    let mappedRoles = roles.map((r) => {
+      let displayName = r.displayName || r.name;
+      let description = r.description;
+      let defaultScope = r.defaultScope;
+
+      if (r.id === 7 || r.code === "GOVERNMENT_OFFICER") {
+        displayName = "Organization Nodal Officer";
+        description =
+          "Delegated statutory nodal officer possessing full administrative, workflow, and user management authority of the department.";
+        defaultScope = "ORGANIZATION";
+      } else if (r.id === 4 || r.code === "DISTRICT_NODAL_OFFICER") {
+        displayName = "Nodal Officer (Project Monitoring)";
+        description =
+          "On-ground milestone verification, inspection evidence submission, and project tracking for assigned projects.";
+        defaultScope = "PROJECT";
+      } else if (r.id === 8 || r.code === "COMPANY_ADMIN") {
+        displayName = "Corporate Admin";
+        description =
+          "Primary corporate CSR administrator with full authority over enquiries, commitments, and MOU approvals.";
+        defaultScope = "ORGANIZATION";
+      } else if (r.id === 9 || r.code === "NGO_ADMIN") {
+        displayName = "NGO / Implementing Agency Admin";
+        description =
+          "Authorized implementing agency administrator with full control over proposals and claims.";
+        defaultScope = "ORGANIZATION";
+      }
+
+      return {
         ...r,
+        displayName,
+        description,
+        defaultScope,
         permissions: r.rolePermissions.map((rp) => rp.permission.key),
-      })),
+      };
     });
+
+    // If Government Department, ensure Organization Head is present alongside Organization Nodal Officer and Nodal Officer
+    if (isGovDept && (!type || type === "ALL" || type === "SYSTEM")) {
+      const govOfficerRole = mappedRoles.find(
+        (r) => r.id === 7 || r.code === "GOVERNMENT_OFFICER",
+      );
+      const headPermissions = govOfficerRole
+        ? [...govOfficerRole.permissions]
+        : [
+            "pitch:view",
+            "pitch:create",
+            "pitch:approve",
+            "pitch:reject",
+            "pitch:verify",
+            "assessment:view",
+            "assessment:create",
+            "assessment:decide",
+            "project:view",
+            "project:manage",
+            "milestone:verify",
+            "user:view",
+            "user:create",
+            "user:assign-role",
+            "role:view",
+            "role:create",
+            "dashboard:view",
+            "report:view",
+          ];
+
+      const orgHeadRole = {
+        id: 700,
+        code: "ORGANIZATION_HEAD",
+        name: "Organization Head",
+        displayName: "Organization Head (Collector / CEO / Commissioner)",
+        description:
+          "Primary statutory executive with ultimate administrative, pitch sanctioning, and approval authority for the department.",
+        type: "SYSTEM",
+        status: "ACTIVE",
+        defaultScope: "ORGANIZATION",
+        isSystemRole: true,
+        isProtected: true,
+        version: 1,
+        organizationId: userOrgId || null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        _count: {
+          roleAssignments: 1,
+          users: 1,
+        },
+        permissions: headPermissions,
+      };
+
+      // Place Organization Head as the first role
+      if (!mappedRoles.some((r) => r.code === "ORGANIZATION_HEAD")) {
+        mappedRoles = [orgHeadRole as any, ...mappedRoles];
+      }
+    }
+
+    return res.json({ data: mappedRoles });
   } catch (error) {
     next(error);
   }
@@ -951,19 +1107,84 @@ export const getAuditLogs = async (
   next: NextFunction,
 ) => {
   try {
+    const isSuper =
+      req.user?.role === 1 ||
+      req.user?.role === "SUPER_ADMIN" ||
+      req.user?.roleId === "1" ||
+      req.user?.role === 2 ||
+      req.user?.role === 3;
+    const userOrgId = req.user?.organizationId;
     const { action, actorUserId, entityType, limit = 100 } = req.query;
+
     const where: any = {};
-    if (action) where.action = String(action);
+    if (action) where.action = { contains: String(action), mode: "insensitive" };
     if (actorUserId) where.actorUserId = String(actorUserId);
     if (entityType) where.entityType = String(entityType);
 
+    // If not super admin, scope audit logs to actor's organization or actor's own actions
+    if (!isSuper && userOrgId) {
+      where.OR = [
+        { actorUserId: req.user!.id },
+        { actorUser: { organizationId: userOrgId } },
+      ];
+    } else if (!isSuper) {
+      where.actorUserId = req.user!.id;
+    }
+
     const logs = await prisma.auditLog.findMany({
       where,
+      include: {
+        actorUser: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            designation: true,
+            organization: { select: { name: true } },
+          },
+        },
+      },
       take: Number(limit),
       orderBy: { createdAt: "desc" },
     });
 
-    return res.json({ data: logs });
+    const mappedLogs = logs.map((log) => {
+      const details = (typeof log.details === "object" && log.details !== null ? log.details : {}) as Record<string, any>;
+      const actorName = log.actorUser
+        ? [log.actorUser.firstName, log.actorUser.lastName].filter(Boolean).join(" ") || log.actorUser.email
+        : log.actorUserId || "System User";
+      const actorEmail = log.actorUser?.email || "system@mahacsr.gov.in";
+
+      const resourceType = log.entityType || details.resourceType || "Role";
+      const resourceId = log.entityId || details.resourceId || log.id;
+      const resourceLabel =
+        details.name ||
+        details.label ||
+        details.trackingId ||
+        details.resourceLabel ||
+        (log.entityType && log.entityId ? `${log.entityType} #${log.entityId.slice(0, 8)}` : log.action.toLowerCase().replace(/_/g, " "));
+
+      return {
+        id: log.id,
+        actor: actorName,
+        actorEmail: actorEmail,
+        action: log.action,
+        resourceType: resourceType,
+        resourceId: resourceId,
+        resourceLabel: resourceLabel,
+        reason: details.reason || null,
+        scope: details.scope || details.organization || log.actorUser?.organization?.name || "Organization",
+        correlationId: details.correlationId || null,
+        before: details.before || null,
+        after: details.after || (details.before ? null : details),
+        timestamp: log.createdAt.toISOString(),
+        createdAt: log.createdAt.toISOString(),
+        ipAddress: log.ipAddress || null,
+      };
+    });
+
+    return res.json({ data: mappedLogs, total: mappedLogs.length });
   } catch (error) {
     next(error);
   }

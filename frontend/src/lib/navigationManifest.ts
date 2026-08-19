@@ -618,8 +618,8 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
   {
     id: "access-control",
     label: "Access Control",
-    formalTitle: "Access Control Overview",
-    route: "/admin/access-control",
+    formalTitle: "Access Control",
+    route: "/admin/access-control/roles",
     iconName: "Shield",
     section: "Administration",
     navigationLevel: "CHILD",
@@ -627,7 +627,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     showInSidebar: true,
     requiredAnyPermissions: ["role:view", "role:create", "role:configure", "user:view", "user:assign-role"],
     ordering: 20,
-    breadcrumbMetadata: { title: "Access Control Overview", parentRoute: "/dashboard" }
+    breadcrumbMetadata: { title: "Access Control", parentRoute: "/dashboard" }
   },
   // Access Control Workspace Tabs (Hidden in Sidebar)
   {
@@ -740,7 +740,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-help",
     showInSidebar: true,
-    requiredAnyPermissions: ["grievance:view", "grievance:resolve"],
+    requiredAnyPermissions: ["dashboard:view", "project:view", "project:assign", "project:approve", "grievance:view", "grievance:resolve"],
     ordering: 20,
     breadcrumbMetadata: { title: "Grievances", parentRoute: "/dashboard" }
   }

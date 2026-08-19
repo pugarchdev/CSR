@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { UserCheck, ShieldCheck, Building2 } from "lucide-react";
+import { UserCheck, ShieldCheck, Building2, Landmark } from "lucide-react";
 
 const TABS = [
-  { label: "All Assignments", href: "/assignments", icon: UserCheck },
+  { label: "Overview", href: "/assignments", icon: UserCheck },
+  { label: "Government Ownership", href: "/assignments/government", icon: Landmark },
   { label: "DNC Delegation", href: "/assignments/dnc", icon: ShieldCheck },
   { label: "Department Officer Assignment", href: "/assignments/gov-admin", icon: Building2 },
 ];

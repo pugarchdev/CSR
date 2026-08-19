@@ -53,7 +53,21 @@ const isAuthorizedResolver = (user: any): boolean => {
 // ─── Public: submit helpdesk query ──────────────────────────────────
 export const submitQuery = async (req: AuthenticatedRequest, res: Response): Promise<Response | void> => {
   try {
-    const { subject, message, name, email, mobile } = req.body as Record<string, string | undefined>;
+    const user = req.user;
+    let { subject, message, name, email, mobile } = req.body as Record<string, string | undefined>;
+
+    if (user) {
+      const u = user as any;
+      if (!name || !name.trim()) {
+        name = [u.firstName, u.lastName].filter(Boolean).join(" ") || u.name || u.email?.split("@")[0] || "Authorized User";
+      }
+      if (!email || !email.trim()) {
+        email = u.email;
+      }
+      if (!mobile && u.mobile) {
+        mobile = u.mobile;
+      }
+    }
 
     if (!subject || !subject.trim()) return validationErrorResponse(res, "Subject is required");
     if (subject.length > 200) return validationErrorResponse(res, "Subject must be under 200 characters");

@@ -1433,29 +1433,17 @@ textarea {
 }
 
 /* ============================================
-   PREMIUM PORTAL ANIMATIONS & TRANSITIONS
+   PORTAL STYLING (CLEAN & FLAT)
    ============================================ */
 
-/* Fade-in & slide-up keyframe */
-@keyframes govFadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Base fade-in anim class */
+/* Base fade-in anim class — instantaneous */
 .animate-fadeIn {
-  animation: govFadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 1;
 }
 
-/* Card hover and entrance effects — flat elevation, border shift only */
+/* Card hover - flat border shift only */
 .gov-card {
-  transition: border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: border-color 0.15s ease;
 }
 
 .gov-card:hover {
@@ -1464,7 +1452,7 @@ textarea {
 
 /* Table rows entrance and hover transitions */
 .gov-table tbody tr {
-  transition: background-color 0.15s ease, transform 0.15s ease;
+  transition: background-color 0.1s ease;
 }
 
 .gov-table tbody tr:hover {
@@ -1473,26 +1461,17 @@ textarea {
 
 /* Button smooth transitions */
 .gov-btn {
-  transition: background 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .gov-btn:hover {
-  opacity: 0.92;
+  opacity: 0.95;
 }
 
 .gov-btn:active {
-  opacity: 0.85;
+  opacity: 0.9;
 }
 
-/* Stats metrics scaling & stagger entrance */
-.gov-grid > .gov-card {
-  animation: govFadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.gov-grid > .gov-card:nth-child(1) { animation-delay: 0.05s; }
-.gov-grid > .gov-card:nth-child(2) { animation-delay: 0.1s; }
-.gov-grid > .gov-card:nth-child(3) { animation-delay: 0.15s; }
-/* Made with Bob */
 
 /* Custom Scrollbars for Government Modals & Dialogs */
 .gov-card-body,
