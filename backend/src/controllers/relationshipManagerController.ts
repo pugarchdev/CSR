@@ -402,6 +402,17 @@ export const requestPitchClarification = async (req: AuthenticatedRequest, res: 
       notificationType: "PITCH_CLARIFICATION"
     });
 
+    notifyHierarchy({
+      title: "Clarification Requested on Government Pitch",
+      message: `Relationship Manager requested clarification on pitch ${pitch.pitchReferenceId || pitch.id}: "${clarificationText}"`,
+      organizationId: pitch.departmentId,
+      assignedRmId: pitch.assignedRelationshipManagerId || userId,
+      district: Array.isArray(pitch.districts) && pitch.districts.length > 0 ? pitch.districts[0] : null,
+      includeOrgUsers: true,
+      includeStateOfficers: true,
+      actionButtonUrl: `/pitches/${pitch.id}`
+    }).catch((err) => console.error("[RequestClarification] Hierarchy notification dispatch failed:", err));
+
     await auditLog(userId, "GOVERNMENT_PITCH_CLARIFICATION_REQUESTED", { pitchId: id, clarification: clarificationText });
 
     return res.json({ success: true, message: "Clarification request sent to the submitting department official.", data: updated, interaction });

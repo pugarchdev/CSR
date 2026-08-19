@@ -742,7 +742,7 @@ export const respondToPitchClarification = async (req: AuthenticatedRequest, res
   try {
     const userId = req.user!.id;
     const { id } = req.params;
-    const { responseNote } = req.body;
+    const { responseNote, supportingDocumentUrl, supportingDocuments } = req.body;
     const noteText = String(responseNote || "").trim();
 
     if (noteText.length < 5) {
@@ -753,10 +753,31 @@ export const respondToPitchClarification = async (req: AuthenticatedRequest, res
     if (!pitch) return res.status(404).json({ error: "Pitch not found." });
 
     const nextStatus = "UNDER_RM_REVIEW";
+    
+    // Append any supporting documents if uploaded
+    let updatedDocs = Array.isArray(pitch.supportingDocuments) ? [...pitch.supportingDocuments] : [];
+    if (supportingDocumentUrl && typeof supportingDocumentUrl === "string" && !updatedDocs.includes(supportingDocumentUrl)) {
+      updatedDocs.push(supportingDocumentUrl);
+    }
+    if (Array.isArray(supportingDocuments)) {
+      for (const d of supportingDocuments) {
+        if (typeof d === "string" && !updatedDocs.includes(d)) {
+          updatedDocs.push(d);
+        }
+      }
+    }
+
     const updated = await prisma.governmentPitch.update({
       where: { id },
-      data: { status: nextStatus }
+      data: {
+        status: nextStatus,
+        supportingDocuments: updatedDocs
+      }
     });
+
+    const docMsg = supportingDocumentUrl || (Array.isArray(supportingDocuments) && supportingDocuments.length > 0)
+      ? `\n[Attached Document: ${supportingDocumentUrl || supportingDocuments.join(", ")}]`
+      : "";
 
     const interaction = await prisma.applicationInteraction.create({
       data: {
@@ -764,7 +785,7 @@ export const respondToPitchClarification = async (req: AuthenticatedRequest, res
         entityId: pitch.id,
         actorUserId: userId,
         channel: "DEPARTMENT_RESPONSE",
-        note: `Department Clarification Response: ${noteText}`,
+        note: `Department Clarification Response: ${noteText}${docMsg}`,
         occurredAt: new Date()
       }
     });
@@ -777,14 +798,14 @@ export const respondToPitchClarification = async (req: AuthenticatedRequest, res
         stage: "RM_REVIEW",
         action: "CLARIFICATION_PROVIDED",
         actorUserId: userId,
-        metadata: { responseNote: noteText }
+        metadata: { responseNote: noteText, supportingDocuments: updatedDocs }
       });
       await PortalCaseService.addInteraction({
         caseId: trackedCase.id,
         actorUserId: userId,
         interactionType: normalizeInteractionType("DEPARTMENT_RESPONSE"),
         participants: normalizeParticipants(req.body.participants, "GOVERNMENT"),
-        summary: `Department Clarification Response: ${noteText}`,
+        summary: `Department Clarification Response: ${noteText}${docMsg}`,
         occurredAt: new Date()
       });
     }
@@ -796,7 +817,7 @@ export const respondToPitchClarification = async (req: AuthenticatedRequest, res
         channels: ["IN_APP", "SOCKET", "EMAIL", "SMS"],
         variables: {
           title: "Clarification Provided for Pitch",
-          message: `The submitting department has provided clarification for pitch ${pitch.pitchReferenceId || pitch.id}: "${noteText}"`,
+          message: `The submitting department has provided clarification for pitch ${pitch.pitchReferenceId || pitch.id}: "${noteText}"${docMsg ? " with attached document." : "."}`,
           currentStatus: nextStatus
         },
         actionButtonUrl: `/pitches/${pitch.id}`,
@@ -805,7 +826,18 @@ export const respondToPitchClarification = async (req: AuthenticatedRequest, res
       });
     }
 
-    await auditLog(userId, "GOVERNMENT_PITCH_CLARIFICATION_PROVIDED", { pitchId: id, responseNote: noteText });
+    notifyHierarchy({
+      title: "Department Clarification Provided",
+      message: `Clarification provided by department on pitch ${pitch.pitchReferenceId || pitch.id}: "${noteText}"`,
+      organizationId: pitch.departmentId,
+      assignedRmId: pitch.assignedRelationshipManagerId || undefined,
+      district: Array.isArray(pitch.districts) && pitch.districts.length > 0 ? pitch.districts[0] : null,
+      includeRms: true,
+      includePortalAdmins: true,
+      actionButtonUrl: `/pitches/${pitch.id}`
+    }).catch((err) => console.error("[ClarificationResponded] Hierarchy notification dispatch failed:", err));
+
+    await auditLog(userId, "GOVERNMENT_PITCH_CLARIFICATION_PROVIDED", { pitchId: id, responseNote: noteText, supportingDocuments: updatedDocs });
 
     return res.json({ success: true, message: "Clarification submitted to Relationship Manager.", data: updated, interaction });
   } catch (error) {

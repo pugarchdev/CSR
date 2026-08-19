@@ -8,11 +8,11 @@ import {
   Loader2, Send, FileCode, ShieldCheck, AlertCircle, Copy, Check, UserCheck,
   Mail, Phone, User, MapPin, ExternalLink, Image as ImageIcon,
   CheckSquare, ArrowUpRight, Sparkles, Clock, FileCheck, MessageSquare,
-  HelpCircle, RotateCcw, Video, SendHorizontal, MessageCircle, X
+  HelpCircle, RotateCcw, Video, SendHorizontal, MessageCircle, X, Upload
 } from "lucide-react";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import { useApiQuery } from "@/lib/apiHooks";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, uploadPortalFile } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 
 const INTERACTION_TYPES = [
@@ -118,6 +118,9 @@ export default function PitchDetailPage() {
   const [submittingClarification, setSubmittingClarification] = useState(false);
   const [deptResponseText, setDeptResponseText] = useState("");
   const [submittingDeptResponse, setSubmittingDeptResponse] = useState(false);
+  const [clarificationFile, setClarificationFile] = useState<File | null>(null);
+  const [uploadingClarificationDoc, setUploadingClarificationDoc] = useState(false);
+  const [uploadedClarificationDocUrl, setUploadedClarificationDocUrl] = useState<string | null>(null);
   const [newInteractionNote, setNewInteractionNote] = useState("");
   const [newInteractionChannel, setNewInteractionChannel] = useState("PHONE");
   const [loggingInteraction, setLoggingInteraction] = useState(false);
@@ -150,6 +153,16 @@ export default function PitchDetailPage() {
     return tokens.some((t) => {
       const u = String(t).toUpperCase();
       return u.includes("JOINT_SECRETARY") || u.includes("JOINT SECRETARY") || u === "3" || user?.roleId === 3;
+    });
+  }, [user, roles, roleDetails, isAdmin, mounted]);
+
+  const isSuperAdmin = useMemo(() => {
+    if (!mounted) return false;
+    if (isAdmin) return true;
+    const tokens = extractRoleTokens(user, roles, roleDetails);
+    return tokens.some((t) => {
+      const u = String(t).toUpperCase();
+      return u.includes("SUPER_ADMIN") || u.includes("SUPERADMIN") || u === "1";
     });
   }, [user, roles, roleDetails, isAdmin, mounted]);
 
@@ -201,7 +214,24 @@ export default function PitchDetailPage() {
     pitch?.status === "APPROVED" ||
     pitch?.status === "JS_APPROVED";
 
-  const isClarificationNeeded = pitch?.status === "RETURNED_FOR_CLARIFICATION" || pitch?.status === "RETURNED_FOR_CORRECTION";
+  const isClarificationNeeded = pitch?.status === "RETURNED_FOR_CLARIFICATION" || pitch?.status === "RETURNED_FOR_CORRECTION" || pitch?.status === "CLARIFICATION_REQUIRED";
+
+  const isPitchOwner = useMemo(() => {
+    if (!user) return false;
+    return pitch?.submittedByUserId === user.id || 
+      (user.organizationId && pitch?.departmentId === user.organizationId) ||
+      (!isRM && !isJS && !isSuperAdmin);
+  }, [user, pitch, isRM, isJS, isSuperAdmin]);
+
+  const latestClarification = useMemo(() => {
+    const clar = interactions.find(
+      (i: any) =>
+        i.channel === "PORTAL_CLARIFICATION" ||
+        i.channel === "CLARIFICATION_REQUEST" ||
+        (i.note && i.note.toLowerCase().includes("clarification"))
+    );
+    return clar?.note || pitch?.clarificationRemarks || "The Relationship Manager has requested clarification on this pitch proposal. Please review and provide response.";
+  }, [interactions, pitch]);
 
   const handleJsDecisionSubmit = async (selectedDecision?: string) => {
     const decisionToSubmit = selectedDecision || jsDecision;
@@ -268,16 +298,40 @@ export default function PitchDetailPage() {
     }
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setClarificationFile(file);
+    setUploadingClarificationDoc(true);
+    try {
+      const url = await uploadPortalFile(file);
+      setUploadedClarificationDocUrl(url);
+    } catch (err: any) {
+      alert(err.message || "Failed to upload document");
+      setClarificationFile(null);
+    } finally {
+      setUploadingClarificationDoc(false);
+    }
+  };
+
   const handleRespondClarification = async () => {
-    if (!deptResponseText.trim() || deptResponseText.trim().length < 5) return;
+    if (!deptResponseText.trim() || deptResponseText.trim().length < 5) {
+      alert("Please enter a response note (minimum 5 characters).");
+      return;
+    }
     setSubmittingDeptResponse(true);
     try {
       await apiFetch(`/government-pitches/${pitch.id}/clarify-response`, {
         method: "POST",
-        body: JSON.stringify({ responseNote: deptResponseText.trim() })
+        body: JSON.stringify({
+          responseNote: deptResponseText.trim(),
+          supportingDocumentUrl: uploadedClarificationDocUrl || undefined
+        })
       });
       setDeptResponseText("");
-      setReviewMessage("Clarification submitted to the Relationship Manager for review.");
+      setClarificationFile(null);
+      setUploadedClarificationDocUrl(null);
+      setReviewMessage("Clarification response submitted to Relationship Manager. Status updated to Under RM Review.");
       refetch();
       refetchInteractions();
     } catch (err: any) {
@@ -389,7 +443,7 @@ export default function PitchDetailPage() {
               </div>
 
               {/* Title */}
-              <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight leading-snug">
+              <h1 className="text-lg md:text-xl font-black text-slate-900">
                 {pitch?.title || "Government Development Pitch Proposal"}
               </h1>
 
@@ -555,6 +609,130 @@ export default function PitchDetailPage() {
             <div className="grid gap-6 lg:grid-cols-3">
               {/* Left Column (2 Cols) */}
               <div className="space-y-6 lg:col-span-2">
+
+                {/* Clarification Action Required Workspace (Visible when RM requests clarification) */}
+                {isClarificationNeeded && (
+                  <section className="rounded-3xl border-2 border-amber-300 bg-gradient-to-br from-amber-50/80 via-white to-amber-50/40 p-6 md:p-7 shadow-xs space-y-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-amber-200/70 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-amber-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+                          <HelpCircle size={22} />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h2 className="text-base font-black text-slate-900">
+                              Clarification Requested by Relationship Manager
+                            </h2>
+                            <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-950 border border-amber-300">
+                              Action Required
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-600 mt-0.5">
+                            Please review the inquiry from the Relationship Manager and provide your response / optional documents below.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Clarification Query Detail Box */}
+                    <div className="rounded-2xl border border-amber-200/90 bg-white/90 p-4 space-y-1.5 shadow-2xs">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+                        <AlertCircle size={13} className="text-amber-700 shrink-0" />
+                        Relationship Manager Inquiry / Questions
+                      </span>
+                      <p className="text-xs font-semibold text-slate-800 leading-relaxed whitespace-pre-wrap">
+                        {latestClarification}
+                      </p>
+                    </div>
+
+                    {/* Clarification Response Form */}
+                    {(!isRM || isPitchOwner) ? (
+                      <div className="space-y-4 pt-1">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-extrabold text-slate-900 block">
+                            Department Clarification & Response Remarks <span className="text-rose-500">*</span>
+                          </label>
+                          <textarea
+                            value={deptResponseText}
+                            onChange={(e) => setDeptResponseText(e.target.value)}
+                            rows={3}
+                            placeholder="Enter detailed clarification, revised specifications, or explanations answering the RM's inquiry..."
+                            className="w-full rounded-2xl border border-slate-200 bg-white p-3.5 text-xs font-medium outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-100 shadow-2xs resize-none"
+                          />
+                          <div className="flex justify-between text-[10px] font-semibold text-slate-400 px-1">
+                            <span>Minimum 5 characters required</span>
+                            <span>{deptResponseText.trim().length} chars</span>
+                          </div>
+                        </div>
+
+                        {/* Optional Document Upload */}
+                        <div className="space-y-2">
+                          <label className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
+                            <Upload size={14} className="text-blue-900" />
+                            Attach Supporting Document / Revision <span className="text-slate-400 font-normal">(Optional)</span>
+                          </label>
+
+                          {uploadedClarificationDocUrl ? (
+                            <div className="flex items-center justify-between p-3.5 rounded-2xl border border-emerald-200 bg-emerald-50/80 text-xs shadow-2xs">
+                              <div className="flex items-center gap-2 text-emerald-950 font-bold min-w-0">
+                                <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                                <span className="truncate">{clarificationFile?.name || "Uploaded Supporting Document"}</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setClarificationFile(null);
+                                  setUploadedClarificationDocUrl(null);
+                                }}
+                                className="text-xs font-bold text-rose-600 hover:text-rose-800 ml-2 shrink-0 cursor-pointer"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ) : (
+                            <label className="flex items-center justify-center gap-2 p-3.5 rounded-2xl border-2 border-dashed border-slate-300 hover:border-blue-500 bg-white/80 hover:bg-blue-50/40 cursor-pointer transition-colors text-xs font-bold text-slate-700">
+                              {uploadingClarificationDoc ? (
+                                <>
+                                  <Loader2 size={16} className="animate-spin text-blue-900" />
+                                  <span>Uploading document...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Upload size={16} className="text-blue-900" />
+                                  <span>Upload PDF or document attachment (Optional)</span>
+                                </>
+                              )}
+                              <input
+                                type="file"
+                                accept=".pdf,.jpg,.jpeg,.png,.docx,.doc"
+                                onChange={handleFileUpload}
+                                disabled={uploadingClarificationDoc}
+                                className="hidden"
+                              />
+                            </label>
+                          )}
+                        </div>
+
+                        <div className="flex justify-end pt-1">
+                          <button
+                            type="button"
+                            disabled={submittingDeptResponse || deptResponseText.trim().length < 5 || uploadingClarificationDoc}
+                            onClick={handleRespondClarification}
+                            className="inline-flex items-center gap-2 rounded-2xl bg-blue-900 px-6 py-3.5 text-xs font-extrabold text-white shadow-sm hover:bg-blue-950 transition-all disabled:opacity-50 cursor-pointer"
+                          >
+                            {submittingDeptResponse ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+                            Submit Clarification Response to RM
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-3.5 rounded-2xl bg-amber-100/60 border border-amber-200 text-xs font-bold text-amber-950 flex items-center gap-2">
+                        <Clock size={16} className="text-amber-700 shrink-0" />
+                        <span>Awaiting clarification response from the submitting department official.</span>
+                      </div>
+                    )}
+                  </section>
+                )}
                 
                 {/* 1. CSR Project Requirement & Scope */}
                 <section className="rounded-3xl border border-slate-200/90 bg-white p-6 md:p-7 shadow-2xs space-y-4">
@@ -578,8 +756,8 @@ export default function PitchDetailPage() {
                     </p>
                   </div>
 
-                  {/* Fund Declaration & Certification Pills */}
-                  <div className="grid gap-3 sm:grid-cols-2 pt-1">
+                  {/* Fund Declaration Pill */}
+                  <div className="pt-1">
                     <div className="flex items-start gap-3 rounded-2xl border border-amber-200/80 bg-amber-50/50 p-3.5 text-xs">
                       <ShieldCheck size={18} className="text-amber-800 shrink-0 mt-0.5" />
                       <div>
@@ -588,16 +766,6 @@ export default function PitchDetailPage() {
                           {pitch.govtFundDeclaration
                             ? "Declared: No government funds are available or sanctioned for this project."
                             : "State fund declaration verified."}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3 rounded-2xl border border-emerald-200/80 bg-emerald-50/50 p-3.5 text-xs">
-                      <FileCheck size={18} className="text-emerald-800 shrink-0 mt-0.5" />
-                      <div>
-                        <span className="font-bold text-emerald-950 block">Certification Mode</span>
-                        <span className="text-emerald-900/90 text-[11px] mt-0.5 block leading-tight">
-                          {pitch.certificationType === "HOD" ? "HOD Endorsed Certification" : "Self-Certified by Nodal Officer"}
                         </span>
                       </div>
                     </div>
@@ -787,11 +955,11 @@ export default function PitchDetailPage() {
                     )}
 
                     {pitch.email && (
-                      <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Official Email</span>
-                        <a href={`mailto:${pitch.email}`} className="font-bold text-blue-900 hover:underline truncate max-w-[170px] flex items-center gap-1.5">
+                      <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">Official Email</span>
+                        <a href={`mailto:${pitch.email}`} className="font-bold text-blue-900 hover:underline break-all flex items-center gap-1.5 text-xs">
                           <Mail size={13} className="text-blue-700 shrink-0" />
-                          <span className="truncate">{pitch.email}</span>
+                          <span className="break-all">{pitch.email}</span>
                         </a>
                       </div>
                     )}
@@ -827,11 +995,11 @@ export default function PitchDetailPage() {
 
                       <div className="space-y-2 text-xs pt-1">
                         {assignedRm.email && (
-                          <div className="rounded-xl border border-slate-100 bg-white p-2.5 flex items-center justify-between shadow-2xs">
-                            <span className="text-[10px] font-bold text-slate-400">Email</span>
-                            <a href={`mailto:${assignedRm.email}`} className="font-bold text-blue-900 hover:underline flex items-center gap-1.5">
-                              <Mail size={12} className="text-blue-700" />
-                              <span className="truncate max-w-[150px]">{assignedRm.email}</span>
+                          <div className="rounded-xl border border-slate-100 bg-white p-2.5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between shadow-2xs">
+                            <span className="text-[10px] font-bold text-slate-400 shrink-0">Email</span>
+                            <a href={`mailto:${assignedRm.email}`} className="font-bold text-blue-900 hover:underline flex items-center gap-1.5 text-xs break-all">
+                              <Mail size={12} className="text-blue-700 shrink-0" />
+                              <span className="break-all">{assignedRm.email}</span>
                             </a>
                           </div>
                         )}
@@ -1247,118 +1415,120 @@ export default function PitchDetailPage() {
               </section>
             )}
 
-            {/* 4. Official Coordination & Interaction Log Workspace */}
-            <section className="rounded-3xl border border-slate-200/90 bg-white p-6 md:p-7 shadow-2xs space-y-6">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-900 flex items-center justify-center font-bold">
-                    <MessageSquare size={18} />
+            {/* 4. Official Coordination & Interaction Log Workspace (RM, JS, and Admins ONLY) */}
+            {(isRM || isJS || isSuperAdmin) && (
+              <section className="rounded-3xl border border-slate-200/90 bg-white p-6 md:p-7 shadow-2xs space-y-6">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-900 flex items-center justify-center font-bold">
+                      <MessageSquare size={18} />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-extrabold text-slate-900">
+                        Department Coordination & Interaction Timeline
+                      </h2>
+                      <p className="text-[11px] text-slate-500">Official log of calls, meetings, site visits, and clarification exchanges between RM, Department, and Joint Secretary.</p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-sm font-extrabold text-slate-900">
-                      Department Coordination & Interaction Timeline
-                    </h2>
-                    <p className="text-[11px] text-slate-500">Official log of calls, meetings, site visits, and clarification exchanges between RM, Department, and Joint Secretary.</p>
+                  <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg">
+                    {interactions.length} Entries
+                  </span>
+                </div>
+
+                {/* Add Interaction Log Box */}
+                <div className="rounded-2xl border border-slate-200/90 bg-slate-50/60 p-4 space-y-3">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                    Log Communication / Interaction Note
+                  </span>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    {INTERACTION_TYPES.map((type) => {
+                      const Icon = type.icon;
+                      const isActive = newInteractionChannel === type.value;
+                      return (
+                        <button
+                          key={type.value}
+                          type="button"
+                          onClick={() => setNewInteractionChannel(type.value)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                            isActive
+                              ? "bg-blue-900 text-white border-blue-900 shadow-xs"
+                              : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                          }`}
+                        >
+                          <Icon size={13} /> {type.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-2.5">
+                    <textarea
+                      value={newInteractionNote}
+                      onChange={(e) => setNewInteractionNote(e.target.value)}
+                      rows={2}
+                      placeholder="Enter discussion notes, call summary, or coordination points..."
+                      className="flex-1 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-100 resize-none"
+                    />
+                    <button
+                      type="button"
+                      disabled={loggingInteraction || newInteractionNote.trim().length < 3}
+                      onClick={handleLogInteraction}
+                      className="self-end sm:self-center inline-flex items-center gap-1.5 rounded-xl bg-blue-900 px-5 py-3 text-xs font-extrabold text-white shadow-sm hover:bg-blue-950 transition-all disabled:opacity-50 cursor-pointer shrink-0"
+                    >
+                      {loggingInteraction ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                      Log Note
+                    </button>
                   </div>
                 </div>
-                <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg">
-                  {interactions.length} Entries
-                </span>
-              </div>
 
-              {/* Add Interaction Log Box */}
-              <div className="rounded-2xl border border-slate-200/90 bg-slate-50/60 p-4 space-y-3">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                  Log Communication / Interaction Note
-                </span>
-                
-                <div className="flex flex-wrap gap-2">
-                  {INTERACTION_TYPES.map((type) => {
-                    const Icon = type.icon;
-                    const isActive = newInteractionChannel === type.value;
-                    return (
-                      <button
-                        key={type.value}
-                        type="button"
-                        onClick={() => setNewInteractionChannel(type.value)}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                          isActive
-                            ? "bg-blue-900 text-white border-blue-900 shadow-xs"
-                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
-                        }`}
-                      >
-                        <Icon size={13} /> {type.label}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-2.5">
-                  <textarea
-                    value={newInteractionNote}
-                    onChange={(e) => setNewInteractionNote(e.target.value)}
-                    rows={2}
-                    placeholder="Enter discussion notes, call summary, or coordination points..."
-                    className="flex-1 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-100 resize-none"
-                  />
-                  <button
-                    type="button"
-                    disabled={loggingInteraction || newInteractionNote.trim().length < 3}
-                    onClick={handleLogInteraction}
-                    className="self-end sm:self-center inline-flex items-center gap-1.5 rounded-xl bg-blue-900 px-5 py-3 text-xs font-extrabold text-white shadow-sm hover:bg-blue-950 transition-all disabled:opacity-50 cursor-pointer shrink-0"
-                  >
-                    {loggingInteraction ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-                    Log Note
-                  </button>
-                </div>
-              </div>
-
-              {/* Chronological Timeline */}
-              {interactions.length === 0 ? (
-                <div className="py-8 text-center border border-dashed border-slate-200 rounded-2xl">
-                  <MessageSquare size={28} className="mx-auto text-slate-300 mb-2" />
-                  <p className="text-xs font-bold text-slate-600">No communication logs recorded yet.</p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Logged calls, meetings, and clarifications between RM and Department will appear here.</p>
-                </div>
-              ) : (
-                <div className="space-y-3.5">
-                  {interactions.map((interaction: any, idx: number) => {
-                    const meta = getInteractionMeta(interaction.channel);
-                    const Icon = meta.icon;
-                    return (
-                      <div key={interaction.id || idx} className="flex gap-3.5 rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
-                        <div className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 ${meta.color}`}>
-                          <Icon size={15} />
-                        </div>
-                        <div className="flex-1 space-y-1">
-                          <div className="flex items-center justify-between flex-wrap gap-2">
-                            <div className="flex items-center gap-2">
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-extrabold border ${meta.color} uppercase tracking-wider`}>
-                                {meta.label}
-                              </span>
-                              {interaction.actor && (
-                                <span className="text-xs font-bold text-slate-800">
-                                  {[interaction.actor.firstName, interaction.actor.lastName].filter(Boolean).join(" ")}
-                                  {interaction.actor.designation && <span className="text-slate-400 font-normal ml-1">({interaction.actor.designation})</span>}
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-[11px] text-slate-400 font-mono">
-                              {interaction.occurredAt || interaction.createdAt
-                                ? new Date(interaction.occurredAt || interaction.createdAt).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
-                                : "—"}
-                            </span>
+                {/* Chronological Timeline */}
+                {interactions.length === 0 ? (
+                  <div className="py-8 text-center border border-dashed border-slate-200 rounded-2xl">
+                    <MessageSquare size={28} className="mx-auto text-slate-300 mb-2" />
+                    <p className="text-xs font-bold text-slate-600">No communication logs recorded yet.</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">Logged calls, meetings, and clarifications between RM and Department will appear here.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3.5">
+                    {interactions.map((interaction: any, idx: number) => {
+                      const meta = getInteractionMeta(interaction.channel);
+                      const Icon = meta.icon;
+                      return (
+                        <div key={interaction.id || idx} className="flex gap-3.5 rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
+                          <div className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 ${meta.color}`}>
+                            <Icon size={15} />
                           </div>
-                          <p className="text-xs leading-relaxed text-slate-700 font-medium whitespace-pre-wrap pt-0.5">
-                            {interaction.note}
-                          </p>
+                          <div className="flex-1 space-y-1">
+                            <div className="flex items-center justify-between flex-wrap gap-2">
+                              <div className="flex items-center gap-2">
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-extrabold border ${meta.color} uppercase tracking-wider`}>
+                                  {meta.label}
+                                </span>
+                                {interaction.actor && (
+                                  <span className="text-xs font-bold text-slate-800">
+                                    {[interaction.actor.firstName, interaction.actor.lastName].filter(Boolean).join(" ")}
+                                    {interaction.actor.designation && <span className="text-slate-400 font-normal ml-1">({interaction.actor.designation})</span>}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[11px] text-slate-400 font-mono">
+                                {interaction.occurredAt || interaction.createdAt
+                                  ? new Date(interaction.occurredAt || interaction.createdAt).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+                                  : "—"}
+                              </span>
+                            </div>
+                            <p className="text-xs leading-relaxed text-slate-700 font-medium whitespace-pre-wrap pt-0.5">
+                              {interaction.note}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            )}
           </div>
         )}
       </main>
