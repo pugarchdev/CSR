@@ -141,7 +141,12 @@ export const submitJSDecision = async (req: AuthenticatedRequest, res: Response,
     const assessmentStatus = isApproved ? "JS_APPROVED" : isReturned ? decision : "JS_REJECTED";
     const enquiryStatus = isApproved ? "JS_APPROVED" : isReturned ? decision : "JS_REJECTED";
     try {
-      const routing = isApproved ? await routeApprovedCorporateEnquiry({ assessmentId: assessment.id, actorUserId: req.user!.id }) : null;
+      const routing = isApproved ? await routeApprovedCorporateEnquiry({
+        assessmentId: assessment.id,
+        actorUserId: req.user!.id,
+        targetDepartmentId: req.body.targetDepartmentId,
+        targetDistrict: req.body.targetDistrict
+      }) : null;
       await prisma.$transaction([
         prisma.feasibilityAssessment.update({
           where: { id },

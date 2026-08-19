@@ -13,7 +13,9 @@ import {
   getCorporateEnquiries,
   getGovernmentPitches,
   getInspections,
-  createInspection
+  createInspection,
+  getProjectNodalCandidates,
+  assignProjectNodalOfficer
 } from "../controllers/nodalOfficerController";
 
 const router = Router();
@@ -21,6 +23,8 @@ router.use(authenticateToken);
 
 router.get("/dashboard", asyncHandler(getDashboard));
 router.get("/projects", asyncHandler(getAssignedProjects));
+router.get("/projects/:id/candidates", asyncHandler(getProjectNodalCandidates));
+router.post("/projects/:id/assign", asyncHandler(assignProjectNodalOfficer));
 router.get("/projects/:id", asyncHandler(getProjectById));
 router.patch("/projects/:id/status", asyncHandler(updateProjectStatus));
 router.post("/milestones/:id/verify", asyncHandler(verifyMilestone));

@@ -1411,10 +1411,10 @@ export default function PitchDetailPage() {
             {/* Modal Input Fields */}
             <div className="space-y-4">
               {jsDecision === "APPROVE" && (
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 text-xs text-emerald-950 font-medium space-y-1">
-                  <p className="font-extrabold">Ready for Public Publication</p>
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 text-xs text-emerald-950 font-medium space-y-1.5">
+                  <p className="font-extrabold">Ready for Public Publication & Corporate Matching</p>
                   <p className="text-emerald-900/90 leading-relaxed">
-                    By approving, this government pitch will be listed publicly under <strong>Public Development Needs</strong> and open for corporate expressions of interest.
+                    By approving, this government pitch will be listed live on the CSR marketplace. When a corporate expresses interest and is approved, the project will automatically route to the originating department ({pitch?.department || "submitting department"}) for Nodal Officer allocation.
                   </p>
                 </div>
               )}

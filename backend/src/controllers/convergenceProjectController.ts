@@ -67,9 +67,17 @@ export const getConvergenceProjects = async (req: AuthenticatedRequest, res: Res
 
     const assignmentIds = (isState || isDistrictCollector) ? [] : (await prisma.projectAssignment.findMany({ where: { entityType: "PROJECT", assignedToId: req.user?.id, status: "ACTIVE" }, select: { entityId: true } })).map(({ entityId }) => entityId);
 
+    const isDNO = roleId === ROLE_ID.DISTRICT_NODAL_OFFICER;
+
     const baseWhere: any = isState ? { type: "CONVERGENCE_FRAMEWORK" } : isDistrictCollector && collectorDistrict ? {
       type: "CONVERGENCE_FRAMEWORK",
       district: collectorDistrict,
+    } : isDNO ? {
+      type: "CONVERGENCE_FRAMEWORK",
+      OR: [
+        { nodalOfficerUserId: req.user?.id },
+        { id: { in: assignmentIds } }
+      ]
     } : {
       type: "CONVERGENCE_FRAMEWORK",
       OR: [

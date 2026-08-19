@@ -6,6 +6,8 @@ import { dispatchNotification, dispatchToContact } from "./notificationOrchestra
 type ApprovedProjectInput = {
   assessmentId: string;
   actorUserId: string;
+  targetDepartmentId?: string;
+  targetDistrict?: string;
 };
 
 const projectCode = () => `PRJ-MH-${new Date().getFullYear()}-${randomUUID().slice(0, 8).toUpperCase()}`;
@@ -20,9 +22,25 @@ export async function routeApprovedCorporateEnquiry(input: ApprovedProjectInput)
   if (!assessment) throw new Error("Feasibility assessment not found");
   if (!assessment.enquiryId) throw new Error("Corporate enquiry linkage is required for this legacy routing path");
 
-  const districts = [...new Set(assessment.targetDistricts.map((district) => district.trim()).filter(Boolean))];
-  if (!assessment.targetDepartmentId || districts.length === 0) {
+  const targetDeptId = input.targetDepartmentId || assessment.targetDepartmentId;
+  const rawDistricts = input.targetDistrict
+    ? [input.targetDistrict, ...assessment.targetDistricts]
+    : assessment.targetDistricts;
+  const districts = [...new Set(rawDistricts.map((district) => district?.trim()).filter(Boolean))];
+
+  if (!targetDeptId || districts.length === 0) {
     throw new Error("A target Government Department and at least one target district are required before approval.");
+  }
+
+  // Update assessment if JS updated target department or district during decision
+  if (input.targetDepartmentId || input.targetDistrict) {
+    await prisma.feasibilityAssessment.update({
+      where: { id: assessment.id },
+      data: {
+        ...(input.targetDepartmentId ? { targetDepartmentId: input.targetDepartmentId } : {}),
+        ...(districts.length > 0 ? { targetDistricts: districts } : {})
+      }
+    });
   }
 
   const existing = await prisma.project.findUnique({
@@ -34,7 +52,7 @@ export async function routeApprovedCorporateEnquiry(input: ApprovedProjectInput)
   const [enquiry, department, dncMappings, departmentAdmin] = await Promise.all([
     prisma.corporateEnquiry.findUnique({ where: { id: assessment.enquiryId } }),
     prisma.organization.findFirst({
-      where: { id: assessment.targetDepartmentId, kind: "GOVERNMENT_DEPARTMENT", status: "ACTIVE" },
+      where: { id: targetDeptId, kind: "GOVERNMENT_DEPARTMENT", status: "ACTIVE" },
       select: { id: true, name: true }
     }),
     prisma.districtDncAssignment.findMany({
@@ -42,7 +60,11 @@ export async function routeApprovedCorporateEnquiry(input: ApprovedProjectInput)
       include: { dncUser: { select: { id: true, email: true } } }
     }),
     prisma.user.findFirst({
-      where: { organizationId: assessment.targetDepartmentId, roleId: ROLE_ID.GOVERNMENT_OFFICER, accountStatus: "ACTIVE", isVerified: true },
+      where: {
+        organizationId: targetDeptId,
+        accountStatus: "ACTIVE",
+        isVerified: true
+      },
       select: { id: true, email: true }
     })
   ]);
@@ -52,7 +74,13 @@ export async function routeApprovedCorporateEnquiry(input: ApprovedProjectInput)
   const dncByDistrict = new Map(dncMappings.map((mapping) => [mapping.district, mapping]));
   const unmappedDistricts = districts.filter((district) => !dncByDistrict.has(district));
   if (unmappedDistricts.length) {
-    throw new Error(`No active DNC is configured for: ${unmappedDistricts.join(", ")}. Configure the district before approving.`);
+    // If DNC not configured for district, find any state/district DNC or fallback
+    const fallbackDnc = await prisma.districtDncAssignment.findFirst({
+      where: { isActive: true, dncUser: { roleId: ROLE_ID.DISTRICT_NODAL_CONSULTANT, accountStatus: "ACTIVE", isVerified: true } }
+    });
+    if (!fallbackDnc && !process.env.ALLOW_UNMAPPED_DNC) {
+      throw new Error(`No active DNC is configured for: ${unmappedDistricts.join(", ")}. Configure the district before approving.`);
+    }
   }
   if (!departmentAdmin) throw new Error("The selected Government Department has no active Department Admin.");
 

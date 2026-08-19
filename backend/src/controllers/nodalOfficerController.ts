@@ -1,8 +1,12 @@
 import { Response, NextFunction } from "express";
+import crypto from "crypto";
+import bcrypt from "bcryptjs";
 import prisma from "../config/db";
 import { AuthenticatedRequest } from "../middlewares/authMiddleware";
 import { successResponse, notFoundResponse, unauthorizedResponse } from "../utils/apiResponse";
-import { Role } from "../types/role";
+import { Role, ROLE_ID } from "../types/role";
+import { sendNodalOfficerAssignmentEmail } from "../services/emailService";
+import { dispatchNotification } from "../services/notificationOrchestrator";
 
 export const getDashboard = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
@@ -203,6 +207,222 @@ export const createInspection = async (req: AuthenticatedRequest, res: Response,
       }
     });
     return successResponse(res, inspection, "Inspection created");
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getProjectNodalCandidates = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const project = await prisma.project.findUnique({
+      where: { id },
+      include: { organization: true }
+    });
+    if (!project) return notFoundResponse(res, "Project not found");
+
+    const targetOrgId = project.organizationId;
+    if (!targetOrgId) {
+      return successResponse(res, [], "No organization linked to project");
+    }
+
+    const candidates = await prisma.user.findMany({
+      where: {
+        OR: [
+          { organizationId: targetOrgId },
+          { roleId: ROLE_ID.DISTRICT_NODAL_OFFICER }
+        ],
+        accountStatus: "ACTIVE",
+        isVerified: true
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        mobile: true,
+        designation: true,
+        roleId: true,
+        officerProfile: {
+          select: { fullName: true, designation: true, mobile: true, department: true, district: true }
+        }
+      },
+      orderBy: { firstName: "asc" }
+    });
+
+    const formatted = candidates.map((c) => ({
+      id: c.id,
+      name: c.officerProfile?.fullName || [c.firstName, c.lastName].filter(Boolean).join(" ") || c.email,
+      designation: c.officerProfile?.designation || c.designation || "Nodal Officer",
+      email: c.email,
+      mobile: c.officerProfile?.mobile || c.mobile || "",
+      department: c.officerProfile?.department || project.organization?.name || "",
+      isCurrentlyAssigned: project.nodalOfficerUserId === c.id
+    }));
+
+    return successResponse(res, formatted, "Nodal officer candidates retrieved");
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const assignProjectNodalOfficer = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { nodalOfficerUserId, name, designation, email, mobile, password } = req.body;
+
+    const project = await prisma.project.findUnique({
+      where: { id },
+      include: { organization: true }
+    });
+    if (!project) return notFoundResponse(res, "Project not found");
+
+    let assignedUserId = nodalOfficerUserId;
+    let officerEmail = "";
+    let officerName = "";
+    let rawPasswordToSend: string | undefined = undefined;
+
+    if (assignedUserId) {
+      const existingUser = await prisma.user.findUnique({
+        where: { id: assignedUserId },
+        include: { officerProfile: true }
+      });
+      if (!existingUser) return notFoundResponse(res, "Selected Nodal Officer not found");
+      officerEmail = existingUser.email;
+      officerName = existingUser.officerProfile?.fullName || [existingUser.firstName, existingUser.lastName].filter(Boolean).join(" ") || existingUser.email;
+    } else {
+      if (!name || !name.trim()) return res.status(400).json({ error: "Nodal Officer name is required" });
+      if (!email || !email.trim()) return res.status(400).json({ error: "Nodal Officer official email is required" });
+
+      const normalizedEmail = email.trim().toLowerCase();
+      officerEmail = normalizedEmail;
+      officerName = name.trim();
+
+      const existingUser = await prisma.user.findUnique({
+        where: { email: normalizedEmail },
+        include: { officerProfile: true }
+      });
+
+      if (existingUser) {
+        assignedUserId = existingUser.id;
+        officerName = existingUser.officerProfile?.fullName || [existingUser.firstName, existingUser.lastName].filter(Boolean).join(" ") || officerName;
+      } else {
+        const rawPassword = (password && password.trim().length >= 6)
+          ? password.trim()
+          : crypto.randomBytes(5).toString("hex").toUpperCase();
+        rawPasswordToSend = rawPassword;
+
+        const passwordHash = await bcrypt.hash(rawPassword, 10);
+        const nameParts = name.trim().split(/\s+/);
+        const firstName = nameParts[0] || "Nodal";
+        const lastName = nameParts.slice(1).join(" ") || designation || "Officer";
+
+        const createdUser = await prisma.$transaction(async (tx) => {
+          const user = await tx.user.create({
+            data: {
+              email: normalizedEmail,
+              passwordHash,
+              firstName,
+              lastName,
+              designation: designation?.trim() || "District Nodal Officer",
+              mobile: mobile?.trim() || null,
+              roleId: ROLE_ID.DISTRICT_NODAL_OFFICER,
+              organizationId: project.organizationId,
+              accountStatus: "ACTIVE",
+              isVerified: true,
+              mustResetPassword: true,
+              temporaryPasswordExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+            }
+          });
+
+          await tx.userOfficerProfile.create({
+            data: {
+              userId: user.id,
+              fullName: name.trim(),
+              designation: designation?.trim() || "District Nodal Officer",
+              department: project.organization?.name || null,
+              district: project.district || null,
+              taluka: project.taluka || null,
+              mobile: mobile?.trim() || null
+            }
+          });
+
+          return user;
+        });
+
+        assignedUserId = createdUser.id;
+      }
+    }
+
+    // Update project with Nodal Officer and maintain APPROVED status awaiting MoU
+    const updatedProject = await prisma.project.update({
+      where: { id: project.id },
+      data: {
+        nodalOfficerUserId: assignedUserId,
+        status: project.status === "SUBMITTED" || project.status === "UNDER_REVIEW" ? "APPROVED" : project.status
+      },
+      include: { organization: true }
+    });
+
+    // Create/update ProjectAssignment audit record
+    await prisma.projectAssignment.upsert({
+      where: {
+        id: `nodal-${project.id}-${assignedUserId}`
+      },
+      create: {
+        id: `nodal-${project.id}-${assignedUserId}`,
+        entityType: "PROJECT",
+        entityId: project.id,
+        assignmentType: "DISTRICT_NODAL_OFFICER",
+        assignedById: req.user?.id || "SYSTEM",
+        assignedToId: assignedUserId,
+        assignedRoleId: ROLE_ID.DISTRICT_NODAL_OFFICER,
+        status: "ACTIVE"
+      },
+      update: {
+        status: "ACTIVE"
+      }
+    });
+
+    // Send project assignment email with credentials
+    const assigningUser = req.user ? await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: { officerProfile: true }
+    }) : null;
+
+    const authorityDesignation = assigningUser?.officerProfile?.designation || assigningUser?.designation || "Department Administrator";
+    const authorityName = assigningUser?.officerProfile?.fullName || [assigningUser?.firstName, assigningUser?.lastName].filter(Boolean).join(" ") || "Department Authority";
+
+    await sendNodalOfficerAssignmentEmail({
+      to: officerEmail,
+      officerName,
+      password: rawPasswordToSend,
+      isAutogenerated: Boolean(rawPasswordToSend),
+      projectCode: project.projectCode,
+      projectTitle: project.title,
+      authorityName,
+      authorityDesignation,
+      departmentName: project.organization?.name || "Government Department",
+      loginUrl: "/login",
+      projectUrl: `/projects/${project.id}`
+    }).catch((err: any) => console.warn("[Nodal Email Error]:", err.message));
+
+    // Send In-App Notification
+    await dispatchNotification({
+      recipientId: assignedUserId,
+      templateName: "PROJECT_NODAL_OFFICER_ASSIGNED",
+      channels: ["IN_APP", "SOCKET", "EMAIL"],
+      variables: {
+        title: "Project Assigned to You",
+        message: `You have been assigned as Nodal Officer for project ${project.title} (${project.projectCode}). Status: MoU Pending.`,
+        currentStatus: updatedProject.status
+      },
+      actionButtonUrl: `/projects/${project.id}`,
+      correlationId: project.id,
+      notificationType: "PROJECT_NODAL_ASSIGNED"
+    }).catch(() => {});
+
+    return successResponse(res, updatedProject, "Nodal Officer assigned successfully and project moved to MoU Pending");
   } catch (error) {
     next(error);
   }

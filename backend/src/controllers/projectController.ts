@@ -17,9 +17,15 @@ export const getProjects = async (req: AuthenticatedRequest, res: Response, next
     if (user) {
       const roleIdNum = Number(user.roleId || user.role);
       const isSuperAdmin = roleIdNum === 1 || String(user.role) === "SUPER_ADMIN";
-      const isStateAdmin = [2, 3, 4, 5, 6].includes(roleIdNum) || ["PLANNING_SECRETARY", "JOINT_SECRETARY", "RELATIONSHIP_MANAGER", "DISTRICT_NODAL_OFFICER", "DISTRICT_NODAL_CONSULTANT"].includes(String(user.role).toUpperCase());
+      const isDNO = roleIdNum === 4 || String(user.role) === "DISTRICT_NODAL_OFFICER";
+      const isStateAdmin = [2, 3, 5, 6].includes(roleIdNum) || ["PLANNING_SECRETARY", "JOINT_SECRETARY", "RELATIONSHIP_MANAGER", "DISTRICT_NODAL_CONSULTANT"].includes(String(user.role).toUpperCase());
 
-      if (!isSuperAdmin && !isStateAdmin && user.organizationId) {
+      if (isDNO) {
+        filter.OR = [
+          { nodalOfficerUserId: user.id },
+          { projectAssignments: { some: { assignedToId: user.id, status: "ACTIVE" } } }
+        ];
+      } else if (!isSuperAdmin && !isStateAdmin && user.organizationId) {
         filter.OR = [
           { organizationId: user.organizationId },
           { implementingAgencyId: user.organizationId },
@@ -49,6 +55,7 @@ export const getProjects = async (req: AuthenticatedRequest, res: Response, next
 export const getProjectById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
+    const user = req.user;
 
     const project = await prisma.project.findUnique({
       where: { id },
@@ -62,6 +69,20 @@ export const getProjectById = async (req: AuthenticatedRequest, res: Response, n
 
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
+    }
+
+    if (user) {
+      const roleIdNum = Number(user.roleId || user.role);
+      const isSuperAdmin = roleIdNum === 1 || String(user.role) === "SUPER_ADMIN";
+      const isDNO = roleIdNum === 4 || String(user.role) === "DISTRICT_NODAL_OFFICER";
+      if (isDNO && project.nodalOfficerUserId !== user.id) {
+        const hasAssignment = await prisma.projectAssignment.findFirst({
+          where: { entityType: "PROJECT", entityId: project.id, assignedToId: user.id, status: "ACTIVE" }
+        });
+        if (!hasAssignment && !isSuperAdmin) {
+          return res.status(403).json({ error: "Access denied: You are only authorized to view projects assigned to you as Nodal Officer." });
+        }
+      }
     }
 
     return res.json(project);

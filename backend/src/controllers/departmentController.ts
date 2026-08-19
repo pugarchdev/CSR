@@ -130,3 +130,49 @@ export const deleteDepartment = async (req: AuthenticatedRequest, res: Response)
     return res.status(500).json({ error: error.message || "Failed to delete department" });
   }
 };
+
+export const listGovernmentOrganizationsByDistrict = async (req: any, res: Response) => {
+  try {
+    const district = (req.query.district as string || "").trim();
+    const where: any = {
+      kind: "GOVERNMENT_DEPARTMENT",
+      status: "ACTIVE"
+    };
+    if (district) {
+      where.district = { equals: district, mode: "insensitive" };
+    }
+
+    const orgs = await prisma.organization.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        district: true,
+        city: true,
+        taluka: true,
+        govDeptProfile: {
+          select: { orgType: true, adminLevel: true }
+        }
+      },
+      orderBy: [{ district: "asc" }, { name: "asc" }]
+    });
+
+    const formatted = orgs.map((org) => {
+      const districtLabel = org.district ? `, ${org.district}` : "";
+      const hasDistrictInName = org.name.toLowerCase().includes(org.district?.toLowerCase() || "___");
+      const formattedLabel = hasDistrictInName ? org.name : `${org.name}${districtLabel}`;
+
+      return {
+        id: org.id,
+        name: org.name,
+        district: org.district,
+        formattedLabel,
+        type: org.govDeptProfile?.orgType || "Government Department"
+      };
+    });
+
+    return res.json({ success: true, data: formatted });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message || "Failed to list government organizations" });
+  }
+};

@@ -34,7 +34,12 @@ jest.mock("../config/db", () => {
         findFirst: jest.fn().mockImplementation(async ({ where }) => {
           return mockOtpStore
             .filter((o) => {
-              if (o.identifier !== where.identifier) return false;
+              if (where.OR && Array.isArray(where.OR)) {
+                const orMatch = where.OR.some((cond: any) => cond.identifier === o.identifier);
+                if (!orMatch) return false;
+              } else if (where.identifier && o.identifier !== where.identifier) {
+                return false;
+              }
               if (where.verified !== undefined && o.verified !== where.verified) return false;
               if (where.verificationTokenHash !== undefined && o.verificationTokenHash !== where.verificationTokenHash) return false;
               if (where.expiresAt?.gt && o.expiresAt <= where.expiresAt.gt) return false;

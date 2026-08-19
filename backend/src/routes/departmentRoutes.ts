@@ -5,13 +5,15 @@ import {
   createDepartment,
   listDepartments,
   updateDepartment,
-  deleteDepartment
+  deleteDepartment,
+  listGovernmentOrganizationsByDistrict
 } from "../controllers/departmentController";
 
 const router = Router();
 
 router.use(authenticateToken);
 
+router.get("/government-orgs", asyncHandler(listGovernmentOrganizationsByDistrict));
 router.post("/", asyncHandler(createDepartment));
 router.get("/", asyncHandler(listDepartments));
 router.put("/:id", asyncHandler(updateDepartment));

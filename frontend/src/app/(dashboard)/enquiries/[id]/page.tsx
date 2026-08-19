@@ -15,6 +15,7 @@ import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import { useApiQuery } from "@/lib/apiHooks";
 import { apiFetch } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
+import { MAHARASHTRA_DISTRICTS } from "@/lib/locationData";
 
 /* ─── Constants ─── */
 const INTERACTION_TYPES = [
@@ -91,6 +92,8 @@ function JointSecretaryDecisionPanel({
   existingDecision,
   existingReason,
   decidedAt,
+  defaultDistrict = "Nagpur",
+  defaultDepartmentId = "",
   onDecisionRecorded,
 }: {
   assessmentId: string;
@@ -98,12 +101,34 @@ function JointSecretaryDecisionPanel({
   existingDecision?: string;
   existingReason?: string;
   decidedAt?: string;
+  defaultDistrict?: string;
+  defaultDepartmentId?: string;
   onDecisionRecorded: () => void;
 }) {
   const [reason, setReason] = useState("");
   const [working, setWorking] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [selectedDistrict, setSelectedDistrict] = useState(defaultDistrict);
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState(defaultDepartmentId);
+
+  // Fetch government departments dynamically based on selected district
+  const { data: govOrgsResponse, isLoading: loadingOrgs } = useApiQuery<any>(
+    ["government-orgs-by-district", selectedDistrict],
+    `/departments/government-orgs?district=${encodeURIComponent(selectedDistrict)}`,
+    { enabled: Boolean(selectedDistrict) }
+  );
+
+  const govOrgs: Array<{ id: string; name: string; formattedLabel: string; type: string }> = useMemo(() => {
+    return govOrgsResponse?.data || [];
+  }, [govOrgsResponse]);
+
+  // Set default org when org list changes
+  useEffect(() => {
+    if (govOrgs.length > 0 && !govOrgs.some((o) => o.id === selectedDepartmentId)) {
+      setSelectedDepartmentId(govOrgs[0].id);
+    }
+  }, [govOrgs, selectedDepartmentId]);
 
   const decide = async (decision: "PROCEED" | "PROCEED_WITH_CONDITIONS" | "RETURN_FOR_CLARIFICATION" | "DO_NOT_PROCEED") => {
     setMessage("");
@@ -112,11 +137,20 @@ function JointSecretaryDecisionPanel({
       setError("Please provide a reason or conditions (minimum 5 characters) for this decision.");
       return;
     }
+    if ((decision === "PROCEED" || decision === "PROCEED_WITH_CONDITIONS") && !selectedDepartmentId) {
+      setError("Please select a target Government Organization to assign the project.");
+      return;
+    }
     setWorking(decision);
     try {
       const res = await apiFetch<any>(`/js/assessments/${assessmentId}/decision`, {
         method: "POST",
-        body: JSON.stringify({ decision, reason: reason.trim() })
+        body: JSON.stringify({
+          decision,
+          reason: reason.trim(),
+          targetDepartmentId: selectedDepartmentId,
+          targetDistrict: selectedDistrict
+        })
       });
       setMessage(res?.message || "Joint Secretary decision recorded successfully.");
       onDecisionRecorded();
@@ -143,7 +177,7 @@ function JointSecretaryDecisionPanel({
           </p>
         )}
         <p className="text-xs text-emerald-700">
-          This enquiry has been sanctioned and routed for District Nodal Consultant and Department onboarding.
+          This enquiry has been sanctioned and routed to the assigned Government Organization and District Nodal Consultant.
         </p>
       </div>
     );
@@ -199,8 +233,54 @@ function JointSecretaryDecisionPanel({
       </div>
 
       <p className="text-xs text-slate-600 leading-relaxed">
-        Review the 13-Point Feasibility Checklist and RM recommendations above. Select an executive decision to proceed with Government department routing, request RM corrections, or decline.
+        Review the 13-Point Feasibility Checklist and RM recommendations. Select the target district and government organization (ZP, Collectorate, Municipal Corporation) to allocate the project upon approval.
       </p>
+
+      {/* Target District & Organization Selection Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-white/80 p-3.5 rounded-xl border border-blue-100">
+        <div className="space-y-1">
+          <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+            <MapPin size={13} className="text-blue-800" /> Target District
+          </label>
+          <select
+            value={selectedDistrict}
+            onChange={(e) => setSelectedDistrict(e.target.value)}
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+          >
+            {MAHARASHTRA_DISTRICTS.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+          <span className="text-[10px] text-slate-500">Auto-fetched from Corporate Enquiry preference</span>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+            <Building2 size={13} className="text-blue-800" /> Assign To Government Organization
+          </label>
+          <select
+            value={selectedDepartmentId}
+            onChange={(e) => setSelectedDepartmentId(e.target.value)}
+            disabled={loadingOrgs}
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-blue-950 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50"
+          >
+            {loadingOrgs ? (
+              <option value="">Loading organizations for {selectedDistrict}...</option>
+            ) : govOrgs.length > 0 ? (
+              govOrgs.map((org) => (
+                <option key={org.id} value={org.id}>
+                  {org.formattedLabel}
+                </option>
+              ))
+            ) : (
+              <option value="">No registered organization in {selectedDistrict} (Select another district)</option>
+            )}
+          </select>
+          <span className="text-[10px] text-slate-500">Filtered by selected district (ZP, Collectorate, MNC)</span>
+        </div>
+      </div>
 
       <div className="space-y-1.5">
         <label className="text-xs font-bold text-slate-700">
@@ -220,16 +300,16 @@ function JointSecretaryDecisionPanel({
 
       <div className="flex flex-wrap gap-2.5 pt-1">
         <button
-          disabled={Boolean(working)}
+          disabled={Boolean(working) || (!selectedDepartmentId && govOrgs.length > 0)}
           onClick={() => decide("PROCEED")}
           className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2.5 text-xs font-extrabold text-white shadow-sm hover:bg-emerald-800 transition-all disabled:opacity-50"
         >
           {working === "PROCEED" ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
-          Approve & Route Project
+          Approve & Route to {govOrgs.find((o) => o.id === selectedDepartmentId)?.formattedLabel || "Organization"}
         </button>
 
         <button
-          disabled={Boolean(working)}
+          disabled={Boolean(working) || (!selectedDepartmentId && govOrgs.length > 0)}
           onClick={() => decide("PROCEED_WITH_CONDITIONS")}
           className="inline-flex items-center gap-1.5 rounded-xl bg-blue-900 px-4 py-2.5 text-xs font-extrabold text-white shadow-sm hover:bg-blue-950 transition-all disabled:opacity-50"
         >
@@ -734,6 +814,8 @@ export default function EnquiryDetailPage() {
                 existingDecision={assessment.jsDecision}
                 existingReason={assessment.jsDecisionReason}
                 decidedAt={assessment.jsDecidedAt}
+                defaultDistrict={enquiry?.preferredDistricts?.[0] || enquiry?.district || assessment?.targetDistricts?.[0] || "Nagpur"}
+                defaultDepartmentId={assessment?.targetDepartmentId || ""}
                 onDecisionRecorded={() => { refetchAssessment(); refetch(); }}
               />
             ) : (
@@ -1385,6 +1467,8 @@ function FeasibilityWorkspace({
             existingDecision={existingAssessment.jsDecision}
             existingReason={existingAssessment.jsDecisionReason}
             decidedAt={existingAssessment.jsDecidedAt}
+            defaultDistrict={existingAssessment?.targetDistricts?.[0] || "Nagpur"}
+            defaultDepartmentId={existingAssessment?.targetDepartmentId || ""}
             onDecisionRecorded={() => { onSubmitted(); }}
           />
         </div>
