@@ -153,14 +153,7 @@ function LoginForm() {
         return;
       }
 
-      const orgStatus = user.organization?.status;
-      const isSuperAdmin = user.roleNumericId === 1 || user.role === "SUPER_ADMIN";
-
-      if (!isSuperAdmin && user.organization && orgStatus !== "ACTIVE") {
-        router.push("/organization/onboarding");
-      } else {
-        router.push("/dashboard");
-      }
+      router.push("/dashboard");
       setLoginSuccess(true);
     } catch (err: any) {
       const msg = typeof err === "string" ? err : err?.message || "An error occurred during authentication";
