@@ -701,14 +701,22 @@ export default function PublicDevelopmentNeedsPage() {
                 </div>
               ) : (
                 <div className="space-y-3 text-xs">
-                  <div className="grid grid-cols-2 gap-3">
+                  {/* Verified Corporate Linkage Banner */}
+                  <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3 flex items-start gap-2.5">
+                    <Building2 size={16} className="text-blue-900 shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-blue-950 leading-relaxed">
+                      This submission will be auto-linked with your verified corporate profile (<strong>CIN: {interestForm.mca21Cin || "On Record"}</strong>). Your assigned CSR Relationship Manager will review MCA Schedule VII eligibility, budget adequacy, and contact you for MoU coordination.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="font-bold text-slate-700 block mb-1">Company Name</label>
                       <input
                         type="text"
                         value={interestForm.companyName}
                         onChange={(e) => setInterestForm({ ...interestForm, companyName: e.target.value })}
-                        className="w-full rounded-xl border border-slate-200 p-2.5 outline-none focus:border-blue-600"
+                        className="w-full rounded-xl border border-slate-200 p-2.5 outline-none focus:border-blue-600 bg-slate-50 font-medium"
                       />
                     </div>
                     <div>
@@ -717,19 +725,19 @@ export default function PublicDevelopmentNeedsPage() {
                         type="text"
                         value={interestForm.mca21Cin}
                         onChange={(e) => setInterestForm({ ...interestForm, mca21Cin: e.target.value })}
-                        className="w-full rounded-xl border border-slate-200 p-2.5 outline-none focus:border-blue-600"
+                        className="w-full rounded-xl border border-slate-200 p-2.5 outline-none focus:border-blue-600 bg-slate-50 font-mono"
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="font-bold text-slate-700 block mb-1">Contact Person</label>
                       <input
                         type="text"
                         value={interestForm.contactPersonName}
                         onChange={(e) => setInterestForm({ ...interestForm, contactPersonName: e.target.value })}
-                        className="w-full rounded-xl border border-slate-200 p-2.5 outline-none focus:border-blue-600"
+                        className="w-full rounded-xl border border-slate-200 p-2.5 outline-none focus:border-blue-600 font-medium"
                       />
                     </div>
                     <div>
@@ -739,22 +747,56 @@ export default function PublicDevelopmentNeedsPage() {
                         placeholder={`e.g. ${selectedNeed.approvedBudget || selectedNeed.estimatedCost}`}
                         value={interestForm.indicativeBudget}
                         onChange={(e) => setInterestForm({ ...interestForm, indicativeBudget: e.target.value })}
+                        className="w-full rounded-xl border border-slate-200 p-2.5 outline-none focus:border-blue-600 font-bold text-blue-950"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Official Email</label>
+                      <input
+                        type="email"
+                        value={interestForm.email || ""}
+                        onChange={(e) => setInterestForm({ ...interestForm, email: e.target.value })}
+                        placeholder="csr.lead@company.com"
+                        className="w-full rounded-xl border border-slate-200 p-2.5 outline-none focus:border-blue-600"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Mobile Number</label>
+                      <input
+                        type="tel"
+                        value={interestForm.mobile || ""}
+                        onChange={(e) => setInterestForm({ ...interestForm, mobile: e.target.value })}
+                        placeholder="10-digit mobile"
                         className="w-full rounded-xl border border-slate-200 p-2.5 outline-none focus:border-blue-600"
                       />
                     </div>
                   </div>
 
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Implementation Remarks / Preference (Optional)</label>
+                    <textarea
+                      rows={2}
+                      value={(interestForm as any).remarks || ""}
+                      onChange={(e) => setInterestForm({ ...interestForm, remarks: e.target.value } as any)}
+                      placeholder="e.g. CSR Committee pre-approved; targeted for Q3 deployment; preference for direct execution via Zilla Parishad..."
+                      className="w-full rounded-xl border border-slate-200 p-2.5 outline-none focus:border-blue-600 text-xs"
+                    />
+                  </div>
+
                   <div className="flex items-center justify-end gap-2 border-t border-slate-100 pt-3">
                     <button
                       onClick={() => setSelectedNeed(null)}
-                      className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                      className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-all"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleExpressInterest}
                       disabled={expressingInterest === selectedNeed.id}
-                      className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-blue-900 text-xs font-extrabold text-white hover:bg-blue-950 disabled:opacity-60"
+                      className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-blue-900 text-xs font-extrabold text-white hover:bg-blue-950 transition-all disabled:opacity-60"
                     >
                       {expressingInterest === selectedNeed.id ? <Loader2 size={14} className="animate-spin" /> : <HeartHandshake size={14} />}
                       Submit Interest

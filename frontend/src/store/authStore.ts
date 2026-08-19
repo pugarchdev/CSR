@@ -194,6 +194,7 @@ export const useAuthStore = create<AuthState>()(
 
           if (payload) {
             set({
+              ...(payload.user ? { user: { ...state.user, ...payload.user } } : {}),
               permissions: payload.permissions || payload.access?.permissions || [],
               roles: payload.roles || (payload.role ? [payload.role] : []),
               roleDetails: payload.roleDetails || [],

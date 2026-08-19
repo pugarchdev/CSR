@@ -7,6 +7,7 @@ import { isSuperAdmin } from "../services/roleResolver";
 import { OtpSendLimitError, sendOtp, verifyOtp } from "../services/otpService";
 import { sendUserInvitationEmail } from "../services/emailService";
 import { notifyHierarchy } from "../services/hierarchyNotificationService";
+import { clearCachePattern } from "../config/redis";
 
 const MAIN_DESIGNATIONS: Record<string, string> = {
   COLLECTORATE: "Collector",
@@ -430,8 +431,19 @@ export const decideGovernmentOnboarding = async (req: AuthenticatedRequest, res:
           details: { remarks: remarks || null, reviewerRoleCode: application.reviewerRoleCode }
         }
       });
+      if (decision === "APPROVE") {
+        await tx.user.updateMany({
+          where: { organizationId: application.organizationId },
+          data: { accountStatus: "ACTIVE", isVerified: true }
+        });
+      }
       return record;
     });
+
+    // Invalidate Redis and L1 RAM caches immediately
+    await clearCachePattern(`*${application.organizationId}*`).catch(() => {});
+    await clearCachePattern(`dashboard:summary:*`).catch(() => {});
+    await clearCachePattern(`auth:permissions:*`).catch(() => {});
 
     notifyHierarchy({
       title: decision === "APPROVE"

@@ -140,17 +140,22 @@ export async function getCache<T>(key: string): Promise<T | null> {
  * Updates L1 RAM cache immediately (0ms), and syncs to L2 Cloud Redis in background.
  */
 export async function setCache<T>(key: string, value: T, ttlSeconds: number = 300): Promise<void> {
+  if (ttlSeconds <= 0) {
+    // If TTL is 0 or negative, do not cache; evict any existing key
+    delL1(key);
+    if (isRedisConnected) {
+      redis.del(key).catch(() => {});
+    }
+    return;
+  }
+
   // 1. Immediate L1 RAM write (0ms)
   setL1(key, value, ttlSeconds);
 
-  // 2. Non-blocking background L2 Redis write
+  // 2. Non-blocking background L2 Redis write with explicit TTL
   if (isRedisConnected) {
     const serialized = JSON.stringify(value);
-    const writePromise = ttlSeconds > 0
-      ? redis.setex(key, ttlSeconds, serialized)
-      : redis.set(key, serialized);
-    
-    writePromise.catch(() => {});
+    redis.setex(key, ttlSeconds, serialized).catch(() => {});
   }
 }
 
@@ -198,6 +203,11 @@ export async function cacheOrFetch<T>(
   fetchFn: () => Promise<T>,
   ttlSeconds: number = 300
 ): Promise<T> {
+  if (ttlSeconds <= 0) {
+    // Bypass cache completely for real-time live queries
+    return fetchFn();
+  }
+
   const cached = await getCache<T>(key);
   if (cached !== null) {
     return cached;

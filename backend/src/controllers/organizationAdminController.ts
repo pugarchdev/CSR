@@ -8,6 +8,7 @@ import { ROLE_ID } from "../types/role";
 import { AuthenticatedRequest } from "../middlewares/authMiddleware";
 import { notifyHierarchy } from "../services/hierarchyNotificationService";
 import { sendUserInvitationEmail } from "../services/emailService";
+import { clearCachePattern } from "../config/redis";
 
 export const getOwnedOrganization = async (req: AuthenticatedRequest, kind?: string, allowLocked = false) => {
   let organizationId = req.user?.organizationId || req.user?.ngoId || req.user?.companyId;
@@ -321,8 +322,45 @@ export const approveOrganization = async (req: AuthenticatedRequest, res: Respon
   try {
     const updated = await prisma.organization.update({
       where: { id: req.params.id },
-      data: { status: "ACTIVE" }
+      data: {
+        status: "ACTIVE",
+        clarificationRemarks: null,
+        rejectionReason: null
+      }
     });
+
+    // Activate all users linked to this organization
+    await prisma.user.updateMany({
+      where: { organizationId: updated.id },
+      data: { accountStatus: "ACTIVE", isVerified: true }
+    });
+
+    // Update any pending onboarding applications for this org
+    await prisma.governmentOnboardingApplication.updateMany({
+      where: { organizationId: updated.id, status: "UNDER_VERIFICATION" },
+      data: { status: "APPROVED", decision: "APPROVE", decidedAt: new Date() }
+    });
+
+    // Invalidate Redis and L1 RAM caches immediately
+    await clearCachePattern(`*${updated.id}*`).catch(() => {});
+    await clearCachePattern(`dashboard:summary:*`).catch(() => {});
+    await clearCachePattern(`auth:permissions:*`).catch(() => {});
+
+    // Create audit log
+    await prisma.auditLog.create({
+      data: {
+        action: "ORGANIZATION_ONBOARDING_APPROVED",
+        entityType: "Organization",
+        entityId: updated.id,
+        actorUserId: req.user?.id || null,
+        details: {
+          orgName: updated.name,
+          orgKind: updated.kind,
+          approvedByUserId: req.user?.id
+        }
+      }
+    }).catch(() => {});
+
     notifyHierarchy({
       title: "Organization Onboarding Approved",
       message: `Organization "${updated.name}" has been approved and activated on the MahaCSR Portal.`,
@@ -339,6 +377,7 @@ export const approveOrganization = async (req: AuthenticatedRequest, res: Respon
         workflowStatus: `Organization "${updated.name}" has been approved and activated.`
       }
     }).catch((err) => console.error("[NotifyHierarchy] Error sending approval notification:", err));
+
     return res.json(updated);
   } catch (error) {
     next(error);
@@ -352,6 +391,12 @@ export const rejectOrganization = async (req: AuthenticatedRequest, res: Respons
       where: { id: req.params.id },
       data: { status: "REJECTED", rejectionReason: reason } as any
     });
+
+    // Invalidate caches
+    await clearCachePattern(`*${updated.id}*`).catch(() => {});
+    await clearCachePattern(`dashboard:summary:*`).catch(() => {});
+    await clearCachePattern(`auth:permissions:*`).catch(() => {});
+
     notifyHierarchy({
       title: "Organization Onboarding Rejected",
       message: `Organization "${updated.name}" onboarding request has been rejected. Reason: ${reason}`,
@@ -381,6 +426,12 @@ export const suspendOrganization = async (req: AuthenticatedRequest, res: Respon
       where: { id: req.params.id },
       data: { status: "SUSPENDED", rejectionReason: reason } as any
     });
+
+    // Invalidate caches
+    await clearCachePattern(`*${updated.id}*`).catch(() => {});
+    await clearCachePattern(`dashboard:summary:*`).catch(() => {});
+    await clearCachePattern(`auth:permissions:*`).catch(() => {});
+
     notifyHierarchy({
       title: "Organization Account Suspended",
       message: `Organization "${updated.name}" status has been updated to suspended. Reason: ${reason}`,
@@ -410,6 +461,12 @@ export const requestClarification = async (req: AuthenticatedRequest, res: Respo
       where: { id: req.params.id },
       data: { status: "CLARIFICATION_REQUIRED", clarificationRemarks: remarks } as any
     });
+
+    // Invalidate caches
+    await clearCachePattern(`*${updated.id}*`).catch(() => {});
+    await clearCachePattern(`dashboard:summary:*`).catch(() => {});
+    await clearCachePattern(`auth:permissions:*`).catch(() => {});
+
     notifyHierarchy({
       title: "Clarification Required for Onboarding",
       message: `Clarification requested for organization "${updated.name}". Remarks: ${remarks}`,

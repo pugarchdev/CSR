@@ -50,10 +50,22 @@ const CACHE_STALE_MS = 5 * 60 * 1000;   // serve instantly + revalidate in backg
 
 type CacheHit<T> = { data: T; isStale: boolean } | null;
 
+const isBypassedPath = (path: string): boolean => {
+  return (
+    path.includes("/dashboard") ||
+    path.includes("/summary") ||
+    path.includes("/onboarding") ||
+    path.includes("/auth/me") ||
+    path.includes("/organizations") ||
+    path.includes("/admin/organizations") ||
+    path.includes("/enquiries")
+  );
+};
+
 const getCachedData = <T>(path: string): CacheHit<T> => {
   if (typeof window === "undefined") return null;
-  // Dashboard routes must always reflect real-time live operational numbers
-  if (path.includes("/dashboard") || path.includes("/summary")) return null;
+  // Real-time routes must always reflect live operational status from the server
+  if (isBypassedPath(path)) return null;
 
   const cached = localStorage.getItem(CACHE_PREFIX + btoa(path));
   if (!cached) return null;
@@ -72,6 +84,7 @@ const getCachedData = <T>(path: string): CacheHit<T> => {
 
 export const getCachedApiData = <T>(path: string): T | undefined => {
   if (typeof window === "undefined") return undefined;
+  if (isBypassedPath(path)) return undefined;
   try {
     const cached = localStorage.getItem(CACHE_PREFIX + btoa(path));
     if (!cached) return undefined;
@@ -84,7 +97,7 @@ export const getCachedApiData = <T>(path: string): T | undefined => {
 
 const setCachedData = <T>(path: string, data: T): void => {
   if (typeof window === "undefined") return;
-  if (path.includes("/dashboard") || path.includes("/summary")) return;
+  if (isBypassedPath(path)) return;
   localStorage.setItem(CACHE_PREFIX + btoa(path), JSON.stringify({ data, timestamp: Date.now() }));
 };
 
