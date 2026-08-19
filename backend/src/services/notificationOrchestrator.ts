@@ -93,7 +93,9 @@ export async function dispatchNotification(input: DispatchInput): Promise<void> 
     input.channels ||
     ((template?.channels?.length ? template.channels : ["IN_APP", "SOCKET", "EMAIL"]) as NotificationJobPayload["channels"]);
 
-  const recipients = [input.recipientId, ...(input.ccRecipientIds || [])];
+  const recipients = Array.from(
+    new Set([input.recipientId, ...(input.ccRecipientIds || [])].filter((id): id is string => typeof id === "string" && id.trim().length > 0))
+  );
   let users: any[] = [];
   if (prisma?.user?.findMany) {
     try {

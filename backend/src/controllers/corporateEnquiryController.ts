@@ -155,18 +155,21 @@ export const submitCorporateEnquiry = async (req: AuthenticatedRequest, res: Res
       })
     ]);
 
-    notifyHierarchy({
-      title: "New Corporate Enquiry Submitted",
-      message: `Corporate enquiry ${enquiry.trackingId} submitted by "${enquiry.corporateName}".`,
-      organizationId: enquiry.organizationId,
-      assignedRmId: enquiry.assignedRelationshipManagerId,
-      district: preferredDistrict,
-      includePortalAdmins: true,
-      includeRms: Boolean(assignedRmId),
-      includeStateOfficers: !assignedRmId,
-      includeDistrictOfficers: true,
-      actionButtonUrl: `/enquiries`
-    }).catch(err => console.error("Notification dispatch failed:", err));
+    if (enquiry.submittedByUserId) {
+      await dispatchNotification({
+        recipientId: enquiry.submittedByUserId,
+        templateName: "CORPORATE_ENQUIRY_SUBMITTED_CONFIRMATION",
+        channels: ["IN_APP", "SOCKET"],
+        variables: {
+          title: "Corporate Enquiry Submitted",
+          message: `Your corporate enquiry ${enquiry.trackingId} has been successfully submitted and assigned for assessment.`,
+          currentStatus: enquiry.status
+        },
+        actionButtonUrl: `/enquiries/${enquiry.id}`,
+        correlationId: enquiry.id,
+        notificationType: "ENQUIRY_SUBMISSION"
+      }).catch((err) => console.warn("Submitter in-app dispatch failed:", err));
+    }
 
     return res.status(201).json({
       ...enquiry
@@ -235,15 +238,6 @@ export const assignRelationshipManager = async (req: AuthenticatedRequest, res: 
     });
     await dispatchNotification({ recipientId: rm.id, templateName: "CORPORATE_ENQUIRY_REASSIGNED", channels: ["IN_APP", "SOCKET", "EMAIL", "SMS"], variables: { title: "Enquiry reassigned by Joint Secretary", message: `Enquiry ${updated.trackingId} is now assigned to you.`, currentStatus: updated.status }, actionButtonUrl: `/enquiries/${updated.id}`, correlationId: updated.id, notificationType: "RM_REASSIGNMENT" });
     await dispatchToContact({ referenceId: updated.trackingId || updated.id, email: updated.contactEmail, phone: updated.mobile, title: "Relationship Manager reassigned", message: `A Relationship Manager has been reassigned to application ${updated.trackingId || updated.id}.`, trackingId: updated.trackingId || undefined, currentStatus: updated.status, actionButtonUrl: `/track?trackingId=${encodeURIComponent(updated.trackingId || updated.id)}`, correlationId: updated.id, notificationType: "RM_REASSIGNMENT" });
-
-    notifyHierarchy({
-      title: "Relationship Manager Assigned",
-      message: `Relationship Manager assigned to Corporate Enquiry ${updated.trackingId}.`,
-      assignedRmId: req.body.relationshipManagerId,
-      organizationId: updated.organizationId,
-      includePortalAdmins: true,
-      actionButtonUrl: `/enquiries`
-    }).catch(err => console.error("Notification dispatch failed:", err));
 
     return res.json(updated);
   } catch (error) {

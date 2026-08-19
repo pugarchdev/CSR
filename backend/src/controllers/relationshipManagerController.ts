@@ -291,18 +291,21 @@ export const verifyGovernmentPitch = async (req: AuthenticatedRequest, res: Resp
       notificationType: "PITCH_JS_REVIEW"
     });
 
-    notifyHierarchy({
-      title: "Government Pitch Verified & Forwarded to Joint Secretary",
-      message: `Government pitch ${pitch.pitchReferenceId} ("${pitch.title}") has been verified by RM and forwarded to Joint Secretary for sign-off.`,
-      organizationId: pitch.departmentId,
-      assignedRmId: pitch.assignedRelationshipManagerId || userId,
-      district: Array.isArray(pitch.districts) && pitch.districts.length > 0 ? pitch.districts[0] : null,
-      includePortalAdmins: true,
-      includeRms: true,
-      includeStateOfficers: true,
-      includeOrgUsers: true,
-      actionButtonUrl: `/pitches/${pitch.id}`
-    }).catch((err) => console.error("[VerifyPitch] Hierarchy notification dispatch failed:", err));
+    if (pitch.submittedByUserId) {
+      await dispatchNotification({
+        recipientId: pitch.submittedByUserId,
+        templateName: "GOVERNMENT_PITCH_VERIFIED_SUBMITTER",
+        channels: ["IN_APP", "SOCKET"],
+        variables: {
+          title: "Pitch Verified & Forwarded to Joint Secretary",
+          message: `Your pitch ${pitch.pitchReferenceId || pitch.id} has been verified by the assigned Relationship Manager and forwarded to the Joint Secretary for final review and approval.`,
+          currentStatus: nextStatus
+        },
+        actionButtonUrl: `/pitches/${pitch.id}`,
+        correlationId: pitch.id,
+        notificationType: "PITCH_VERIFIED"
+      });
+    }
 
     await auditLog(userId, "GOVERNMENT_PITCH_VERIFIED", {
       pitchId: id,
@@ -401,17 +404,6 @@ export const requestPitchClarification = async (req: AuthenticatedRequest, res: 
       correlationId: pitch.id,
       notificationType: "PITCH_CLARIFICATION"
     });
-
-    notifyHierarchy({
-      title: "Clarification Requested on Government Pitch",
-      message: `Relationship Manager requested clarification on pitch ${pitch.pitchReferenceId || pitch.id}: "${clarificationText}"`,
-      organizationId: pitch.departmentId,
-      assignedRmId: pitch.assignedRelationshipManagerId || userId,
-      district: Array.isArray(pitch.districts) && pitch.districts.length > 0 ? pitch.districts[0] : null,
-      includeOrgUsers: true,
-      includeStateOfficers: true,
-      actionButtonUrl: `/pitches/${pitch.id}`
-    }).catch((err) => console.error("[RequestClarification] Hierarchy notification dispatch failed:", err));
 
     await auditLog(userId, "GOVERNMENT_PITCH_CLARIFICATION_REQUESTED", { pitchId: id, clarification: clarificationText });
 

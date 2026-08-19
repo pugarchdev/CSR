@@ -171,18 +171,21 @@ export const submitGovernmentPitch = async (req: AuthenticatedRequest, res: Resp
       })
     ]);
 
-    notifyHierarchy({
-      title: "New Government Pitch Submitted",
-      message: `Government pitch ${pitch.pitchReferenceId} ("${pitch.title}") submitted for review.`,
-      organizationId: pitch.departmentId,
-      assignedRmId: pitch.assignedRelationshipManagerId,
-      district: preferredDistrict,
-      includePortalAdmins: true,
-      includeRms: true,
-      includeDistrictOfficers: true,
-      includeStateOfficers: true,
-      actionButtonUrl: `/pitches`
-    }).catch(err => console.error("Notification dispatch failed:", err));
+    if (pitch.submittedByUserId) {
+      await dispatchNotification({
+        recipientId: pitch.submittedByUserId,
+        templateName: "GOVERNMENT_PITCH_SUBMITTED_CONFIRMATION",
+        channels: ["IN_APP", "SOCKET"],
+        variables: {
+          title: "Government Pitch Proposal Submitted",
+          message: `Your proposal ${pitch.pitchReferenceId} has been successfully submitted and assigned for verification.`,
+          currentStatus: pitch.status
+        },
+        actionButtonUrl: `/pitches/${pitch.id}`,
+        correlationId: pitch.id,
+        notificationType: "PITCH_SUBMISSION"
+      }).catch((err) => console.warn("Submitter in-app dispatch failed:", err));
+    }
 
     return res.status(201).json(pitch);
   } catch (error) {
@@ -492,15 +495,6 @@ export const assignPitchRelationshipManager = async (req: AuthenticatedRequest, 
     await dispatchNotification({ recipientId: rm.id, templateName: "GOVERNMENT_PITCH_REASSIGNED", channels: ["IN_APP", "SOCKET", "EMAIL", "SMS"], variables: { title: "Pitch reassigned by Joint Secretary", message: `Pitch ${updated.pitchReferenceId} is now assigned to you.`, currentStatus: updated.status }, actionButtonUrl: `/pitches/${updated.id}`, correlationId: updated.id, notificationType: "RM_REASSIGNMENT" });
     await dispatchToContact({ referenceId: updated.pitchReferenceId || updated.id, email: updated.email, phone: updated.mobile, title: "Relationship Manager reassigned", message: `A Relationship Manager has been reassigned to pitch ${updated.pitchReferenceId || updated.id}.`, trackingId: updated.pitchReferenceId || undefined, currentStatus: updated.status, actionButtonUrl: `/track?trackingId=${encodeURIComponent(updated.pitchReferenceId || updated.id)}`, correlationId: updated.id, notificationType: "RM_REASSIGNMENT" });
 
-    notifyHierarchy({
-      title: "Relationship Manager Assigned to Pitch",
-      message: `Relationship Manager assigned to Government Pitch ${updated.pitchReferenceId}.`,
-      assignedRmId: req.body.relationshipManagerId,
-      organizationId: updated.departmentId,
-      includePortalAdmins: true,
-      actionButtonUrl: `/pitches`
-    }).catch(err => console.error("Notification dispatch failed:", err));
-
     return res.json(updated);
   } catch (error) {
     next(error);
@@ -718,19 +712,21 @@ export const approvePitch = async (req: AuthenticatedRequest, res: Response, nex
       notificationType: "JS_DECISION"
     });
 
-    notifyHierarchy({
-      title: published ? "Government Pitch Approved & Published" : "Joint Secretary Pitch Decision",
-      message: published ? `Government pitch ${updated.pitchReferenceId || updated.id} ("${updated.title}") has been approved by Joint Secretary and published to the public marketplace.` : `Joint Secretary decision recorded for pitch ${updated.pitchReferenceId || updated.id}: ${decision.replace(/_/g, " ")}.`,
-      organizationId: updated.departmentId,
-      assignedRmId: updated.assignedRelationshipManagerId,
-      district: Array.isArray(updated.districts) && updated.districts.length > 0 ? updated.districts[0] : null,
-      includePortalAdmins: true,
-      includeRms: true,
-      includeDistrictOfficers: true,
-      includeStateOfficers: true,
-      includeOrgUsers: true,
-      actionButtonUrl: `/pitches/${updated.id}`
-    }).catch(err => console.error("Notification dispatch failed:", err));
+    if (updated.submittedByUserId) {
+      await dispatchNotification({
+        recipientId: updated.submittedByUserId,
+        templateName: "GOVERNMENT_PITCH_DECISION_SUBMITTER",
+        channels: ["IN_APP", "SOCKET"],
+        variables: {
+          title: published ? "Pitch Approved and Listed" : "Joint Secretary Decision on Pitch",
+          message: published ? `Your pitch ${updated.pitchReferenceId || updated.id} has been approved by the Joint Secretary and is now publicly listed.` : `A Joint Secretary decision has been recorded for pitch ${updated.pitchReferenceId || updated.id}: ${decision.replace(/_/g, " ")}.`,
+          currentStatus: updated.status
+        },
+        actionButtonUrl: `/pitches/${updated.id}`,
+        correlationId: updated.id,
+        notificationType: "JS_DECISION"
+      }).catch((err) => console.warn("Submitter in-app dispatch failed:", err));
+    }
 
     return res.json({ success: true, message: published ? "Pitch approved and published for corporate interest." : "Joint Secretary decision recorded.", pitch: updated, decision });
   } catch (error) {
@@ -825,17 +821,6 @@ export const respondToPitchClarification = async (req: AuthenticatedRequest, res
         notificationType: "PITCH_CLARIFICATION_RESPONSE"
       });
     }
-
-    notifyHierarchy({
-      title: "Department Clarification Provided",
-      message: `Clarification provided by department on pitch ${pitch.pitchReferenceId || pitch.id}: "${noteText}"`,
-      organizationId: pitch.departmentId,
-      assignedRmId: pitch.assignedRelationshipManagerId || undefined,
-      district: Array.isArray(pitch.districts) && pitch.districts.length > 0 ? pitch.districts[0] : null,
-      includeRms: true,
-      includePortalAdmins: true,
-      actionButtonUrl: `/pitches/${pitch.id}`
-    }).catch((err) => console.error("[ClarificationResponded] Hierarchy notification dispatch failed:", err));
 
     await auditLog(userId, "GOVERNMENT_PITCH_CLARIFICATION_PROVIDED", { pitchId: id, responseNote: noteText, supportingDocuments: updatedDocs });
 

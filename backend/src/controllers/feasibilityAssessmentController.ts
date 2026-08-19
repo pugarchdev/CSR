@@ -3,8 +3,7 @@ import prisma from "../config/db";
 import { AuthenticatedRequest } from "../middlewares/authMiddleware";
 import { ROLE_ID } from "../types/role";
 import { routeApprovedCorporateEnquiry } from "../services/approvedProjectRoutingService";
-import { dispatchToContact } from "../services/notificationOrchestrator";
-import { notifyHierarchy } from "../services/hierarchyNotificationService";
+import { dispatchNotification, dispatchToContact } from "../services/notificationOrchestrator";
 
 export const createAssessment = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
@@ -178,23 +177,23 @@ export const submitJSDecision = async (req: AuthenticatedRequest, res: Response,
         notificationType: "JS_DECISION"
       });
 
-      notifyHierarchy({
-        title: isApproved ? "Corporate Enquiry Feasibility Approved" : isReturned ? "Clarification Required for Corporate Enquiry" : "Corporate Enquiry Feasibility Rejected",
-        message: isApproved
-          ? `Joint Secretary approved feasibility for corporate enquiry ${enquiry?.trackingId || assessment.enquiryId}.`
-          : isReturned
-          ? `Joint Secretary requested ${decision === "RETURN_FOR_CLARIFICATION" ? "clarification" : "correction"} for corporate enquiry ${enquiry?.trackingId || assessment.enquiryId}. Reason: ${reason}`
-          : `Corporate enquiry ${enquiry?.trackingId || assessment.enquiryId} was rejected by Joint Secretary. Reason: ${reason}`,
-        assignedRmId: assessment.assessedByUserId,
-        includePortalAdmins: true,
-        includeStateOfficers: true,
-        includeRms: true,
-        actionButtonUrl: `/enquiries`,
-        variables: {
-          currentStatus: enquiryStatus,
-          workflowStatus: reason || `JS Decision: ${decision}`
-        }
-      }).catch((err) => console.error("[FeasibilityAssessment] Notification failed:", err));
+      if (assessment.assessedByUserId) {
+        await dispatchNotification({
+          recipientId: assessment.assessedByUserId,
+          templateName: "CORPORATE_ENQUIRY_JS_DECISION",
+          channels: ["IN_APP", "SOCKET", "EMAIL", "SMS"],
+          variables: {
+            title: isApproved ? "Corporate Enquiry Approved by JS" : isReturned ? "Joint Secretary Requested Clarification" : "Corporate Enquiry Rejected by JS",
+            message: isApproved
+              ? `Joint Secretary approved feasibility for corporate enquiry ${enquiry?.trackingId || assessment.enquiryId}.`
+              : `Joint Secretary recorded decision for enquiry ${enquiry?.trackingId || assessment.enquiryId}: ${decision.replace(/_/g, " ")}. Remarks: "${reason || "No remarks"}"`,
+            currentStatus: enquiryStatus
+          },
+          actionButtonUrl: `/enquiries/${assessment.enquiryId}`,
+          correlationId: assessment.id,
+          notificationType: "JS_DECISION"
+        }).catch((err) => console.warn("RM JS decision dispatch failed:", err));
+      }
 
       return res.json({ success: true, message: isApproved ? "Joint Secretary decision recorded and project routed to DNC(s) and Department Admin." : "Joint Secretary decision recorded.", data: { assessmentId: id, decision, project: routing?.project || null, dncAssignments: routing?.dncAssignments || [] } });
     } catch (error: any) {

@@ -31,13 +31,13 @@ export async function notifyHierarchy(input: HierarchyNotifyInput): Promise<void
   try {
     const recipientIds = new Set<string>();
 
-    // 1. Direct Target User
+    // 1. Direct Target User (Submitting User / Creator)
     if (input.targetUserId) {
       recipientIds.add(input.targetUserId);
     }
 
-    // 2. Organization Users
-    if (input.includeOrgUsers !== false && input.organizationId && prisma.user?.findMany) {
+    // 2. Organization Users strictly for the entity's specific organization
+    if (input.includeOrgUsers === true && input.organizationId && prisma.user?.findMany) {
       const orgUsers = await prisma.user.findMany({
         where: { organizationId: input.organizationId, deletedAt: null },
         select: { id: true }
@@ -45,46 +45,33 @@ export async function notifyHierarchy(input: HierarchyNotifyInput): Promise<void
       orgUsers.forEach((u) => recipientIds.add(u.id));
     }
 
-    // 3. Assigned RM / All RMs (Only notify the assigned RM if assignedRmId is present)
-    if (input.includeRms !== false) {
-      if (input.assignedRmId) {
-        recipientIds.add(input.assignedRmId);
-      } else if (prisma.user?.findMany) {
-        // Fallback pool notification ONLY when no specific RM is assigned
-        const rms = await prisma.user.findMany({
-          where: {
-            roleId: ROLE_ID.RELATIONSHIP_MANAGER,
-            deletedAt: null
-          },
-          select: { id: true }
-        });
-        rms.forEach((u) => recipientIds.add(u.id));
-      }
+    // 3. Assigned RM ONLY (never broadcast to unrelated RMs)
+    if (input.includeRms !== false && input.assignedRmId) {
+      recipientIds.add(input.assignedRmId);
     }
 
-    // 4. Portal Admins & Super Admins / Executive Reviewers
-    if (input.includePortalAdmins !== false && prisma.user?.findMany) {
-      const admins = await prisma.user.findMany({
+    // 4. Designated Joint Secretary / Reviewer
+    if (input.includeStateOfficers && prisma.user?.findMany) {
+      const jsUsers = await prisma.user.findMany({
         where: {
           OR: [
-            { roleId: { in: [ROLE_ID.SUPER_ADMIN, ROLE_ID.PLANNING_SECRETARY, ROLE_ID.JOINT_SECRETARY, 1, 2, 3] } },
-            { role: { name: { contains: "Admin", mode: "insensitive" } } }
+            { roleId: { in: [ROLE_ID.JOINT_SECRETARY, 3] } },
+            { role: { name: { equals: "JOINT_SECRETARY", mode: "insensitive" } } },
+            { role: { name: { equals: "Joint Secretary", mode: "insensitive" } } }
           ],
           deletedAt: null
         },
         select: { id: true }
       });
-      admins.forEach((u) => recipientIds.add(u.id));
+      jsUsers.forEach((u) => recipientIds.add(u.id));
     }
 
-    // 5. District Nodal Officers (if district provided)
+    // 5. District Nodal Officer strictly for the entity's specific district
     if (input.includeDistrictOfficers && input.district && prisma.user?.findMany) {
       const districtOfficers = await prisma.user.findMany({
         where: {
-          OR: [
-            { roleId: { in: [ROLE_ID.DISTRICT_NODAL_OFFICER, ROLE_ID.DISTRICT_NODAL_CONSULTANT, 4, 5] } },
-            { officerProfile: { district: { equals: input.district, mode: "insensitive" } } }
-          ],
+          roleId: { in: [ROLE_ID.DISTRICT_NODAL_OFFICER, ROLE_ID.DISTRICT_NODAL_CONSULTANT, 4, 5] },
+          officerProfile: { district: { equals: input.district, mode: "insensitive" } },
           deletedAt: null
         },
         select: { id: true }
@@ -92,16 +79,16 @@ export async function notifyHierarchy(input: HierarchyNotifyInput): Promise<void
       districtOfficers.forEach((u) => recipientIds.add(u.id));
     }
 
-    // 6. State Nodal Officers / Secretaries
-    if (input.includeStateOfficers && prisma.user?.findMany) {
-      const stateOfficers = await prisma.user.findMany({
+    // 6. Super Admin ONLY if explicitly requested (Strict check, NEVER match generic 'contains Admin')
+    if (input.includePortalAdmins === true && prisma.user?.findMany) {
+      const superAdmins = await prisma.user.findMany({
         where: {
-          roleId: { in: [ROLE_ID.PLANNING_SECRETARY, ROLE_ID.JOINT_SECRETARY, 2, 3] },
+          roleId: { in: [ROLE_ID.SUPER_ADMIN, 1] },
           deletedAt: null
         },
         select: { id: true }
       });
-      stateOfficers.forEach((u) => recipientIds.add(u.id));
+      superAdmins.forEach((u) => recipientIds.add(u.id));
     }
 
     const recipientList = Array.from(recipientIds).filter(
