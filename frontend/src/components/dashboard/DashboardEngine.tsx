@@ -88,19 +88,26 @@ function formatRoleName(roleCode: any, userRoleId: any, fallbackRole?: string): 
     }
   }
   if (typeof roleCode === "string" && isNaN(Number(roleCode)) && roleCode.trim()) {
-    return roleCode.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+    if (roleCode.startsWith("ROLE_")) {
+      const parsedId = Number(roleCode.replace("ROLE_", ""));
+      if (!isNaN(parsedId)) {
+        userRoleId = parsedId;
+      }
+    } else {
+      return roleCode.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+    }
   }
   const numeric = Number(userRoleId || (typeof roleCode === "number" ? roleCode : (!isNaN(Number(roleCode)) ? Number(roleCode) : 0)));
   const ROLE_MAP: Record<number, string> = {
     1: "Super Admin",
     2: "Planning Secretary",
     3: "Joint Secretary",
-    4: "State CSR Cell",
-    5: "District Nodal Officer",
+    4: "District Nodal Officer",
+    5: "District Nodal Consultant",
     6: "CSR Relationship Manager",
-    7: "Implementing Agency",
+    7: "Government Department Officer",
     8: "Corporate Partner",
-    9: "Government Officer",
+    9: "Implementing Agency",
   };
   if (ROLE_MAP[numeric]) return ROLE_MAP[numeric];
   if (fallbackRole && typeof fallbackRole === "string" && isNaN(Number(fallbackRole))) {
@@ -170,16 +177,16 @@ function getInstantFallbackSummary(user: any): any {
       { id: "rm_sla_at_risk", key: "rm_sla_at_risk", label: "SLA at Risk / Overdue", value: 0, format: "number", href: "/escalations", helperText: "Assigned cases approaching turnaround limit" },
       { id: "rm_avg_cycle_time", key: "rm_avg_cycle_time", label: "Avg Processing Time", value: "3.2 Days", format: "duration", href: "/reports", helperText: "Average days from assignment to JS recommendation" },
     ];
-  } else if (roleId === 7 || roleCode.includes("IMPLEMENTING_AGENCY") || roleCode.includes("NGO")) {
+  } else if (roleId === 7 || roleCode.includes("GOVERNMENT") || roleCode.includes("GOV") || roleCode.includes("BENEFICIARY_AGENCY")) {
     defaultKpis = [
-      { id: "ngo_active_projects", key: "ngo_active_projects", label: "Assigned CSR Projects", value: "—", format: "number", href: "/convergence-projects", helperText: "Active implementation and grassroots projects" },
-      { id: "ngo_milestones_due", key: "ngo_milestones_due", label: "Milestones Pending Update", value: "—", format: "number", href: "/milestones", helperText: "Deliverables requiring physical/financial progress upload" },
-      { id: "ngo_funds_received", key: "ngo_funds_received", label: "Disbursed Grants", value: "—", format: "currency", href: "/funds", helperText: "Cumulative project grants received from corporate partners" },
-      { id: "ngo_beneficiaries_served", key: "ngo_beneficiaries_served", label: "Beneficiaries Impacted", value: "—", format: "number", href: "/strategy/impact", helperText: "Citizens served through active ground execution" },
-      { id: "ngo_utilization_certificates", key: "ngo_utilization_certificates", label: "UCs Submitted", value: "—", format: "number", href: "/finance/ucs", helperText: "Statutory Utilization Certificates audited and accepted" },
-      { id: "ngo_field_inspections", key: "ngo_field_inspections", label: "Field Inspections Passed", value: "—", format: "number", href: "/field-visits", helperText: "Inspections verified by District Nodal Officers" },
-      { id: "ngo_open_issues", key: "ngo_open_issues", label: "Active Project Grievances", value: 0, format: "number", href: "/issues", helperText: "Reported execution challenges awaiting district action" },
-      { id: "ngo_compliance_score", key: "ngo_compliance_score", label: "Compliance Status", value: "100%", format: "percentage", href: "/organization/onboarding/details", helperText: "Darpan, 12A/80G and statutory verification valid" },
+      { id: "dept_active_pitches", key: "dept_active_pitches", label: "Department Needs Pitched", value: "—", format: "number", href: "/pitches", helperText: "Development requirements published to marketplace" },
+      { id: "dept_received_interests", key: "dept_received_interests", label: "Corporate Expressions of Interest", value: "—", format: "number", href: "/pitches", helperText: "Companies wanting to sponsor your department needs" },
+      { id: "dept_active_projects", key: "dept_active_projects", label: "Sanctioned Projects", value: "—", format: "number", href: "/convergence-projects", helperText: "CSR projects actively executing in your domain" },
+      { id: "dept_total_funding", key: "dept_total_funding", label: "Mobilized CSR Funds", value: "—", format: "currency", href: "/funds", helperText: "Total corporate capital directed to department initiatives" },
+      { id: "dept_districts_covered", key: "dept_districts_covered", label: "Districts Benefited", value: "—", format: "number", href: "/strategy/state-portfolio", helperText: "Districts with active departmental CSR convergence" },
+      { id: "dept_milestones_completed", key: "dept_milestones_completed", label: "Milestones Achieved", value: "—", format: "number", href: "/milestones", helperText: "Project phases verified and handed over" },
+      { id: "dept_pending_actions", key: "dept_pending_actions", label: "Pending Approvals", value: 0, format: "number", href: "/work-queue", helperText: "Proposals, MoUs or NOCs awaiting department sign-off" },
+      { id: "dept_beneficiaries_reached", key: "dept_beneficiaries_reached", label: "Citizens Impacted", value: "—", format: "number", href: "/strategy/impact", helperText: "Direct beneficiaries from CSR partnerships" },
     ];
   } else if (roleId === 8 || roleCode.includes("CORPORATE") || roleCode.includes("COMPANY")) {
     defaultKpis = [
@@ -193,16 +200,16 @@ function getInstantFallbackSummary(user: any): any {
       { id: "corp_compliance_health", key: "corp_compliance_health", label: "MCA Compliance Index", value: "100%", format: "percentage", href: "/reports", helperText: "Schedule VII alignment and audit trail complete" },
     ];
   } else {
-    // Government Officer / Department (Role 9 / Default)
+    // Implementing Agency (NGO / Role 9 / Default)
     defaultKpis = [
-      { id: "dept_active_pitches", key: "dept_active_pitches", label: "Department Needs Pitched", value: "—", format: "number", href: "/pitches", helperText: "Development requirements published to marketplace" },
-      { id: "dept_received_interests", key: "dept_received_interests", label: "Corporate Expressions of Interest", value: "—", format: "number", href: "/pitches", helperText: "Companies wanting to sponsor your department needs" },
-      { id: "dept_active_projects", key: "dept_active_projects", label: "Sanctioned Projects", value: "—", format: "number", href: "/convergence-projects", helperText: "CSR projects actively executing in your domain" },
-      { id: "dept_total_funding", key: "dept_total_funding", label: "Mobilized CSR Funds", value: "—", format: "currency", href: "/funds", helperText: "Total corporate capital directed to department initiatives" },
-      { id: "dept_districts_covered", key: "dept_districts_covered", label: "Districts Benefited", value: "—", format: "number", href: "/strategy/state-portfolio", helperText: "Districts with active departmental CSR convergence" },
-      { id: "dept_milestones_completed", key: "dept_milestones_completed", label: "Milestones Achieved", value: "—", format: "number", href: "/milestones", helperText: "Project phases verified and handed over" },
-      { id: "dept_pending_actions", key: "dept_pending_actions", label: "Pending Approvals", value: 0, format: "number", href: "/work-queue", helperText: "Proposals, MoUs or NOCs awaiting department sign-off" },
-      { id: "dept_beneficiaries_reached", key: "dept_beneficiaries_reached", label: "Citizens Impacted", value: "—", format: "number", href: "/strategy/impact", helperText: "Direct beneficiaries from CSR partnerships" },
+      { id: "ngo_active_projects", key: "ngo_active_projects", label: "Assigned CSR Projects", value: "—", format: "number", href: "/convergence-projects", helperText: "Active implementation and grassroots projects" },
+      { id: "ngo_milestones_due", key: "ngo_milestones_due", label: "Milestones Pending Update", value: "—", format: "number", href: "/milestones", helperText: "Deliverables requiring physical/financial progress upload" },
+      { id: "ngo_funds_received", key: "ngo_funds_received", label: "Disbursed Grants", value: "—", format: "currency", href: "/funds", helperText: "Cumulative project grants received from corporate partners" },
+      { id: "ngo_beneficiaries_served", key: "ngo_beneficiaries_served", label: "Beneficiaries Impacted", value: "—", format: "number", href: "/strategy/impact", helperText: "Citizens served through active ground execution" },
+      { id: "ngo_utilization_certificates", key: "ngo_utilization_certificates", label: "UCs Submitted", value: "—", format: "number", href: "/finance/ucs", helperText: "Statutory Utilization Certificates audited and accepted" },
+      { id: "ngo_field_inspections", key: "ngo_field_inspections", label: "Field Inspections Passed", value: "—", format: "number", href: "/field-visits", helperText: "Inspections verified by District Nodal Officers" },
+      { id: "ngo_open_issues", key: "ngo_open_issues", label: "Active Project Grievances", value: 0, format: "number", href: "/issues", helperText: "Reported execution challenges awaiting district action" },
+      { id: "ngo_compliance_score", key: "ngo_compliance_score", label: "Compliance Status", value: "100%", format: "percentage", href: "/organization/onboarding/details", helperText: "Darpan, 12A/80G and statutory verification valid" },
     ];
   }
 

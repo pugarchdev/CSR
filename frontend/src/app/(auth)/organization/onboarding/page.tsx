@@ -29,8 +29,7 @@ export default function OrganizationOnboardingPage() {
         numericRoleId === 2 ||
         numericRoleId === 3 ||
         numericRoleId === 5 ||
-        numericRoleId === 6 ||
-        numericRoleId === 7;
+        numericRoleId === 6;
 
       if (isInternal) {
         router.replace("/dashboard");
@@ -48,6 +47,8 @@ export default function OrganizationOnboardingPage() {
         role === "GOV_ENTITY" ||
         role === "DEPARTMENT_ADMIN" ||
         role === "GOVERNMENT_DEPARTMENT_ADMIN" ||
+        role.includes("GOVERNMENT") ||
+        numericRoleId === 7 ||
         numericRoleId === 4;
 
       if (isGov) {

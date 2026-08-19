@@ -10,6 +10,8 @@ import GovStatusBadge from "@/components/gov/GovStatusBadge";
 import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
 import { Activity, Users, ShieldCheck, ShieldAlert } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 import "@/styles/gov-theme.css";
 
 interface AuditLog {
@@ -66,6 +68,18 @@ export default function AuditLogsPage() {
       (log.entityId || "").toLowerCase().includes(term);
     const matchesAction = filterAction === "ALL" || log.action === filterAction;
     return matchesSearch && matchesAction;
+  });
+
+  const { sortedItems: sortedLogs, sortKey, sortDirection, requestSort } = useTableSort(filtered, {
+    initialKey: "createdAt",
+    initialDirection: "desc",
+    customGetters: {
+      createdAt: (l) => l.createdAt,
+      user: (l) => l.user?.email || "System/Guest",
+      action: (l) => l.action,
+      entity: (l) => `${l.entityType || ""} ${l.entityId || ""}`,
+      ipAddress: (l) => l.ipAddress || "",
+    }
   });
 
   const actionVariant = (action: string): "success" | "warning" | "danger" | "info" | "muted" => {
@@ -188,16 +202,16 @@ export default function AuditLogsPage() {
               <table className="w-full block md:table text-left border-collapse">
                 <thead className="hidden md:table-header-group border-b-2 border-slate-200">
                   <tr>
-                    <th className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500">TIMESTAMP</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500">USER</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500">ACTION</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500">ENTITY</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500">IP ADDRESS</th>
+                    <SortableTh sortKey="createdAt" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500">TIMESTAMP</SortableTh>
+                    <SortableTh sortKey="user" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500">USER</SortableTh>
+                    <SortableTh sortKey="action" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500">ACTION</SortableTh>
+                    <SortableTh sortKey="entity" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500">ENTITY</SortableTh>
+                    <SortableTh sortKey="ipAddress" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500">IP ADDRESS</SortableTh>
                     <th className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500">DETAILS</th>
                   </tr>
                 </thead>
                 <tbody className="block md:table-row-group divide-y-0 md:divide-y md:divide-slate-100">
-                  {filtered.map((log) => {
+                  {sortedLogs.map((log) => {
                     const detail = detailText(log.details);
                     const expanded = expandedId === log.id;
                     return (

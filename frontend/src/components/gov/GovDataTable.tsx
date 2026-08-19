@@ -2,16 +2,19 @@
 
 import { ReactNode } from "react";
 import { Skeleton } from "../ui/Skeleton";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "../ui/SortableTh";
 import "@/styles/gov-theme.css";
 
-interface Column {
+export interface Column {
   key: string;
   label: string;
   align?: "left" | "center" | "right";
+  sortable?: boolean;
   render?: (value: unknown, row: Record<string, unknown>) => ReactNode;
 }
 
-interface GovDataTableProps {
+export interface GovDataTableProps {
   columns: Column[];
   data: Record<string, unknown>[];
   loading?: boolean;
@@ -22,7 +25,7 @@ interface GovDataTableProps {
 }
 
 /**
- * Government-styled data table redesigned to look like a premium SaaS data table.
+ * Government-styled data table redesigned to look like a premium SaaS data table with interactive sortable headers.
  */
 export default function GovDataTable({
   columns,
@@ -33,6 +36,8 @@ export default function GovDataTable({
   onRowClick,
   rowClassName,
 }: GovDataTableProps) {
+  const { sortedItems, sortKey, sortDirection, requestSort } = useTableSort(data);
+
   if (loading) {
     return (
       <div className="gov-card p-6">
@@ -56,17 +61,16 @@ export default function GovDataTable({
     );
   }
 
-return (
+  return (
     <div className="gov-card overflow-hidden">
-      
       {/* --- MOBILE VIEW: CARDS (Hidden on md and up) --- */}
       <div className="flex flex-col divide-y divide-slate-100 md:hidden">
-        {data.length === 0 ? (
+        {sortedItems.length === 0 ? (
           <div style={{ textAlign: "center", padding: 48, color: "var(--gov-text-muted)" }}>
             {emptyMessage}
           </div>
         ) : (
-          data.map((row, idx) => (
+          sortedItems.map((row, idx) => (
             <div
               key={(row.id as string) || idx}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
@@ -79,7 +83,10 @@ return (
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                     {col.label}
                   </span>
-                  <div className="text-sm font-medium text-slate-900" style={{ textAlign: col.align === 'center' ? 'right' : (col.align || 'right') }}>
+                  <div
+                    className="text-sm font-medium text-slate-900"
+                    style={{ textAlign: col.align === "center" ? "right" : col.align || "right" }}
+                  >
                     {col.render ? col.render(row[col.key], row) : (row[col.key] as ReactNode) ?? "—"}
                   </div>
                 </div>
@@ -94,22 +101,32 @@ return (
         <table className="gov-table w-full">
           <thead>
             <tr>
-              {columns.map((col) => (
-                <th key={col.key} style={{ textAlign: col.align || "left" }}>
-                  {col.label}
-                </th>
-              ))}
+              {columns.map((col) => {
+                const isSortable = col.sortable !== false && col.key !== "actions" && col.key !== "action";
+                return (
+                  <SortableTh
+                    key={col.key}
+                    sortKey={isSortable ? col.key : undefined}
+                    currentSortKey={sortKey}
+                    currentSortDirection={sortDirection}
+                    onSort={requestSort}
+                    align={col.align}
+                  >
+                    {col.label}
+                  </SortableTh>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
-            {data.length === 0 ? (
+            {sortedItems.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} style={{ textAlign: "center", padding: 48, color: "var(--gov-text-muted)" }}>
                   {emptyMessage}
                 </td>
               </tr>
             ) : (
-              data.map((row, idx) => (
+              sortedItems.map((row, idx) => (
                 <tr
                   key={(row.id as string) || idx}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
@@ -127,7 +144,6 @@ return (
           </tbody>
         </table>
       </div>
-      
     </div>
   );
 }

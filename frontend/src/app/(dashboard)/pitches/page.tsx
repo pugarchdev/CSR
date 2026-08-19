@@ -35,6 +35,8 @@ import {
   Layers
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 
 interface Pitch {
   id: string;
@@ -303,6 +305,17 @@ export default function PitchesPage() {
   const totalOutlay = useMemo(() => pitchesList.reduce((acc, curr) => acc + curr.budgetInr, 0), [pitchesList]);
   const approvedCount = useMemo(() => pitchesList.filter(p => p.status === "APPROVED" || p.status === "CSR_COMMITTED" || p.status === "PUBLIC_LISTED").length, [pitchesList]);
   const underReviewCount = useMemo(() => pitchesList.filter(p => p.status === "SUBMITTED" || p.status === "UNDER_VERIFICATION").length, [pitchesList]);
+
+  const { sortedItems: sortedPitches, sortKey: tableSortKey, sortDirection: tableSortDirection, requestSort: requestTableSort } = useTableSort(filtered, {
+    customGetters: {
+      refNo: (p) => p.refNo,
+      title: (p) => `${p.title} ${p.department}`,
+      district: (p) => p.district,
+      budgetInr: (p) => p.budgetInr,
+      status: (p) => p.status,
+      submittedDate: (p) => p.submittedDate || p.createdAt,
+    }
+  });
 
   return (
     <GovPortalLayout>
@@ -735,17 +748,17 @@ export default function PitchesPage() {
               <table className="w-full block md:table text-left text-xs font-medium text-slate-700 border-collapse">
                 <thead className="hidden md:table-header-group bg-slate-50 text-[11px] font-extrabold uppercase tracking-wider text-slate-500 border-b border-slate-200/80">
                   <tr>
-                    <th className="px-4 py-3">Tracking ID</th>
-                    <th className="px-4 py-3">Pitch Title & Department</th>
-                    <th className="px-4 py-3">District</th>
-                    <th className="px-4 py-3">Estimated Outlay</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Submitted Date</th>
+                    <SortableTh sortKey="refNo" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3">Tracking ID</SortableTh>
+                    <SortableTh sortKey="title" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3">Pitch Title & Department</SortableTh>
+                    <SortableTh sortKey="district" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3">District</SortableTh>
+                    <SortableTh sortKey="budgetInr" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3">Estimated Outlay</SortableTh>
+                    <SortableTh sortKey="status" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3">Status</SortableTh>
+                    <SortableTh sortKey="submittedDate" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3">Submitted Date</SortableTh>
                     <th className="px-4 py-3 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="block md:table-row-group divide-y-0 md:divide-y md:divide-slate-100">
-                  {filtered.map((item) => (
+                  {sortedPitches.map((item) => (
                     <tr
                       key={item.id}
                       className="block md:table-row mb-4 md:mb-0 bg-white border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-sm md:shadow-none hover:bg-slate-50/80 transition-colors overflow-hidden"

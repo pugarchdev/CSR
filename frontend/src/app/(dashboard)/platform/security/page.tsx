@@ -3,6 +3,8 @@
 import { Shield, ShieldAlert, ShieldCheck } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
 import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 
 interface SecurityResponse {
   success: boolean;
@@ -32,6 +34,16 @@ export default function PlatformSecurityPage() {
   );
 
   const securityData = response?.data;
+  const events = securityData?.events || [];
+
+  const { sortedItems: sortedEvents, sortKey, sortDirection, requestSort } = useTableSort(events, {
+    customGetters: {
+      action: (e) => `${e.action} ${e.entityType}`,
+      actor: (e) => `${e.actorName} ${e.actorEmail}`,
+      ipAddress: (e) => e.ipAddress,
+      createdAt: (e) => e.createdAt,
+    }
+  });
 
   return (
     <div className="space-y-6">
@@ -102,14 +114,14 @@ export default function PlatformSecurityPage() {
             <table className="w-full text-left text-xs">
               <thead className="border-b border-slate-100 bg-slate-50 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
                 <tr>
-                  <th className="px-4 py-3">Security Event</th>
-                  <th className="px-4 py-3">Actor & Identity</th>
-                  <th className="px-4 py-3">IP Address</th>
-                  <th className="px-4 py-3">Timestamp</th>
+                  <SortableTh sortKey="action" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Security Event</SortableTh>
+                  <SortableTh sortKey="actor" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Actor & Identity</SortableTh>
+                  <SortableTh sortKey="ipAddress" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>IP Address</SortableTh>
+                  <SortableTh sortKey="createdAt" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Timestamp</SortableTh>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-mono">
-                {securityData.events.map((e) => (
+                {sortedEvents.map((e) => (
                   <tr key={e.id} className="transition hover:bg-slate-50/80">
                     <td className="px-4 py-3 font-sans">
                       <span className="inline-flex rounded-md bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-800 border border-rose-200">

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { CheckCircle2, Shield, Landmark, FileText, Search, Building2, Award, Clock } from "lucide-react";
 import { GovPageHeader } from "@/components/layout/GovPageHeader";
 import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 
 interface HandoverItem {
   id: string;
@@ -52,6 +54,16 @@ export default function HandoverPage() {
     item.department.toLowerCase().includes(search.toLowerCase()) ||
     item.donorCompany.toLowerCase().includes(search.toLowerCase())
   );
+
+  const { sortedItems: sortedHandovers, sortKey, sortDirection, requestSort } = useTableSort(filtered, {
+    customGetters: {
+      projectName: (item) => item.projectName,
+      department: (item) => item.department,
+      donorCompany: (item) => `${item.donorCompany} ${item.implementingNgo}`,
+      assetValueCr: (item) => item.assetValueCr,
+      handoverCertificateStatus: (item) => item.handoverCertificateStatus,
+    }
+  });
 
   return (
     <div className="mx-auto flex min-h-screen max-w-7xl flex-col gap-6 px-4 py-8 md:px-8">
@@ -106,16 +118,16 @@ export default function HandoverPage() {
           <table className="w-full text-left text-xs">
             <thead className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500 font-bold">
               <tr>
-                <th className="px-4 py-3">Completed CSR Project</th>
-                <th className="px-4 py-3">Recipient Department</th>
-                <th className="px-4 py-3">Donor & Implementer</th>
-                <th className="px-4 py-3">Asset Outlay</th>
-                <th className="px-4 py-3">Handover Status</th>
+                <SortableTh sortKey="projectName" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Completed CSR Project</SortableTh>
+                <SortableTh sortKey="department" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Recipient Department</SortableTh>
+                <SortableTh sortKey="donorCompany" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Donor & Implementer</SortableTh>
+                <SortableTh sortKey="assetValueCr" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Asset Outlay</SortableTh>
+                <SortableTh sortKey="handoverCertificateStatus" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Handover Status</SortableTh>
                 <th className="px-4 py-3 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
-              {filtered.map((item) => (
+              {sortedHandovers.map((item) => (
                 <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
                   <td className="px-4 py-3.5 font-bold text-slate-900 max-w-xs">{item.projectName}</td>
                   <td className="px-4 py-3.5 text-slate-700">{item.department}</td>

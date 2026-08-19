@@ -19,6 +19,8 @@ import {
   UserCheck,
   Building
 } from "lucide-react";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 
 interface NodalAppointment {
   id: string;
@@ -54,6 +56,38 @@ export default function NgoSelectionPage() {
   const [agenciesError, setAgenciesError] = useState("");
   const [actionError, setActionError] = useState("");
   const [processingId, setProcessingId] = useState<string | null>(null);
+
+  const {
+    sortedItems: sortedAgencies,
+    sortKey: agencySortKey,
+    sortDirection: agencySortDirection,
+    requestSort: requestAgencySort
+  } = useTableSort(agencies, {
+    customGetters: {
+      agency: (a) => a.iaAgencyName || "",
+      email: (a) => a.email || "",
+      csr1: (a) => a.iaCsr1Number || "",
+      corporate: (a) => a.parentCorporateUser?.email || "",
+      createdAt: (a) => a.createdAt || "",
+    }
+  });
+
+  const {
+    sortedItems: sortedAppointments,
+    sortKey: apptSortKey,
+    sortDirection: apptSortDirection,
+    requestSort: requestApptSort
+  } = useTableSort(appointments, {
+    customGetters: {
+      nodalOfficer: (app) => `${app.nodalOfficerName} ${app.nodalOfficerUser?.email || ""}`,
+      district: (app) => app.district,
+      domain: (app) => app.domain,
+      department: (app) => app.department,
+      designation: (app) => app.designation,
+      source: (app) => app.corporateEnquiry?.companyName || app.governmentPitch?.officialName || "",
+      appointedAt: (app) => app.appointedAt,
+    }
+  });
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -192,16 +226,16 @@ export default function NgoSelectionPage() {
               <table className="gov-table w-full text-xs">
                 <thead>
                   <tr>
-                    <th>Agency</th>
-                    <th>Email</th>
-                    <th>CSR-1 Number</th>
-                    <th>Sponsoring Corporate</th>
-                    <th>Requested</th>
-                    <th className="text-right">Action</th>
+                    <SortableTh sortKey="agency" currentSortKey={agencySortKey} currentSortDirection={agencySortDirection} onSort={requestAgencySort}>Agency</SortableTh>
+                    <SortableTh sortKey="email" currentSortKey={agencySortKey} currentSortDirection={agencySortDirection} onSort={requestAgencySort}>Email</SortableTh>
+                    <SortableTh sortKey="csr1" currentSortKey={agencySortKey} currentSortDirection={agencySortDirection} onSort={requestAgencySort}>CSR-1 Number</SortableTh>
+                    <SortableTh sortKey="corporate" currentSortKey={agencySortKey} currentSortDirection={agencySortDirection} onSort={requestAgencySort}>Sponsoring Corporate</SortableTh>
+                    <SortableTh sortKey="createdAt" currentSortKey={agencySortKey} currentSortDirection={agencySortDirection} onSort={requestAgencySort}>Requested</SortableTh>
+                    <th className="px-4 py-3.5 text-[11px] font-extrabold uppercase tracking-wider text-right text-slate-500">Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {agencies.map((agency) => (
+                  {sortedAgencies.map((agency) => (
                     <tr key={agency.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="font-bold text-slate-900">{agency.iaAgencyName || "—"}</td>
                       <td className="text-slate-700 font-medium">{agency.email}</td>
@@ -266,17 +300,17 @@ export default function NgoSelectionPage() {
               <table className="gov-table w-full text-xs">
                 <thead>
                   <tr>
-                    <th>Nodal Officer</th>
-                    <th>District</th>
-                    <th>Domain</th>
-                    <th>Department</th>
-                    <th>Designation</th>
-                    <th>Source</th>
-                    <th>Appointed</th>
+                    <SortableTh sortKey="nodalOfficer" currentSortKey={apptSortKey} currentSortDirection={apptSortDirection} onSort={requestApptSort}>Nodal Officer</SortableTh>
+                    <SortableTh sortKey="district" currentSortKey={apptSortKey} currentSortDirection={apptSortDirection} onSort={requestApptSort}>District</SortableTh>
+                    <SortableTh sortKey="domain" currentSortKey={apptSortKey} currentSortDirection={apptSortDirection} onSort={requestApptSort}>Domain</SortableTh>
+                    <SortableTh sortKey="department" currentSortKey={apptSortKey} currentSortDirection={apptSortDirection} onSort={requestApptSort}>Department</SortableTh>
+                    <SortableTh sortKey="designation" currentSortKey={apptSortKey} currentSortDirection={apptSortDirection} onSort={requestApptSort}>Designation</SortableTh>
+                    <SortableTh sortKey="source" currentSortKey={apptSortKey} currentSortDirection={apptSortDirection} onSort={requestApptSort}>Source</SortableTh>
+                    <SortableTh sortKey="appointedAt" currentSortKey={apptSortKey} currentSortDirection={apptSortDirection} onSort={requestApptSort}>Appointed</SortableTh>
                   </tr>
                 </thead>
                 <tbody>
-                  {appointments.map((app) => (
+                  {sortedAppointments.map((app) => (
                     <tr key={app.id} className="hover:bg-slate-50/80 transition-colors">
                       <td>
                         <div className="font-bold text-slate-900">{app.nodalOfficerName || "—"}</div>

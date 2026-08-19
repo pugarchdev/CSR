@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import {
   Building2,
   ShieldCheck,
@@ -12,10 +12,14 @@ import {
   Check,
   Share2,
   UserPlus,
-  Clock
+  Clock,
+  Plus
 } from "lucide-react";
 import Link from "next/link";
-import { API_BASE_URL } from "@/lib/api";
+import { apiFetch, API_BASE_URL } from "@/lib/api";
+import { MAHARASHTRA_DISTRICTS } from "@/lib/locationData";
+import GovModal from "@/components/gov/GovModal";
+import { Button } from "@/components/ui/Button";
 
 interface ChildOrganization {
   id: string;
@@ -49,7 +53,20 @@ export default function DepartmentManagementPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const [deptForm, setDeptForm] = useState({
+    name: "",
+    code: "",
+    district: "Nagpur",
+    officeAddress: "",
+    adminFullName: "",
+    adminEmail: "",
+    adminDesignation: "",
+    adminPhone: ""
+  });
 
   const fetchHierarchy = async () => {
     setLoading(true);
@@ -81,6 +98,47 @@ export default function DepartmentManagementPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleCreateDept = async (e: FormEvent) => {
+    e.preventDefault();
+    setCreating(true);
+    setError("");
+    try {
+      await apiFetch("/admin/organizations", {
+        method: "POST",
+        body: JSON.stringify({
+          name: deptForm.name.trim(),
+          code: deptForm.code.trim() || undefined,
+          district: deptForm.district || undefined,
+          officeAddress: deptForm.officeAddress.trim() || undefined,
+          kind: "GOVERNMENT_DEPARTMENT",
+          parentOrganizationId: parentOrg?.id || undefined,
+          admin: {
+            fullName: deptForm.adminFullName.trim(),
+            email: deptForm.adminEmail.trim(),
+            designation: deptForm.adminDesignation.trim() || undefined,
+            phone: deptForm.adminPhone.trim() || undefined,
+          }
+        })
+      });
+      setShowAddModal(false);
+      setDeptForm({
+        name: "",
+        code: "",
+        district: "Nagpur",
+        officeAddress: "",
+        adminFullName: "",
+        adminEmail: "",
+        adminDesignation: "",
+        adminPhone: ""
+      });
+      await fetchHierarchy();
+    } catch (err: any) {
+      setError(err.message || "Failed to create sub-department");
+    } finally {
+      setCreating(false);
+    }
+  };
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -92,17 +150,24 @@ export default function DepartmentManagementPage() {
           </div>
           <h1 className="text-2xl font-bold text-slate-900">Verified Child Departments & Administrative Units</h1>
           <p className="text-slate-500 text-xs mt-1">
-            Sub-departments (Health, Electrical, Education, etc.) register independently and select your organization as their parent. Super Admin verifies relationships before linking.
+            Sub-departments (Health, Electrical, Education, etc.) register independently or can be added with an invited Designated Admin Officer.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-blue-900 hover:bg-blue-800 text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+          >
+            <Plus size={15} />
+            <span>Add Department</span>
+          </button>
+          <button
             onClick={() => setShowShareModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-900 hover:bg-blue-800 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+            className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer border border-slate-200"
           >
             <Share2 size={15} />
-            <span>Share Parent Reference Code</span>
+            <span>Share Reference Code</span>
           </button>
           <Link
             href="/dno/nominate"
@@ -302,6 +367,156 @@ export default function DepartmentManagementPage() {
           </div>
         </div>
       )}
+
+      {/* CREATE DEPARTMENT MODAL */}
+      <GovModal open={showAddModal} onClose={() => setShowAddModal(false)} title="Add Sub-Department / Office" width={640}>
+        <form onSubmit={handleCreateDept} className="flex flex-col gap-4">
+          {/* Top Section */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-slate-800">
+                Sub-Department / Office Name <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={deptForm.name}
+                onChange={(e) => setDeptForm((prev) => ({ ...prev, name: e.target.value }))}
+                placeholder="e.g. Health Department / District Office"
+                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-50/50 border border-slate-200 focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-slate-800">
+                Office Code / Code Reference
+              </label>
+              <input
+                type="text"
+                value={deptForm.code}
+                onChange={(e) => setDeptForm((prev) => ({ ...prev, code: e.target.value }))}
+                placeholder="e.g. NMC-HLTH"
+                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-50/50 border border-slate-200 focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold text-slate-800">
+              District <span className="text-rose-500">*</span>
+            </label>
+            <select
+              required
+              value={deptForm.district}
+              onChange={(e) => setDeptForm((prev) => ({ ...prev, district: e.target.value }))}
+              className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-50/50 border border-slate-200 focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all cursor-pointer"
+            >
+              <option value="">Select District</option>
+              {MAHARASHTRA_DISTRICTS.map((dist) => (
+                <option key={dist} value={dist}>
+                  {dist}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold text-slate-800">
+              Office Address
+            </label>
+            <textarea
+              rows={3}
+              value={deptForm.officeAddress}
+              onChange={(e) => setDeptForm((prev) => ({ ...prev, officeAddress: e.target.value }))}
+              placeholder="Enter full office address"
+              className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-50/50 border border-slate-200 focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all resize-none"
+            />
+          </div>
+
+          {/* Designated Admin Officer Sub-Card */}
+          <div className="rounded-2xl border border-blue-200/80 bg-blue-50/40 p-4.5 space-y-3.5">
+            <div className="flex items-center gap-2 text-xs font-extrabold text-blue-950">
+              <UserPlus size={16} className="text-blue-700 shrink-0" />
+              <span>Designated Admin Officer</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold text-slate-800">
+                  Full Name <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={deptForm.adminFullName}
+                  onChange={(e) => setDeptForm((prev) => ({ ...prev, adminFullName: e.target.value }))}
+                  placeholder="e.g. Rajesh Sharma"
+                  className="w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium bg-white border border-slate-200 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold text-slate-800">
+                  Official Email <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={deptForm.adminEmail}
+                  onChange={(e) => setDeptForm((prev) => ({ ...prev, adminEmail: e.target.value }))}
+                  placeholder="admin@gov.in"
+                  className="w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium bg-white border border-slate-200 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold text-slate-800">
+                  Designation
+                </label>
+                <input
+                  type="text"
+                  value={deptForm.adminDesignation}
+                  onChange={(e) => setDeptForm((prev) => ({ ...prev, adminDesignation: e.target.value }))}
+                  placeholder="e.g. Sub-Divisional Officer / Deputy Collector"
+                  className="w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium bg-white border border-slate-200 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold text-slate-800">
+                  Phone / Mobile Number
+                </label>
+                <input
+                  type="tel"
+                  value={deptForm.adminPhone}
+                  onChange={(e) => setDeptForm((prev) => ({ ...prev, adminPhone: e.target.value }))}
+                  placeholder="e.g. 9876543210"
+                  className="w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium bg-white border border-slate-200 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 mt-2 pt-3 border-t border-slate-100">
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full sm:w-auto justify-center"
+              onClick={() => setShowAddModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={creating}
+              loading={creating}
+              loadingText="Creating & Sending Invitation..."
+              className="w-full sm:w-auto justify-center bg-blue-900 hover:bg-blue-950 text-white font-bold"
+            >
+              Create and Send Invitation
+            </Button>
+          </div>
+        </form>
+      </GovModal>
     </div>
   );
 }

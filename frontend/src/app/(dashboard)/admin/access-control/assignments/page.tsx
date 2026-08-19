@@ -20,6 +20,8 @@ import { useAuthStore } from "@/store/authStore";
 import { useToastActions } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 import type { Assignment, DefaultScope } from "@/types/accessControl";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 import "@/styles/gov-theme.css";
 
 import AccessControlTabs from "@/components/access-control/AccessControlTabs";
@@ -50,6 +52,17 @@ export default function AssignmentsPage() {
       return userName.includes(term) || email.includes(term) || roleName.includes(term);
     });
   }, [assignmentsData, search]);
+
+  const { sortedItems: sortedAssignments, sortKey, sortDirection, requestSort } = useTableSort(filtered, {
+    customGetters: {
+      user: (a) => a.user ? `${a.user.firstName || ""} ${a.user.lastName || ""} ${a.user.email || ""}` : a.userId,
+      role: (a) => a.role?.displayName || a.role?.name || "",
+      scope: (a) => a.scope,
+      status: (a) => a.status,
+      validFrom: (a) => a.validFrom,
+      validUntil: (a) => a.validUntil,
+    }
+  });
 
   const handleRevoke = async (assignment: Assignment) => {
     try {
@@ -132,17 +145,17 @@ export default function AssignmentsPage() {
             <table className="w-full text-sm" role="table">
               <thead className="bg-slate-50/80 border-b border-slate-100/80">
                 <tr>
-                  <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">User</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Role</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Scope</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Valid From</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Valid Until</th>
+                  <SortableTh sortKey="user" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">User</SortableTh>
+                  <SortableTh sortKey="role" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Role</SortableTh>
+                  <SortableTh sortKey="scope" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Scope</SortableTh>
+                  <SortableTh sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Status</SortableTh>
+                  <SortableTh sortKey="validFrom" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Valid From</SortableTh>
+                  <SortableTh sortKey="validUntil" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Valid Until</SortableTh>
                   <th className="px-4 py-3 text-right text-[10px] font-bold text-slate-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100/60">
-                {filtered.map((a) => (
+                {sortedAssignments.map((a) => (
                   <tr key={a.id} className="hover:bg-blue-50/20 transition-colors">
                     <td className="px-4 py-3">
                       <p className="font-semibold text-slate-800">

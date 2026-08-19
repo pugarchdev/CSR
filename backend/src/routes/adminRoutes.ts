@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticateToken, authorizeRoles } from "../middlewares/authMiddleware";
-import { requirePermission } from "../middlewares/accessControlMiddleware";
+import { requirePermission, requireAnyPermission } from "../middlewares/accessControlMiddleware";
 import { createAdminUser, getAdminOverview, listUsers, deleteUser, updateUser, importAdminUsers, sendAdminUserInvitation } from "../controllers/adminController";
 import { getConvergenceOverview, listPitchInterests } from "../controllers/adminConvergenceController";
 import {
@@ -40,7 +40,7 @@ router.put("/sla/config", authorizeRoles([Role.SUPER_ADMIN]), saveSlaConfigurati
 
 // Organization management endpoints
 router.get("/organizations", requirePermission("organization:view"), listOrganizations);
-router.post("/organizations", requirePermission("organization:manage-users"), createAdminOrganization);
+router.post("/organizations", requireAnyPermission(["organization:manage-users", "organization:create"]), createAdminOrganization);
 router.get("/organizations/pending", requirePermission("organization:view"), listPendingOrganizations);
 router.get("/organizations/:id", requirePermission("organization:view"), getOrganizationById);
 router.post("/organizations/:id/approve", requirePermission("organization:approve"), approveOrganization);

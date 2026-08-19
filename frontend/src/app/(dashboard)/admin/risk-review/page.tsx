@@ -8,6 +8,8 @@ import GovStatusBadge from "@/components/gov/GovStatusBadge";
 import GovButton from "@/components/gov/GovButton";
 import Link from "next/link";
 import { Loader } from "@/components/ui/Loader";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 
 export default function AdminRiskReviewPage() {
   const { data: envelope, isLoading } = useApiQuery<any>(
@@ -15,7 +17,16 @@ export default function AdminRiskReviewPage() {
     "/org?status=UNDER_VERIFICATION"
   );
 
-  const orgs = envelope?.data?.organizations || envelope?.data || envelope?.organizations || [];
+  const rawOrgs = envelope?.data?.organizations || envelope?.data || envelope?.organizations || [];
+  const orgs = Array.isArray(rawOrgs) ? rawOrgs : [];
+
+  const { sortedItems: sortedOrgs, sortKey, sortDirection, requestSort } = useTableSort(orgs, {
+    customGetters: {
+      name: (org: any) => org.name || org.legalName || "",
+      kind: (org: any) => org.kind || "NGO",
+      status: (org: any) => org.status || "REVIEW",
+    }
+  });
 
   return (
     <GovPortalLayout userRole="ADMIN">
@@ -39,16 +50,16 @@ export default function AdminRiskReviewPage() {
               <table className="gov-table w-full">
                 <thead>
                   <tr>
-                    <th>Organization</th>
-                    <th>Kind</th>
-                    <th>Risk Category</th>
-                    <th>Status</th>
-                    <th>Action</th>
+                    <SortableTh sortKey="name" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Organization</SortableTh>
+                    <SortableTh sortKey="kind" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Kind</SortableTh>
+                    <SortableTh sortKey="risk" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Risk Category</SortableTh>
+                    <SortableTh sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Status</SortableTh>
+                    <th className="px-4 py-3.5 text-[11px] font-extrabold uppercase tracking-wider text-slate-500">Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {orgs.length > 0 ? (
-                    orgs.map((org: any) => (
+                  {sortedOrgs.length > 0 ? (
+                    sortedOrgs.map((org: any) => (
                       <tr key={org.id}>
                         <td className="font-semibold">{org.name || org.legalName || "Organization"}</td>
                         <td>{org.kind || "NGO"}</td>

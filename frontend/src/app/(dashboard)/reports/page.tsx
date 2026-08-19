@@ -8,6 +8,8 @@ import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
 import {
   FileText, Download, Search, ShieldCheck, BarChart3, Sparkles, TrendingUp, PieChart, Coins, Activity, Landmark
 } from "lucide-react";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 import {
   ResponsiveContainer,
   BarChart,
@@ -145,6 +147,15 @@ export default function ReportsPage() {
     r.code.toLowerCase().includes(search.toLowerCase()) ||
     r.category.toLowerCase().includes(search.toLowerCase())
   );
+
+  const { sortedItems: sortedReports, sortKey, sortDirection, requestSort } = useTableSort(filtered, {
+    customGetters: {
+      code: (r) => r.code,
+      name: (r) => r.name,
+      category: (r) => r.category,
+      period: (r) => r.period,
+    }
+  });
 
   const handleDownload = (id: string) => {
     setDownloadingId(id);
@@ -439,15 +450,15 @@ export default function ReportsPage() {
             <table className="w-full block md:table text-left border-collapse">
               <thead className="hidden md:table-header-group bg-slate-50 text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
                 <tr>
-                  <th className="py-3 px-4">Report Code</th>
-                  <th className="py-3 px-4">Report Name</th>
-                  <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4">Coverage</th>
+                  <SortableTh sortKey="code" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="py-3 px-4">Report Code</SortableTh>
+                  <SortableTh sortKey="name" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="py-3 px-4">Report Name</SortableTh>
+                  <SortableTh sortKey="category" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="py-3 px-4">Category</SortableTh>
+                  <SortableTh sortKey="period" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="py-3 px-4">Coverage</SortableTh>
                   <th className="py-3 px-4 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="block md:table-row-group divide-y-0 md:divide-y md:divide-slate-100 text-xs">
-                {filtered.map((rpt) => (
+                {sortedReports.map((rpt) => (
                   <tr key={rpt.id} className="block md:table-row mb-4 md:mb-0 bg-white md:bg-transparent border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-sm md:shadow-none hover:bg-blue-50/40 transition-colors">
                     <td data-label="Report Code" className="flex md:table-cell justify-between items-center py-3.5 px-4 border-b border-slate-100 md:border-none font-mono font-bold text-blue-900 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
                       {rpt.code}

@@ -7,6 +7,8 @@ import { GovCard, GovCardBody } from "@/components/gov/GovCard";
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
 import { Button } from "@/components/ui/Button";
 import { Search, Eye, Calendar } from "lucide-react";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 
 export default function CompanyInterestsPage() {
   const router = useRouter();
@@ -56,6 +58,18 @@ export default function CompanyInterestsPage() {
     const matchesSearch =
       (item.governmentPitch?.csrRequirement || item.companyName || "").toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
+  });
+
+  const { sortedItems, sortKey, sortDirection, requestSort } = useTableSort(filteredInterests, {
+    customGetters: {
+      requirement: (item) => item.governmentPitch?.csrRequirement || "",
+      district: (item) => item.governmentPitch?.district || "",
+      estimatedCost: (item) => Number(item.governmentPitch?.estimatedCost || 0),
+      indicativeBudget: (item) => Number(item.indicativeBudget || 0),
+      mode: (item) => item.implementationMode || "",
+      createdAt: (item) => item.createdAt,
+      status: (item) => item.status || "",
+    }
   });
 
   if (loading) {
@@ -109,18 +123,18 @@ export default function CompanyInterestsPage() {
               <table className="min-w-full divide-y divide-slate-200 text-sm">
                 <thead className="bg-slate-50 font-bold text-slate-700">
                   <tr>
-                    <th className="px-6 py-3 text-left">Development Need</th>
-                    <th className="px-6 py-3 text-left">District</th>
-                    <th className="px-6 py-3 text-left">Estimated Cost</th>
-                    <th className="px-6 py-3 text-left">Indicative Budget</th>
-                    <th className="px-6 py-3 text-left">Implementation Mode</th>
-                    <th className="px-6 py-3 text-left">Submission Date</th>
-                    <th className="px-6 py-3 text-left">Status</th>
+                    <SortableTh sortKey="requirement" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-6 py-3 text-left">Development Need</SortableTh>
+                    <SortableTh sortKey="district" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-6 py-3 text-left">District</SortableTh>
+                    <SortableTh sortKey="estimatedCost" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-6 py-3 text-left">Estimated Cost</SortableTh>
+                    <SortableTh sortKey="indicativeBudget" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-6 py-3 text-left">Indicative Budget</SortableTh>
+                    <SortableTh sortKey="mode" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-6 py-3 text-left">Implementation Mode</SortableTh>
+                    <SortableTh sortKey="createdAt" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-6 py-3 text-left">Submission Date</SortableTh>
+                    <SortableTh sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-6 py-3 text-left">Status</SortableTh>
                     <th className="px-6 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
-                  {filteredInterests.map((item) => (
+                  {sortedItems.map((item) => (
                     <tr key={item.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4 font-bold text-slate-900 max-w-[220px] truncate">
                         {item.governmentPitch?.csrRequirement || "N/A"}

@@ -12,6 +12,8 @@ import { ViewToggle } from "@/components/ui/ViewToggle";
 import { useResponsiveViewMode } from "@/hooks/useResponsiveViewMode";
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
 import { Loader } from "@/components/ui/Loader";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 import {
   Layers, Search, MapPin, Building2, Coins, CheckCircle2, Eye, FileText
 } from "lucide-react";
@@ -106,6 +108,19 @@ export default function ProjectsPage() {
     const matchesStatus = statusFilter ? project.status === statusFilter : true;
 
     return matchesSearch && matchesStatus;
+  });
+
+  const { sortedItems: sortedProjects, sortKey, sortDirection, requestSort } = useTableSort(filteredProjects, {
+    customGetters: {
+      projectId: (p) => p.projectId,
+      title: (p) => `${p.title} ${p.company}`,
+      implementingAgency: (p) => p.implementingAgency,
+      district: (p) => p.district,
+      sector: (p) => p.sector,
+      progress: (p) => p.progress,
+      budget: (p) => p.budget,
+      status: (p) => p.status,
+    }
   });
 
   const totalOutlay = scopedProjects.reduce((acc, p) => acc + p.budget, 0);
@@ -276,20 +291,20 @@ export default function ProjectsPage() {
             <table className="gov-table w-full text-xs">
               <thead>
                 <tr>
-                  <th>Project ID</th>
-                  <th>Project Title & Sponsor</th>
-                  <th>Implementing Agency</th>
-                  <th>Location</th>
-                  <th>Sector</th>
-                  <th>Progress</th>
-                  <th>Outlay (₹)</th>
-                  <th>Status</th>
-                  <th className="text-center">Action</th>
+                  <SortableTh sortKey="projectId" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Project ID</SortableTh>
+                  <SortableTh sortKey="title" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Project Title & Sponsor</SortableTh>
+                  <SortableTh sortKey="implementingAgency" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Implementing Agency</SortableTh>
+                  <SortableTh sortKey="district" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Location</SortableTh>
+                  <SortableTh sortKey="sector" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Sector</SortableTh>
+                  <SortableTh sortKey="progress" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Progress</SortableTh>
+                  <SortableTh sortKey="budget" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Outlay (₹)</SortableTh>
+                  <SortableTh sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Status</SortableTh>
+                  <th className="px-4 py-3.5 text-[11px] font-extrabold uppercase tracking-wider text-center text-slate-500">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredProjects.length > 0 ? (
-                  filteredProjects.map((p) => (
+                {sortedProjects.length > 0 ? (
+                  sortedProjects.map((p) => (
                     <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="font-mono font-bold text-blue-900">
                         <Link href={`/convergence-projects/${p.id}`} className="hover:underline">

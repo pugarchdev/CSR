@@ -9,6 +9,8 @@ import { apiFetch } from "@/lib/api";
 import GovModal from "@/components/gov/GovModal";
 import { Button } from "@/components/ui/Button";
 import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 
 interface HelpdeskTicket {
   id: string;
@@ -61,6 +63,16 @@ export default function HelpdeskPage() {
       (t.email && t.email.toLowerCase().includes(term)) ||
       (t.message && t.message.toLowerCase().includes(term))
     );
+  });
+
+  const { sortedItems: sortedTickets, sortKey, sortDirection, requestSort } = useTableSort(filtered, {
+    customGetters: {
+      trackingId: (t) => t.trackingId || t.id,
+      subject: (t) => t.subject,
+      raisedBy: (t) => `${t.name} ${t.email}`,
+      status: (t) => t.status,
+      createdAt: (t) => t.createdAt,
+    }
   });
 
   const handleOpenResolve = (ticket: HelpdeskTicket) => {
@@ -247,16 +259,16 @@ export default function HelpdeskPage() {
               <table className="w-full text-left text-xs">
                 <thead className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                   <tr>
-                    <th className="px-4 py-3">Tracking ID</th>
-                    <th className="px-4 py-3">Subject & Details</th>
-                    <th className="px-4 py-3">Raised By</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Date</th>
+                    <SortableTh sortKey="trackingId" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Tracking ID</SortableTh>
+                    <SortableTh sortKey="subject" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Subject & Details</SortableTh>
+                    <SortableTh sortKey="raisedBy" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Raised By</SortableTh>
+                    <SortableTh sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Status</SortableTh>
+                    <SortableTh sortKey="createdAt" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Date</SortableTh>
                     <th className="px-4 py-3 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium">
-                  {filtered.map((item) => (
+                  {sortedTickets.map((item) => (
                     <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="whitespace-nowrap px-4 py-3.5 font-mono font-bold text-blue-900">
                         {item.trackingId || item.id.slice(0, 8)}

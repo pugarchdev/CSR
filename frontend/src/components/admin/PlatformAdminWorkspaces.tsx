@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertCircle, AlertTriangle, ArrowRight, Building2, Check, CheckCircle2, Clock, Coins, Compass, ExternalLink, Eye, FileText, HeartHandshake, HelpCircle, LayoutGrid, List, Loader2, Mail, MapPin, Phone, Plus, RefreshCw, Save, Search, ShieldAlert, ShieldCheck, Target, ToggleLeft, ToggleRight, Trash2, Upload, User, UserCheck, XCircle } from "lucide-react";
+import { AlertCircle, AlertTriangle, ArrowRight, Building2, Check, CheckCircle2, Clock, Coins, Compass, ExternalLink, Eye, FileText, HeartHandshake, HelpCircle, LayoutGrid, List, Loader2, Mail, MapPin, Phone, Plus, RefreshCw, Save, Search, ShieldAlert, ShieldCheck, Target, ToggleLeft, ToggleRight, Trash2, Upload, User, UserCheck, UserPlus, XCircle } from "lucide-react";
 import { apiFetch, API_BASE_URL } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { Pagination } from "@/components/ui/Pagination";
@@ -2360,14 +2360,25 @@ export function OrganizationOnboardingStatusWorkspace() {
   const isClarification = onboardingStatus === "CLARIFICATION_REQUIRED";
   const isRejected = onboardingStatus === "REJECTED";
   const isSuspended = onboardingStatus === "SUSPENDED";
+  const isGovDept =
+    organization?.organizationType === "GOVERNMENT_DEPARTMENT" ||
+    organization?.organizationType === "GOVERNMENT" ||
+    organization?.organizationType === "DEPT" ||
+    organization?.organizationType?.includes("GOVT") ||
+    organization?.organizationType?.includes("DEPT") ||
+    organization?.kind === "GOVERNMENT_DEPARTMENT" ||
+    organization?.kind === "GOVERNMENT" ||
+    organization?.kind === "DEPT" ||
+    organization?.kind?.includes("GOVT") ||
+    organization?.kind?.includes("DEPT");
 
-  const editRoute = organization?.organizationType === "GOVERNMENT_DEPARTMENT" || organization?.kind === "GOVERNMENT_DEPARTMENT"
+  const editRoute = isGovDept
     ? "/organization/onboarding/department"
     : "/organization/onboarding/company";
 
   const existingDocs = organization?.documents || [];
 
-  const requiredDocTypes = organization?.kind === "GOVERNMENT_DEPARTMENT" || organization?.organizationType === "GOVERNMENT_DEPARTMENT"
+  const requiredDocTypes = isGovDept
     ? [
         { type: "OFFICE_ORDER", label: "Nodal Officer Appointment / Office Order" },
         { type: "DEPT_AUTHORIZATION", label: "Department CSR Authorization Letter" },
@@ -2744,18 +2755,53 @@ export function OrganizationOnboardingStatusWorkspace() {
                     {organization.email || organization.officialEmail || "—"}
                   </div>
                 </div>
-                <div>
-                  <div className="text-[11px] font-bold text-slate-400 uppercase">Registration / CIN</div>
-                  <div className="text-xs font-bold text-slate-800 mt-0.5">
-                    {organization.registrationNumber || organization.cin || "—"}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[11px] font-bold text-slate-400 uppercase">PAN / GSTIN</div>
-                  <div className="text-xs font-bold text-slate-800 mt-0.5">
-                    {[organization.pan, organization.gst].filter(Boolean).join(" / ") || "—"}
-                  </div>
-                </div>
+                {isGovDept ? (
+                  <>
+                    <div>
+                      <div className="text-[11px] font-bold text-slate-400 uppercase">Department Code</div>
+                      <div className="text-xs font-bold text-slate-800 mt-0.5 truncate">
+                        {(organization as any)?.departmentCode ||
+                          (organization as any)?.govDeptProfile?.departmentCode ||
+                          (organization as any)?.govDeptProfile?.deptOfficeCode ||
+                          (organization as any)?.govDeptProfile?.officialRegNo ||
+                          "—"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-bold text-slate-400 uppercase">
+                        {(organization as any)?.govDeptProfile?.parentDepartment || (organization as any)?.parentDepartment || (organization as any)?.parentOrganization?.name
+                          ? "Parent Department"
+                          : (organization as any)?.govDeptProfile?.nodalOfficerName
+                          ? "Nodal Officer"
+                          : "Official Phone"}
+                      </div>
+                      <div className="text-xs font-bold text-slate-800 mt-0.5 truncate">
+                        {(organization as any)?.govDeptProfile?.parentDepartment ||
+                          (organization as any)?.parentDepartment ||
+                          (organization as any)?.parentOrganization?.name ||
+                          (organization as any)?.govDeptProfile?.nodalOfficerName ||
+                          (organization as any)?.officialPhone ||
+                          organization.phone ||
+                          "—"}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <div className="text-[11px] font-bold text-slate-400 uppercase">Registration / CIN</div>
+                      <div className="text-xs font-bold text-slate-800 mt-0.5">
+                        {organization.registrationNumber || organization.cin || "—"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-bold text-slate-400 uppercase">PAN / GSTIN</div>
+                      <div className="text-xs font-bold text-slate-800 mt-0.5">
+                        {[organization.pan, organization.gst].filter(Boolean).join(" / ") || "—"}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -2952,8 +2998,22 @@ export function OrganizationUsersWorkspace() {
 }
 
 export function AdminOrganizationsWorkspace() {
-  const { isAdmin, hasPermission } = useAuthStore();
-  const canManage = isAdmin || hasPermission("organization:manage-users") || hasPermission("organization:create");
+  const { isAdmin, hasPermission, user } = useAuthStore();
+
+  // Role-based context detection
+  const roleNumericId = Number(user?.roleNumericId || user?.roleId || 0);
+  const roleStr = String(user?.role || user?.roleSlug || "").toUpperCase();
+  const isGovOfficer = roleNumericId === 7 || roleStr.includes("GOVERNMENT") || roleStr.includes("GOV_");
+  const isSubDeptAdmin = isGovOfficer && Boolean(
+    user?.organization?.parentOrganizationId ||
+    user?.organization?.governmentLevel === "SUB_DEPARTMENT" ||
+    roleStr.includes("SUB_DEPARTMENT")
+  );
+  const isMainDeptAdmin = isGovOfficer && !isSubDeptAdmin;
+  const isPlatformAdmin = isAdmin || [1, 2, 3, 4, 5, 6].includes(roleNumericId) || ["SUPER_ADMIN", "PLANNING_SECRETARY", "JOINT_SECRETARY", "CSR_ADMIN", "PORTAL_ADMIN"].includes(roleStr);
+
+  // Sub-dept admins cannot add departments; main-dept and platform admins can
+  const canManage = isMainDeptAdmin || (isPlatformAdmin && (isAdmin || hasPermission("organization:manage-users") || hasPermission("organization:create")));
 
   const [items, setItems] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
@@ -2963,7 +3023,16 @@ export function AdminOrganizationsWorkspace() {
   const [error, setError] = useState("");
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [deptForm, setDeptForm] = useState({ name: "", email: "", district: "" });
+  const [deptForm, setDeptForm] = useState({
+    name: "",
+    code: "",
+    district: user?.assignedDistrict || user?.organization?.district || "Nagpur",
+    officeAddress: "",
+    adminFullName: "",
+    adminEmail: "",
+    adminDesignation: "",
+    adminPhone: ""
+  });
   const [viewingOrg, setViewingOrg] = useState<Organization | null>(null);
   const [orgDetails, setOrgDetails] = useState<any | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
@@ -3016,13 +3085,29 @@ export function AdminOrganizationsWorkspace() {
         method: "POST",
         body: JSON.stringify({
           name: deptForm.name.trim(),
-          email: deptForm.email.trim() || undefined,
+          code: deptForm.code.trim() || undefined,
           district: deptForm.district || undefined,
-          kind: "GOVERNMENT_DEPARTMENT"
+          officeAddress: deptForm.officeAddress.trim() || undefined,
+          kind: "GOVERNMENT_DEPARTMENT",
+          admin: {
+            fullName: deptForm.adminFullName.trim(),
+            email: deptForm.adminEmail.trim(),
+            designation: deptForm.adminDesignation.trim() || undefined,
+            phone: deptForm.adminPhone.trim() || undefined,
+          }
         })
       });
       setCreateModalOpen(false);
-      setDeptForm({ name: "", email: "", district: "" });
+      setDeptForm({
+        name: "",
+        code: "",
+        district: "Nagpur",
+        officeAddress: "",
+        adminFullName: "",
+        adminEmail: "",
+        adminDesignation: "",
+        adminPhone: ""
+      });
       await load();
     } catch (err: any) {
       setError(err.message || "Failed to create government department");
@@ -3058,9 +3143,15 @@ export function AdminOrganizationsWorkspace() {
 
   return (
     <WorkspaceShell
-      eyebrow="Portal Admin"
-      title="Government Departments"
-      description="Review government department organizations in this portal instance and view statutory details."
+      eyebrow={isSubDeptAdmin ? "Department View" : isMainDeptAdmin ? "District View" : "Portal Admin"}
+      title={isSubDeptAdmin ? "Your Organization" : isMainDeptAdmin ? `Government Departments — ${user?.assignedDistrict || user?.organization?.district || "Your District"}` : "Government Departments"}
+      description={
+        isSubDeptAdmin
+          ? "View your sub-department organization profile and statutory details."
+          : isMainDeptAdmin
+            ? "View government department organizations registered in your district."
+            : "Review government department organizations in this portal instance and view statutory details."
+      }
       actions={
         canManage ? (
           <Button onClick={() => setCreateModalOpen(true)} className="w-full sm:w-auto justify-center font-bold">
@@ -3100,28 +3191,39 @@ export function AdminOrganizationsWorkspace() {
           </select>
         </div>
 
-        {/* District Filter */}
-        <div className="w-full md:w-56">
-          <select
-            value={districtFilter}
-            onChange={(e) => setDistrictFilter(e.target.value)}
-            className="w-full px-3 py-2 text-xs md:text-sm rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all font-medium cursor-pointer"
-          >
-            <option value="all">All 36 Districts</option>
-            {MAHARASHTRA_DISTRICTS.map((dist) => (
-              <option key={dist} value={dist}>
-                {dist}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* District Filter — hidden for sub-dept, locked for main-dept */}
+        {!isSubDeptAdmin && (
+          <div className="w-full md:w-56">
+            <select
+              value={isMainDeptAdmin ? (user?.assignedDistrict || user?.organization?.district || "all") : districtFilter}
+              onChange={(e) => setDistrictFilter(e.target.value)}
+              disabled={isMainDeptAdmin}
+              className={`w-full px-3 py-2 text-xs md:text-sm rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all font-medium cursor-pointer ${isMainDeptAdmin ? "opacity-70 cursor-not-allowed" : ""}`}
+            >
+              {isMainDeptAdmin ? (
+                <option value={user?.assignedDistrict || user?.organization?.district || "all"}>
+                  {user?.assignedDistrict || user?.organization?.district || "Your District"}
+                </option>
+              ) : (
+                <>
+                  <option value="all">All 36 Districts</option>
+                  {MAHARASHTRA_DISTRICTS.map((dist) => (
+                    <option key={dist} value={dist}>
+                      {dist}
+                    </option>
+                  ))}
+                </>
+              )}
+            </select>
+          </div>
+        )}
       </div>
 
       <section className="border border-slate-200/60 bg-white/70 backdrop-blur-xl rounded-2xl shadow-glass overflow-hidden">
         <div className="flex items-center justify-between border-b border-gov-line px-5 py-3.5 bg-slate-50/50">
           <div className="text-sm font-bold text-slate-800 flex items-center gap-2">
             <Building2 size={16} className="text-blue-700" />
-            <span>Government Departments Directory</span>
+            <span>{isSubDeptAdmin ? "Your Organization" : "Government Departments Directory"}</span>
           </div>
           <div className="text-xs font-bold text-gov-muted">{filtered.length} department(s)</div>
         </div>
@@ -3406,45 +3508,150 @@ export function AdminOrganizationsWorkspace() {
       </GovModal>
 
       {/* CREATE DEPARTMENT MODAL */}
-      <GovModal open={createModalOpen} onClose={() => setCreateModalOpen(false)} title="Add Government Department" width={560}>
+      <GovModal open={createModalOpen} onClose={() => setCreateModalOpen(false)} title="Add Sub-Department / Office" width={640}>
         <form onSubmit={handleCreateDept} className="flex flex-col gap-4">
-          <label className="flex flex-col gap-1.5 text-xs font-bold text-slate-700">
-            Department Name *
-            <input
-              type="text"
+          {/* Top Section */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-slate-800">
+                Sub-Department / Office Name <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={deptForm.name}
+                onChange={(e) => setDeptForm((prev) => ({ ...prev, name: e.target.value }))}
+                placeholder="e.g. Health Department / District Office"
+                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-50/50 border border-slate-200 focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-slate-800">
+                Office Code / Code Reference
+              </label>
+              <input
+                type="text"
+                value={deptForm.code}
+                onChange={(e) => setDeptForm((prev) => ({ ...prev, code: e.target.value }))}
+                placeholder="e.g. NMC-HLTH"
+                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-50/50 border border-slate-200 focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold text-slate-800">
+              District <span className="text-rose-500">*</span>
+            </label>
+            <select
               required
-              value={deptForm.name}
-              onChange={(e) => setDeptForm((prev) => ({ ...prev, name: e.target.value }))}
-              placeholder="e.g. Planning Department Maharashtra"
-              className="border border-slate-200 rounded-lg p-2.5 text-sm font-medium outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-shadow"
-            />
-          </label>
-          <label className="flex flex-col gap-1.5 text-xs font-bold text-slate-700">
-            Official Email
-            <input
-              type="email"
-              value={deptForm.email}
-              onChange={(e) => setDeptForm((prev) => ({ ...prev, email: e.target.value }))}
-              placeholder="e.g. planning@mahacsr.gov.in"
-              className="border border-slate-200 rounded-lg p-2.5 text-sm font-medium outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-shadow"
-            />
-          </label>
-          <label className="flex flex-col gap-1.5 text-xs font-bold text-slate-700">
-            District
-            <input
-              type="text"
               value={deptForm.district}
               onChange={(e) => setDeptForm((prev) => ({ ...prev, district: e.target.value }))}
-              placeholder="e.g. Mumbai / All Districts"
-              className="border border-slate-200 rounded-lg p-2.5 text-sm font-medium outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-shadow"
+              className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-50/50 border border-slate-200 focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all cursor-pointer"
+            >
+              <option value="">Select District</option>
+              {MAHARASHTRA_DISTRICTS.map((dist) => (
+                <option key={dist} value={dist}>
+                  {dist}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold text-slate-800">
+              Office Address
+            </label>
+            <textarea
+              rows={3}
+              value={deptForm.officeAddress}
+              onChange={(e) => setDeptForm((prev) => ({ ...prev, officeAddress: e.target.value }))}
+              placeholder="Enter full office address"
+              className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-50/50 border border-slate-200 focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all resize-none"
             />
-          </label>
-          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 mt-4 pt-2 border-t border-slate-100">
-            <Button type="button" variant="secondary" className="w-full sm:w-auto justify-center" onClick={() => setCreateModalOpen(false)}>
+          </div>
+
+          {/* Designated Admin Officer Sub-Card */}
+          <div className="rounded-2xl border border-blue-200/80 bg-blue-50/40 p-4.5 space-y-3.5">
+            <div className="flex items-center gap-2 text-xs font-extrabold text-blue-950">
+              <UserPlus size={16} className="text-blue-700 shrink-0" />
+              <span>Designated Admin Officer</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold text-slate-800">
+                  Full Name <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={deptForm.adminFullName}
+                  onChange={(e) => setDeptForm((prev) => ({ ...prev, adminFullName: e.target.value }))}
+                  placeholder="e.g. Rajesh Sharma"
+                  className="w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium bg-white border border-slate-200 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold text-slate-800">
+                  Official Email <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={deptForm.adminEmail}
+                  onChange={(e) => setDeptForm((prev) => ({ ...prev, adminEmail: e.target.value }))}
+                  placeholder="admin@gov.in"
+                  className="w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium bg-white border border-slate-200 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold text-slate-800">
+                  Designation
+                </label>
+                <input
+                  type="text"
+                  value={deptForm.adminDesignation}
+                  onChange={(e) => setDeptForm((prev) => ({ ...prev, adminDesignation: e.target.value }))}
+                  placeholder="e.g. Sub-Divisional Officer / Deputy Collector"
+                  className="w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium bg-white border border-slate-200 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold text-slate-800">
+                  Phone / Mobile Number
+                </label>
+                <input
+                  type="tel"
+                  value={deptForm.adminPhone}
+                  onChange={(e) => setDeptForm((prev) => ({ ...prev, adminPhone: e.target.value }))}
+                  placeholder="e.g. 9876543210"
+                  className="w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium bg-white border border-slate-200 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 mt-2 pt-3 border-t border-slate-100">
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full sm:w-auto justify-center"
+              onClick={() => setCreateModalOpen(false)}
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={creating} className="w-full sm:w-auto justify-center">
-              {creating ? "Creating..." : "Create Department"}
+            <Button
+              type="submit"
+              disabled={creating}
+              loading={creating}
+              loadingText="Creating & Sending Invitation..."
+              className="w-full sm:w-auto justify-center bg-blue-900 hover:bg-blue-950 text-white font-bold"
+            >
+              Create and Send Invitation
             </Button>
           </div>
         </form>
@@ -4145,16 +4352,37 @@ export function OrganizationSettingsWorkspace() {
         </div>
       ) : (
         <form onSubmit={save} className="grid gap-4 border border-gov-line bg-white p-5 shadow-sm md:grid-cols-2">
-          {[
-            ["name", "Organization Name"],
-            ["email", "Official Email"],
-            ["phone", "Official Phone"],
-            ["district", "District"],
-            ["taluka", "Taluka"],
-            ["registrationNumber", "Registration Number"],
-            ["pan", "PAN"],
-            ["gst", "GST"]
-          ].map(([key, label]) => (
+          {(
+            organization?.organizationType === "GOVERNMENT_DEPARTMENT" ||
+            organization?.organizationType === "GOVERNMENT" ||
+            organization?.organizationType === "DEPT" ||
+            organization?.organizationType?.includes("GOVT") ||
+            organization?.organizationType?.includes("DEPT") ||
+            organization?.kind === "GOVERNMENT_DEPARTMENT" ||
+            organization?.kind === "GOVERNMENT" ||
+            organization?.kind === "DEPT" ||
+            organization?.kind?.includes("GOVT") ||
+            organization?.kind?.includes("DEPT")
+              ? [
+                  ["name", "Organization Name"],
+                  ["email", "Official Email"],
+                  ["phone", "Official Phone"],
+                  ["district", "District"],
+                  ["taluka", "Taluka"],
+                  ["departmentCode", "Department Code"],
+                  ["parentDepartment", "Parent Department"]
+                ]
+              : [
+                  ["name", "Organization Name"],
+                  ["email", "Official Email"],
+                  ["phone", "Official Phone"],
+                  ["district", "District"],
+                  ["taluka", "Taluka"],
+                  ["registrationNumber", "Registration Number"],
+                  ["pan", "PAN"],
+                  ["gst", "GST"]
+                ]
+          ).map(([key, label]) => (
             <label key={key} className="flex flex-col gap-1.5 text-sm font-bold text-gov-ink">
               {label}
               <input

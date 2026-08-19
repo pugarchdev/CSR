@@ -59,9 +59,13 @@ router.get("/department/profile", getDepartmentOnboardingProfile);
 router.put("/department/profile", updateDepartmentOnboardingProfile);
 router.patch("/department", updateDepartmentOnboardingProfile);
 router.patch("/department/profile", updateDepartmentOnboardingProfile);
+router.put("/department/nodal", updateDepartmentNodalOfficer);
 router.patch("/department/nodal", updateDepartmentNodalOfficer);
+router.put("/department/authorization", updateDepartmentAuthorization);
 router.patch("/department/authorization", updateDepartmentAuthorization);
+router.put("/department/jurisdiction", updateDepartmentJurisdiction);
 router.patch("/department/jurisdiction", updateDepartmentJurisdiction);
+router.put("/department/permissions", updateDepartmentPermissions);
 router.patch("/department/permissions", updateDepartmentPermissions);
 router.post("/department/submit", submitDepartmentOnboarding);
 

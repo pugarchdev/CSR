@@ -6,8 +6,9 @@ import GovPageHeader from "@/components/layout/GovPageHeader";
 import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
 import GovButton from "@/components/gov/GovButton";
-
 import { Loader } from "@/components/ui/Loader";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 
 export default function AdminDocumentReviewPage() {
   const { data: envelope, isLoading } = useApiQuery<any>(
@@ -15,7 +16,18 @@ export default function AdminDocumentReviewPage() {
     "/documents"
   );
 
-  const docs = envelope?.data?.documents || envelope?.data || envelope?.documents || [];
+  const rawDocs = envelope?.data?.documents || envelope?.data || envelope?.documents || [];
+  const docs = Array.isArray(rawDocs) ? rawDocs : [];
+
+  const { sortedItems: sortedDocs, sortKey, sortDirection, requestSort } = useTableSort(docs, {
+    customGetters: {
+      id: (doc: any) => doc.id,
+      name: (doc: any) => doc.name || doc.originalName || "",
+      documentType: (doc: any) => doc.documentType || "Statutory",
+      status: (doc: any) => doc.status || "PENDING",
+      createdAt: (doc: any) => doc.createdAt,
+    }
+  });
 
   return (
     <GovPortalLayout userRole="ADMIN">
@@ -39,17 +51,17 @@ export default function AdminDocumentReviewPage() {
               <table className="gov-table w-full">
                 <thead>
                   <tr>
-                    <th>Document ID</th>
-                    <th>Document Name</th>
-                    <th>Category / Type</th>
-                    <th>Status</th>
-                    <th>Uploaded Date</th>
-                    <th>Action</th>
+                    <SortableTh sortKey="id" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Document ID</SortableTh>
+                    <SortableTh sortKey="name" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Document Name</SortableTh>
+                    <SortableTh sortKey="documentType" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Category / Type</SortableTh>
+                    <SortableTh sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Status</SortableTh>
+                    <SortableTh sortKey="createdAt" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Uploaded Date</SortableTh>
+                    <th className="px-4 py-3.5 text-[11px] font-extrabold uppercase tracking-wider text-slate-500">Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {docs.length > 0 ? (
-                    docs.map((doc: any) => (
+                  {sortedDocs.length > 0 ? (
+                    sortedDocs.map((doc: any) => (
                       <tr key={doc.id}>
                         <td className="font-mono text-xs">{doc.id.slice(0, 8)}</td>
                         <td className="font-semibold">{doc.name || doc.originalName || "Document"}</td>

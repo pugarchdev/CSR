@@ -28,6 +28,8 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { apiFetch } from "@/lib/api";
 import { MAHARASHTRA_DISTRICTS } from "@/lib/locationData";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 import "@/styles/gov-theme.css";
 
 export default function CompaniesPage() {
@@ -121,6 +123,8 @@ export default function CompaniesPage() {
     };
   });
 
+  const { sortedItems, sortKey, sortDirection, requestSort } = useTableSort(items);
+
   return (
     <GovPortalLayout>
       <GovPageHeader
@@ -129,18 +133,68 @@ export default function CompaniesPage() {
         description="Directory of verified Corporate CSR Partners, statutory 2% obligations, and CSR Head contact registry."
       />
 
-      <div className="gov-container !px-2 sm:!px-4 md:!px-6 space-y-4">
-        {/* Sleek Single-Row Search & Filters Bar */}
-        <div className="flex flex-col md:flex-row items-center gap-2.5 p-2.5 sm:p-3 bg-white rounded-2xl border border-slate-200/90 shadow-2xs">
-          {/* Search Input */}
+      <div className="gov-container space-y-6">
+        {/* Metric Cards Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <GovCard className="bg-gradient-to-br from-blue-50/60 via-white to-white border-blue-100 shadow-xs">
+            <GovCardBody className="p-4 flex items-center gap-4">
+              <div className="p-3 rounded-2xl bg-blue-100/70 text-blue-700">
+                <Building2 size={22} />
+              </div>
+              <div>
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Companies</span>
+                <p className="text-xl font-extrabold text-slate-900 mt-0.5">{pagination.total}</p>
+              </div>
+            </GovCardBody>
+          </GovCard>
+
+          <GovCard className="bg-gradient-to-br from-emerald-50/60 via-white to-white border-emerald-100 shadow-xs">
+            <GovCardBody className="p-4 flex items-center gap-4">
+              <div className="p-3 rounded-2xl bg-emerald-100/70 text-emerald-700">
+                <ShieldCheck size={22} />
+              </div>
+              <div>
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Active Verified</span>
+                <p className="text-xl font-extrabold text-emerald-950 mt-0.5">{pagination.active}</p>
+              </div>
+            </GovCardBody>
+          </GovCard>
+
+          <GovCard className="bg-gradient-to-br from-amber-50/60 via-white to-white border-amber-100 shadow-xs">
+            <GovCardBody className="p-4 flex items-center gap-4">
+              <div className="p-3 rounded-2xl bg-amber-100/70 text-amber-700">
+                <UserCheck size={22} />
+              </div>
+              <div>
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Pending Review</span>
+                <p className="text-xl font-extrabold text-amber-950 mt-0.5">{pagination.pending}</p>
+              </div>
+            </GovCardBody>
+          </GovCard>
+
+          <GovCard className="bg-gradient-to-br from-purple-50/60 via-white to-white border-purple-100 shadow-xs">
+            <GovCardBody className="p-4 flex items-center gap-4">
+              <div className="p-3 rounded-2xl bg-purple-100/70 text-purple-700">
+                <Target size={22} />
+              </div>
+              <div>
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total CSR Pool</span>
+                <p className="text-xl font-extrabold text-purple-950 mt-0.5">₹425+ Cr</p>
+              </div>
+            </GovCardBody>
+          </GovCard>
+        </div>
+
+        {/* Filter and Search Bar */}
+        <div className="flex flex-col md:flex-row items-center gap-3 bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
           <div className="relative flex-1 w-full">
-            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input
               type="text"
-              placeholder="Search company by name, legal entity or CIN..."
+              placeholder="Search companies by name, CIN, PAN, or official email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-xs md:text-sm rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all font-medium"
+              className="w-full pl-10 pr-4 py-2 text-xs md:text-sm rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all font-medium placeholder-slate-400"
             />
           </div>
 
@@ -154,7 +208,7 @@ export default function CompaniesPage() {
               }}
               className="w-full px-3 py-2 text-xs md:text-sm rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all font-medium cursor-pointer"
             >
-              <option value="all">All Status</option>
+              <option value="all">All Statuses</option>
               <option value="Active">Active</option>
               <option value="Under Review">Under Review</option>
               <option value="Suspended">Suspended</option>
@@ -162,7 +216,7 @@ export default function CompaniesPage() {
           </div>
 
           {/* District Filter */}
-          <div className="w-full md:w-52">
+          <div className="w-full md:w-48">
             <select
               value={districtFilter}
               onChange={(e) => {
@@ -216,12 +270,12 @@ export default function CompaniesPage() {
               <table className="w-full block md:table text-left border-collapse text-xs md:text-sm">
                 <thead className="hidden md:table-header-group border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider font-extrabold text-slate-500">
                   <tr>
-                    <th className="px-5 py-3.5">Company Name</th>
-                    <th className="px-4 py-3.5">CIN / Reg No</th>
-                    <th className="px-4 py-3.5">District / Region</th>
-                    <th className="px-4 py-3.5">Sector</th>
-                    <th className="px-4 py-3.5">CSR Obligation</th>
-                    <th className="px-4 py-3.5">Status</th>
+                    <SortableTh sortKey="name" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-5 py-3.5">Company Name</SortableTh>
+                    <SortableTh sortKey="cin" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3.5">CIN / Reg No</SortableTh>
+                    <SortableTh sortKey="district" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3.5">District / Region</SortableTh>
+                    <SortableTh sortKey="sector" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3.5">Sector</SortableTh>
+                    <SortableTh sortKey="csrObligation" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3.5">CSR Obligation</SortableTh>
+                    <SortableTh sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3.5">Status</SortableTh>
                     <th className="px-5 py-3.5 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -235,14 +289,14 @@ export default function CompaniesPage() {
                         </div>
                       </td>
                     </tr>
-                  ) : items.length === 0 ? (
+                  ) : sortedItems.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="p-8 text-center text-slate-500 font-medium">
                         No corporate company partners found matching the selected criteria.
                       </td>
                     </tr>
                   ) : (
-                    items.map((company) => (
+                    sortedItems.map((company) => (
                       <tr 
                         key={company.id}
                         className="block md:table-row mb-3 md:mb-0 bg-white border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-xs md:shadow-none hover:bg-slate-50/80 transition-colors overflow-hidden"

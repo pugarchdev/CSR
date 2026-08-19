@@ -12,6 +12,8 @@ import { Loader } from "@/components/ui/Loader";
 import {
   Plus, Search, Filter, MapPin, Coins, ArrowUpRight, CheckCircle2, FileText, Landmark
 } from "lucide-react";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 
 interface Requirement {
   id: string;
@@ -61,6 +63,17 @@ export default function RequirementsPage() {
                           item.category.toLowerCase().includes(search.toLowerCase());
     const matchesDist = filterDistrict === "ALL" || item.district === filterDistrict;
     return matchesSearch && matchesDist;
+  });
+
+  const { sortedItems: sortedReqs, sortKey, sortDirection, requestSort } = useTableSort(filtered, {
+    customGetters: {
+      refId: (r) => r.refId,
+      title: (r) => r.title,
+      category: (r) => r.category,
+      district: (r) => r.district,
+      estimatedCostLakhs: (r) => r.estimatedCostLakhs,
+      status: (r) => r.status,
+    }
   });
 
   const uniqueDistricts = Array.from(new Set(reqsList.map(r => r.district).filter(Boolean)));
@@ -226,18 +239,18 @@ export default function RequirementsPage() {
             <table className="gov-table w-full text-xs">
               <thead>
                 <tr>
-                  <th>Ref ID</th>
-                  <th>Requirement Title</th>
-                  <th>Sector / Category</th>
-                  <th>District</th>
-                  <th>Estimated Cost</th>
-                  <th>Status</th>
-                  <th className="text-right">Actions</th>
+                  <SortableTh sortKey="refId" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Ref ID</SortableTh>
+                  <SortableTh sortKey="title" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Requirement Title</SortableTh>
+                  <SortableTh sortKey="category" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Sector / Category</SortableTh>
+                  <SortableTh sortKey="district" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>District</SortableTh>
+                  <SortableTh sortKey="estimatedCostLakhs" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Estimated Cost</SortableTh>
+                  <SortableTh sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Status</SortableTh>
+                  <th className="px-4 py-3.5 text-[11px] font-extrabold uppercase tracking-wider text-right text-slate-500">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.length > 0 ? (
-                  filtered.map((item) => (
+                {sortedReqs.length > 0 ? (
+                  sortedReqs.map((item) => (
                     <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="font-mono font-bold text-blue-900">{item.refId}</td>
                       <td className="font-bold text-slate-900 max-w-xs truncate">{item.title}</td>

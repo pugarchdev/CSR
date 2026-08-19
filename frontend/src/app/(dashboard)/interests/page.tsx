@@ -8,6 +8,8 @@ import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
 import { Loader } from "@/components/ui/Loader";
 import { HeartHandshake, CheckCircle2, Clock, Coins } from "lucide-react";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 
 export default function InterestsPage() {
   const { data: envelope, isLoading } = useApiQuery<any>(
@@ -15,7 +17,18 @@ export default function InterestsPage() {
     "/company-interests"
   );
 
-  const interests = envelope?.data?.interests || envelope?.data || envelope?.interests || (Array.isArray(envelope) ? envelope : []);
+  const rawInterests = envelope?.data?.interests || envelope?.data || envelope?.interests || (Array.isArray(envelope) ? envelope : []);
+  const interests = Array.isArray(rawInterests) ? rawInterests : [];
+
+  const { sortedItems: sortedInterests, sortKey, sortDirection, requestSort } = useTableSort(interests, {
+    customGetters: {
+      id: (i: any) => i.id,
+      company: (i: any) => i.companyName || i.company?.name || "",
+      needTitle: (i: any) => i.needTitle || i.pitchTitle || "",
+      proposedOutlay: (i: any) => Number(i.proposedOutlay || 0),
+      status: (i: any) => i.status || "LOGGED",
+    }
+  });
 
   const acceptedCount = interests.filter((i: any) => i.status === "ACCEPTED" || i.status === "APPROVED").length;
   const pendingCount = interests.filter((i: any) => i.status !== "ACCEPTED" && i.status !== "APPROVED").length;
@@ -80,16 +93,16 @@ export default function InterestsPage() {
                 <table className="w-full block md:table text-left text-sm text-slate-700 border-collapse">
                   <thead className="hidden md:table-header-group bg-slate-50 text-[11px] font-extrabold uppercase tracking-wider text-slate-500 border-b border-slate-200/80">
                     <tr>
-                      <th className="px-4 py-3">Ref ID</th>
-                      <th className="px-4 py-3">Corporate Partner</th>
-                      <th className="px-4 py-3">Target Need / Pitch</th>
-                      <th className="px-4 py-3">Proposed Outlay</th>
-                      <th className="px-4 py-3">Status</th>
+                      <SortableTh sortKey="id" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3">Ref ID</SortableTh>
+                      <SortableTh sortKey="company" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3">Corporate Partner</SortableTh>
+                      <SortableTh sortKey="needTitle" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3">Target Need / Pitch</SortableTh>
+                      <SortableTh sortKey="proposedOutlay" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3">Proposed Outlay</SortableTh>
+                      <SortableTh sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3">Status</SortableTh>
                     </tr>
                   </thead>
                   <tbody className="block md:table-row-group divide-y-0 md:divide-y md:divide-slate-100">
-                    {interests.length > 0 ? (
-                      interests.map((i: any) => (
+                    {sortedInterests.length > 0 ? (
+                      sortedInterests.map((i: any) => (
                         <tr 
                           key={i.id}
                           className="block md:table-row mb-4 md:mb-0 bg-white border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-sm md:shadow-none hover:bg-slate-50/80 transition-colors overflow-hidden"

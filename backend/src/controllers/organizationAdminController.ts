@@ -1,8 +1,13 @@
 import { Request, Response, NextFunction } from "express";
 import { OrganizationStatus, OrganizationKind } from "@prisma/client";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import prisma from "../config/db";
+import { getPrimaryFrontendUrl } from "../config/env";
+import { ROLE_ID } from "../types/role";
 import { AuthenticatedRequest } from "../middlewares/authMiddleware";
 import { notifyHierarchy } from "../services/hierarchyNotificationService";
+import { sendUserInvitationEmail } from "../services/emailService";
 
 export const getOwnedOrganization = async (req: AuthenticatedRequest, kind?: string, allowLocked = false) => {
   let organizationId = req.user?.organizationId || req.user?.ngoId || req.user?.companyId;
@@ -47,6 +52,40 @@ export const listOrganizations = async (req: AuthenticatedRequest, res: Response
     const targetKind = (type || kind) as string | undefined;
 
     const whereClause: any = {};
+
+    // ── Role-based organization scoping ──────────────────────────────────
+    const roleId = Number(req.user?.roleId);
+    const PLATFORM_ROLES = [1, 2, 3, 4, 5, 6]; // SUPER_ADMIN through RELATIONSHIP_MANAGER
+    if (roleId === 7 && req.user?.organizationId) {
+      // Government Officer — scope based on org hierarchy level
+      const userOrg = await prisma.organization.findUnique({
+        where: { id: req.user.organizationId },
+        select: { id: true, district: true, parentOrganizationId: true, governmentLevel: true }
+      });
+
+      if (userOrg) {
+        const isSubDept = Boolean(userOrg.parentOrganizationId) || userOrg.governmentLevel === "SUB_DEPARTMENT";
+        if (isSubDept) {
+          // Sub-department admin: can only see their own organization
+          whereClause.id = userOrg.id;
+        } else {
+          // Main department admin: can only see organizations in their district
+          const userDistrict = userOrg.district || req.user.assignedDistrict;
+          if (userDistrict) {
+            whereClause.district = { equals: userDistrict, mode: "insensitive" };
+          } else {
+            // No district set — strict enforcement: show nothing
+            whereClause.id = "__no_district_configured__";
+          }
+        }
+      }
+    } else if (!PLATFORM_ROLES.includes(roleId)) {
+      // Non-platform, non-gov roles: can only see their own org
+      if (req.user?.organizationId) {
+        whereClause.id = req.user.organizationId;
+      }
+    }
+    // Platform roles (1-6) bypass scoping — see everything
 
     if (targetKind && targetKind !== "ALL") {
       if (targetKind === "CSR_COMPANY" || targetKind === "CORPORATE") {
@@ -233,6 +272,37 @@ export const getOrganizationById = async (req: AuthenticatedRequest, res: Respon
       include: { csrCompanyProfile: true, ngoProfile: true, govDeptProfile: true, documents: true }
     });
     if (!organization) return res.status(404).json({ error: "Organization not found" });
+
+    // ── Role-based view guard ──────────────────────────────────────────
+    const roleId = Number(req.user?.roleId);
+    const PLATFORM_ROLES = [1, 2, 3, 4, 5, 6];
+    if (roleId === 7 && req.user?.organizationId) {
+      const userOrg = await prisma.organization.findUnique({
+        where: { id: req.user.organizationId },
+        select: { id: true, district: true, parentOrganizationId: true, governmentLevel: true }
+      });
+      if (userOrg) {
+        const isSubDept = Boolean(userOrg.parentOrganizationId) || userOrg.governmentLevel === "SUB_DEPARTMENT";
+        if (isSubDept) {
+          if (organization.id !== userOrg.id) {
+            return res.status(403).json({ error: "Forbidden: You can only view your own organization." });
+          }
+        } else {
+          const isOwnOrChild = organization.id === userOrg.id || organization.parentOrganizationId === userOrg.id;
+          if (!isOwnOrChild) {
+            const userDistrict = userOrg.district || req.user.assignedDistrict;
+            if (userDistrict && organization.district?.toLowerCase() !== userDistrict.toLowerCase()) {
+              return res.status(403).json({ error: "Forbidden: You can only view organizations in your assigned district." });
+            }
+          }
+        }
+      }
+    } else if (!PLATFORM_ROLES.includes(roleId) && req.user?.organizationId) {
+      if (organization.id !== req.user.organizationId) {
+        return res.status(403).json({ error: "Forbidden: You can only view your own organization." });
+      }
+    }
+
     return res.json(organization);
   } catch (error) {
     next(error);
@@ -838,10 +908,106 @@ export const updateDepartmentOnboardingProfile = async (req: AuthenticatedReques
         ...(body.nodalOfficerMobile !== undefined ? { nodalOfficerMobile: body.nodalOfficerMobile } : {}),
       }
     });
+
+    if (body.nodalOfficerEmail && String(body.nodalOfficerEmail).trim()) {
+      await syncNodalOfficerUser(org, body, req.user?.id).catch((e) =>
+        console.warn("[Onboarding] Error syncing nodal officer user:", e?.message)
+      );
+    }
+
     return res.json(profile);
   } catch (error: any) {
     return res.status(400).json({ error: error.message });
   }
+};
+
+const syncNodalOfficerUser = async (org: any, body: any, parentUserId?: string | null) => {
+  const nodalEmail = String(body.nodalOfficerEmail || "").trim().toLowerCase();
+  if (!nodalEmail || !/^\S+@\S+\.\S+$/.test(nodalEmail)) return null;
+
+  const nameParts = String(body.nodalOfficerName || "Nodal Officer").trim().split(/\s+/);
+  const firstName = nameParts[0] || "Nodal";
+  const lastName = nameParts.slice(1).join(" ") || "Officer";
+  const designation = body.nodalOfficerDesignation ? String(body.nodalOfficerDesignation).trim() : "Designated Nodal Officer";
+  const mobile = body.nodalOfficerMobile ? String(body.nodalOfficerMobile).trim() : null;
+
+  const existingUser = await prisma.user.findFirst({
+    where: { email: nodalEmail, deletedAt: null }
+  });
+
+  if (existingUser) {
+    const updated = await prisma.user.update({
+      where: { id: existingUser.id },
+      data: {
+        organizationId: existingUser.organizationId || org.id,
+        designation: designation || existingUser.designation,
+        mobile: mobile || existingUser.mobile,
+      }
+    });
+
+    await prisma.userOfficerProfile.upsert({
+      where: { userId: existingUser.id },
+      create: {
+        userId: existingUser.id,
+        fullName: String(body.nodalOfficerName || `${firstName} ${lastName}`).trim(),
+        designation,
+        department: org.name,
+        district: org.district || null,
+        mobile
+      },
+      update: {
+        fullName: String(body.nodalOfficerName || `${firstName} ${lastName}`).trim(),
+        designation,
+        department: org.name,
+        district: org.district || null,
+        ...(mobile ? { mobile } : {})
+      }
+    });
+
+    await prisma.organization.update({
+      where: { id: org.id },
+      data: { operationalNodalUserId: existingUser.id }
+    });
+
+    return updated;
+  }
+
+  const tempPassword = `MahaCSR@${crypto.randomInt(100000, 999999)}`;
+  const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+  const newUser = await prisma.user.create({
+    data: {
+      email: nodalEmail,
+      loginIdentifier: nodalEmail,
+      passwordHash,
+      roleId: ROLE_ID.GOVERNMENT_OFFICER, // 7
+      organizationId: org.id,
+      parentUserId: parentUserId || null,
+      firstName,
+      lastName,
+      mobile,
+      designation,
+      accountStatus: "PENDING_ACTIVATION",
+      isVerified: false,
+      mustResetPassword: true,
+      officerProfile: {
+        create: {
+          fullName: String(body.nodalOfficerName || `${firstName} ${lastName}`).trim(),
+          designation,
+          department: org.name,
+          district: org.district || null,
+          mobile
+        }
+      }
+    }
+  });
+
+  await prisma.organization.update({
+    where: { id: org.id },
+    data: { operationalNodalUserId: newUser.id }
+  });
+
+  return newUser;
 };
 
 export const updateDepartmentNodalOfficer = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -868,6 +1034,13 @@ export const updateDepartmentNodalOfficer = async (req: AuthenticatedRequest, re
         ...(body.headMobile !== undefined ? { headMobile: body.headMobile } : {}),
       }
     });
+
+    if (body.nodalOfficerEmail && String(body.nodalOfficerEmail).trim()) {
+      await syncNodalOfficerUser(org, body, req.user?.id).catch((e) =>
+        console.warn("[Onboarding] Error syncing nodal officer user:", e?.message)
+      );
+    }
+
     return res.json(profile);
   } catch (error: any) {
     return res.status(400).json({ error: error.message });
@@ -951,8 +1124,35 @@ export const listPermissions = async (_req: AuthenticatedRequest, res: Response,
 
 export const createAdminOrganization = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const { name, kind = "GOVERNMENT_DEPARTMENT", district, email, phone, address } = req.body;
-    if (!name || !name.trim()) return res.status(400).json({ error: "Department / Organization name is required." });
+    const {
+      name,
+      code,
+      kind = "GOVERNMENT_DEPARTMENT",
+      district,
+      email,
+      phone,
+      address,
+      officeAddress,
+      admin,
+      adminOfficer,
+      parentOrganizationId
+    } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: "Sub-Department / Office Name is required." });
+    }
+
+    // Sub-department admins and below hierarchy cannot create departments
+    const roleId = Number(req.user?.roleId);
+    if (roleId === 7 && req.user?.organizationId) {
+      const userOrg = await prisma.organization.findUnique({
+        where: { id: req.user.organizationId },
+        select: { parentOrganizationId: true, governmentLevel: true }
+      });
+      if (userOrg && (Boolean(userOrg.parentOrganizationId) || userOrg.governmentLevel === "SUB_DEPARTMENT")) {
+        return res.status(403).json({ error: "Forbidden: Sub-departments cannot create child departments." });
+      }
+    }
 
     const resolvedKind = kind === "GOVT_DEPT"
       ? OrganizationKind.GOVERNMENT_DEPARTMENT
@@ -960,25 +1160,169 @@ export const createAdminOrganization = async (req: AuthenticatedRequest, res: Re
       ? OrganizationKind.CSR_COMPANY
       : (kind as OrganizationKind);
 
+    const targetDistrict = district ? String(district).trim() : null;
+    const targetAddress = String(officeAddress || address || "").trim() || null;
+    const targetCode = String(code || "").trim() || null;
+
+    const officerData = admin || adminOfficer || {};
+    const adminFullName = String(officerData.fullName || officerData.name || "").trim();
+    const adminEmail = String(officerData.email || email || "").trim().toLowerCase();
+    const adminDesignation = String(officerData.designation || "").trim() || "Designated Admin Officer";
+    const adminPhone = String(officerData.phone || officerData.mobile || phone || "").trim() || null;
+
+    const parentOrgId = parentOrganizationId || (req.user?.organizationId ? req.user.organizationId : null);
+
     const org = await prisma.organization.create({
       data: {
         name: name.trim(),
+        organizationCode: targetCode,
         kind: resolvedKind,
-        district: district ? String(district).trim() : null,
-        officialEmail: email ? String(email).trim().toLowerCase() : null,
+        district: targetDistrict,
+        address: targetAddress,
+        officialEmail: adminEmail || (email ? String(email).trim().toLowerCase() : null),
+        officialPhone: adminPhone,
         status: "ACTIVE",
+        parentOrganizationId: parentOrgId,
+        parentRelationshipStatus: parentOrgId ? "VERIFIED" : "NONE",
         ...(resolvedKind === OrganizationKind.GOVERNMENT_DEPARTMENT ? {
           govDeptProfile: {
             create: {
               departmentType: "STATE_GOVT",
-              nodalOfficerName: "Department Nodal Officer"
+              departmentCode: targetCode,
+              deptOfficeCode: targetCode,
+              nodalOfficerName: adminFullName || "Department Nodal Officer",
+              nodalOfficerDesignation: adminDesignation,
+              nodalOfficerEmail: adminEmail || null,
+              nodalOfficerMobile: adminPhone || null
             }
           }
         } : {})
       }
     });
 
-    return res.status(201).json({ success: true, organization: org });
+    // Also create a subDepartment record under parent if parent exists or under new org
+    const subDeptOrgId = parentOrgId || org.id;
+    await prisma.subDepartment.create({
+      data: {
+        organizationId: subDeptOrgId,
+        name: name.trim(),
+        code: targetCode,
+        type: "Government Department",
+        officeAddress: targetAddress,
+        officialEmail: adminEmail || null,
+        officialPhone: adminPhone || null,
+        departmentHead: adminFullName ? `${adminFullName} (${adminDesignation})` : null,
+        departmentHeadEmail: adminEmail || null,
+        departmentHeadMobile: adminPhone || null,
+        dnoName: adminFullName || null,
+        status: "ACTIVE"
+      }
+    }).catch(err => console.error("Error creating subDepartment sync:", err));
+
+    let createdUser: any = null;
+    let invitationSent = false;
+
+    if (adminEmail && /^\S+@\S+\.\S+$/.test(adminEmail)) {
+      const existingUser = await prisma.user.findFirst({
+        where: { email: adminEmail, deletedAt: null }
+      });
+
+      const tempPassword = `MahaCSR@${crypto.randomInt(100000, 999999)}`;
+      const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+      const nameParts = adminFullName ? adminFullName.split(/\s+/) : ["Admin", "Officer"];
+      const firstName = nameParts[0] || "Admin";
+      const lastName = nameParts.slice(1).join(" ") || "Officer";
+
+      if (!existingUser) {
+        createdUser = await prisma.user.create({
+          data: {
+            email: adminEmail,
+            loginIdentifier: adminEmail,
+            passwordHash,
+            roleId: ROLE_ID.GOVERNMENT_OFFICER,
+            organizationId: org.id,
+            parentUserId: req.user?.id || null,
+            firstName,
+            lastName,
+            mobile: adminPhone || "",
+            designation: adminDesignation,
+            accountStatus: "ACTIVE",
+            isVerified: true,
+            mustResetPassword: true,
+            temporaryPasswordExpiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000),
+            officerProfile: {
+              create: {
+                fullName: adminFullName || `${firstName} ${lastName}`,
+                designation: adminDesignation,
+                department: name.trim(),
+                district: targetDistrict,
+                mobile: adminPhone || ""
+              }
+            }
+          },
+          select: {
+            id: true,
+            email: true,
+            roleId: true,
+            accountStatus: true,
+            isVerified: true,
+            firstName: true,
+            lastName: true,
+            designation: true
+          }
+        });
+      } else {
+        createdUser = await prisma.user.update({
+          where: { id: existingUser.id },
+          data: {
+            passwordHash,
+            mustResetPassword: true,
+            temporaryPasswordExpiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000),
+            accountStatus: "ACTIVE",
+            isVerified: true,
+            organizationId: org.id
+          },
+          select: {
+            id: true,
+            email: true,
+            roleId: true,
+            accountStatus: true,
+            isVerified: true,
+            firstName: true,
+            lastName: true,
+            designation: true
+          }
+        });
+      }
+
+      // Send invitation email
+      const frontendUrl = getPrimaryFrontendUrl();
+      const loginUrl = `${frontendUrl}/login`;
+      const dashboardUrl = `${frontendUrl}/dashboard`;
+
+      try {
+        await sendUserInvitationEmail({
+          to: adminEmail,
+          applicantName: adminFullName || `${firstName} ${lastName}`,
+          roleName: "Government Department Administrator",
+          password: tempPassword,
+          loginUrl,
+          dashboardUrl,
+          isAutogenerated: true
+        });
+        invitationSent = true;
+      } catch (mailErr) {
+        console.error("Failed to send invitation email:", mailErr);
+      }
+    }
+
+    return res.status(201).json({
+      success: true,
+      organization: org,
+      user: createdUser,
+      invitationSent
+    });
   } catch (error) {
     next(error);
   }
@@ -1004,32 +1348,155 @@ export const createSubDepartment = async (req: AuthenticatedRequest, res: Respon
     const orgId = req.params.organizationId || req.user?.organizationId;
     if (!orgId) return res.status(400).json({ error: "Organization ID required" });
 
-    const { name, code, type, description, officeAddress, officialEmail, officialPhone, departmentHead, dnoName, admin, status } = req.body;
-    if (!name || !name.trim()) return res.status(400).json({ error: "Department Name is required" });
+    const {
+      name,
+      code,
+      type,
+      description,
+      officeAddress,
+      district,
+      officialEmail,
+      officialPhone,
+      departmentHead,
+      dnoName,
+      admin,
+      adminOfficer,
+      status
+    } = req.body;
 
-    const adminEmail = officialEmail || admin?.email || null;
-    const adminPhone = officialPhone || admin?.phone || admin?.mobile || null;
-    const headName = departmentHead || (admin?.name ? `${admin.name}${admin.designation ? ` (${admin.designation})` : ""}` : null);
+    if (!name || !name.trim()) return res.status(400).json({ error: "Sub-Department / Office Name is required" });
+
+    const officerData = admin || adminOfficer || {};
+    const adminFullName = String(officerData.fullName || officerData.name || departmentHead || "").trim();
+    const adminEmail = String(officerData.email || officialEmail || "").trim().toLowerCase();
+    const adminDesignation = String(officerData.designation || "").trim() || "Designated Admin Officer";
+    const adminPhone = String(officerData.phone || officerData.mobile || officialPhone || "").trim() || null;
+    const targetDistrict = district ? String(district).trim() : null;
+    const targetAddress = officeAddress?.trim() || null;
+
+    const headName = adminFullName ? `${adminFullName}${adminDesignation ? ` (${adminDesignation})` : ""}` : null;
 
     const dept = await prisma.subDepartment.create({
       data: {
         organizationId: orgId,
         name: name.trim(),
         code: code?.trim() || null,
-        type: type?.trim() || null,
+        type: type?.trim() || "Government Department",
         description: description?.trim() || null,
-        officeAddress: officeAddress?.trim() || null,
-        officialEmail: adminEmail?.trim() || null,
-        officialPhone: adminPhone?.trim() || null,
-        departmentHead: headName?.trim() || null,
-        departmentHeadEmail: admin?.email?.trim() || adminEmail?.trim() || null,
-        departmentHeadMobile: adminPhone?.trim() || null,
-        dnoName: dnoName?.trim() || null,
+        officeAddress: targetAddress,
+        officialEmail: adminEmail || null,
+        officialPhone: adminPhone,
+        departmentHead: headName,
+        departmentHeadEmail: adminEmail || null,
+        departmentHeadMobile: adminPhone,
+        dnoName: dnoName?.trim() || adminFullName || null,
         status: status || "ACTIVE"
       }
     });
 
-    return res.status(201).json(dept);
+    let createdUser: any = null;
+    let invitationSent = false;
+
+    if (adminEmail && /^\S+@\S+\.\S+$/.test(adminEmail)) {
+      const existingUser = await prisma.user.findFirst({
+        where: { email: adminEmail, deletedAt: null }
+      });
+
+      const tempPassword = `MahaCSR@${crypto.randomInt(100000, 999999)}`;
+      const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+      const nameParts = adminFullName ? adminFullName.split(/\s+/) : ["Admin", "Officer"];
+      const firstName = nameParts[0] || "Admin";
+      const lastName = nameParts.slice(1).join(" ") || "Officer";
+
+      if (!existingUser) {
+        createdUser = await prisma.user.create({
+          data: {
+            email: adminEmail,
+            loginIdentifier: adminEmail,
+            passwordHash,
+            roleId: ROLE_ID.GOVERNMENT_OFFICER,
+            organizationId: orgId,
+            parentUserId: req.user?.id || null,
+            firstName,
+            lastName,
+            mobile: adminPhone || "",
+            designation: adminDesignation,
+            accountStatus: "ACTIVE",
+            isVerified: true,
+            mustResetPassword: true,
+            temporaryPasswordExpiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000),
+            officerProfile: {
+              create: {
+                fullName: adminFullName || `${firstName} ${lastName}`,
+                designation: adminDesignation,
+                department: name.trim(),
+                district: targetDistrict,
+                mobile: adminPhone || ""
+              }
+            }
+          },
+          select: {
+            id: true,
+            email: true,
+            roleId: true,
+            accountStatus: true,
+            isVerified: true,
+            firstName: true,
+            lastName: true,
+            designation: true
+          }
+        });
+      } else {
+        createdUser = await prisma.user.update({
+          where: { id: existingUser.id },
+          data: {
+            passwordHash,
+            mustResetPassword: true,
+            temporaryPasswordExpiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000),
+            accountStatus: "ACTIVE",
+            isVerified: true,
+            organizationId: orgId
+          },
+          select: {
+            id: true,
+            email: true,
+            roleId: true,
+            accountStatus: true,
+            isVerified: true,
+            firstName: true,
+            lastName: true,
+            designation: true
+          }
+        });
+      }
+
+      // Send invitation email
+      const frontendUrl = getPrimaryFrontendUrl();
+      const loginUrl = `${frontendUrl}/login`;
+      const dashboardUrl = `${frontendUrl}/dashboard`;
+
+      try {
+        await sendUserInvitationEmail({
+          to: adminEmail,
+          applicantName: adminFullName || `${firstName} ${lastName}`,
+          roleName: "Government Department Administrator",
+          password: tempPassword,
+          loginUrl,
+          dashboardUrl,
+          isAutogenerated: true
+        });
+        invitationSent = true;
+      } catch (mailErr) {
+        console.error("Failed to send invitation email:", mailErr);
+      }
+    }
+
+    return res.status(201).json({
+      ...dept,
+      user: createdUser,
+      invitationSent
+    });
   } catch (error) {
     next(error);
   }

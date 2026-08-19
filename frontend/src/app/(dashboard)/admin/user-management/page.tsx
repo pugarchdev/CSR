@@ -41,6 +41,8 @@ import GovModal from "@/components/gov/GovModal";
 import GovSelect from "@/components/gov/GovSelect";
 import TransferPortfolioModal, { PortfolioTransferResult } from "@/components/rm/TransferPortfolioModal";
 import { useAuthStore } from "@/store/authStore";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 import "@/styles/gov-theme.css";
 
 // Base platform roles come from the Prisma enum; everything else is a dynamic
@@ -83,9 +85,9 @@ type UserRow = {
   passwordChangedAt?: string | null;
   invitationAcceptedAt?: string | null;
   temporaryPasswordExpiresAt?: string | null;
-  ngo?: { name: string };
-  company?: { name: string };
-  organization?: { name: string; kind: string };
+  ngo?: { name: string; status?: string };
+  company?: { name: string; status?: string };
+  organization?: { name: string; kind: string; status?: string };
   officerProfile?: { designation?: string | null; fullName?: string | null; department?: string | null; district?: string | null; taluka?: string | null; mobile?: string | null } | null;
   dynamicRoles?: { roleId: string; roleName: string }[];
 };
@@ -654,6 +656,17 @@ export default function AdminUserManagementPage() {
 
   const filteredUsers = users;
 
+  const { sortedItems: sortedUsers, sortKey, sortDirection, requestSort } = useTableSort(filteredUsers, {
+    customGetters: {
+      name: (u) => [u.firstName, u.lastName].filter(Boolean).join(" ") || u.officerProfile?.fullName || "",
+      email: (u) => u.email || "",
+      designation: (u) => u.designation || u.officerProfile?.designation || "",
+      role: (u) => effectiveRole(u),
+      district: (u) => u.assignedDistrict || (u as any).officerProfile?.district || "",
+      status: (u) => u.accountStatus || "ACTIVE"
+    }
+  });
+
   const isRelationshipManager = (candidate: UserRow) => {
     const roleName = effectiveRole(candidate).toUpperCase().replace(/\s+/g, "_");
     return Number(candidate.roleId) === 6 || roleName === "RELATIONSHIP_MANAGER" || roleName === "CSR_RELATIONSHIP_MANAGER";
@@ -773,9 +786,9 @@ export default function AdminUserManagementPage() {
         )}
 
         {/* User Directory Table Card */}
-        <div className="rounded-2xl border border-slate-200/90 bg-white shadow-xs overflow-hidden">
+        <div className="rounded-2xl border border-slate-200/90 bg-white shadow-xs">
           {/* Card Filter Toolbar */}
-          <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div className="flex items-center gap-2.5">
               <h2 className="font-heading font-extrabold text-sm sm:text-base text-slate-900">
                 Official User Directory
@@ -826,28 +839,28 @@ export default function AdminUserManagementPage() {
           </div>
 
           {/* Table Body */}
-          <div className="p-0 w-full overflow-hidden">
+          <div className="p-0 w-full overflow-visible">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-20 gap-3 w-full bg-white">
                 <div className="w-9 h-9 rounded-full border-3 border-blue-600 border-t-transparent animate-spin" />
                 <span className="text-xs text-slate-500 font-bold">Loading user directory...</span>
               </div>
             ) : filteredUsers.length > 0 ? (
-              <div className="w-full overflow-x-auto scrollbar-thin">
-                <table className="w-full text-left border-collapse table-auto min-w-full">
+              <div className="w-full">
+                <table className="w-full text-left border-collapse table-fixed">
                   <thead>
                     <tr className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-extrabold uppercase tracking-wider text-slate-600">
-                      <th className="py-3 px-4 min-w-[220px] whitespace-nowrap">User / Official Name</th>
-                      <th className="py-3 px-4 min-w-[200px] whitespace-nowrap">Email &amp; Contact</th>
-                      <th className="py-3 px-4 min-w-[140px] whitespace-nowrap">Designation</th>
-                      <th className="py-3 px-4 min-w-[150px] whitespace-nowrap">Role</th>
-                      <th className="py-3 px-4 min-w-[120px] whitespace-nowrap">Assigned District</th>
-                      <th className="py-3 px-4 min-w-[90px] whitespace-nowrap">Status</th>
-                      <th className="py-3 px-4 min-w-[260px] whitespace-nowrap text-right">Actions</th>
+                      <SortableTh sortKey="name" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="py-3 px-3 w-[20%]">User</SortableTh>
+                      <SortableTh sortKey="email" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="py-3 px-3 w-[18%] hidden lg:table-cell">Email</SortableTh>
+                      <SortableTh sortKey="designation" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="py-3 px-3 w-[12%] hidden xl:table-cell">Designation</SortableTh>
+                      <SortableTh sortKey="role" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="py-3 px-3 w-[14%]">Role</SortableTh>
+                      <SortableTh sortKey="district" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="py-3 px-3 w-[12%] hidden md:table-cell">District</SortableTh>
+                      <SortableTh sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="py-3 px-3 w-[10%]">Status</SortableTh>
+                      <th className="py-3 px-3 w-[14%] text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {filteredUsers.map((u) => {
+                    {sortedUsers.map((u) => {
                       const isActive = (u.accountStatus || "ACTIVE") === "ACTIVE";
                       const fullName = ([u.firstName, u.lastName].filter(Boolean).join(" ")) || u.officerProfile?.fullName || "Official User";
                       const initials = fullName
@@ -865,15 +878,15 @@ export default function AdminUserManagementPage() {
                           className="hover:bg-slate-50/70 transition-colors"
                         >
                           {/* Official Name & Avatar */}
-                          <td className="py-3.5 px-4 align-middle min-w-[220px]">
-                            <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-heading font-extrabold text-xs flex items-center justify-center shrink-0 shadow-2xs shadow-blue-500/20">
+                          <td className="py-3.5 px-3 align-middle">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-heading font-extrabold text-[10px] flex items-center justify-center shrink-0 shadow-2xs shadow-blue-500/20">
                                 {initials}
                               </div>
                               <div className="min-w-0">
-                                <div className="font-bold text-slate-900 text-xs break-words whitespace-normal leading-tight">{fullName}</div>
+                                <div className="font-bold text-slate-900 text-xs leading-tight truncate max-w-[160px]" title={fullName}>{fullName}</div>
                                 {(u.ngo?.name || u.company?.name || u.organization?.name || u.officerProfile?.department) && (
-                                  <div className="text-[11px] text-slate-500 font-medium break-words whitespace-normal mt-0.5 leading-normal">
+                                  <div className="text-[10px] text-slate-500 font-medium truncate max-w-[160px] mt-0.5" title={u.ngo?.name || u.company?.name || u.organization?.name || u.officerProfile?.department || ""}>
                                     {u.ngo?.name || u.company?.name || u.organization?.name || u.officerProfile?.department}
                                   </div>
                                 )}
@@ -882,14 +895,14 @@ export default function AdminUserManagementPage() {
                           </td>
 
                           {/* Email & Mobile */}
-                          <td className="py-3.5 px-4 align-middle min-w-[200px]">
-                            <div className="flex flex-col gap-0.5">
-                              <span className="font-mono text-xs text-slate-800 font-semibold select-all break-all whitespace-normal">
+                          <td className="py-3.5 px-3 align-middle hidden lg:table-cell">
+                            <div className="flex flex-col gap-0.5 min-w-0">
+                              <span className="font-mono text-xs text-slate-800 font-semibold select-all truncate block" title={u.email}>
                                 {u.email}
                               </span>
                               {(u.mobile || u.officerProfile?.mobile) && (
-                                <span className="text-[11px] text-slate-500 flex items-center gap-1 font-medium whitespace-nowrap mt-0.5">
-                                  <Phone size={11} className="text-slate-400 shrink-0" />
+                                <span className="text-[10px] text-slate-500 flex items-center gap-1 font-medium mt-0.5">
+                                  <Phone size={10} className="text-slate-400 shrink-0" />
                                   {u.mobile || u.officerProfile?.mobile}
                                 </span>
                               )}
@@ -897,17 +910,17 @@ export default function AdminUserManagementPage() {
                           </td>
 
                           {/* Designation */}
-                          <td className="py-3.5 px-4 align-middle min-w-[140px]">
-                            <span className="text-xs font-semibold text-slate-800 block break-words whitespace-normal leading-normal">
+                          <td className="py-3.5 px-3 align-middle hidden xl:table-cell">
+                            <span className="text-xs font-semibold text-slate-800 block truncate" title={u.officerProfile?.designation || u.designation || "N/A"}>
                               {u.officerProfile?.designation || u.designation || "N/A"}
                             </span>
                           </td>
 
                           {/* Role */}
-                          <td className="py-3.5 px-4 align-middle min-w-[150px]">
-                            <div className="flex flex-col gap-1 items-start whitespace-nowrap">
+                          <td className="py-3.5 px-3 align-middle">
+                            <div className="flex flex-col gap-1 items-start">
                               {roleString ? (
-                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border leading-tight ${
                                   roleString.includes("ADMIN")
                                     ? "bg-purple-50 text-purple-800 border-purple-200"
                                     : roleString.includes("RELATIONSHIP")
@@ -927,7 +940,7 @@ export default function AdminUserManagementPage() {
                                   {u.dynamicRoles.map((dr) => (
                                     <span
                                       key={dr.roleId}
-                                      className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 text-[9px] font-bold border border-slate-200 whitespace-nowrap"
+                                      className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 text-[9px] font-bold border border-slate-200"
                                     >
                                       +{dr.roleName}
                                     </span>
@@ -938,63 +951,115 @@ export default function AdminUserManagementPage() {
                           </td>
 
                           {/* Assigned District */}
-                          <td className="py-3.5 px-4 align-middle min-w-[120px] whitespace-nowrap">
+                          <td className="py-3.5 px-3 align-middle hidden md:table-cell">
                             {u.assignedDistrict ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-slate-100 text-slate-800 text-xs font-bold border border-slate-200">
-                                <MapPin size={12} className="text-blue-600 shrink-0" />
-                                {u.assignedDistrict}
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 text-slate-800 text-[11px] font-bold border border-slate-200">
+                                <MapPin size={11} className="text-blue-600 shrink-0" />
+                                <span className="truncate max-w-[80px]">{u.assignedDistrict}</span>
                               </span>
                             ) : (
-                              <span className="text-slate-400 text-xs italic">State level</span>
+                              <span className="text-slate-400 text-[11px] italic">State level</span>
                             )}
                           </td>
 
                           {/* Status */}
-                          <td className="py-3.5 px-4 align-middle min-w-[90px] whitespace-nowrap">
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${
-                              isActive
-                                ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                                : u.accountStatus === "SUSPENDED"
-                                ? "bg-rose-50 text-rose-800 border-rose-200"
-                                : "bg-slate-100 text-slate-600 border-slate-200"
-                            }`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${
-                                isActive ? "bg-emerald-500" : u.accountStatus === "SUSPENDED" ? "bg-rose-500" : "bg-slate-400"
-                              }`} />
-                              {u.accountStatus || "ACTIVE"}
-                            </span>
+                          <td className="py-3.5 px-3 align-middle">
+                            {(() => {
+                              const orgStatus = (u.organization?.status || "").toUpperCase();
+                              const isGovUser = String(u.role || "").includes("GOVERNMENT") || String(u.role || "").includes("NODAL") || Number(u.roleId) === 7;
+                              const isPendingOnboardingApproval = Boolean(
+                                u.organization &&
+                                (u.organization.kind === "GOVERNMENT_DEPARTMENT" || isGovUser) &&
+                                orgStatus !== "ACTIVE"
+                              );
+                              const hasActivatedPassword = !u.mustResetPassword && Boolean(u.passwordChangedAt || u.invitationAcceptedAt);
+                              const statusLabel = isPendingOnboardingApproval && !hasActivatedPassword ? "PENDING" : u.accountStatus || "ACTIVE";
+
+                              return (
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                                  isPendingOnboardingApproval && !hasActivatedPassword
+                                    ? "bg-amber-50 text-amber-800 border-amber-200"
+                                    : isActive
+                                    ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                                    : u.accountStatus === "SUSPENDED"
+                                    ? "bg-rose-50 text-rose-800 border-rose-200"
+                                    : "bg-slate-100 text-slate-600 border-slate-200"
+                                }`} title={isPendingOnboardingApproval && !hasActivatedPassword ? "Pending JS Approval" : ""}>
+                                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                    isPendingOnboardingApproval && !hasActivatedPassword
+                                      ? "bg-amber-500"
+                                      : isActive
+                                      ? "bg-emerald-500"
+                                      : u.accountStatus === "SUSPENDED"
+                                      ? "bg-rose-500"
+                                      : "bg-slate-400"
+                                  }`} />
+                                  {statusLabel}
+                                </span>
+                              );
+                            })()}
                           </td>
 
                           {/* Actions */}
-                          <td className="py-3.5 px-4 align-middle text-right min-w-[260px] whitespace-nowrap">
-                            <div className="inline-flex items-center justify-end gap-1.5">
+                          <td className="py-3.5 px-3 align-middle text-right">
+                            <div className="inline-flex items-center justify-end gap-1 flex-wrap">
                               {/* Send Invitation Button */}
                               {(() => {
+                                const orgStatus = (u.organization?.status || "").toUpperCase();
+                                const isGovUser = String(u.role || "").includes("GOVERNMENT") || String(u.role || "").includes("NODAL") || Number(u.roleId) === 7;
+                                const isPendingOnboardingApproval = Boolean(
+                                  u.organization &&
+                                  (u.organization.kind === "GOVERNMENT_DEPARTMENT" || isGovUser) &&
+                                  orgStatus !== "ACTIVE"
+                                );
                                 const hasActivatedPassword = !u.mustResetPassword && Boolean(u.passwordChangedAt || u.invitationAcceptedAt);
                                 const isSending = sendingInviteId === u.id;
+                                const isInviteDisabled = hasActivatedPassword || isPendingOnboardingApproval || isSending;
+
+                                let inviteTooltip = "Send Email Invitation with temporary login credentials";
+                                if (hasActivatedPassword) {
+                                  inviteTooltip = "User has already logged in and updated their password";
+                                } else if (isPendingOnboardingApproval) {
+                                  inviteTooltip = "Cannot invite officer until the organization's onboarding application is approved by the Joint Secretary.";
+                                }
+
                                 return (
-                                  <button
-                                    type="button"
-                                    disabled={hasActivatedPassword || isSending}
-                                    onClick={() => handleSendInvitation(u)}
-                                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-all ${
-                                      hasActivatedPassword
-                                        ? "border-slate-200 bg-slate-100/60 text-slate-400 opacity-50 cursor-not-allowed"
-                                        : "border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100 text-indigo-800 shadow-2xs cursor-pointer"
-                                    }`}
-                                    title={
-                                      hasActivatedPassword
-                                        ? "User has already logged in and updated their password"
-                                        : "Send Email Invitation with temporary login credentials"
-                                    }
-                                  >
-                                    {isSending ? (
-                                      <RefreshCw size={12} className="animate-spin text-indigo-700" />
-                                    ) : (
-                                      <Mail size={12} />
+                                  <div className="relative group/invite inline-flex">
+                                    <button
+                                      type="button"
+                                      disabled={isInviteDisabled}
+                                      onClick={() => handleSendInvitation(u)}
+                                      className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg border text-[11px] font-bold transition-all select-none ${
+                                        isPendingOnboardingApproval
+                                          ? "border-amber-300/80 bg-amber-50/70 text-amber-800/80 opacity-60 cursor-not-allowed"
+                                          : hasActivatedPassword
+                                          ? "border-slate-200 bg-slate-100/60 text-slate-400 opacity-50 cursor-not-allowed"
+                                          : "border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100 text-indigo-800 shadow-2xs cursor-pointer"
+                                      }`}
+                                      title={inviteTooltip}
+                                    >
+                                      {isSending ? (
+                                        <RefreshCw size={11} className="animate-spin text-indigo-700" />
+                                      ) : (
+                                        <Mail size={11} />
+                                      )}
+                                      <span className="hidden sm:inline">{isSending ? "Sending..." : "Invite"}</span>
+                                    </button>
+
+                                    {/* Floating Hover Tooltip — positioned left-aligned to prevent right-side clipping */}
+                                    {isPendingOnboardingApproval && (
+                                      <div className="absolute right-0 bottom-full mb-2 hidden group-hover/invite:flex flex-col items-end z-[9999] pointer-events-none" style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.25))' }}>
+                                        <div className="bg-slate-900 text-white text-[11px] font-medium py-2.5 px-3.5 rounded-xl max-w-[260px] w-max text-left leading-snug border border-slate-700/80 whitespace-normal">
+                                          <span className="font-bold text-amber-400 flex items-center gap-1.5 mb-1">
+                                            <AlertCircle size={12} className="text-amber-400 shrink-0" />
+                                            Awaiting JS Approval
+                                          </span>
+                                          Cannot invite officer until the Joint Secretary approves the organization onboarding application.
+                                        </div>
+                                        <div className="w-2.5 h-2.5 bg-slate-900 rotate-45 mr-4 -mt-1.5 border-r border-b border-slate-700/80" />
+                                      </div>
                                     )}
-                                    <span>{isSending ? "Sending..." : "Invite"}</span>
-                                  </button>
+                                  </div>
                                 );
                               })()}
 
@@ -1002,22 +1067,22 @@ export default function AdminUserManagementPage() {
                                 <button
                                   type="button"
                                   onClick={() => setTransferSource(u)}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-blue-200 bg-blue-50/70 hover:bg-blue-100 text-blue-800 text-[11px] font-bold transition-colors cursor-pointer"
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-blue-200 bg-blue-50/70 hover:bg-blue-100 text-blue-800 text-[11px] font-bold transition-colors cursor-pointer"
                                   title="Transfer enquiries and pitches to another RM"
                                 >
-                                  <ArrowRightLeft size={12} />
-                                  Transfer
+                                  <ArrowRightLeft size={11} />
+                                  <span className="hidden sm:inline">Transfer</span>
                                 </button>
                               )}
 
                               <button
                                 type="button"
                                 onClick={() => openEditModal(u)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-300 hover:border-slate-400 hover:bg-slate-50 text-slate-700 text-[11px] font-bold transition-colors cursor-pointer"
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-300 hover:border-slate-400 hover:bg-slate-50 text-slate-700 text-[11px] font-bold transition-colors cursor-pointer"
                                 title="Edit user details and roles"
                               >
-                                <Edit3 size={12} />
-                                Edit
+                                <Edit3 size={11} />
+                                <span className="hidden sm:inline">Edit</span>
                               </button>
 
                               {/* Toggle Active/Inactive Switch */}

@@ -11,12 +11,14 @@ import {
   Mail,
   Phone,
   UserCheck,
+  UserPlus,
   ShieldCheck,
   Layers,
   ChevronRight,
   Info
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
+import { MAHARASHTRA_DISTRICTS } from "@/lib/locationData";
 
 export interface SubDepartmentItem {
   id: string;
@@ -101,12 +103,17 @@ export default function GovDepartmentManager({ organizationName = "Government Or
   const [formData, setFormData] = useState({
     name: "",
     code: "",
+    district: "Nagpur",
     type: "General Department",
     description: "",
     officeAddress: "",
     officialEmail: "",
     officialPhone: "",
     departmentHead: "",
+    adminFullName: "",
+    adminEmail: "",
+    adminDesignation: "",
+    adminPhone: "",
     dnoName: "",
     status: "ACTIVE" as "ACTIVE" | "INACTIVE"
   });
@@ -139,12 +146,17 @@ export default function GovDepartmentManager({ organizationName = "Government Or
     setFormData({
       name: "",
       code: "",
+      district: "Nagpur",
       type: "General Department",
       description: "",
       officeAddress: "",
       officialEmail: "",
       officialPhone: "",
       departmentHead: "",
+      adminFullName: "",
+      adminEmail: "",
+      adminDesignation: "",
+      adminPhone: "",
       dnoName: "",
       status: "ACTIVE"
     });
@@ -156,12 +168,17 @@ export default function GovDepartmentManager({ organizationName = "Government Or
     setFormData({
       name: dept.name,
       code: dept.code || "",
+      district: (dept as any).district || "Nagpur",
       type: dept.type || "General Department",
       description: dept.description || "",
       officeAddress: dept.officeAddress || "",
       officialEmail: dept.officialEmail || "",
       officialPhone: dept.officialPhone || "",
       departmentHead: dept.departmentHead || "",
+      adminFullName: dept.departmentHead || "",
+      adminEmail: dept.officialEmail || "",
+      adminDesignation: "",
+      adminPhone: dept.officialPhone || "",
       dnoName: dept.dnoName || "",
       status: dept.status
     });
@@ -205,7 +222,21 @@ export default function GovDepartmentManager({ organizationName = "Government Or
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`
             },
-            body: JSON.stringify(formData)
+            body: JSON.stringify({
+              name: formData.name.trim(),
+              code: formData.code.trim() || undefined,
+              district: formData.district || undefined,
+              type: formData.type || "General Department",
+              description: formData.description || undefined,
+              officeAddress: formData.officeAddress || undefined,
+              status: formData.status,
+              admin: {
+                fullName: formData.adminFullName.trim() || formData.departmentHead.trim() || undefined,
+                email: formData.adminEmail.trim() || formData.officialEmail.trim() || undefined,
+                designation: formData.adminDesignation.trim() || undefined,
+                phone: formData.adminPhone.trim() || formData.officialPhone.trim() || undefined
+              }
+            })
           });
           if (res.ok) {
             const created = await res.json();
@@ -438,126 +469,140 @@ export default function GovDepartmentManager({ organizationName = "Government Or
 
               <form onSubmit={handleSubmit} className="p-6 overflow-y-auto flex flex-col gap-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1 md:col-span-2">
-                    <label className="text-xs font-bold text-slate-800">Department Name *</label>
+                  <div className="flex flex-col gap-1.5 md:col-span-2">
+                    <label className="text-xs font-bold text-slate-800">
+                      Sub-Department / Office Name <span className="text-rose-500">*</span>
+                    </label>
                     <input
                       required
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="e.g. Solid Waste Management Department"
-                      className="w-full px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-900/20 focus:border-blue-900"
+                      placeholder="e.g. Health Department / District Office"
+                      className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-50/50 border border-slate-200 focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all"
                     />
                   </div>
 
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-bold text-slate-800">Department Code</label>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-800">Office Code / Code Reference</label>
                     <input
                       value={formData.code}
                       onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                      placeholder="e.g. NMC-SWM"
-                      className="w-full px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-900/20 focus:border-blue-900"
+                      placeholder="e.g. NMC-HLTH"
+                      className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-50/50 border border-slate-200 focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all"
                     />
                   </div>
 
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-bold text-slate-800">Department Type</label>
-                    <input
-                      value={formData.type}
-                      onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                      placeholder="e.g. Environmental Services"
-                      className="w-full px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-900/20 focus:border-blue-900"
-                    />
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-800">
+                      District <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      required
+                      value={formData.district}
+                      onChange={(e) => setFormData({ ...formData, district: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-50/50 border border-slate-200 focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all cursor-pointer"
+                    >
+                      <option value="">Select District</option>
+                      {MAHARASHTRA_DISTRICTS.map((dist) => (
+                        <option key={dist} value={dist}>
+                          {dist}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
-                  <div className="flex flex-col gap-1 md:col-span-2">
-                    <label className="text-xs font-bold text-slate-800">Description</label>
+                  <div className="flex flex-col gap-1.5 md:col-span-2">
+                    <label className="text-xs font-bold text-slate-800">Office Address</label>
                     <textarea
                       rows={2}
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      placeholder="Brief role and responsibilities of this department"
-                      className="w-full px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-900/20 focus:border-blue-900"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-bold text-slate-800">Department Head</label>
-                    <input
-                      value={formData.departmentHead}
-                      onChange={(e) => setFormData({ ...formData, departmentHead: e.target.value })}
-                      placeholder="e.g. Dr. John Doe (Director)"
-                      className="w-full px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-900/20 focus:border-blue-900"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-bold text-slate-800">Assigned DNO</label>
-                    <input
-                      value={formData.dnoName}
-                      onChange={(e) => setFormData({ ...formData, dnoName: e.target.value })}
-                      placeholder="e.g. Shri John Doe (Assistant Commissioner)"
-                      className="w-full px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-900/20 focus:border-blue-900"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-bold text-slate-800">Official Email</label>
-                    <input
-                      type="email"
-                      value={formData.officialEmail}
-                      onChange={(e) => setFormData({ ...formData, officialEmail: e.target.value })}
-                      placeholder="e.g. contact@example.com"
-                      className="w-full px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-900/20 focus:border-blue-900"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-bold text-slate-800">Official Phone</label>
-                    <input
-                      value={formData.officialPhone}
-                      onChange={(e) => setFormData({ ...formData, officialPhone: e.target.value })}
-                      placeholder="e.g. 1234567890"
-                      className="w-full px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-900/20 focus:border-blue-900"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1 md:col-span-2">
-                    <label className="text-xs font-bold text-slate-800">Office Address</label>
-                    <input
                       value={formData.officeAddress}
                       onChange={(e) => setFormData({ ...formData, officeAddress: e.target.value })}
-                      placeholder="Full office location address"
-                      className="w-full px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-900/20 focus:border-blue-900"
+                      placeholder="Enter full office address"
+                      className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-50/50 border border-slate-200 focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all resize-none"
                     />
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-bold text-slate-800">Status</label>
-                    <select
-                      value={formData.status}
-                      onChange={(e) => setFormData({ ...formData, status: e.target.value as "ACTIVE" | "INACTIVE" })}
-                      className="w-full px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-900/20 focus:border-blue-900"
-                    >
-                      <option value="ACTIVE">Active</option>
-                      <option value="INACTIVE">Inactive</option>
-                    </select>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-slate-100">
+                {/* Designated Admin Officer Sub-Card */}
+                <div className="rounded-2xl border border-blue-200/80 bg-blue-50/40 p-4.5 space-y-3.5">
+                  <div className="flex items-center gap-2 text-xs font-extrabold text-blue-950">
+                    <UserPlus size={16} className="text-blue-700 shrink-0" />
+                    <span>Designated Admin Officer</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[11px] font-bold text-slate-800">
+                        Full Name {!editingItem && <span className="text-rose-500">*</span>}
+                      </label>
+                      <input
+                        type="text"
+                        required={!editingItem}
+                        value={formData.adminFullName}
+                        onChange={(e) => setFormData({ ...formData, adminFullName: e.target.value })}
+                        placeholder="e.g. Rajesh Sharma"
+                        className="w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium bg-white border border-slate-200 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[11px] font-bold text-slate-800">
+                        Official Email {!editingItem && <span className="text-rose-500">*</span>}
+                      </label>
+                      <input
+                        type="email"
+                        required={!editingItem}
+                        value={formData.adminEmail}
+                        onChange={(e) => setFormData({ ...formData, adminEmail: e.target.value })}
+                        placeholder="admin@gov.in"
+                        className="w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium bg-white border border-slate-200 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[11px] font-bold text-slate-800">
+                        Designation
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.adminDesignation}
+                        onChange={(e) => setFormData({ ...formData, adminDesignation: e.target.value })}
+                        placeholder="e.g. Sub-Divisional Officer / Deputy Collector"
+                        className="w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium bg-white border border-slate-200 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[11px] font-bold text-slate-800">
+                        Phone / Mobile Number
+                      </label>
+                      <input
+                        type="tel"
+                        value={formData.adminPhone}
+                        onChange={(e) => setFormData({ ...formData, adminPhone: e.target.value })}
+                        placeholder="e.g. 9876543210"
+                        className="w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium bg-white border border-slate-200 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 mt-2 pt-4 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="py-2.5 px-5 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50"
+                    className="py-2.5 px-5 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="py-2.5 px-6 rounded-xl bg-blue-950 text-white text-xs font-extrabold hover:bg-blue-900 shadow-md transition-all"
+                    className="py-2.5 px-6 rounded-xl bg-blue-900 text-white text-xs font-extrabold hover:bg-blue-950 shadow-md transition-all flex items-center gap-2"
                   >
-                    {loading ? "Saving..." : editingItem ? "Save Changes" : "Create Department"}
+                    {loading
+                      ? (editingItem ? "Saving Changes..." : "Creating & Sending Invitation...")
+                      : (editingItem ? "Save Changes" : "Create and Send Invitation")}
                   </button>
                 </div>
               </form>

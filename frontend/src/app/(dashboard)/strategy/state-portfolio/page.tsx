@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
 import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 
 interface PortfolioData {
   summary: {
@@ -61,6 +63,16 @@ export default function StatePortfolioPage() {
     const matchesDistrict = selectedDistrict === "ALL" || p.district === selectedDistrict;
     const matchesSector = selectedSector === "ALL" || p.sector === selectedSector;
     return matchesSearch && matchesDistrict && matchesSector;
+  });
+
+  const { sortedItems: sortedProjects, sortKey, sortDirection, requestSort } = useTableSort(filteredProjects, {
+    customGetters: {
+      title: (p) => `${p.projectCode} ${p.title} ${p.organizationName}`,
+      sector: (p) => `${p.sector} ${p.district} ${p.taluka}`,
+      committedAmount: (p) => p.committedAmount,
+      progress: (p) => p.milestonesCount > 0 ? (p.completedMilestonesCount / p.milestonesCount) : 0,
+      status: (p) => p.status,
+    }
   });
 
   const formatCr = (val: number) => `₹${(Number(val || 0) / 10000000).toFixed(2)} Cr`;
@@ -182,16 +194,16 @@ export default function StatePortfolioPage() {
             <table className="w-full text-left text-xs">
               <thead className="border-b border-slate-100 bg-slate-50 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
                 <tr>
-                  <th className="px-4 py-3">Project Code & Title</th>
-                  <th className="px-4 py-3">Sector & Location</th>
-                  <th className="px-4 py-3">Committed Amount</th>
-                  <th className="px-4 py-3">Milestone Progress</th>
-                  <th className="px-4 py-3">Status</th>
+                  <SortableTh sortKey="title" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Project Code & Title</SortableTh>
+                  <SortableTh sortKey="sector" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Sector & Location</SortableTh>
+                  <SortableTh sortKey="committedAmount" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Committed Amount</SortableTh>
+                  <SortableTh sortKey="progress" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Milestone Progress</SortableTh>
+                  <SortableTh sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Status</SortableTh>
                   <th className="px-4 py-3 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredProjects.map((p) => (
+                {sortedProjects.map((p) => (
                   <tr key={p.id} className="transition hover:bg-slate-50/80">
                     <td className="px-4 py-3">
                       <span className="font-mono text-[10px] font-bold text-blue-900 bg-blue-50 px-1.5 py-0.5 rounded">

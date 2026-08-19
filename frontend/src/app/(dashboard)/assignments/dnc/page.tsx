@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { useToastActions } from "@/components/ui/Toast";
 import { UserCheck, RefreshCw, AlertTriangle, ShieldCheck, History } from "lucide-react";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 import "@/styles/gov-theme.css";
 
 import AssignmentTabs from "@/components/assignments/AssignmentTabs";
@@ -46,6 +48,16 @@ export default function DncAssignmentQueuePage() {
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [historyProject, setHistoryProject] = useState<ProjectItem | null>(null);
+
+  const { sortedItems: sortedProjects, sortKey, sortDirection, requestSort } = useTableSort(projects, {
+    customGetters: {
+      title: (p) => `${p.title} ${p.projectCode}`,
+      sector: (p) => `${p.sector} ${p.district}`,
+      status: (p) => p.status,
+      currentOwner: (p) => p.currentOwner || "",
+      delegationStatus: (p) => p.delegationStatus,
+    }
+  });
 
   const toast = useToastActions();
 
@@ -158,16 +170,16 @@ export default function DncAssignmentQueuePage() {
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50/80 border-b border-slate-100/80">
                     <tr>
-                      <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Project</th>
-                      <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Sector / District</th>
-                      <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                      <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Current Owner</th>
-                      <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Delegation</th>
+                      <SortableTh sortKey="title" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Project</SortableTh>
+                      <SortableTh sortKey="sector" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Sector / District</SortableTh>
+                      <SortableTh sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Status</SortableTh>
+                      <SortableTh sortKey="currentOwner" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Current Owner</SortableTh>
+                      <SortableTh sortKey="delegationStatus" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Delegation</SortableTh>
                       <th className="px-4 py-3 text-right text-[10px] font-bold text-slate-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100/60">
-                    {projects.map((proj) => (
+                    {sortedProjects.map((proj) => (
                       <tr key={proj.id} className="hover:bg-blue-50/20 transition-colors">
                         <td className="px-4 py-3">
                           <p className="font-semibold text-slate-800">{proj.title}</p>

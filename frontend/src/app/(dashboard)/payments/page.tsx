@@ -6,6 +6,8 @@ import GovPageHeader from "@/components/layout/GovPageHeader";
 import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
 import { Loader } from "@/components/ui/Loader";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 
 export default function PaymentsPage() {
   const { data: envelope, isLoading } = useApiQuery<any>(
@@ -13,7 +15,17 @@ export default function PaymentsPage() {
     "/convergence-projects"
   );
 
-  const projects = envelope?.data?.projects || envelope?.data || envelope?.projects || [];
+  const rawProjects = envelope?.data?.projects || envelope?.data || envelope?.projects || [];
+  const projects = Array.isArray(rawProjects) ? rawProjects : [];
+
+  const { sortedItems: sortedProjects, sortKey, sortDirection, requestSort } = useTableSort(projects, {
+    customGetters: {
+      id: (p: any) => p.id,
+      title: (p: any) => p.title || p.name || "",
+      approvedBudget: (p: any) => Number(p.approvedBudget || 0),
+      status: (p: any) => p.status || "CLEARED",
+    }
+  });
 
   return (
     <GovPortalLayout userRole="USER">
@@ -37,15 +49,15 @@ export default function PaymentsPage() {
               <table className="gov-table w-full">
                 <thead>
                   <tr>
-                    <th>Ref ID</th>
-                    <th>Project</th>
-                    <th>Committed Amount</th>
-                    <th>Status</th>
+                    <SortableTh sortKey="id" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Ref ID</SortableTh>
+                    <SortableTh sortKey="title" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Project</SortableTh>
+                    <SortableTh sortKey="approvedBudget" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Committed Amount</SortableTh>
+                    <SortableTh sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Status</SortableTh>
                   </tr>
                 </thead>
                 <tbody>
-                  {projects.length > 0 ? (
-                    projects.map((p: any) => (
+                  {sortedProjects.length > 0 ? (
+                    sortedProjects.map((p: any) => (
                       <tr key={p.id}>
                         <td className="font-mono text-xs">{p.id.slice(0, 8)}</td>
                         <td className="font-semibold">{p.title || p.name}</td>

@@ -4,6 +4,8 @@ import React from "react";
 import { Search, Filter } from "lucide-react";
 import { ViewToggle, ViewMode } from "./ViewToggle";
 import { useResponsiveViewMode } from "@/hooks/useResponsiveViewMode";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "./SortableTh";
 
 export interface FilterConfig {
   key: string;
@@ -13,12 +15,14 @@ export interface FilterConfig {
   options: { label: string; value: string }[];
 }
 
+export type HeaderConfig = string | { label: string; key?: string; sortable?: boolean };
+
 export interface DataViewProps<T> {
   data: T[];
   keyExtractor: (item: T, index: number) => string;
   renderCard: (item: T, index: number) => React.ReactNode;
   renderRow: (item: T, index: number) => React.ReactNode;
-  headers?: string[];
+  headers?: HeaderConfig[];
   searchQuery?: string;
   onSearchChange?: (val: string) => void;
   searchPlaceholder?: string;
@@ -45,6 +49,7 @@ export function DataView<T>({
   className = "",
 }: DataViewProps<T>) {
   const [viewMode, setViewMode] = useResponsiveViewMode(defaultView);
+  const { sortedItems, sortKey, sortDirection, requestSort } = useTableSort(data);
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -88,13 +93,13 @@ export function DataView<T>({
       )}
 
       {/* Content Rendering */}
-      {data.length === 0 ? (
+      {sortedItems.length === 0 ? (
         <div className="p-12 text-center bg-white/60 rounded-2xl border border-slate-200/80 text-xs font-medium text-slate-500">
           {emptyMessage}
         </div>
       ) : viewMode === "grid" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {data.map((item, idx) => (
+          {sortedItems.map((item, idx) => (
             <div
               key={keyExtractor(item, idx)}
               onClick={() => onItemClick && onItemClick(item)}
@@ -110,16 +115,28 @@ export function DataView<T>({
             {headers.length > 0 && (
               <thead className="bg-slate-50 border-b border-slate-200 font-bold text-slate-700 uppercase tracking-wider text-[10px]">
                 <tr>
-                  {headers.map((h, i) => (
-                    <th key={i} className="p-3.5">
-                      {h}
-                    </th>
-                  ))}
+                  {headers.map((h, i) => {
+                    const label = typeof h === "string" ? h : h.label;
+                    const key = typeof h === "string" ? h.toLowerCase().replace(/[^a-z0-9]/g, "") : (h.key || h.label.toLowerCase().replace(/[^a-z0-9]/g, ""));
+                    const isSortable = typeof h === "string" ? true : h.sortable !== false;
+                    return (
+                      <SortableTh
+                        key={i}
+                        sortKey={isSortable && key !== "action" && key !== "actions" ? key : undefined}
+                        currentSortKey={sortKey}
+                        currentSortDirection={sortDirection}
+                        onSort={requestSort}
+                        className="p-3.5"
+                      >
+                        {label}
+                      </SortableTh>
+                    );
+                  })}
                 </tr>
               </thead>
             )}
             <tbody className="divide-y divide-slate-100">
-              {data.map((item, idx) => (
+              {sortedItems.map((item, idx) => (
                 <tr
                   key={keyExtractor(item, idx)}
                   onClick={() => onItemClick && onItemClick(item)}

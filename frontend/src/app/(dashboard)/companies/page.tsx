@@ -12,6 +12,8 @@ import { useResponsiveViewMode } from "@/hooks/useResponsiveViewMode";
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
 import { Loader } from "@/components/ui/Loader";
 import { Pagination } from "@/components/ui/Pagination";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 import {
   Building2,
   ShieldCheck,
@@ -86,11 +88,22 @@ export default function CompaniesPage() {
     c.district.toLowerCase().includes(search.toLowerCase())
   );
 
+  const { sortedItems: sortedCompanies, sortKey, sortDirection, requestSort } = useTableSort(filteredCompanies, {
+    customGetters: {
+      name: (c: any) => c.name,
+      cin: (c: any) => c.cin,
+      industry: (c: any) => c.industry,
+      district: (c: any) => c.district,
+      budget: (c: any) => c.rawBudget,
+      status: (c: any) => c.status,
+    }
+  });
+
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 9;
 
-  const totalPages = Math.ceil(filteredCompanies.length / ITEMS_PER_PAGE);
-  const paginatedCompanies = filteredCompanies.slice(
+  const totalPages = Math.ceil(sortedCompanies.length / ITEMS_PER_PAGE);
+  const paginatedCompanies = sortedCompanies.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
@@ -232,13 +245,13 @@ export default function CompaniesPage() {
               <table className="gov-table w-full text-xs">
                 <thead>
                   <tr>
-                    <th>Company Name</th>
-                    <th>CIN Number</th>
-                    <th>Industry</th>
-                    <th>District</th>
-                    <th>Active Budget</th>
-                    <th>Status</th>
-                    <th className="text-center">Actions</th>
+                    <SortableTh sortKey="name" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Company Name</SortableTh>
+                    <SortableTh sortKey="cin" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>CIN Number</SortableTh>
+                    <SortableTh sortKey="industry" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Industry</SortableTh>
+                    <SortableTh sortKey="district" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>District</SortableTh>
+                    <SortableTh sortKey="budget" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Active Budget</SortableTh>
+                    <SortableTh sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Status</SortableTh>
+                    <th className="px-4 py-3.5 text-[11px] font-extrabold uppercase tracking-wider text-center text-slate-500">Actions</th>
                   </tr>
                 </thead>
                 <tbody>

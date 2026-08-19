@@ -92,7 +92,6 @@ const departmentSteps = [
   { label: "Profile", key: "profile", description: "Basic details & office mandate" },
   { label: "Nodal & Head", key: "nodal-officer", description: "Nodal officer & HOD details" },
   { label: "Jurisdiction", key: "jurisdiction", description: "Sector & geographic focus" },
-  { label: "Sub-Departments", key: "sub-departments", description: "Child sub-departments & offices" },
   { label: "Documents", key: "documents", description: "Official letterhead & orders" },
   { label: "Declaration", key: "declaration", description: "Accept declaration & submit" }
 ];
@@ -1632,31 +1631,14 @@ function DocumentsStep({
 
 export function DepartmentOnboardingStep() {
   const router = useRouter();
-  const [step, setStep] = useState<"profile" | "nodal-officer" | "jurisdiction" | "sub-departments" | "documents" | "declaration">("profile");
+  const [step, setStep] = useState<"profile" | "nodal-officer" | "jurisdiction" | "documents" | "declaration">("profile");
   const { organization, profile, setOrganization, setProfile, error, setError, load } = useEntityProfile("department");
   const [saving, setSaving] = useState(false);
   const [clarificationResponseNotes, setClarificationResponseNotes] = useState("");
   const [deptDeclarationChecks, setDeptDeclarationChecks] = useState<boolean[]>([false, false, false]);
 
-  // Sub-departments state
-  const [subDepartments, setSubDepartments] = useState<Array<Record<string, any>>>([]);
-  const [loadingSubDepts, setLoadingSubDepts] = useState(false);
-  const [showSubModal, setShowSubModal] = useState(false);
-  const [subMsg, setSubMsg] = useState("");
   const org = organization || ({} as Organization);
   const data: Record<string, any> = { ...org, ...profile };
-  const parentDistrict = data.district || organization?.district || profile?.district || "Mumbai City";
-
-  const [subForm, setSubForm] = useState({
-    name: "",
-    code: "",
-    address: "",
-    district: parentDistrict,
-    adminName: "",
-    adminEmail: "",
-    adminDesignation: "",
-    adminPhone: ""
-  });
 
   const storedUser = getStoredUser();
   const parentOrgName =
@@ -1697,104 +1679,6 @@ export function DepartmentOnboardingStep() {
     return [];
   };
 
-  const loadSubDepts = useCallback(async () => {
-    if (!organization?.id) return;
-    setLoadingSubDepts(true);
-    try {
-      const res = await apiFetch<any>("/onboarding/sub-departments").catch(() => []);
-      if (Array.isArray(res)) setSubDepartments(res);
-      else if (res?.data && Array.isArray(res.data)) setSubDepartments(res.data);
-    } catch (e) {
-      console.warn("[Sub-Depts load]", e);
-    } finally {
-      setLoadingSubDepts(false);
-    }
-  }, [organization?.id]);
-
-  useEffect(() => {
-    if (step === "sub-departments" && organization?.id) {
-      loadSubDepts();
-    }
-  }, [step, organization?.id, loadSubDepts]);
-
-  useEffect(() => {
-    if (parentDistrict) {
-      setSubForm(prev => ({ ...prev, district: parentDistrict }));
-    }
-  }, [parentDistrict]);
-
-  const openSubModal = () => {
-    setSubForm({
-      name: "",
-      code: "",
-      address: "",
-      district: parentDistrict,
-      adminName: "",
-      adminEmail: "",
-      adminDesignation: "",
-      adminPhone: ""
-    });
-    setShowSubModal(true);
-  };
-
-  const handleCreateSubDept = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!subForm.name.trim()) return setSubMsg("Sub-Department Name is required.");
-    if (!subForm.adminName.trim()) return setSubMsg("Admin Officer Full Name is required.");
-    if (!subForm.adminEmail.trim()) return setSubMsg("Admin Officer Email is required.");
-
-    setSaving(true);
-    setSubMsg("");
-    try {
-      await apiFetch("/onboarding/sub-departments", {
-        method: "POST",
-        body: JSON.stringify({
-          name: subForm.name,
-          code: subForm.code,
-          district: subForm.district || parentDistrict,
-          officeAddress: subForm.address,
-          officialEmail: subForm.adminEmail,
-          officialPhone: subForm.adminPhone,
-          departmentHead: subForm.adminDesignation ? `${subForm.adminName} (${subForm.adminDesignation})` : subForm.adminName,
-          admin: {
-            name: subForm.adminName,
-            email: subForm.adminEmail,
-            designation: subForm.adminDesignation,
-            mobile: subForm.adminPhone,
-            phone: subForm.adminPhone
-          }
-        })
-      }).catch(async () => {
-        // Fallback endpoint
-        await apiFetch(`/government-onboarding/${organization?.id}/sub-departments`, {
-          method: "POST",
-          body: JSON.stringify({
-            name: subForm.name,
-            code: subForm.code,
-            district: subForm.district || parentDistrict,
-            address: subForm.address,
-            admin: {
-              name: subForm.adminName,
-              email: subForm.adminEmail,
-              designation: subForm.adminDesignation,
-              mobile: subForm.adminPhone,
-              phone: subForm.adminPhone
-            }
-          })
-        });
-      });
-
-      setSubMsg("Sub-department created! Admin officer credentials have been sent.");
-      setShowSubModal(false);
-      openSubModal();
-      await loadSubDepts();
-    } catch (err: any) {
-      setSubMsg(err.message || "Could not create sub-department");
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const save = async (event: FormEvent) => {
     event.preventDefault();
     setError("");
@@ -1809,20 +1693,18 @@ export function DepartmentOnboardingStep() {
     }
 
     // Non-blocking background save
-    if (step !== "sub-departments") {
-      const endpoint =
-        step === "profile"
-          ? "/onboarding/department/profile"
-          : step === "nodal-officer"
-          ? "/onboarding/department/nodal"
-          : step === "jurisdiction"
-          ? "/onboarding/department/jurisdiction"
-          : "/onboarding/department/profile";
+    const endpoint =
+      step === "profile"
+        ? "/onboarding/department/profile"
+        : step === "nodal-officer"
+        ? "/onboarding/department/nodal"
+        : step === "jurisdiction"
+        ? "/onboarding/department/jurisdiction"
+        : "/onboarding/department/profile";
 
-      apiFetch(endpoint, { method: "PUT", body: JSON.stringify(data) }).catch((err) => {
-        console.warn("[Dept save] API endpoint background warning:", err.message);
-      });
-    }
+    apiFetch(endpoint, { method: "PUT", body: JSON.stringify(data) }).catch((err) => {
+      console.warn("[Dept save] API endpoint background warning:", err.message);
+    });
   };
 
   if (!organization) {
@@ -1960,135 +1842,6 @@ export function DepartmentOnboardingStep() {
             )}
           </div>
         </section>
-      </Shell>
-    );
-  }
-
-  if (step === "sub-departments") {
-    return (
-      <Shell title="Child Sub-Departments & Offices" description="Manage sub-departments, district offices, and executive cells under your administrative control." steps={departmentSteps} currentStep={step} onStepChange={setStep} status={organization.onboardingStatus}>
-        <ErrorBox error={error} />
-        {subMsg && (
-          <div className="mb-4 p-4 rounded-2xl bg-blue-50 border border-blue-200 text-xs font-bold text-blue-900 flex items-center justify-between">
-            <span>{subMsg}</span>
-            <button type="button" onClick={() => setSubMsg("")} className="text-blue-700 hover:text-blue-900"><X size={14} /></button>
-          </div>
-        )}
-        <div className="rounded-3xl border border-white/80 bg-white/90 backdrop-blur-2xl p-6 md:p-8 shadow-glass space-y-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
-            <div>
-              <h2 className="text-sm font-extrabold text-slate-900 font-heading">Sub-Department Directory</h2>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">Child entities created here receive separate login credentials for local Nodal & Admin Officers.</p>
-            </div>
-            <button
-              type="button"
-              onClick={openSubModal}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-950 to-indigo-900 px-4 py-2.5 text-xs font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer"
-            >
-              <Plus size={16} />
-              Add Child Sub-Department
-            </button>
-          </div>
-
-          {loadingSubDepts ? (
-            <LoadingPanel />
-          ) : subDepartments.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-10 text-center rounded-2xl border border-dashed border-slate-300 bg-slate-50/50">
-              <Building2 className="text-slate-400 mb-3" size={36} />
-              <h3 className="text-xs font-bold text-slate-800">No Sub-Departments Registered Yet</h3>
-              <p className="text-[11px] text-slate-500 max-w-sm mt-1">If your department operates child directorates, ZP branches, or executive cells, add them here to delegate local CSR management.</p>
-              <button
-                type="button"
-                onClick={openSubModal}
-                className="mt-4 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-50 text-blue-900 border border-blue-200 text-xs font-bold hover:bg-blue-100 transition-colors"
-              >
-                <Plus size={14} /> Create First Sub-Department
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {subDepartments.map((sub, idx) => (
-                <div key={sub.id || idx} className="p-4 rounded-2xl border border-slate-200 bg-white hover:border-blue-300 hover:shadow-sm transition-all flex flex-col justify-between space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h4 className="text-xs font-extrabold text-slate-900">{sub.name}</h4>
-                      {sub.code && <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full mt-1 inline-block">Code: {sub.code}</span>}
-                    </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
-                      {sub.status || "ACTIVE"}
-                    </span>
-                  </div>
-                  {sub.officeAddress && <p className="text-[11px] text-slate-600 font-medium line-clamp-2">{sub.officeAddress}</p>}
-                  <div className="pt-2 border-t border-slate-100 grid grid-cols-2 gap-2 text-[11px] text-slate-600">
-                    <div><span className="font-bold text-slate-700 block">Head:</span> {sub.departmentHead || "N/A"}</div>
-                    <div><span className="font-bold text-slate-700 block">Nodal:</span> {sub.dnoName || "N/A"}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-            <button
-              type="button"
-              onClick={() => setStep("documents")}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-950 via-blue-900 to-indigo-900 px-6 py-3 text-xs font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105 cursor-pointer"
-            >
-              <Save size={16} />
-              Proceed to Documents Upload
-            </button>
-          </div>
-        </div>
-
-        {/* Modal for creating Sub-Department */}
-        {showSubModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
-            <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 md:p-8 shadow-2xl space-y-5">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-2xl bg-blue-50 text-blue-900 border border-blue-100">
-                    <Building2 size={22} />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-extrabold text-slate-900 font-heading">Add Child Sub-Department</h3>
-                    <p className="text-xs text-slate-500 font-medium">Create a sub-office identity under your administrative department</p>
-                  </div>
-                </div>
-                <button type="button" onClick={() => setShowSubModal(false)} className="text-slate-400 hover:text-slate-600 p-1">
-                  <X size={18} />
-                </button>
-              </div>
-
-              <form onSubmit={handleCreateSubDept} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field label="Sub-Department / Office Name" required value={subForm.name} onChange={(val) => setSubForm({ ...subForm, name: val })} />
-                  <Field label="Office Code / Code Reference" value={subForm.code} onChange={(val) => setSubForm({ ...subForm, code: val })} />
-                  <SelectField label="District" required value={subForm.district} onChange={(val) => setSubForm({ ...subForm, district: val })} options={maharashtraState?.districts.map(d => d.name) || []} />
-                  <TextAreaField label="Office Address" value={subForm.address} onChange={(val) => setSubForm({ ...subForm, address: val })} />
-
-                  <div className="md:col-span-2 p-4 rounded-2xl border border-blue-100 bg-blue-50/50 space-y-3">
-                    <h4 className="text-xs font-extrabold text-blue-950 flex items-center gap-1.5"><UserPlus size={14} /> Designated Admin Officer</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <Field label="Full Name" required value={subForm.adminName} onChange={(val) => setSubForm({ ...subForm, adminName: val })} placeholder="e.g. Rajesh Sharma" />
-                      <Field label="Official Email" required format="email" value={subForm.adminEmail} onChange={(val) => setSubForm({ ...subForm, adminEmail: val })} placeholder="admin@gov.in" />
-                      <Field label="Designation" value={subForm.adminDesignation} onChange={(val) => setSubForm({ ...subForm, adminDesignation: val })} placeholder="e.g. Sub-Divisional Officer / Deputy Collector" />
-                      <Field label="Phone / Mobile Number" format="phone" value={subForm.adminPhone} onChange={(val) => setSubForm({ ...subForm, adminPhone: val })} placeholder="e.g. 9876543210" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-                  <button type="button" onClick={() => setShowSubModal(false)} className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-900 border border-slate-200 rounded-xl">
-                    Cancel
-                  </button>
-                  <button type="submit" disabled={saving} className="px-5 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-blue-950 to-indigo-900 rounded-xl shadow-md hover:shadow-lg disabled:opacity-50">
-                    {saving ? "Creating Sub-Department..." : "Create & Dispatch Credentials"}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
       </Shell>
     );
   }

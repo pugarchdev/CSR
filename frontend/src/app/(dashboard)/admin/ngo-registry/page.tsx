@@ -20,7 +20,6 @@ import { StandardPageHeader } from "@/components/layout/StandardPageHeader";
 import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
 import GovButton from "@/components/gov/GovButton";
 import GovInput from "@/components/gov/GovInput";
-import GovSelect from "@/components/gov/GovSelect";
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
 import GovModal from "@/components/gov/GovModal";
 import { Button } from "@/components/ui/Button";
@@ -28,6 +27,8 @@ import { Badge } from "@/components/ui/Badge";
 import { apiFetch } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { MAHARASHTRA_DISTRICTS } from "@/lib/locationData";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 
 import "@/styles/gov-theme.css";
 
@@ -116,6 +117,8 @@ export default function ImplementingAgencyRegistryPage() {
     };
   });
 
+  const { sortedItems, sortKey, sortDirection, requestSort } = useTableSort(items);
+
   return (
     <GovPortalLayout>
       <div className="mx-auto flex max-w-7xl flex-col gap-5 px-3 py-5 md:px-6 md:py-6 text-slate-900">
@@ -191,11 +194,11 @@ export default function ImplementingAgencyRegistryPage() {
               <table className="w-full block md:table text-left border-collapse text-xs md:text-sm">
                 <thead className="hidden md:table-header-group border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider font-extrabold text-slate-500">
                   <tr>
-                    <th className="px-5 py-3.5">Organization Name</th>
-                    <th className="px-4 py-3.5">Registration / DARPAN</th>
-                    <th className="px-4 py-3.5">District Scope</th>
-                    <th className="px-4 py-3.5">Accreditation</th>
-                    <th className="px-4 py-3.5">Status</th>
+                    <SortableTh sortKey="name" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-5 py-3.5">Organization Name</SortableTh>
+                    <SortableTh sortKey="registrationNo" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3.5">Registration / DARPAN</SortableTh>
+                    <SortableTh sortKey="district" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3.5">District Scope</SortableTh>
+                    <SortableTh sortKey="focusArea" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3.5">Accreditation</SortableTh>
+                    <SortableTh sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3.5">Status</SortableTh>
                     <th className="px-5 py-3.5 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -209,14 +212,14 @@ export default function ImplementingAgencyRegistryPage() {
                         </div>
                       </td>
                     </tr>
-                  ) : items.length === 0 ? (
+                  ) : sortedItems.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="p-8 text-center text-slate-500 font-medium">
                         No implementing agency partners found matching the selected criteria.
                       </td>
                     </tr>
                   ) : (
-                    items.map((ngo) => (
+                    sortedItems.map((ngo) => (
                       <tr 
                         key={ngo.id}
                         className="block md:table-row mb-3 md:mb-0 bg-white border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-xs md:shadow-none hover:bg-slate-50/80 transition-colors overflow-hidden"

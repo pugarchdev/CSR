@@ -10,6 +10,8 @@ import { ScopeBadge } from "./RoleBadges";
 import { useAssignments, useDeleteAssignment, useEffectiveAccess } from "@/hooks/useAccessControl";
 import { useAuthStore } from "@/store/authStore";
 import { useToastActions } from "@/components/ui/Toast";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 import type { Role, Assignment } from "@/types/accessControl";
 
 interface RoleMembersTabProps {
@@ -25,6 +27,17 @@ export function RoleMembersTab({ role }: RoleMembersTabProps) {
   const [previewUserId, setPreviewUserId] = useState<string | null>(null);
 
   const assignments = assignmentsData?.data ?? [];
+
+  const { sortedItems: sortedAssignments, sortKey, sortDirection, requestSort } = useTableSort(assignments, {
+    customGetters: {
+      user: (a) => a.user ? `${a.user.firstName || ""} ${a.user.lastName || ""} ${a.user.email || ""}` : a.userId,
+      scope: (a) => a.scope,
+      status: (a) => a.status,
+      validFrom: (a) => a.validFrom,
+      validUntil: (a) => a.validUntil,
+      scopeDetail: (a) => a.organizationId || a.districtId || "",
+    }
+  });
 
   const handleRevoke = async (assignment: Assignment) => {
     try {
@@ -68,17 +81,17 @@ export function RoleMembersTab({ role }: RoleMembersTabProps) {
           <table className="w-full text-sm" role="table">
             <thead className="bg-slate-50/80 border-b border-slate-100/80">
               <tr>
-                <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">User</th>
-                <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Scope</th>
-                <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Valid From</th>
-                <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Valid Until</th>
-                <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Org / District</th>
+                <SortableTh sortKey="user" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">User</SortableTh>
+                <SortableTh sortKey="scope" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Scope</SortableTh>
+                <SortableTh sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Status</SortableTh>
+                <SortableTh sortKey="validFrom" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Valid From</SortableTh>
+                <SortableTh sortKey="validUntil" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Valid Until</SortableTh>
+                <SortableTh sortKey="scopeDetail" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Org / District</SortableTh>
                 <th className="px-4 py-3 text-right text-[10px] font-bold text-slate-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100/60">
-              {assignments.map((assignment) => (
+              {sortedAssignments.map((assignment) => (
                 <tr key={assignment.id} className="hover:bg-blue-50/20 transition-colors">
                   <td className="px-4 py-3">
                     <div>

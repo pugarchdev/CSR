@@ -7,6 +7,8 @@ import GovInput from "@/components/gov/GovInput";
 import GovSelect from "@/components/gov/GovSelect";
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
 import { apiFetch } from "@/lib/api";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 
 const districts = [
   ["Ahmednagar", "Nashik"], ["Akola", "Amravati"], ["Amravati", "Amravati"], ["Chhatrapati Sambhajinagar", "Aurangabad"],
@@ -139,6 +141,16 @@ export default function DirectoryPage() {
     });
   }, [allEntries, search, role, division, district]);
 
+  const { sortedItems: sortedDirectory, sortKey, sortDirection, requestSort } = useTableSort(filtered, {
+    customGetters: {
+      officer: (e) => `${e.officer} ${e.role}`,
+      district: (e) => `${e.district} ${e.division}`,
+      office: (e) => e.office,
+      contact: (e) => `${e.email} ${e.phone}`,
+      responsibility: (e) => e.responsibility,
+    }
+  });
+
   return (
     <GovPortalLayout showSidebar={false}>
       <div className="gov-public-main">
@@ -206,15 +218,15 @@ export default function DirectoryPage() {
               <table className="w-full block md:table text-left border-collapse">
                 <thead className="hidden md:table-header-group bg-gray-50/50 border-b border-gray-200">
                   <tr>
-                    <th className="p-3 md:px-6 md:py-4 font-semibold text-gray-700 text-sm">Role / Officer</th>
-                    <th className="p-3 md:px-6 md:py-4 font-semibold text-gray-700 text-sm">District / Division</th>
-                    <th className="p-3 md:px-6 md:py-4 font-semibold text-gray-700 text-sm">Office</th>
-                    <th className="p-3 md:px-6 md:py-4 font-semibold text-gray-700 text-sm">Contact</th>
-                    <th className="p-3 md:px-6 md:py-4 font-semibold text-gray-700 text-sm">Responsibility</th>
+                    <SortableTh sortKey="officer" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="p-3 md:px-6 md:py-4 font-semibold text-gray-700 text-sm">Role / Officer</SortableTh>
+                    <SortableTh sortKey="district" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="p-3 md:px-6 md:py-4 font-semibold text-gray-700 text-sm">District / Division</SortableTh>
+                    <SortableTh sortKey="office" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="p-3 md:px-6 md:py-4 font-semibold text-gray-700 text-sm">Office</SortableTh>
+                    <SortableTh sortKey="contact" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="p-3 md:px-6 md:py-4 font-semibold text-gray-700 text-sm">Contact</SortableTh>
+                    <SortableTh sortKey="responsibility" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="p-3 md:px-6 md:py-4 font-semibold text-gray-700 text-sm">Responsibility</SortableTh>
                   </tr>
                 </thead>
                 <tbody className="block md:table-row-group p-4 md:p-0 bg-gray-50 md:bg-white">
-                  {filtered.map((entry) => (
+                  {sortedDirectory.map((entry) => (
                     <tr 
                       key={entry.id}
                       className="block md:table-row mb-4 md:mb-0 bg-white border border-gray-200 md:border-0 md:border-b md:border-gray-200 last:border-b-0 shadow-sm md:shadow-none rounded-lg md:rounded-none overflow-hidden"

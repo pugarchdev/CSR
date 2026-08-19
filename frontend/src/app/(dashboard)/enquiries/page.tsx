@@ -19,6 +19,8 @@ import { useAuthStore } from "@/store/authStore";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { apiFetch } from "@/lib/api";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 
 interface Enquiry {
   id: string;
@@ -355,6 +357,8 @@ export default function EnquiriesPage() {
     setFilterBudget("ALL");
     setSortBy("NEWEST");
   };
+
+  const { sortedItems: sortedEnquiries, sortKey: tableSortKey, sortDirection: tableSortDirection, requestSort: requestTableSort } = useTableSort(filtered);
 
   return (
     <div className="mx-auto flex min-h-screen max-w-screen-2xl flex-col gap-4 px-4 py-4 md:px-6">
@@ -782,18 +786,18 @@ export default function EnquiriesPage() {
             <table className="w-full block md:table text-left text-xs font-medium text-slate-700 border-collapse">
               <thead className="hidden md:table-header-group bg-slate-50 text-[11px] font-extrabold uppercase tracking-wider text-slate-500 border-b border-slate-200/80">
                 <tr>
-                  <th className="px-4 py-3">Tracking ID</th>
-                  <th className="px-4 py-3">Corporate / Company</th>
-                  <th className="px-4 py-3">Sector</th>
-                  <th className="px-4 py-3">Preferred District</th>
-                  <th className="px-4 py-3">Outlay (₹ Cr)</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Submitted Date</th>
+                  <SortableTh sortKey="trackingId" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3">Tracking ID</SortableTh>
+                  <SortableTh sortKey="companyName" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3">Corporate / Company</SortableTh>
+                  <SortableTh sortKey="sector" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3">Sector</SortableTh>
+                  <SortableTh sortKey="preferredDistricts" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3">Preferred District</SortableTh>
+                  <SortableTh sortKey="indicativeBudgetCr" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3">Outlay (₹ Cr)</SortableTh>
+                  <SortableTh sortKey="status" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3">Status</SortableTh>
+                  <SortableTh sortKey="submittedDate" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3">Submitted Date</SortableTh>
                   <th className="px-4 py-3 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="block md:table-row-group divide-y-0 md:divide-y md:divide-slate-100">
-                {filtered.map((item) => (
+                {sortedEnquiries.map((item) => (
                   <tr
                     key={item.id}
                     className="block md:table-row mb-4 md:mb-0 bg-white border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-sm md:shadow-none hover:bg-slate-50/80 transition-colors overflow-hidden"

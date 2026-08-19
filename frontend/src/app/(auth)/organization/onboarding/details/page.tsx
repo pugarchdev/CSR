@@ -135,15 +135,15 @@ export default function OnboardingDetailsPage() {
 
   const org: Organization = organization || ({ id: "" } as Organization);
 
+  const orgTypeStr = String(org.organizationType || org.kind || "").toUpperCase();
   const isGovDept =
-    org.organizationType === "GOVERNMENT" ||
-    org.organizationType === "DEPT" ||
-    org.organizationType?.includes("GOVT") ||
-    org.organizationType?.includes("DEPT") ||
-    org.kind === "GOVERNMENT" ||
-    org.kind === "DEPT" ||
-    org.kind?.includes("GOVT") ||
-    org.kind?.includes("DEPT");
+    orgTypeStr === "GOVERNMENT_DEPARTMENT" ||
+    orgTypeStr === "GOVT_DEPARTMENT" ||
+    orgTypeStr === "GOVT_DEPT" ||
+    orgTypeStr.includes("GOVERN") ||
+    orgTypeStr.includes("GOVT") ||
+    orgTypeStr.includes("DEPT") ||
+    orgTypeStr.includes("DEPARTMENT");
 
   const profile = isGovDept
     ? (org.govDeptProfile || org.governmentDepartmentProfile || {})
@@ -167,12 +167,17 @@ export default function OnboardingDetailsPage() {
     ["Legal Name", org.legalName || org.name],
     ["Display Name", org.displayName],
     ["Organization Type", (org.organizationType || org.kind)?.replace(/_/g, " ")],
-    ["CIN / LLPIN", org.cin || org.llpin],
-    ["PAN", org.pan],
-    ["GSTIN", org.gst || org.gstin],
-    ["Year of Incorporation", org.yearOfIncorporation],
-    ["Department Code / Identifier", org.departmentCode || profile.departmentCode],
-    ["Parent Administrative Department", org.parentDepartment || org.parentOrganization?.name || profile.parentDepartment],
+    ...(!isGovDept
+      ? [
+          ["CIN / LLPIN", org.cin || org.llpin],
+          ["PAN", org.pan],
+          ["GSTIN", org.gst || org.gstin],
+          ["Year of Incorporation", org.yearOfIncorporation],
+        ]
+      : [
+          ["Department Code / Identifier", org.departmentCode || profile.departmentCode],
+          ["Parent Administrative Department", org.parentDepartment || org.parentOrganization?.name || profile.parentDepartment],
+        ]),
     ["Official Email", org.officialEmail || org.email],
     ["Official Phone", org.officialPhone || org.phone],
     ["Website", org.website],

@@ -26,15 +26,7 @@ const nextConfig = {
     optimizePackageImports: [
       "lucide-react",
       "recharts",
-      "framer-motion",
-      "@tanstack/react-query",
-      "axios",
-      "three",
-      "html2canvas",
-      "jspdf",
-      "zod",
-      "clsx",
-      "tailwind-merge"
+      "framer-motion"
     ],
     webVitalsAttribution: ["CLS", "LCP", "FCP", "INP", "TTFB"]
   },

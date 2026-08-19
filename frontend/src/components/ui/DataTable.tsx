@@ -1,4 +1,3 @@
-// Data Table Component — Premium SaaS Design
 "use client";
 
 import { ReactNode, useState } from "react";
@@ -10,9 +9,11 @@ import {
   ChevronRight,
   Search,
   Filter,
+  ArrowUpDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
+import { compareValues, getNestedValue } from "@/hooks/useTableSort";
 
 // ============================================
 // Types
@@ -80,17 +81,18 @@ export function DataTable<T>({
       if (!current || current.key !== key) {
         return { key, direction: "asc" };
       }
-      return { key, direction: current.direction === "asc" ? "desc" : "asc" };
+      if (current.direction === "asc") {
+        return { key, direction: "desc" };
+      }
+      return null;
     });
   };
 
   const sortedData = sortConfig
     ? [...data].sort((a, b) => {
-        const aValue = (a as any)[sortConfig.key];
-        const bValue = (b as any)[sortConfig.key];
-        if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
-        if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
-        return 0;
+        const aValue = getNestedValue(a, sortConfig.key);
+        const bValue = getNestedValue(b, sortConfig.key);
+        return compareValues(aValue, bValue, sortConfig.direction);
       })
     : data;
 
@@ -200,35 +202,45 @@ export function DataTable<T>({
                     />
                   </th>
                 )}
-                {columns.map((column) => (
-                  <th
-                    key={column.key}
-                    className={cn(
-                      "px-4 py-3.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap",
-                      column.sortable && "cursor-pointer hover:text-slate-700 select-none group",
-                      column.align === "right" && "text-right",
-                      column.align === "center" && "text-center"
-                    )}
-                    style={{ width: column.width }}
-                    onClick={() => column.sortable && handleSort(column.key)}
-                  >
-                    <div className={cn("flex items-center gap-1.5", column.align === "right" && "justify-end")}>
-                      {column.header}
-                      {column.sortable && sortConfig?.key === column.key && (
-                        <motion.span
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ duration: 0.15 }}
-                        >
-                          {sortConfig.direction === "asc" ?
-                            <ChevronUp size={14} className="text-blue-500" /> :
-                            <ChevronDown size={14} className="text-blue-500" />
-                          }
-                        </motion.span>
+                {columns.map((column) => {
+                  const isSortable = column.sortable !== false && column.key !== "actions" && column.key !== "action";
+                  const isActive = isSortable && sortConfig?.key === column.key && Boolean(sortConfig?.direction);
+
+                  return (
+                    <th
+                      key={column.key}
+                      className={cn(
+                        "px-4 py-3.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap transition-colors",
+                        isSortable && "cursor-pointer hover:bg-slate-100/70 hover:text-slate-900 select-none group",
+                        isActive && "text-blue-900 bg-blue-50/50",
+                        column.align === "right" && "text-right",
+                        column.align === "center" && "text-center"
                       )}
-                    </div>
-                  </th>
-                ))}
+                      style={{ width: column.width }}
+                      onClick={() => isSortable && handleSort(column.key)}
+                    >
+                      <div className={cn("flex items-center gap-1.5", column.align === "right" && "justify-end", column.align === "center" && "justify-center")}>
+                        <span>{column.header}</span>
+                        {isSortable && (
+                          <span className="inline-flex items-center shrink-0">
+                            {isActive ? (
+                              sortConfig?.direction === "asc" ? (
+                                <ChevronUp size={14} className="text-blue-600 stroke-[2.5]" />
+                              ) : (
+                                <ChevronDown size={14} className="text-blue-600 stroke-[2.5]" />
+                              )
+                            ) : (
+                              <ArrowUpDown
+                                size={12}
+                                className="text-slate-400 opacity-40 group-hover:opacity-100 transition-opacity"
+                              />
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100/60">

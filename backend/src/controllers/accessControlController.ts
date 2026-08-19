@@ -774,6 +774,12 @@ export const createAssignment = async (
       validFrom,
       validUntil,
     } = parseResult.data;
+
+    // Prevent self-assignment (SUPER_ADMIN exempt)
+    const isSuperAdmin = Number(req.user?.roleId) === 1 || req.user?.role === "SUPER_ADMIN" || String(req.user?.roleId) === "1";
+    if (!isSuperAdmin && userId === req.user!.id) {
+      return res.status(403).json({ error: "Forbidden: You cannot assign a role to yourself." });
+    }
     const role = await prisma.role.findUnique({ where: { id: roleId } });
     if (!role) return res.status(404).json({ error: "Target role not found" });
 
@@ -847,6 +853,15 @@ export const patchAssignment = async (
     }
 
     const { status, validUntil } = parseResult.data;
+
+    // Prevent self-modification (SUPER_ADMIN exempt)
+    const existingAssignment = await prisma.userRoleAssignment.findUnique({ where: { id: assignmentId }, select: { userId: true } });
+    if (!existingAssignment) return res.status(404).json({ error: "Assignment not found" });
+    const isSuperAdmin = Number(req.user?.roleId) === 1 || req.user?.role === "SUPER_ADMIN" || String(req.user?.roleId) === "1";
+    if (!isSuperAdmin && existingAssignment.userId === req.user!.id) {
+      return res.status(403).json({ error: "Forbidden: You cannot modify your own role assignment." });
+    }
+
     const updated = await prisma.$transaction(async (tx) => {
       const asgn = await tx.userRoleAssignment.update({
         where: { id: assignmentId },
@@ -879,6 +894,15 @@ export const deleteAssignment = async (
 ) => {
   try {
     const assignmentId = req.params.id;
+
+    // Prevent self-revocation (SUPER_ADMIN exempt)
+    const existingAssignment = await prisma.userRoleAssignment.findUnique({ where: { id: assignmentId }, select: { userId: true } });
+    if (!existingAssignment) return res.status(404).json({ error: "Assignment not found" });
+    const isSuperAdmin = Number(req.user?.roleId) === 1 || req.user?.role === "SUPER_ADMIN" || String(req.user?.roleId) === "1";
+    if (!isSuperAdmin && existingAssignment.userId === req.user!.id) {
+      return res.status(403).json({ error: "Forbidden: You cannot revoke your own role assignment." });
+    }
+
     await prisma.$transaction(async (tx) => {
       const asgn = await tx.userRoleAssignment.delete({
         where: { id: assignmentId },

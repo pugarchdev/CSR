@@ -3,6 +3,8 @@
 import React from "react";
 import { Landmark, ArrowUpRight, CheckCircle2, TrendingUp, DollarSign, PieChart } from "lucide-react";
 import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 
 export default function CorporateFundsPage() {
   const formatCr = (val: number) => `₹${(Number(val || 0) / 10000000).toFixed(2)} Cr`;
@@ -17,6 +19,16 @@ export default function CorporateFundsPage() {
       { id: "cmt-2", projectCode: "PRJ-2026-004", projectTitle: "Beed Watershed & Check Dam Project", committedAmount: 22500000, releasedAmount: 10500000, utilizedAmount: 7000000, trancheStatus: "TRANCHE_1_RELEASED" }
     ]
   };
+
+  const { sortedItems: sortedCommitments, sortKey, sortDirection, requestSort } = useTableSort(fundSummary.commitments, {
+    customGetters: {
+      projectTitle: (c) => `${c.projectCode} ${c.projectTitle}`,
+      committedAmount: (c) => c.committedAmount,
+      releasedAmount: (c) => c.releasedAmount,
+      utilizedAmount: (c) => c.utilizedAmount,
+      trancheStatus: (c) => c.trancheStatus,
+    }
+  });
 
   return (
     <div className="space-y-6">
@@ -88,15 +100,15 @@ export default function CorporateFundsPage() {
           <table className="w-full text-left text-xs">
             <thead className="border-b border-slate-100 bg-slate-50 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
               <tr>
-                <th className="px-4 py-3">Project Code & Title</th>
-                <th className="px-4 py-3">Total Committed</th>
-                <th className="px-4 py-3">Disbursed Tranches</th>
-                <th className="px-4 py-3">Ground Utilization</th>
-                <th className="px-4 py-3">Tranche Status</th>
+                <SortableTh sortKey="projectTitle" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Project Code & Title</SortableTh>
+                <SortableTh sortKey="committedAmount" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Total Committed</SortableTh>
+                <SortableTh sortKey="releasedAmount" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Disbursed Tranches</SortableTh>
+                <SortableTh sortKey="utilizedAmount" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Ground Utilization</SortableTh>
+                <SortableTh sortKey="trancheStatus" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Tranche Status</SortableTh>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {fundSummary.commitments.map((c) => (
+              {sortedCommitments.map((c) => (
                 <tr key={c.id} className="transition hover:bg-slate-50/80">
                   <td className="px-4 py-3">
                     <span className="font-mono text-[10px] font-bold text-blue-900 bg-blue-50 px-1.5 py-0.5 rounded">

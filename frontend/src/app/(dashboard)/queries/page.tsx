@@ -6,6 +6,8 @@ import GovPageHeader from "@/components/layout/GovPageHeader";
 import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
 import { Loader } from "@/components/ui/Loader";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 
 export default function QueriesPage() {
   const { data: envelope, isLoading } = useApiQuery<any>(
@@ -13,7 +15,18 @@ export default function QueriesPage() {
     "/helpdesk"
   );
 
-  const queries = envelope?.data?.queries || envelope?.data || envelope?.queries || [];
+  const rawQueries = envelope?.data?.queries || envelope?.data || envelope?.queries || [];
+  const queries = Array.isArray(rawQueries) ? rawQueries : [];
+
+  const { sortedItems: sortedQueries, sortKey, sortDirection, requestSort } = useTableSort(queries, {
+    customGetters: {
+      id: (q: any) => q.id,
+      subject: (q: any) => q.subject || q.title || "",
+      category: (q: any) => q.category || "General",
+      status: (q: any) => q.status || "OPEN",
+      createdAt: (q: any) => q.createdAt,
+    }
+  });
 
   return (
     <GovPortalLayout userRole="USER">
@@ -37,16 +50,16 @@ export default function QueriesPage() {
               <table className="gov-table w-full">
                 <thead>
                   <tr>
-                    <th>Query Ref</th>
-                    <th>Subject</th>
-                    <th>Category</th>
-                    <th>Status</th>
-                    <th>Created Date</th>
+                    <SortableTh sortKey="id" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Query Ref</SortableTh>
+                    <SortableTh sortKey="subject" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Subject</SortableTh>
+                    <SortableTh sortKey="category" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Category</SortableTh>
+                    <SortableTh sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Status</SortableTh>
+                    <SortableTh sortKey="createdAt" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Created Date</SortableTh>
                   </tr>
                 </thead>
                 <tbody>
-                  {queries.length > 0 ? (
-                    queries.map((q: any) => (
+                  {sortedQueries.length > 0 ? (
+                    sortedQueries.map((q: any) => (
                       <tr key={q.id}>
                         <td className="font-mono text-xs">{q.id.slice(0, 8)}</td>
                         <td className="font-semibold">{q.subject || q.title || "Query"}</td>

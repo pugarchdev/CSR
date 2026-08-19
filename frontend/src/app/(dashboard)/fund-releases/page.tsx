@@ -10,6 +10,8 @@ import { Pagination } from "@/components/ui/Pagination";
 import {
   Coins, Search, ShieldCheck, Check, FileText, Clock
 } from "lucide-react";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 
 interface FundReleaseItem {
   id: string;
@@ -92,6 +94,16 @@ export default function FundReleasesPage() {
     r.tranche.toLowerCase().includes(search.toLowerCase())
   );
 
+  const { sortedItems: sortedFilteredTranches, sortKey, sortDirection, requestSort } = useTableSort(filtered, {
+    customGetters: {
+      projectName: (r) => r.projectName,
+      district: (r) => r.district,
+      tranche: (r) => r.tranche,
+      releaseAmountCr: (r) => r.releaseAmountCr,
+      status: (r) => r.status,
+    }
+  });
+
   const disbursedTotalCr = fundReleasesList
     .filter(r => r.status === "DISBURSED")
     .reduce((acc, curr) => acc + curr.releaseAmountCr, 0);
@@ -102,8 +114,8 @@ export default function FundReleasesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 9;
 
-  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
-  const paginatedTranches = filtered.slice(
+  const totalPages = Math.ceil(sortedFilteredTranches.length / ITEMS_PER_PAGE);
+  const paginatedTranches = sortedFilteredTranches.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
@@ -190,12 +202,12 @@ export default function FundReleasesPage() {
                 <table className="gov-table w-full text-xs">
                   <thead>
                     <tr>
-                      <th>Project Name</th>
-                      <th>District</th>
-                      <th>Milestone Tranche</th>
-                      <th>Release Outlay</th>
-                      <th>Status</th>
-                      <th className="text-right">Action</th>
+                      <SortableTh sortKey="projectName" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Project Name</SortableTh>
+                      <SortableTh sortKey="district" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>District</SortableTh>
+                      <SortableTh sortKey="tranche" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Milestone Tranche</SortableTh>
+                      <SortableTh sortKey="releaseAmountCr" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Release Outlay</SortableTh>
+                      <SortableTh sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort}>Status</SortableTh>
+                      <th className="px-4 py-3.5 text-[11px] font-extrabold uppercase tracking-wider text-right text-slate-500">Action</th>
                     </tr>
                   </thead>
                   <tbody>

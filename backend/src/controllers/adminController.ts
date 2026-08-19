@@ -97,7 +97,7 @@ export const listUsers = async (req: AuthenticatedRequest, res: Response, next: 
           createdAt: true,
           roleId: true,
           role: { select: { id: true, name: true } },
-          organization: { select: { id: true, name: true, kind: true } },
+          organization: { select: { id: true, name: true, kind: true, status: true } },
           officerProfile: { select: { designation: true, fullName: true, department: true, district: true, taluka: true, mobile: true } }
         },
         orderBy: { createdAt: "desc" },
@@ -394,6 +394,11 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response, next:
     }
     if (requestedRole !== undefined && (!resolvedRoleId || !Number.isInteger(resolvedRoleId))) {
       return res.status(400).json({ error: "Selected role does not exist." });
+    }
+
+    // Prevent self-role-change (SUPER_ADMIN exempt)
+    if (resolvedRoleId !== undefined && id === req.user?.id && !isGlobalAdmin) {
+      return res.status(403).json({ error: "Forbidden: You cannot change your own role." });
     }
 
     if (resolvedRoleId && !isGlobalAdmin) {
@@ -745,6 +750,18 @@ export const sendAdminUserInvitation = async (req: AuthenticatedRequest, res: Re
 
     if (!user.mustResetPassword && (user.passwordChangedAt || user.invitationAcceptedAt)) {
       return res.status(400).json({ error: "User has already activated their account and set their permanent password." });
+    }
+
+    if (user.organizationId) {
+      const org = await prisma.organization.findUnique({
+        where: { id: user.organizationId },
+        select: { id: true, name: true, kind: true, status: true }
+      });
+      if (org && (org.kind === "GOVERNMENT_DEPARTMENT" || user.roleId === 7) && org.status !== "ACTIVE") {
+        return res.status(400).json({
+          error: "Cannot send invitation: The department's onboarding application is pending Joint Secretary approval."
+        });
+      }
     }
 
     const tempPassword = `MahaCSR@${crypto.randomInt(100000, 999999)}`;

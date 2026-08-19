@@ -6,6 +6,8 @@ import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
 import { Button } from "@/components/ui/Button";
 import { Search, Landmark } from "lucide-react";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableTh } from "@/components/ui/SortableTh";
 
 export default function NGOEmpanelmentVerification() {
   const [ngos, setNgos] = useState<any[]>([]);
@@ -82,9 +84,19 @@ export default function NGOEmpanelmentVerification() {
 
   const filteredNgos = ngos.filter(ngo =>
     ngo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    ngo.registrationNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    ngo.district.toLowerCase().includes(searchTerm.toLowerCase())
+    (ngo.registrationNumber || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (ngo.district || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const { sortedItems: sortedNgos, sortKey, sortDirection, requestSort } = useTableSort(filteredNgos, {
+    customGetters: {
+      name: (n) => n.name || "",
+      registrationNumber: (n) => n.registrationNumber || "",
+      district: (n) => n.district || "",
+      status: (n) => n.status || "",
+      empanelmentStatus: (n) => n.empanelmentStatus || "",
+    }
+  });
 
   if (loading) {
     return (
@@ -137,16 +149,16 @@ export default function NGOEmpanelmentVerification() {
                   <table className="min-w-full divide-y divide-slate-200 text-sm">
                     <thead className="bg-slate-50 font-bold text-slate-700">
                       <tr>
-                        <th className="px-6 py-3 text-left">NGO Name</th>
-                        <th className="px-6 py-3 text-left">Registration</th>
-                        <th className="px-6 py-3 text-left">District</th>
-                        <th className="px-6 py-3 text-left">MahaCSR Verification</th>
-                        <th className="px-6 py-3 text-left">Empanelment Status</th>
+                        <SortableTh sortKey="name" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-6 py-3 text-left">NGO Name</SortableTh>
+                        <SortableTh sortKey="registrationNumber" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-6 py-3 text-left">Registration</SortableTh>
+                        <SortableTh sortKey="district" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-6 py-3 text-left">District</SortableTh>
+                        <SortableTh sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-6 py-3 text-left">MahaCSR Verification</SortableTh>
+                        <SortableTh sortKey="empanelmentStatus" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="px-6 py-3 text-left">Empanelment Status</SortableTh>
                         <th className="px-6 py-3 text-right">Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 bg-white">
-                      {filteredNgos.map((ngo) => (
+                      {sortedNgos.map((ngo) => (
                         <tr
                           key={ngo.id}
                           onClick={() => {
