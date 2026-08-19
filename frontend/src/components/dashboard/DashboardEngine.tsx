@@ -35,6 +35,9 @@ interface SummaryEnvelope {
     orgKind?: string | null;
     governmentLevel?: string | null;
     governmentType?: string | null;
+    districtScope?: "DISTRICT_WIDE" | "ORGANIZATION";
+    scopeLabel?: string | null;
+    govHeadTitle?: string | null;
     workQueue?: any[];
     alerts?: any[];
     charts?: any;
@@ -81,7 +84,22 @@ function DashboardSkeleton() {
   );
 }
 
-function formatRoleName(roleCode: any, userRoleId: any, fallbackRole?: string): string {
+function formatRoleName(roleCode: any, userRoleId: any, fallbackRole?: string, governmentType?: string | null, govHeadTitle?: string | null): string {
+  // If backend sends a specific government head title, use it
+  if (govHeadTitle && typeof govHeadTitle === "string" && govHeadTitle.trim()) return govHeadTitle;
+
+  // Government department type → specific title
+  if (governmentType) {
+    const GOV_TITLES: Record<string, string> = {
+      COLLECTORATE: "District Collector",
+      ZILLA_PARISHAD: "CEO, Zilla Parishad",
+      MUNICIPAL_CORPORATION: "Municipal Commissioner",
+      SUB_DEPARTMENT: "Department Head",
+      STATE_CSR_CELL: "State Nodal Officer",
+    };
+    if (GOV_TITLES[governmentType]) return GOV_TITLES[governmentType];
+  }
+
   if (roleCode && typeof roleCode === "object") {
     if (typeof roleCode.name === "string" && roleCode.name.trim() && isNaN(Number(roleCode.name))) return roleCode.name;
     if (typeof roleCode.code === "string" && roleCode.code.trim() && isNaN(Number(roleCode.code))) {
@@ -205,16 +223,31 @@ function getInstantFallbackSummary(user: any): any {
       { id: "rm_avg_cycle_time", key: "rm_avg_cycle_time", label: "Avg Processing Time", value: "3.2 Days", format: "duration", href: "/reports", helperText: "Average days from assignment to JS recommendation" },
     ];
   } else if (roleId === 7 || roleCode.includes("GOVERNMENT") || roleCode.includes("GOV") || roleCode.includes("BENEFICIARY_AGENCY")) {
-    defaultKpis = [
-      { id: "dept_active_pitches", key: "dept_active_pitches", label: "Department Needs Pitched", value: 0, format: "number", href: "/pitches", helperText: "Development requirements published to marketplace" },
-      { id: "dept_received_interests", key: "dept_received_interests", label: "Corporate Expressions of Interest", value: 0, format: "number", href: "/pitches", helperText: "Companies wanting to sponsor your department needs" },
-      { id: "dept_active_projects", key: "dept_active_projects", label: "Sanctioned Projects", value: 0, format: "number", href: "/convergence-projects", helperText: "CSR projects actively executing in your domain" },
-      { id: "dept_total_funding", key: "dept_total_funding", label: "Mobilized CSR Funds", value: "₹0.00 Cr", format: "currency", href: "/funds", helperText: "Total corporate capital directed to department initiatives" },
-      { id: "dept_districts_covered", key: "dept_districts_covered", label: "Districts Benefited", value: 0, format: "number", href: "/strategy/state-portfolio", helperText: "Districts with active departmental CSR convergence" },
-      { id: "dept_milestones_completed", key: "dept_milestones_completed", label: "Milestones Achieved", value: 0, format: "number", href: "/milestones", helperText: "Project phases verified and handed over" },
-      { id: "dept_pending_actions", key: "dept_pending_actions", label: "Pending Approvals", value: 0, format: "number", href: "/work-queue", helperText: "Proposals, MoUs or NOCs awaiting department sign-off" },
-      { id: "dept_beneficiaries_reached", key: "dept_beneficiaries_reached", label: "Citizens Impacted", value: 0, format: "number", href: "/strategy/impact", helperText: "Direct beneficiaries from CSR partnerships" },
-    ];
+    // Check if user's org is a Collectorate (district boss) for Collector-specific fallback
+    const orgGovType = String(user?.organization?.governmentType || "").toUpperCase();
+    if (orgGovType === "COLLECTORATE") {
+      defaultKpis = [
+        { id: "dc_total_projects", key: "dc_total_projects", label: "District-Wide Projects", value: 0, format: "number", href: "/convergence-projects", helperText: "All active CSR projects across the district" },
+        { id: "dc_zp_projects", key: "dc_zp_projects", label: "Zilla Parishad Projects", value: 0, format: "number", href: "/convergence-projects?dept=zp", helperText: "Active projects under Zilla Parishad" },
+        { id: "dc_mnc_projects", key: "dc_mnc_projects", label: "Municipal Corp Projects", value: 0, format: "number", href: "/convergence-projects?dept=mnc", helperText: "Active projects under Municipal Corporation" },
+        { id: "dc_collect_projects", key: "dc_collect_projects", label: "Collectorate Projects", value: 0, format: "number", href: "/convergence-projects?dept=collectorate", helperText: "Active projects under Collectorate" },
+        { id: "dc_district_funding", key: "dc_district_funding", label: "District Funding Committed", value: "₹0.00 Cr", format: "currency", href: "/funds", helperText: "Total corporate funds committed across all departments" },
+        { id: "dc_pitches_pipeline", key: "dc_pitches_pipeline", label: "District Pitches", value: 0, format: "number", href: "/pitches", helperText: "Pitch proposals from all departments in the district" },
+        { id: "dc_milestones_due", key: "dc_milestones_due", label: "Milestones Due (30 Days)", value: 0, format: "number", href: "/milestones", helperText: "Project milestones due across all district departments" },
+        { id: "dc_pending_assignments", key: "dc_pending_assignments", label: "Pending Assignments", value: 0, format: "number", href: "/assignments", helperText: "District assignments awaiting acceptance" },
+      ];
+    } else {
+      defaultKpis = [
+        { id: "dept_active_pitches", key: "dept_active_pitches", label: "Department Needs Pitched", value: 0, format: "number", href: "/pitches", helperText: "Development requirements published to marketplace" },
+        { id: "dept_received_interests", key: "dept_received_interests", label: "Corporate Expressions of Interest", value: 0, format: "number", href: "/pitches", helperText: "Companies wanting to sponsor your department needs" },
+        { id: "dept_active_projects", key: "dept_active_projects", label: "Sanctioned Projects", value: 0, format: "number", href: "/convergence-projects", helperText: "CSR projects actively executing in your domain" },
+        { id: "dept_total_funding", key: "dept_total_funding", label: "Mobilized CSR Funds", value: "₹0.00 Cr", format: "currency", href: "/funds", helperText: "Total corporate capital directed to department initiatives" },
+        { id: "dept_districts_covered", key: "dept_districts_covered", label: "Districts Benefited", value: 0, format: "number", href: "/strategy/state-portfolio", helperText: "Districts with active departmental CSR convergence" },
+        { id: "dept_milestones_completed", key: "dept_milestones_completed", label: "Milestones Achieved", value: 0, format: "number", href: "/milestones", helperText: "Project phases verified and handed over" },
+        { id: "dept_pending_actions", key: "dept_pending_actions", label: "Pending Approvals", value: 0, format: "number", href: "/work-queue", helperText: "Proposals, MoUs or NOCs awaiting department sign-off" },
+        { id: "dept_beneficiaries_reached", key: "dept_beneficiaries_reached", label: "Citizens Impacted", value: 0, format: "number", href: "/strategy/impact", helperText: "Direct beneficiaries from CSR partnerships" },
+      ];
+    }
   } else if (roleId === 8 || roleCode.includes("CORPORATE") || roleCode.includes("COMPANY")) {
     defaultKpis = [
       { id: "corp_committed_csr", key: "corp_committed_csr", label: "Committed CSR Capital", value: "₹35.0 Cr", format: "currency", href: "/funds", helperText: "Total CSR budget committed to Maharashtra projects" },
@@ -309,7 +342,8 @@ export default function DashboardEngine() {
   const userRoleId = Number(summary.userRoleId || 0);
   const roleCodeStr = String(summary.roleCode || "");
   const isPartitionedRole = [2, 3, 6].includes(userRoleId) || /PLANNING_SECRETARY|JOINT_SECRETARY|RELATIONSHIP_MANAGER/i.test(roleCodeStr);
-  const roleDisplayName = formatRoleName(summary.roleCode, summary.userRoleId, storeUser?.role);
+  const isCollectorDashboard = summary.districtScope === "DISTRICT_WIDE" || summary.governmentType === "COLLECTORATE";
+  const roleDisplayName = formatRoleName(summary.roleCode, summary.userRoleId, storeUser?.role, summary.governmentType, summary.govHeadTitle);
 
   return (
     <div className="space-y-4">
@@ -317,7 +351,7 @@ export default function DashboardEngine() {
       <section className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 pb-3">
         <div className="flex flex-wrap items-center gap-2.5">
           <h1 className="font-heading text-lg sm:text-xl font-extrabold text-slate-950 tracking-tight">
-            Executive Operations Workspace
+            {isCollectorDashboard ? "District Command Center" : "Executive Operations Workspace"}
           </h1>
           <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-[10.5px] font-bold text-blue-800 border border-blue-200/70">
             <ShieldCheck size={12} className="text-blue-600" />
@@ -327,6 +361,12 @@ export default function DashboardEngine() {
             <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[10.5px] font-semibold text-slate-700">
               <Building2 size={11} className="text-slate-500" />
               {summary.orgName}
+            </span>
+          )}
+          {isCollectorDashboard && summary.scopeLabel && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[10.5px] font-bold text-amber-800 border border-amber-200/70">
+              <Landmark size={11} className="text-amber-600" />
+              {summary.scopeLabel}
             </span>
           )}
         </div>

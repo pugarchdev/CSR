@@ -3,6 +3,7 @@ import prisma from "../config/db";
 import { AuthenticatedRequest } from "../middlewares/authMiddleware";
 import { computeUserPermissions } from "../services/permissionService";
 import { cacheOrFetch } from "../config/redis";
+import { isCollectorOrg, getDistrictOrganizationIds, getDistrictOrgBreakdown, getGovHeadTitle } from "../services/districtScopeService";
 
 export interface DashboardKpiItem {
   id: string;
@@ -72,7 +73,7 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
       const [org, userAssignment, permissionData] = await Promise.all([
         orgId ? prisma.organization.findUnique({
           where: { id: orgId },
-          select: { id: true, name: true, kind: true, status: true, governmentLevel: true, governmentType: true, parentOrganizationId: true }
+          select: { id: true, name: true, kind: true, status: true, district: true, governmentLevel: true, governmentType: true, parentOrganizationId: true }
         }) : null,
         prisma.userRoleAssignment.findFirst({
           where: { userId, status: "ACTIVE" },
@@ -680,8 +681,73 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
             createKpi("gsh_domain_commitment", "Domain Commitments", "₹6.80 Cr", "currency", "/reports", "Corporate funding committed to domain initiatives", "positive"),
             createKpi("gsh_beneficiary_reach", "Beneficiary Reach", "38,500", "number", "/reports", "Citizens impacted across sub-department projects", "positive"),
           ];
+        } else if (isCollectorOrg(org)) {
+          // ── DISTRICT COLLECTOR — district-wide aggregated dashboard ──
+          const collectorDistrict = org!.district || "";
+          const districtOrgIds = await getDistrictOrganizationIds(collectorDistrict);
+          const orgBreakdown = await getDistrictOrgBreakdown(collectorDistrict);
+
+          const zpOrgIds = orgBreakdown.zp.map(o => o.id);
+          const mncOrgIds = orgBreakdown.mnc.map(o => o.id);
+          const collectOrgIds = orgBreakdown.collectorate.map(o => o.id);
+
+          const districtProjectWhere = {
+            status: { in: ACTIVE_PROJECTS },
+            OR: [
+              { organizationId: { in: districtOrgIds } },
+              { parentOrganizationId: { in: districtOrgIds } },
+              { departmentOrganizationId: { in: districtOrgIds } },
+              { district: collectorDistrict },
+            ],
+          };
+
+          const [
+            totalDistrictProjects,
+            zpProjects,
+            mncProjects,
+            collectProjects,
+            districtPitches,
+            districtAssignmentsPending,
+            districtCommitments,
+            districtMilestonesDue,
+            districtEscalations,
+            subDeptsCount,
+          ] = await Promise.all([
+            prisma.project.count({ where: districtProjectWhere }),
+            prisma.project.count({ where: { status: { in: ACTIVE_PROJECTS }, OR: [{ organizationId: { in: zpOrgIds } }, { parentOrganizationId: { in: zpOrgIds } }, { departmentOrganizationId: { in: zpOrgIds } }] } }),
+            prisma.project.count({ where: { status: { in: ACTIVE_PROJECTS }, OR: [{ organizationId: { in: mncOrgIds } }, { parentOrganizationId: { in: mncOrgIds } }, { departmentOrganizationId: { in: mncOrgIds } }] } }),
+            prisma.project.count({ where: { status: { in: ACTIVE_PROJECTS }, OR: [{ organizationId: { in: collectOrgIds } }, { parentOrganizationId: { in: collectOrgIds } }, { departmentOrganizationId: { in: collectOrgIds } }] } }),
+            prisma.governmentPitch.count({ where: { OR: [{ organizationId: { in: districtOrgIds } }, { parentOrganizationId: { in: districtOrgIds } }, { departmentOrganizationId: { in: districtOrgIds } }] } }),
+            prisma.governmentAssignment.count({ where: { governmentOrganizationId: { in: districtOrgIds }, status: { in: ["PENDING_ACCEPTANCE", "ACTIVE"] } } }),
+            prisma.project.aggregate({ where: districtProjectWhere, _sum: { committedAmount: true, utilizedAmount: true } }),
+            prisma.projectMilestone.count({ where: { project: districtProjectWhere, status: { in: ["APPROVED", "IN_PROGRESS"] }, dueDate: { lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) } } }),
+            prisma.sLAEscalation.count({ where: { isResolved: false } }),
+            prisma.organization.count({ where: { parentOrganizationId: { in: districtOrgIds }, governmentLevel: "SUB_DEPARTMENT", status: "ACTIVE" } }),
+          ]);
+
+          const committedVal = Number(districtCommitments._sum.committedAmount || 0);
+
+          kpis = [
+            createKpi("dc_total_projects", "District-Wide Projects", totalDistrictProjects, "number", "/convergence-projects", `All active CSR projects across ${collectorDistrict} District`, "positive", "up"),
+            createKpi("dc_zp_projects", "Zilla Parishad Projects", zpProjects, "number", "/convergence-projects?dept=zp", `Active projects under Zilla Parishad, ${collectorDistrict}`, "positive"),
+            createKpi("dc_mnc_projects", "Municipal Corp Projects", mncProjects, "number", "/convergence-projects?dept=mnc", `Active projects under Municipal Corporation, ${collectorDistrict}`, "positive"),
+            createKpi("dc_collect_projects", "Collectorate Projects", collectProjects, "number", "/convergence-projects?dept=collectorate", `Active projects under Collectorate, ${collectorDistrict}`, "positive"),
+            createKpi("dc_district_funding", "District Funding Committed", committedVal > 0 ? formatCurrency(committedVal) : "₹0.00 Cr", "currency", "/funds", `Total corporate funds committed across all departments in ${collectorDistrict}`, "positive"),
+            createKpi("dc_pitches_pipeline", "District Pitches", districtPitches, "number", "/pitches", "Pitch proposals from all departments in the district", "neutral"),
+            createKpi("dc_milestones_due", "Milestones Due (30 Days)", districtMilestonesDue, "number", "/milestones", "Project milestones due across all district departments", districtMilestonesDue > 0 ? "warning" : "positive"),
+            createKpi("dc_pending_assignments", "Pending Assignments", districtAssignmentsPending, "number", "/assignments", "District assignments awaiting acceptance across all departments", districtAssignmentsPending > 0 ? "warning" : "positive"),
+          ];
+
+          charts = {
+            type: "district_department_breakdown",
+            departments: [
+              { name: "Collectorate", projects: collectProjects, type: "COLLECTORATE" },
+              { name: "Zilla Parishad", projects: zpProjects, type: "ZILLA_PARISHAD" },
+              { name: "Municipal Corporation", projects: mncProjects, type: "MUNICIPAL_CORPORATION" },
+            ],
+          };
         } else {
-          // Main Organization Head (GOV_MAIN_ORG_HEAD)
+          // ── ZP / MNC / Generic Main Org Head — org-scoped dashboard ──
           const [subDeptsCount, activePitches, publicPitches, treeProjects, incomingAssignments, subDeptsPending] = await Promise.all([
             prisma.organization.count({ where: { parentOrganizationId: orgId, governmentLevel: "SUB_DEPARTMENT", status: "ACTIVE" } }),
             prisma.governmentPitch.count({ where: { OR: [{ organizationId: orgId }, { parentOrganizationId: orgId }] } }),
@@ -691,15 +757,17 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
             prisma.governmentOnboardingApplication.count({ where: { organization: { parentOrganizationId: orgId }, status: "UNDER_VERIFICATION" } }),
           ]);
 
+          const deptLabel = org?.governmentType === "ZILLA_PARISHAD" ? "Zilla Parishad" : org?.governmentType === "MUNICIPAL_CORPORATION" ? "Municipal Corporation" : "Organization";
+
           kpis = [
-            createKpi("gmh_active_projects", "Active Organization Projects", treeProjects, "number", "/convergence-projects", "Projects in Collectorate / ZP / Municipal Corp tree", "positive"),
-            createKpi("gmh_sub_departments", "Active Sub-Departments", subDeptsCount, "number", "/departments", "Approved child departments under this main organization", "positive"),
+            createKpi("gmh_active_projects", `Active ${deptLabel} Projects`, treeProjects, "number", "/convergence-projects", `Projects in your ${deptLabel} and sub-departments`, "positive"),
+            createKpi("gmh_sub_departments", "Active Sub-Departments", subDeptsCount, "number", "/departments", `Approved child departments under ${deptLabel}`, "positive"),
             createKpi("gmh_subdept_pending", "Sub-Depts Awaiting JS", subDeptsPending, "number", "/departments", "Submitted sub-department onboarding applications", subDeptsPending > 0 ? "warning" : "positive"),
-            createKpi("gmh_pitch_pipeline", "Pitches in Pipeline", activePitches, "number", "/pitches", "Organization & child department pitches in workflow", "neutral"),
+            createKpi("gmh_pitch_pipeline", "Pitches in Pipeline", activePitches, "number", "/pitches", `${deptLabel} & child department pitches in workflow`, "neutral"),
             createKpi("gmh_nodal_coverage", "Nodal Coverage", "100%", "percentage", "/nodal-management", "Designated Nodal Officers active across all units", "positive"),
             createKpi("gmh_assignment_rejections", "Incoming Assignments", incomingAssignments, "number", "/assignments", "Assignments received for district execution", incomingAssignments > 0 ? "warning" : "positive"),
             createKpi("gmh_at_risk_projects", "At-Risk Projects", 1, "number", "/convergence-projects?risk=high", "Projects with open critical bottlenecks", "warning"),
-            createKpi("gmh_committed_funds", "Committed Funds", "₹18.40 Cr", "currency", "/reports", "Corporate funds committed to organization tree", "positive"),
+            createKpi("gmh_committed_funds", "Committed Funds", "₹18.40 Cr", "currency", "/reports", `Corporate funds committed to ${deptLabel} tree`, "positive"),
           ];
         }
       }
@@ -865,6 +933,13 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
         actionText: "View onboarding status",
       } : null;
 
+      const isCollector = isCollectorOrg(org);
+      const districtScope = isCollector ? "DISTRICT_WIDE" : "ORGANIZATION";
+      const scopeLabel = isCollector
+        ? `All departments in ${org?.district || "District"}`
+        : org?.name ? `${org.name}` : null;
+      const govHeadTitle = org?.governmentType ? getGovHeadTitle(org.governmentType) : null;
+
       return {
         generatedAt: nowIso,
         asOf: nowIso,
@@ -875,6 +950,9 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
         orgStatus: org?.status || null,
         governmentLevel: org?.governmentLevel || null,
         governmentType: org?.governmentType || null,
+        districtScope,
+        scopeLabel,
+        govHeadTitle,
         permissions,
         kpis,
         workQueue,

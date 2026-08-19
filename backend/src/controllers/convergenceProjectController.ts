@@ -4,6 +4,7 @@ import { AuthenticatedRequest } from "../middlewares/authMiddleware";
 import { successResponse, notFoundResponse } from "../utils/apiResponse";
 import { ROLE_ID } from "../types/role";
 import { dispatchNotification } from "../services/notificationOrchestrator";
+import { isCollectorOrg } from "../services/districtScopeService";
 
 async function projectAccess(projectId: string, userId: string, organizationId?: string | null) {
   const project = await prisma.project.findUnique({
@@ -48,16 +49,51 @@ export const getConvergenceProjects = async (req: AuthenticatedRequest, res: Res
   try {
     const roleId = Number(req.user?.roleId);
     const isState = [ROLE_ID.SUPER_ADMIN, ROLE_ID.JOINT_SECRETARY, ROLE_ID.PLANNING_SECRETARY].includes(roleId as any);
-    const assignmentIds = isState ? [] : (await prisma.projectAssignment.findMany({ where: { entityType: "PROJECT", assignedToId: req.user?.id, status: "ACTIVE" }, select: { entityId: true } })).map(({ entityId }) => entityId);
+    const deptQuery = String(req.query.dept || "").toLowerCase();
+
+    // Check if user is a Collector (district-wide visibility)
+    let isDistrictCollector = false;
+    let collectorDistrict: string | null = null;
+    if (roleId === 7 && req.user?.organizationId) {
+      const userOrg = await prisma.organization.findUnique({
+        where: { id: req.user.organizationId },
+        select: { governmentType: true, governmentLevel: true, district: true },
+      });
+      if (isCollectorOrg(userOrg)) {
+        isDistrictCollector = true;
+        collectorDistrict = userOrg?.district || null;
+      }
+    }
+
+    const assignmentIds = (isState || isDistrictCollector) ? [] : (await prisma.projectAssignment.findMany({ where: { entityType: "PROJECT", assignedToId: req.user?.id, status: "ACTIVE" }, select: { entityId: true } })).map(({ entityId }) => entityId);
+
+    const baseWhere: any = isState ? { type: "CONVERGENCE_FRAMEWORK" } : isDistrictCollector && collectorDistrict ? {
+      type: "CONVERGENCE_FRAMEWORK",
+      district: collectorDistrict,
+    } : {
+      type: "CONVERGENCE_FRAMEWORK",
+      OR: [
+        { organizationId: req.user?.organizationId || "__none__" },
+        { corporatePartnerId: req.user?.organizationId || "__none__" },
+        { implementingAgencyId: req.user?.organizationId || "__none__" },
+        { id: { in: assignmentIds } }
+      ]
+    };
+
+    if (deptQuery === "zp") {
+      baseWhere.organization = { governmentType: "ZILLA_PARISHAD" };
+    } else if (deptQuery === "mnc") {
+      baseWhere.organization = { governmentType: "MUNICIPAL_CORPORATION" };
+    } else if (deptQuery === "collectorate") {
+      baseWhere.organization = { governmentType: "COLLECTORATE" };
+    }
+
     const projects = await prisma.project.findMany({
-      where: isState ? { type: "CONVERGENCE_FRAMEWORK" } : {
-        type: "CONVERGENCE_FRAMEWORK",
-        OR: [
-          { organizationId: req.user?.organizationId || "__none__" },
-          { corporatePartnerId: req.user?.organizationId || "__none__" },
-          { implementingAgencyId: req.user?.organizationId || "__none__" },
-          { id: { in: assignmentIds } }
-        ]
+      where: baseWhere,
+      include: {
+        organization: {
+          select: { id: true, name: true, governmentType: true, governmentLevel: true, district: true }
+        }
       },
       orderBy: { createdAt: "desc" }
     });
@@ -73,7 +109,20 @@ export const getConvergenceProjectById = async (req: AuthenticatedRequest, res: 
     if (!access) return notFoundResponse(res, "Project not found");
     const roleId = Number(req.user?.roleId);
     const isState = [ROLE_ID.SUPER_ADMIN, ROLE_ID.JOINT_SECRETARY, ROLE_ID.PLANNING_SECRETARY].includes(roleId as any);
-    if (!isState && !access.isPartner && !access.assignment) return res.status(403).json({ error: "You are not assigned to this project." });
+
+    // Collector gets read-only access to all projects in their district
+    let isDistrictCollector = false;
+    if (!isState && !access.isPartner && !access.assignment && roleId === 7 && req.user?.organizationId) {
+      const userOrg = await prisma.organization.findUnique({
+        where: { id: req.user.organizationId },
+        select: { governmentType: true, governmentLevel: true, district: true },
+      });
+      if (isCollectorOrg(userOrg) && userOrg?.district && access.project.district === userOrg.district) {
+        isDistrictCollector = true;
+      }
+    }
+
+    if (!isState && !access.isPartner && !access.assignment && !isDistrictCollector) return res.status(403).json({ error: "You are not assigned to this project." });
     return res.json(access.project);
   } catch (error) {
     next(error);
@@ -244,6 +293,139 @@ export const getProjectGrievances = async (req: AuthenticatedRequest, res: Respo
   try {
     const grievances = await prisma.grievance.findMany({ where: { projectId: req.params.id } });
     return res.json(grievances);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Collector Project Reassignment
+ * 
+ * Allows the District Collector to reassign a project from one government
+ * organization to another within the same district. This handles the case
+ * where JS assigns a project to the wrong department (e.g., ZP instead of MNC).
+ */
+export const collectorReassignProject = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { id: projectId } = req.params;
+    const { targetOrganizationId, reason } = req.body;
+    const userId = req.user!.id;
+    const roleId = Number(req.user?.roleId);
+
+    if (roleId !== 7 || !req.user?.organizationId) {
+      return res.status(403).json({ error: "Only government officers can reassign projects." });
+    }
+
+    // Verify the user is a Collector
+    const userOrg = await prisma.organization.findUnique({
+      where: { id: req.user.organizationId },
+      select: { governmentType: true, governmentLevel: true, district: true },
+    });
+
+    if (!isCollectorOrg(userOrg)) {
+      return res.status(403).json({ error: "Only the District Collector can reassign projects between departments." });
+    }
+
+    const collectorDistrict = userOrg?.district;
+    if (!collectorDistrict) {
+      return res.status(400).json({ error: "Collector organization does not have a district assigned." });
+    }
+
+    // Get the project
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, title: true, district: true, organizationId: true, status: true },
+    });
+
+    if (!project) return notFoundResponse(res, "Project not found");
+    if (project.district !== collectorDistrict) {
+      return res.status(403).json({ error: "You can only reassign projects within your district." });
+    }
+
+    // Verify the target organization is in the same district and is a MAIN gov org
+    const targetOrg = await prisma.organization.findUnique({
+      where: { id: targetOrganizationId },
+      select: { id: true, name: true, governmentType: true, governmentLevel: true, district: true, kind: true },
+    });
+
+    if (!targetOrg) {
+      return res.status(404).json({ error: "Target organization not found." });
+    }
+    if (targetOrg.kind !== "GOVERNMENT_DEPARTMENT" || targetOrg.governmentLevel !== "MAIN") {
+      return res.status(400).json({ error: "Projects can only be reassigned to a main government department (Collectorate, ZP, or MNC)." });
+    }
+    if (targetOrg.district !== collectorDistrict) {
+      return res.status(400).json({ error: "Target organization must be in the same district." });
+    }
+    if (targetOrg.id === project.organizationId) {
+      return res.status(400).json({ error: "Project is already assigned to this organization." });
+    }
+
+    // Perform the reassignment
+    const previousOrgId = project.organizationId;
+    const updated = await prisma.$transaction(async (tx) => {
+      const updatedProject = await tx.project.update({
+        where: { id: projectId },
+        data: {
+          organizationId: targetOrganizationId,
+          departmentAssignmentStatus: "CONFIRMED",
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          action: "PROJECT_REASSIGNED_BY_COLLECTOR",
+          entityType: "Project",
+          entityId: projectId,
+          actorUserId: userId,
+          details: {
+            previousOrganizationId: previousOrgId,
+            newOrganizationId: targetOrganizationId,
+            newOrganizationName: targetOrg.name,
+            reason: reason || "Reassigned by District Collector",
+            district: collectorDistrict,
+          },
+        },
+      });
+
+      return updatedProject;
+    });
+
+    return res.json({
+      success: true,
+      message: `Project "${project.title}" has been reassigned to ${targetOrg.name}.`,
+      data: updated,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get all main government departments in the user's district (Collectorate, ZP, MNC)
+ */
+export const getDistrictDepartments = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const userOrgId = req.user?.organizationId;
+    if (!userOrgId) return res.json([]);
+    const userOrg = await prisma.organization.findUnique({
+      where: { id: userOrgId },
+      select: { district: true, governmentType: true }
+    });
+    if (!userOrg?.district) return res.json([]);
+
+    const orgs = await prisma.organization.findMany({
+      where: {
+        kind: "GOVERNMENT_DEPARTMENT",
+        governmentLevel: "MAIN",
+        district: userOrg.district,
+        status: "ACTIVE",
+        deletedAt: null,
+      },
+      select: { id: true, name: true, governmentType: true, district: true }
+    });
+
+    return res.json(orgs);
   } catch (error) {
     next(error);
   }

@@ -129,7 +129,7 @@ export const sendOtpEmail = async (toEmail: string, otp: string) => {
   `;
 
   await transporter.sendMail({
-    from: `"MahaCSR Portal" <${smtpUser}>`,
+    from: process.env.SMTP_FROM || (smtpUser ? `"MahaCSR Portal" <${smtpUser}>` : `"MahaCSR Portal" <noreply@mahacsr.gov.in>`),
     to: toEmail,
     subject: `[MahaCSR] Account OTP Verification Code - ${otp}`,
     html: htmlContent,
@@ -265,7 +265,7 @@ export const sendNgoInvitationEmail = async (toEmail: string, ngoName: string, i
   `;
 
   await transporter.sendMail({
-    from: `"MahaCSR Portal" <${smtpUser}>`,
+    from: process.env.SMTP_FROM || (smtpUser ? `"MahaCSR Portal" <${smtpUser}>` : `"MahaCSR Portal" <noreply@mahacsr.gov.in>`),
     to: toEmail,
     subject: `[MahaCSR] NGO onboarding invitation - ${ngoName.replace(/[\r\n]/g, " ")}`,
     html: htmlContent,

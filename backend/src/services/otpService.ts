@@ -105,10 +105,14 @@ export async function verifyOtp(
 ) {
   const normalizedTarget = normalizeTarget(channel, target);
   const identifier = `${purpose}:${channel}:${normalizedTarget}`;
+  const cleanOtp = String(otp).trim();
 
   const record = await prisma.otpVerification.findFirst({
     where: {
-      identifier,
+      OR: [
+        { identifier },
+        ...(channel === "EMAIL" ? [{ identifier: normalizedTarget }] : [])
+      ],
       ...(options.allowVerifiedReplay ? {} : { verified: false }),
       expiresAt: { gt: new Date() },
     },
@@ -123,7 +127,7 @@ export async function verifyOtp(
     throw new Error("Too many invalid OTP attempts. Please request a new OTP.");
   }
 
-  const isMatch = await bcrypt.compare(otp, record.otpHash);
+  const isMatch = await bcrypt.compare(cleanOtp, record.otpHash);
   if (!isMatch) {
     await prisma.otpVerification.update({
       where: { id: record.id },
@@ -165,7 +169,10 @@ export async function assertOtpVerified(
 
   const record = await prisma.otpVerification.findFirst({
     where: {
-      identifier,
+      OR: [
+        { identifier },
+        ...(channel === "EMAIL" ? [{ identifier: normalizedTarget }] : [])
+      ],
       verified: true,
       verificationTokenHash,
       expiresAt: { gt: new Date() },

@@ -3,7 +3,6 @@ import { resolvePublicRegistrationAccountType } from "../utils/publicRegistratio
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import nodemailer from "nodemailer";
 import prisma from "../config/db";
 import { getJwtRefreshSecret, getJwtSecret } from "../config/env";
 import { getRoleId } from "../types/role";
@@ -11,22 +10,12 @@ import { computeUserPermissions } from "../services/permissionService";
 import { CacheService } from "../services/cacheService";
 import { primeAuthenticatedUserCache } from "../middlewares/authMiddleware";
 import { sendOtp as sendOtpService, verifyOtp as verifyOtpService, assertOtpVerified } from "../services/otpService";
+import { sendOtpEmail } from "../utils/mailer";
 
 const JWT_SECRET = getJwtSecret();
 const JWT_REFRESH_SECRET = getJwtRefreshSecret();
 
 const OTP_TTL_MINUTES = 10;
-
-// Reusable SMTP transporter
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: parseInt(process.env.SMTP_PORT || "587", 10),
-  secure: process.env.SMTP_SECURE === "true",
-  auth: process.env.SMTP_USER ? {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS || ""
-  } : undefined,
-});
 
 /**
  * Generate a cryptographically secure 6-digit OTP.
@@ -36,69 +25,17 @@ function generateOtp(): string {
 }
 
 /**
- * Send OTP email using the configured SMTP transport.
- */
-async function sendOtpEmail(to: string, otpCode: string) {
-  const html = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Email Verification - MahaCSR Portal</title>
-        <style>
-          body { font-family: 'Inter', Helvetica, Arial, sans-serif; background-color: #f4f6f8; margin: 0; padding: 20px; color: #334e68; }
-          .container { max-width: 600px; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin: 0 auto; }
-          .header { background: #0d1c3a; padding: 30px; text-align: center; border-bottom: 4px solid #ff9800; }
-          .header h1 { color: #ffffff; font-size: 22px; margin: 0; }
-          .body { padding: 40px 30px; line-height: 1.6; }
-          .otp-box { background: #f0f4f8; border: 2px dashed #0d1c3a; padding: 20px; border-radius: 8px; text-align: center; margin: 25px 0; }
-          .otp-code { font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #0d1c3a; font-family: monospace; }
-          .footer { background: #f0f4f8; text-align: center; padding: 20px; font-size: 12px; color: #627d98; border-top: 1px solid #d9e2ec; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>MahaCSR Setu — Email Verification</h1>
-          </div>
-          <div class="body">
-            <p>Dear User,</p>
-            <p>Thank you for registering on the Maharashtra State CSR Convergence Portal. Please use the following OTP to verify your email address:</p>
-            <div class="otp-box">
-              <div class="otp-code">${otpCode}</div>
-            </div>
-            <p>This code is valid for <strong>${OTP_TTL_MINUTES} minutes</strong>. Do not share this code with anyone.</p>
-            <p>If you did not request this verification, please ignore this email.</p>
-          </div>
-          <div class="footer">
-            <p>© 2026 Government of Maharashtra | CSR Convergence Portal</p>
-            <p>This is an automated message. Please do not reply.</p>
-          </div>
-        </div>
-      </body>
-    </html>
-  `;
-
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM || `"MahaCSR Portal" <${process.env.SMTP_USER || "noreply@mahacsr.gov.in"}>`,
-    to,
-    subject: "Email Verification OTP — MahaCSR Portal",
-    html,
-  });
-}
-
-/**
  * Create OTP record in database and send email.
  */
 async function createAndSendOtp(email: string): Promise<void> {
+  const normalizedEmail = email.trim().toLowerCase();
   const otpCode = generateOtp();
   const otpHash = await bcrypt.hash(otpCode, 10);
   const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
 
   await prisma.otpVerification.create({
     data: {
-      identifier: email.trim().toLowerCase(),
+      identifier: normalizedEmail,
       otpHash,
       expiresAt,
     },
@@ -106,15 +43,14 @@ async function createAndSendOtp(email: string): Promise<void> {
 
   // Log OTP in development for debugging
   if (process.env.NODE_ENV !== "production") {
-    console.log(`[DEV OTP] Email: ${email} | OTP: ${otpCode}`);
+    console.log(`[DEV OTP] Email: ${normalizedEmail} | OTP: ${otpCode}`);
   }
 
   // Fire-and-forget: send email in background, don't block the response
-  sendOtpEmail(email, otpCode).then(() => {
-    console.log(`[Email] OTP sent to ${email}`);
+  sendOtpEmail(normalizedEmail, otpCode).then(() => {
+    console.log(`[Email] OTP sent to ${normalizedEmail}`);
   }).catch((err: any) => {
-    console.error(`[Email] Failed to send OTP to ${email}:`, err.message);
-    // Don't fail registration if email fails — OTP is logged in dev mode
+    console.warn(`[Email] OTP email delivery notification (${err?.message || err})`);
   });
 }
 
@@ -460,9 +396,19 @@ export const verifyOtp = async (req: Request, res: Response, next: NextFunction)
       return res.status(400).json({ error: "OTP code is required" });
     }
 
+    const cleanCode = String(code).trim();
+
     const otpRecord = await prisma.otpVerification.findFirst({
       where: {
-        identifier: normalizedEmail,
+        identifier: {
+          in: [
+            normalizedEmail,
+            `REGISTER:EMAIL:${normalizedEmail}`,
+            `CORPORATE_ENQUIRY:EMAIL:${normalizedEmail}`,
+            `GOVERNMENT_ONBOARDING:EMAIL:${normalizedEmail}`,
+            `FORGOT_PASSWORD:EMAIL:${normalizedEmail}`,
+          ]
+        },
         verified: false,
         expiresAt: { gt: new Date() },
       },
@@ -477,7 +423,7 @@ export const verifyOtp = async (req: Request, res: Response, next: NextFunction)
       return res.status(400).json({ error: "Too many invalid attempts. Please request a new OTP." });
     }
 
-    const isMatch = await bcrypt.compare(code, otpRecord.otpHash);
+    const isMatch = await bcrypt.compare(cleanCode, otpRecord.otpHash);
     if (!isMatch) {
       await prisma.otpVerification.update({
         where: { id: otpRecord.id },
@@ -489,11 +435,20 @@ export const verifyOtp = async (req: Request, res: Response, next: NextFunction)
     // Mark OTP as verified
     await prisma.otpVerification.update({
       where: { id: otpRecord.id },
-      data: { verified: true }
+      data: { verified: true, verifiedAt: new Date() }
     });
 
     // Mark user as verified and ACTIVE
-    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: normalizedEmail },
+          { email: { equals: normalizedEmail, mode: "insensitive" } }
+        ],
+        deletedAt: null
+      }
+    });
+
     if (!user) return res.status(404).json({ error: "User not found" });
 
     const updatedUser = await prisma.user.update({
@@ -522,6 +477,7 @@ export const verifyOtp = async (req: Request, res: Response, next: NextFunction)
     });
 
     return res.json({
+      success: true,
       message: "Email verified successfully",
       ...tokens,
       user: userPayload,
@@ -543,7 +499,7 @@ export const resendOtp = async (req: Request, res: Response, next: NextFunction)
     const normalizedEmail = email.trim().toLowerCase();
     await createAndSendOtp(normalizedEmail);
 
-    return res.json({ success: true, message: "Logged out successfully" });
+    return res.json({ success: true, message: "A new 6-digit verification code has been sent to your email." });
   } catch (error) {
     next(error);
   }

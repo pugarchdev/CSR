@@ -36,11 +36,15 @@ const loginSchema = z.object({
   }).refine(data => data.email || data.identifier, { message: "Login identifier is required" })
 });
 
+const otpCodeField = z.union([z.string(), z.number()]).transform(v => String(v).trim()).refine(v => /^\d{6}$/.test(v), {
+  message: "OTP must be exactly 6 digits"
+});
+
 const verifyOtpSchema = z.object({
   body: z.object({
     email: z.string().email("Invalid email format"),
-    otp: z.string().length(6, "OTP must be exactly 6 digits").optional(),
-    otpCode: z.string().length(6, "OTP must be exactly 6 digits").optional()
+    otp: otpCodeField.optional(),
+    otpCode: otpCodeField.optional()
   }).refine(data => data.otp || data.otpCode, {
     message: "OTP code is required",
     path: ["otpCode"]
@@ -62,7 +66,7 @@ const forgotPasswordSchema = z.object({
 const verifyResetOtpSchema = z.object({
   body: z.object({
     email: z.string().email("Invalid email format"),
-    otp: z.string().min(6, "OTP must be at least 6 digits")
+    otp: otpCodeField
   })
 });
 
@@ -70,7 +74,7 @@ const resetPasswordSchema = z.object({
   body: z.object({
     email: z.string().email("Invalid email format"),
     verificationToken: z.string().optional(),
-    otp: z.string().optional(),
+    otp: z.union([z.string(), z.number()]).transform(v => String(v).trim()).optional(),
     newPassword: z.string().min(6, "Password must be at least 6 characters")
   }).refine(data => data.verificationToken || data.otp, {
     message: "Either verificationToken or otp is required",

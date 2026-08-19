@@ -3186,11 +3186,7 @@ export function AdminOrganizationsWorkspace() {
       actions={
         <div className="flex items-center gap-2">
           <ViewToggle view={viewMode} onChange={setViewMode} />
-          {canManage && (
-            <Button onClick={() => setCreateModalOpen(true)} className="w-full sm:w-auto justify-center font-bold">
-              <Plus size={16} className="mr-1.5 inline" /> Add Department
-            </Button>
-          )}
+          {/* Sub-department creation hidden as per 3-main-department district structure */}
         </div>
       }
     >

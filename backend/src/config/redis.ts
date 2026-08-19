@@ -1,8 +1,27 @@
-import Redis from "ioredis";
+import Redis, { RedisOptions } from "ioredis";
 
-const redisUrl = process.env.REDIS_URL || "redis://default:LRGqZlTymlEVm4R44JPswPo2CXH4rxSy@redis-18118.c258.us-east-1-4.ec2.cloud.redislabs.com:18118";
+const rawRedisUrl = process.env.REDIS_URL || "redis://default:LRGqZlTymlEVm4R44JPswPo2CXH4rxSy@redis-18118.c258.us-east-1-4.ec2.cloud.redislabs.com:18118";
 
-export const redis = new Redis(redisUrl, {
+function buildRedisOptions(urlStr: string): RedisOptions {
+  try {
+    const parsed = new URL(urlStr);
+    const isTls = parsed.protocol === "rediss:";
+    const dbNum = parsed.pathname && parsed.pathname.length > 1 ? parseInt(parsed.pathname.slice(1), 10) : 0;
+    return {
+      host: parsed.hostname || "127.0.0.1",
+      port: parsed.port ? parseInt(parsed.port, 10) : 6379,
+      username: parsed.username ? decodeURIComponent(parsed.username) : undefined,
+      password: parsed.password ? decodeURIComponent(parsed.password) : undefined,
+      db: isNaN(dbNum) ? 0 : dbNum,
+      tls: isTls ? {} : undefined,
+    };
+  } catch {
+    return { host: "127.0.0.1", port: 6379 };
+  }
+}
+
+export const redis = new Redis({
+  ...buildRedisOptions(rawRedisUrl),
   maxRetriesPerRequest: 1,
   retryStrategy(times) {
     if (times > 3) return null;

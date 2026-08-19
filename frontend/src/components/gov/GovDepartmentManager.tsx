@@ -299,15 +299,7 @@ export default function GovDepartmentManager({ organizationName = "Government Or
           </div>
         </div>
 
-        {!isReadOnly && (
-          <button
-            onClick={handleOpenAdd}
-            className="py-3 px-5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-extrabold text-xs shadow-lg hover:shadow-xl transition-all flex items-center gap-2 shrink-0 hover:scale-[1.02]"
-          >
-            <Plus size={18} />
-            <span>Create New Department</span>
-          </button>
-        )}
+        {/* Sub-department creation hidden as per 3-main-department district structure */}
       </div>
 
       {/* Visual Hierarchy Tree Map */}

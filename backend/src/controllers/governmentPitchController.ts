@@ -15,6 +15,7 @@ import { PortalCaseType } from "@prisma/client";
 import { PortalCaseService } from "../services/portalCaseService";
 import { verifyGovernmentPitch } from "./relationshipManagerController";
 import { auditLog } from "../services/notificationService";
+import { isCollectorOrg, getDistrictOrganizationIds } from "../services/districtScopeService";
 
 function normalizeInteractionType(value: unknown): "CALL" | "VIDEO_CALL" | "PHYSICAL_MEETING" | "MESSAGE" {
   const normalized = String(value || "MESSAGE").trim().toUpperCase().replace(/[ -]+/g, "_");
@@ -384,12 +385,33 @@ export const listGovernmentPitches = async (req: AuthenticatedRequest, res: Resp
     if (isRM) {
       where = { assignedRelationshipManagerId: user.id };
     } else if (isDeptOfficer && !isSuperAdmin && !isStateAdmin) {
-      where = {
-        OR: [
-          { submittedByUserId: user.id },
-          ...(user.organizationId ? [{ departmentId: user.organizationId }] : [])
-        ]
-      };
+      // Check if user is a Collector — expand visibility to all district orgs
+      const userOrg = user.organizationId
+        ? await prisma.organization.findUnique({
+            where: { id: user.organizationId },
+            select: { governmentType: true, governmentLevel: true, district: true },
+          })
+        : null;
+
+      if (isCollectorOrg(userOrg) && userOrg?.district) {
+        const districtOrgIds = await getDistrictOrganizationIds(userOrg.district);
+        where = {
+          OR: [
+            { submittedByUserId: user.id },
+            { departmentId: { in: districtOrgIds } },
+            { organizationId: { in: districtOrgIds } },
+            { parentOrganizationId: { in: districtOrgIds } },
+            { departmentOrganizationId: { in: districtOrgIds } },
+          ],
+        };
+      } else {
+        where = {
+          OR: [
+            { submittedByUserId: user.id },
+            ...(user.organizationId ? [{ departmentId: user.organizationId }] : [])
+          ]
+        };
+      }
     } else if (!isSuperAdmin && !isStateAdmin) {
       where = { status: "PUBLIC_LISTED" };
     }

@@ -9,7 +9,9 @@ import {
   updateMilestoneProgress,
   verifyMilestone,
   uploadUC,
-  verifyUC
+  verifyUC,
+  collectorReassignProject,
+  getDistrictDepartments
 } from "../controllers/convergenceProjectController";
 
 import {
@@ -39,6 +41,7 @@ const router = Router();
 router.use(authenticateToken);
 
 router.get("/", asyncHandler(getConvergenceProjects));
+router.get("/district-departments", asyncHandler(getDistrictDepartments));
 router.get("/:id", asyncHandler(getConvergenceProjectById));
 router.post("/:id/milestones", asyncHandler(defineMilestones));
 router.post("/:id/milestones/add", asyncHandler(addSingleMilestone));
@@ -67,5 +70,8 @@ router.post("/:id/archive", asyncHandler(archiveProject));
 // Implementing Agency Endpoints
 router.get("/:id/implementing-agencies", asyncHandler(listProjectAgencies));
 router.post("/:id/implementing-agencies/invite", asyncHandler(inviteImplementingAgency));
+
+// Collector Project Reassignment (move project between ZP/MNC/Collectorate)
+router.post("/:id/collector-reassign", asyncHandler(collectorReassignProject));
 
 export default router;

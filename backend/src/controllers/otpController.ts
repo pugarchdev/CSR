@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { sendOtp, verifyOtp, OtpChannel, OtpPurpose, OtpSendLimitError } from "../services/otpService";
 
-const purposes = ["CORPORATE_ENQUIRY", "GOVERNMENT_PITCH", "CORPORATE_INTEREST"];
+const purposes = ["CORPORATE_ENQUIRY", "GOVERNMENT_PITCH", "CORPORATE_INTEREST", "GOVERNMENT_ONBOARDING", "FORGOT_PASSWORD"];
 const channels = ["EMAIL", "MOBILE"];
 
 function validateCommon(body: any): { purpose: OtpPurpose; channel: OtpChannel; target: string } {
