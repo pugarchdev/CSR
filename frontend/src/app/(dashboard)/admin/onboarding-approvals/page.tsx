@@ -118,6 +118,9 @@ function formatCurrency(amount: any): string {
   if (amount === null || amount === undefined || amount === "") return "-";
   const num = Number(amount);
   if (isNaN(num)) return String(amount);
+  if (num === 0) return "₹0.00";
+  if (num >= 10000000) return `₹${(num / 10000000).toFixed(2)} Cr`;
+  if (num >= 100000) return `₹${(num / 100000).toFixed(2)} Lakh`;
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
@@ -967,16 +970,71 @@ export default function OnboardingApprovalsPage() {
                           </div>
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
                             <div className="bg-white p-3 rounded-lg border border-blue-100 shadow-2xs">
-                              <span className="text-[10px] font-bold text-slate-400 uppercase">Annual CSR Budget</span>
-                              <span className="font-black text-slate-900 block text-sm mt-0.5">{formatCurrency(csr.annualCsrBudget)}</span>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">Annual CSR Budget</span>
+                                <span className="font-black text-slate-900 block text-sm mt-0.5">{formatCurrency(csr.annualCsrBudget || csr.currentYearCsrBudget)}</span>
+                              </div>
+                              <div className="bg-white p-3 rounded-lg border border-blue-100 shadow-2xs">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">Net Worth</span>
+                                <span className="font-black text-slate-900 block text-sm mt-0.5">{formatCurrency(csr.netWorth)}</span>
+                              </div>
+                              <div className="bg-white p-3 rounded-lg border border-blue-100 shadow-2xs">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">Turnover</span>
+                                <span className="font-black text-slate-900 block text-sm mt-0.5">{formatCurrency(csr.turnover)}</span>
+                              </div>
+                              <div className="bg-white p-3 rounded-lg border border-blue-100 shadow-2xs">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">Net Profit</span>
+                                <span className="font-black text-slate-900 block text-sm mt-0.5">{formatCurrency(csr.netProfit)}</span>
+                              </div>
+                              <div className="bg-white p-3 rounded-lg border border-blue-100 shadow-2xs">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">2% Obligation</span>
+                                <span className="font-black text-amber-900 block text-sm mt-0.5">
+                                  {formatCurrency(csr.twoPercentCsrObligation || csr.csrObligationAmount || (csr.averageNetProfit ? Number(csr.averageNetProfit) * 0.02 : null))}
+                                </span>
+                              </div>
+                              <div className="bg-white p-3 rounded-lg border border-blue-100 shadow-2xs">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">Financial Year</span>
+                                <span className="font-bold text-slate-800 block text-sm mt-0.5">{csr.financialYear || "Current FY"}</span>
+                              </div>
+                              <div className="bg-white p-3 rounded-lg border border-blue-100 shadow-2xs">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">CSR Reg No</span>
+                                <span className="font-mono font-bold text-slate-800 block text-sm mt-0.5">{csr.csrRegistrationNo || "-"}</span>
+                              </div>
+                              <div className="bg-white p-3 rounded-lg border border-blue-100 shadow-2xs">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">Unspent CSR</span>
+                                <span className="font-black text-slate-900 block text-sm mt-0.5">{formatCurrency(csr.unspentCsrAmount)}</span>
+                              </div>
                             </div>
-                            <div className="bg-white p-3 rounded-lg border border-blue-100 shadow-2xs">
-                              <span className="text-[10px] font-bold text-slate-400 uppercase">Financial Year</span>
-                              <span className="font-bold text-slate-800 block text-sm mt-0.5">{csr.financialYear || "Current FY"}</span>
-                            </div>
+
+                            {((csr.preferredSectors || []).length > 0 || (csr.preferredDistricts || []).length > 0) && (
+                              <div className="pt-2 border-t border-blue-100 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                                {(csr.preferredSectors || []).length > 0 && (
+                                  <div>
+                                    <span className="text-[10px] font-bold uppercase text-slate-400 block mb-1">Focus Sectors</span>
+                                    <div className="flex flex-wrap gap-1">
+                                      {csr.preferredSectors.map((sec: string, sIdx: number) => (
+                                        <span key={sIdx} className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-900 font-bold text-[10px]">
+                                          {sec}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                {(csr.preferredDistricts || []).length > 0 && (
+                                  <div>
+                                    <span className="text-[10px] font-bold uppercase text-slate-400 block mb-1">Focus Districts</span>
+                                    <div className="flex flex-wrap gap-1">
+                                      {csr.preferredDistricts.map((dst: string, dIdx: number) => (
+                                        <span key={dIdx} className="px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-900 font-bold text-[10px]">
+                                          {dst}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      )}
+                        )}
 
                       {isNgo && (
                         <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-4 space-y-3">

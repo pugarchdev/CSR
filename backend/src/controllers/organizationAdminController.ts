@@ -278,7 +278,15 @@ export const getOrganizationById = async (req: AuthenticatedRequest, res: Respon
   try {
     const organization = await prisma.organization.findUnique({
       where: { id: req.params.id },
-      include: { csrCompanyProfile: true, ngoProfile: true, govDeptProfile: true, documents: true }
+      include: {
+        csrCompanyProfile: true,
+        ngoProfile: true,
+        govDeptProfile: true,
+        documents: true,
+        users: {
+          select: { id: true, email: true, firstName: true, lastName: true, designation: true, mobile: true, roleId: true }
+        }
+      }
     });
     if (!organization) return res.status(404).json({ error: "Organization not found" });
 
@@ -651,7 +659,7 @@ export const getCompanyOnboardingProfile = async (req: AuthenticatedRequest, res
 
 export const updateCompanyOnboardingProfile = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const org = await getOwnedOrganization(req, "CSR_COMPANY");
+    const org = await getOwnedOrganization(req, "CSR_COMPANY", true);
     const body = req.body || {};
     const has = (key: string) => Object.prototype.hasOwnProperty.call(body, key);
     const text = (key: string) => {
@@ -669,8 +677,8 @@ export const updateCompanyOnboardingProfile = async (req: AuthenticatedRequest, 
         ...(text("name") !== undefined ? { name: text("name") || org.name } : {}),
         ...(text("legalName") !== undefined ? { legalName: text("legalName") } : {}),
         ...(text("displayName") !== undefined ? { displayName: text("displayName") } : {}),
-        ...(org.cin ? {} : (text("cin") !== undefined ? { cin: text("cin") } : {})),
-        ...(org.pan ? {} : (text("pan") !== undefined ? { pan: text("pan") } : {})),
+        ...(text("cin") !== undefined ? { cin: text("cin") } : {}),
+        ...(text("pan") !== undefined ? { pan: text("pan") } : {}),
         ...(text("gstin") !== undefined ? { gstin: text("gstin") } : {}),
         ...(text("officialEmail") !== undefined ? { officialEmail: text("officialEmail") } : {}),
         ...(text("officialPhone") !== undefined ? { officialPhone: text("officialPhone") } : {}),
@@ -683,6 +691,7 @@ export const updateCompanyOnboardingProfile = async (req: AuthenticatedRequest, 
         ...(text("mcaVerificationStatus") !== undefined ? { mcaVerificationStatus: text("mcaVerificationStatus") } : {}),
         ...(text("companyStatus") !== undefined ? { companyStatus: text("companyStatus") } : {}),
         ...(text("district") !== undefined ? { district: text("district") } : {}),
+        ...(text("taluka") !== undefined ? { taluka: text("taluka") } : {}),
         ...(text("state") ? { state: String(text("state")) } : {}),
         ...(text("pincode") !== undefined ? { pincode: text("pincode") } : {}),
         ...(year === null || (typeof year === "number" && Number.isInteger(year) && year >= 1800 && year <= 2200)
@@ -702,42 +711,56 @@ export const updateCompanyOnboardingProfile = async (req: AuthenticatedRequest, 
 
 export const updateCompanyCompliance = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const org = await getOwnedOrganization(req, "CSR_COMPANY");
+    const org = await getOwnedOrganization(req, "CSR_COMPANY", true);
     const body = req.body || {};
     const numberValue = (key: string) => body[key] === "" || body[key] === undefined || body[key] === null ? null : Number(body[key]);
+    
+    const budget = numberValue("annualCsrBudget") || numberValue("currentYearCsrBudget");
+    const avgProfit = numberValue("averageNetProfit") || numberValue("netProfit");
+    const twoPercent = numberValue("twoPercentCsrObligation") || (avgProfit ? avgProfit * 0.02 : null);
+    const obligation = numberValue("csrObligationAmount") || twoPercent || budget;
+
     const profile = await prisma.cSRCompanyProfile.upsert({
       where: { organizationId: org.id },
       create: {
         organizationId: org.id,
         preferredDistricts: Array.isArray(body.preferredDistricts) ? body.preferredDistricts : [],
         preferredSectors: Array.isArray(body.preferredSectors) ? body.preferredSectors : [],
-        currentYearCsrBudget: numberValue("currentYearCsrBudget"),
-        annualCsrBudget: numberValue("annualCsrBudget"),
+        currentYearCsrBudget: budget,
+        annualCsrBudget: budget,
         netWorth: numberValue("netWorth"),
         turnover: numberValue("turnover"),
         netProfit: numberValue("netProfit"),
-        averageNetProfit: numberValue("averageNetProfit"),
-        csrObligationAmount: numberValue("csrObligationAmount"),
+        averageNetProfit: avgProfit,
+        csrObligationAmount: obligation,
         unspentCsrAmount: numberValue("unspentCsrAmount"),
-        twoPercentCsrObligation: numberValue("twoPercentCsrObligation"),
-        financialYear: body.financialYear || null,
-        csrApplicable: typeof body.csrApplicable === "boolean" ? body.csrApplicable : null,
+        twoPercentCsrObligation: twoPercent,
+        csrRegistrationNo: body.csrRegistrationNo || body.csr1Number || null,
+        financialYear: body.financialYear || "FY 2025-26",
+        csrApplicable: typeof body.csrApplicable === "boolean" ? body.csrApplicable : true,
+        csrHeadName: body.csrHeadName || null,
+        csrHeadEmail: body.csrHeadEmail || null,
+        csrHeadMobile: body.csrHeadMobile || null,
         preferredDivisions: Array.isArray(body.preferredDivisions) ? body.preferredDivisions : [],
         preferredCities: Array.isArray(body.preferredCities) ? body.preferredCities : [],
         preferredTalukas: Array.isArray(body.preferredTalukas) ? body.preferredTalukas : []
       },
       update: {
-        currentYearCsrBudget: numberValue("currentYearCsrBudget"),
-        annualCsrBudget: numberValue("annualCsrBudget"),
+        currentYearCsrBudget: budget,
+        annualCsrBudget: budget,
         netWorth: numberValue("netWorth"),
         turnover: numberValue("turnover"),
         netProfit: numberValue("netProfit"),
-        averageNetProfit: numberValue("averageNetProfit"),
-        csrObligationAmount: numberValue("csrObligationAmount"),
+        averageNetProfit: avgProfit,
+        csrObligationAmount: obligation,
         unspentCsrAmount: numberValue("unspentCsrAmount"),
-        twoPercentCsrObligation: numberValue("twoPercentCsrObligation"),
-        financialYear: body.financialYear || null,
-        csrApplicable: typeof body.csrApplicable === "boolean" ? body.csrApplicable : null
+        twoPercentCsrObligation: twoPercent,
+        csrRegistrationNo: body.csrRegistrationNo || body.csr1Number || undefined,
+        financialYear: body.financialYear || undefined,
+        csrApplicable: typeof body.csrApplicable === "boolean" ? body.csrApplicable : undefined,
+        csrHeadName: body.csrHeadName || undefined,
+        csrHeadEmail: body.csrHeadEmail || undefined,
+        csrHeadMobile: body.csrHeadMobile || undefined
       }
     });
     return res.json(profile);
@@ -748,7 +771,7 @@ export const updateCompanyCompliance = async (req: AuthenticatedRequest, res: Re
 
 export const updateCompanyPreferences = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const org = await getOwnedOrganization(req, "CSR_COMPANY");
+    const org = await getOwnedOrganization(req, "CSR_COMPANY", true);
     const body = req.body || {};
     const formatStr = (val: any) => {
       if (!val) return null;
@@ -774,18 +797,18 @@ export const updateCompanyPreferences = async (req: AuthenticatedRequest, res: R
         sdgFocusAreas: formatStr(body.sdgFocusAreas)
       },
       update: {
-        preferredDistricts: Array.isArray(body.preferredDistricts) ? body.preferredDistricts : [],
-        preferredSectors: Array.isArray(body.preferredSectors) ? body.preferredSectors : [],
-        preferredDivisions: Array.isArray(body.preferredDivisions) ? body.preferredDivisions : [],
-        preferredCities: Array.isArray(body.preferredCities) ? body.preferredCities : [],
-        preferredTalukas: Array.isArray(body.preferredTalukas) ? body.preferredTalukas : [],
-        preferredProjectSize: body.preferredProjectSize || null,
-        minFundingAmount: body.minFundingAmount ? parseFloat(body.minFundingAmount) : null,
-        maxFundingAmount: body.maxFundingAmount ? parseFloat(body.maxFundingAmount) : null,
-        fundingPreference: body.fundingPreference || null,
-        implementationPreference: body.implementationPreference || null,
-        preferredBeneficiaryGroups: formatStr(body.preferredBeneficiaryGroups),
-        sdgFocusAreas: formatStr(body.sdgFocusAreas)
+        preferredDistricts: Array.isArray(body.preferredDistricts) ? body.preferredDistricts : undefined,
+        preferredSectors: Array.isArray(body.preferredSectors) ? body.preferredSectors : undefined,
+        preferredDivisions: Array.isArray(body.preferredDivisions) ? body.preferredDivisions : undefined,
+        preferredCities: Array.isArray(body.preferredCities) ? body.preferredCities : undefined,
+        preferredTalukas: Array.isArray(body.preferredTalukas) ? body.preferredTalukas : undefined,
+        preferredProjectSize: body.preferredProjectSize || undefined,
+        minFundingAmount: body.minFundingAmount ? parseFloat(body.minFundingAmount) : undefined,
+        maxFundingAmount: body.maxFundingAmount ? parseFloat(body.maxFundingAmount) : undefined,
+        fundingPreference: body.fundingPreference || undefined,
+        implementationPreference: body.implementationPreference || undefined,
+        preferredBeneficiaryGroups: formatStr(body.preferredBeneficiaryGroups) || undefined,
+        sdgFocusAreas: formatStr(body.sdgFocusAreas) || undefined
       }
     });
     return res.json(profile);
@@ -891,11 +914,127 @@ export const updateOrgUserStatus = async (req: AuthenticatedRequest, res: Respon
 
 export const submitCompanyOnboarding = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const org = await getOwnedOrganization(req, "CSR_COMPANY");
+    const org = await getOwnedOrganization(req, "CSR_COMPANY", true);
+    const body = req.body || {};
+
+    const numberValue = (key: string) => body[key] === "" || body[key] === undefined || body[key] === null ? null : Number(body[key]);
+    const budget = numberValue("annualCsrBudget") || numberValue("currentYearCsrBudget");
+    const avgProfit = numberValue("averageNetProfit") || numberValue("netProfit");
+    const twoPercent = numberValue("twoPercentCsrObligation") || (avgProfit ? avgProfit * 0.02 : null);
+    const obligation = numberValue("csrObligationAmount") || twoPercent || budget;
+    const formatStr = (val: any) => {
+      if (!val) return null;
+      if (Array.isArray(val)) return val.join(", ");
+      return String(val);
+    };
+
+    // 1. Update Organization core details if provided
+    const orgUpdateData: any = {
+      status: "UNDER_VERIFICATION",
+      clarificationRemarks: null,
+    };
+    if (body.legalName) orgUpdateData.legalName = String(body.legalName).trim();
+    if (body.displayName) orgUpdateData.displayName = String(body.displayName).trim();
+    if (body.cin) orgUpdateData.cin = String(body.cin).trim();
+    if (body.pan) orgUpdateData.pan = String(body.pan).trim();
+    if (body.gstin) orgUpdateData.gstin = String(body.gstin).trim();
+    if (body.officialEmail) orgUpdateData.officialEmail = String(body.officialEmail).trim();
+    if (body.officialPhone) orgUpdateData.officialPhone = String(body.officialPhone).trim();
+    if (body.website) orgUpdateData.website = String(body.website).trim();
+    if (body.address) orgUpdateData.address = String(body.address).trim();
+    if (body.registeredOfficeAddress) orgUpdateData.registeredOfficeAddress = String(body.registeredOfficeAddress).trim();
+    if (body.corporateOfficeAddress) orgUpdateData.corporateOfficeAddress = String(body.corporateOfficeAddress).trim();
+    if (body.companyType) orgUpdateData.companyType = String(body.companyType).trim();
+    if (body.district) orgUpdateData.district = String(body.district).trim();
+    if (body.taluka) orgUpdateData.taluka = String(body.taluka).trim();
+    if (body.state) orgUpdateData.state = String(body.state).trim();
+    if (body.pincode) orgUpdateData.pincode = String(body.pincode).trim();
+    if (body.yearOfIncorporation) orgUpdateData.yearOfIncorporation = Number(body.yearOfIncorporation);
+
     const updated = await prisma.organization.update({
       where: { id: org.id },
-      data: { status: "UNDER_VERIFICATION" }
+      data: orgUpdateData,
+      include: { csrCompanyProfile: true, documents: true }
     });
+
+    // 2. Upsert CSR Company Profile details
+    if (
+      budget !== null ||
+      avgProfit !== null ||
+      body.netWorth !== undefined ||
+      body.turnover !== undefined ||
+      body.netProfit !== undefined ||
+      body.preferredSectors ||
+      body.preferredDistricts
+    ) {
+      await prisma.cSRCompanyProfile.upsert({
+        where: { organizationId: org.id },
+        create: {
+          organizationId: org.id,
+          currentYearCsrBudget: budget,
+          annualCsrBudget: budget,
+          netWorth: numberValue("netWorth"),
+          turnover: numberValue("turnover"),
+          netProfit: numberValue("netProfit"),
+          averageNetProfit: avgProfit,
+          csrObligationAmount: obligation,
+          unspentCsrAmount: numberValue("unspentCsrAmount"),
+          twoPercentCsrObligation: twoPercent,
+          csrRegistrationNo: body.csrRegistrationNo || body.csr1Number || null,
+          financialYear: body.financialYear || "FY 2025-26",
+          csrApplicable: typeof body.csrApplicable === "boolean" ? body.csrApplicable : true,
+          csrHeadName: body.csrHeadName || null,
+          csrHeadEmail: body.csrHeadEmail || null,
+          csrHeadMobile: body.csrHeadMobile || null,
+          preferredDistricts: Array.isArray(body.preferredDistricts) ? body.preferredDistricts : [],
+          preferredSectors: Array.isArray(body.preferredSectors) ? body.preferredSectors : [],
+          preferredDivisions: Array.isArray(body.preferredDivisions) ? body.preferredDivisions : [],
+          preferredCities: Array.isArray(body.preferredCities) ? body.preferredCities : [],
+          preferredTalukas: Array.isArray(body.preferredTalukas) ? body.preferredTalukas : [],
+          preferredProjectSize: body.preferredProjectSize || null,
+          minFundingAmount: body.minFundingAmount ? parseFloat(body.minFundingAmount) : null,
+          maxFundingAmount: body.maxFundingAmount ? parseFloat(body.maxFundingAmount) : null,
+          fundingPreference: body.fundingPreference || null,
+          implementationPreference: body.implementationPreference || null,
+          preferredBeneficiaryGroups: formatStr(body.preferredBeneficiaryGroups),
+          sdgFocusAreas: formatStr(body.sdgFocusAreas)
+        },
+        update: {
+          currentYearCsrBudget: budget !== null ? budget : undefined,
+          annualCsrBudget: budget !== null ? budget : undefined,
+          netWorth: numberValue("netWorth") !== null ? numberValue("netWorth") : undefined,
+          turnover: numberValue("turnover") !== null ? numberValue("turnover") : undefined,
+          netProfit: numberValue("netProfit") !== null ? numberValue("netProfit") : undefined,
+          averageNetProfit: avgProfit !== null ? avgProfit : undefined,
+          csrObligationAmount: obligation !== null ? obligation : undefined,
+          unspentCsrAmount: numberValue("unspentCsrAmount") !== null ? numberValue("unspentCsrAmount") : undefined,
+          twoPercentCsrObligation: twoPercent !== null ? twoPercent : undefined,
+          csrRegistrationNo: body.csrRegistrationNo || body.csr1Number || undefined,
+          financialYear: body.financialYear || undefined,
+          csrApplicable: typeof body.csrApplicable === "boolean" ? body.csrApplicable : undefined,
+          csrHeadName: body.csrHeadName || undefined,
+          csrHeadEmail: body.csrHeadEmail || undefined,
+          csrHeadMobile: body.csrHeadMobile || undefined,
+          preferredDistricts: Array.isArray(body.preferredDistricts) ? body.preferredDistricts : undefined,
+          preferredSectors: Array.isArray(body.preferredSectors) ? body.preferredSectors : undefined,
+          preferredDivisions: Array.isArray(body.preferredDivisions) ? body.preferredDivisions : undefined,
+          preferredCities: Array.isArray(body.preferredCities) ? body.preferredCities : undefined,
+          preferredTalukas: Array.isArray(body.preferredTalukas) ? body.preferredTalukas : undefined,
+          preferredProjectSize: body.preferredProjectSize || undefined,
+          minFundingAmount: body.minFundingAmount ? parseFloat(body.minFundingAmount) : undefined,
+          maxFundingAmount: body.maxFundingAmount ? parseFloat(body.maxFundingAmount) : undefined,
+          fundingPreference: body.fundingPreference || undefined,
+          implementationPreference: body.implementationPreference || undefined,
+          preferredBeneficiaryGroups: formatStr(body.preferredBeneficiaryGroups) || undefined,
+          sdgFocusAreas: formatStr(body.sdgFocusAreas) || undefined
+        }
+      });
+    }
+
+    // Invalidate caches
+    await clearCachePattern(`*${updated.id}*`).catch(() => {});
+    await clearCachePattern(`dashboard:summary:*`).catch(() => {});
+
     notifyHierarchy({
       title: "New CSR Company Onboarding Submitted",
       message: `CSR Company "${updated.name}" submitted onboarding application for verification.`,
@@ -905,7 +1044,13 @@ export const submitCompanyOnboarding = async (req: AuthenticatedRequest, res: Re
       includeStateOfficers: true,
       actionButtonUrl: `/admin/onboarding-approvals`
     }).catch(err => console.error("Notification dispatch failed:", err));
-    return res.json(updated);
+
+    const finalSaved = await prisma.organization.findUnique({
+      where: { id: updated.id },
+      include: { csrCompanyProfile: true, documents: true, users: true }
+    });
+
+    return res.json(finalSaved || updated);
   } catch (error: any) {
     return res.status(400).json({ error: error.message });
   }

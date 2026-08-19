@@ -921,6 +921,7 @@ export function CompanyOnboardingStep() {
         await apiFetch("/onboarding/company/submit", {
           method: "POST",
           body: JSON.stringify({
+            ...data,
             declarationAccepted: true,
             responseNotes: clarificationResponseNotes || undefined
           })

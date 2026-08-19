@@ -3931,16 +3931,20 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
   const csrProfile = org.csrCompanyProfile || {};
   const ngoProf = org.ngoProfile || {};
   const govProf = org.govDeptProfile || {};
+  const users = Array.isArray(org.users) ? org.users : [];
+  const primaryUser = users.find((u: any) => u.roleId === 8 || u.roleId === 1 || u.roleId === 7 || u.roleId === 9) || users[0] || null;
+  const nodalUser = users.find((u: any) => u.roleId === 4 || u.roleId === 10) || null;
 
-  const email = org.officialEmail || org.email || "-";
-  const phone = org.officialPhone || org.phone || "-";
+  const email = org.officialEmail || org.email || primaryUser?.email || "-";
+  const phone = org.officialPhone || org.phone || primaryUser?.mobile || "-";
   const district = org.district || org.registeredOfficeAddress || org.address || "-";
   const taluka = org.taluka || "-";
   const regNo = org.registrationNumber || org.cin || "-";
   const pan = org.pan || "-";
   const gst = org.gstin || org.gst || "-";
   const typeLabel = (org.organizationType || org.kind || "CSR_COMPANY").toString().replace(/_/g, " ");
-  const statusLabel = org.onboardingStatus || org.status || "UNDER_VERIFICATION";
+  const normStatus = (org.status || org.onboardingStatus || "UNDER_VERIFICATION").toUpperCase();
+  const isApproved = normStatus === "ACTIVE" || normStatus === "APPROVED" || normStatus === "VERIFIED";
   const year = org.yearOfIncorporation || "-";
   const companyType = org.companyType || "Private Limited Company";
   const mcaStatus = org.mcaVerificationStatus || "VERIFIED";
@@ -3948,8 +3952,9 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
   const fullAddress = org.address || org.registeredOfficeAddress || org.corporateOfficeAddress || "-";
 
   const formatCurrency = (val: any) => {
-    if (!val || isNaN(Number(val))) return "N/A";
+    if (val === null || val === undefined || val === "" || isNaN(Number(val))) return "Not Specified";
     const num = Number(val);
+    if (num === 0) return "₹0.00";
     if (num >= 10000000) return `₹${(num / 10000000).toFixed(2)} Cr`;
     if (num >= 100000) return `₹${(num / 100000).toFixed(2)} Lakh`;
     return `₹${num.toLocaleString("en-IN")}`;
@@ -3957,7 +3962,7 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
 
   const docs = Array.isArray(org.documents) ? org.documents : [];
 
-return (
+  return (
     <WorkspaceShell
       eyebrow="Portal Admin"
       title={org.name || "Organization Onboarding Details"}
@@ -3974,7 +3979,6 @@ return (
           <Loader2 size={32} className="animate-spin text-blue-900" />
         </div>
       ) : (
-        /* Added -mx-3 to pull the layout closer to the screen edges on mobile */
         <div className="-mx-3 sm:mx-0 space-y-4 md:space-y-6">
           
           {/* Header Identity Card */}
@@ -3997,12 +4001,27 @@ return (
             </div>
 
             <div className="flex flex-wrap items-center gap-2 shrink-0 border-t border-slate-100 pt-3 md:border-0 md:pt-0 w-full md:w-auto">
-              <span className="px-2.5 py-1 sm:px-3 rounded-full text-[10px] sm:text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                {statusLabel}
-              </span>
-              <span className="px-2.5 py-1 sm:px-3 rounded-full text-[10px] sm:text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                {org.status || "REGISTERED"}
-              </span>
+              {isApproved ? (
+                <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-300 inline-flex items-center gap-1.5 shadow-2xs">
+                  <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
+                  Approved & Active
+                </span>
+              ) : normStatus === "CLARIFICATION_REQUIRED" ? (
+                <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-amber-50 text-amber-800 border border-amber-300 inline-flex items-center gap-1.5 shadow-2xs">
+                  <FileText size={13} className="text-amber-600 shrink-0" />
+                  Clarification Required
+                </span>
+              ) : normStatus === "REJECTED" ? (
+                <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-rose-50 text-rose-800 border border-rose-300 inline-flex items-center gap-1.5 shadow-2xs">
+                  <XCircle size={13} className="text-rose-600 shrink-0" />
+                  Application Rejected
+                </span>
+              ) : (
+                <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-blue-50 text-blue-800 border border-blue-200 inline-flex items-center gap-1.5 shadow-2xs">
+                  <Clock size={13} className="text-blue-600 shrink-0" />
+                  Under Verification
+                </span>
+              )}
             </div>
           </div>
 
@@ -4019,6 +4038,10 @@ return (
                   <div>
                     <span className="text-slate-400 block font-medium mb-0.5">Legal Registered Name</span>
                     <span className="font-bold text-slate-900 break-words">{org.legalName || org.name || "-"}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block font-medium mb-0.5">Brand / Trade Name</span>
+                    <span className="font-bold text-slate-900 break-words">{org.displayName || org.name || "-"}</span>
                   </div>
                   <div>
                     <span className="text-slate-400 block font-medium mb-0.5">PAN Number</span>
@@ -4072,8 +4095,8 @@ return (
                     <a href={website !== "-" && !website.startsWith('http') ? `https://${website}` : website} target="_blank" rel="noreferrer" className="font-bold text-blue-600 break-all hover:underline">{website}</a>
                   </div>
                   <div>
-                    <span className="text-slate-400 block font-medium mb-0.5">District, State & Pincode</span>
-                    <span className="font-semibold text-slate-800">{district}, {org.state || "Maharashtra"} {org.pincode ? `- ${org.pincode}` : ""}</span>
+                    <span className="text-slate-400 block font-medium mb-0.5">District, Taluka & State</span>
+                    <span className="font-semibold text-slate-800">{district}{taluka !== "-" ? `, ${taluka}` : ""}, {org.state || "Maharashtra"} {org.pincode ? `- ${org.pincode}` : ""}</span>
                   </div>
                 </div>
                 {fullAddress !== "-" && (
@@ -4090,8 +4113,43 @@ return (
                 )}
               </div>
 
-              {/* Section 3: CSR Company Profile */}
-              {(csrProfile.annualCsrBudget || csrProfile.netWorth || typeLabel.includes("COMPANY") || typeLabel.includes("CORPORATE")) && (
+              {/* Section 2.5: Authorized Leadership & Key Officers */}
+              <div className="rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-4 md:p-6 shadow-xs space-y-4">
+                <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-3">
+                  <UserCheck size={16} className="text-indigo-600 shrink-0" /> Authorized Leadership & Key Officers
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  {primaryUser && (
+                    <div className="p-3.5 rounded-xl border border-slate-100 bg-slate-50/70 space-y-1">
+                      <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Primary Account Representative</span>
+                      <p className="font-bold text-slate-900 text-sm">{`${primaryUser.firstName || ""} ${primaryUser.lastName || ""}`.trim() || primaryUser.email}</p>
+                      <p className="text-xs font-medium text-indigo-700">{primaryUser.designation || "Authorized Representative"}</p>
+                      <p className="text-xs text-slate-600 font-medium">{primaryUser.email}</p>
+                      {primaryUser.mobile && <p className="text-xs text-slate-600 font-medium">Mob: {primaryUser.mobile}</p>}
+                    </div>
+                  )}
+                  {(csrProfile.csrHeadName || csrProfile.csrHeadEmail || csrProfile.csrHeadMobile) && (
+                    <div className="p-3.5 rounded-xl border border-purple-100 bg-purple-50/50 space-y-1">
+                      <span className="text-[10px] font-extrabold uppercase text-purple-700 block">Designated CSR Head</span>
+                      <p className="font-bold text-slate-900 text-sm">{csrProfile.csrHeadName || "CSR Department Head"}</p>
+                      <p className="text-xs font-medium text-purple-800">Head of CSR Operations</p>
+                      <p className="text-xs text-slate-600 font-medium">{csrProfile.csrHeadEmail || email}</p>
+                      {csrProfile.csrHeadMobile && <p className="text-xs text-slate-600 font-medium">Mob: {csrProfile.csrHeadMobile}</p>}
+                    </div>
+                  )}
+                  {nodalUser && (
+                    <div className="p-3.5 rounded-xl border border-slate-100 bg-slate-50/70 space-y-1">
+                      <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Operational Nodal Officer</span>
+                      <p className="font-bold text-slate-900 text-sm">{`${nodalUser.firstName || ""} ${nodalUser.lastName || ""}`.trim() || nodalUser.email}</p>
+                      <p className="text-xs font-medium text-slate-700">{nodalUser.designation || "Nodal Officer"}</p>
+                      <p className="text-xs text-slate-600 font-medium">{nodalUser.email}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Section 3: CSR Company Profile & Financial Obligations */}
+              {(typeLabel.includes("COMPANY") || typeLabel.includes("CORPORATE") || csrProfile.id || csrProfile.annualCsrBudget || csrProfile.currentYearCsrBudget) && (
                 <div className="rounded-2xl border border-purple-200/80 bg-purple-50/40 p-3.5 sm:p-4 md:p-6 shadow-xs space-y-5">
                   <h3 className="text-xs font-extrabold text-purple-950 uppercase tracking-wider flex items-center gap-2 border-b border-purple-200/60 pb-3">
                     <Coins size={16} className="text-amber-600 shrink-0" /> CSR Portfolio, Outlay & Strategy
@@ -4117,7 +4175,9 @@ return (
                     </div>
                     <div className="bg-white p-2.5 md:p-3 rounded-xl border border-purple-100 shadow-2xs flex flex-col justify-center">
                       <span className="text-slate-400 block text-[10px] font-extrabold uppercase truncate">2% Obligation</span>
-                      <span className="font-extrabold text-amber-900 text-sm md:text-sm truncate" title={formatCurrency(csrProfile.twoPercentCsrObligation || csrProfile.csrObligationAmount)}>{formatCurrency(csrProfile.twoPercentCsrObligation || csrProfile.csrObligationAmount)}</span>
+                      <span className="font-extrabold text-amber-900 text-sm md:text-sm truncate" title={formatCurrency(csrProfile.twoPercentCsrObligation || csrProfile.csrObligationAmount || (csrProfile.averageNetProfit ? Number(csrProfile.averageNetProfit) * 0.02 : null))}>
+                        {formatCurrency(csrProfile.twoPercentCsrObligation || csrProfile.csrObligationAmount || (csrProfile.averageNetProfit ? Number(csrProfile.averageNetProfit) * 0.02 : null))}
+                      </span>
                     </div>
                     <div className="bg-white p-2.5 md:p-3 rounded-xl border border-purple-100 shadow-2xs flex flex-col justify-center">
                       <span className="text-slate-400 block text-[10px] font-extrabold uppercase truncate">Unspent CSR</span>
@@ -4133,33 +4193,10 @@ return (
                     </div>
                   </div>
 
-                  {/* CSR Head Contact Card */}
-                  {(csrProfile.csrHeadName || csrProfile.csrHeadEmail || csrProfile.csrHeadMobile) && (
-                    <div className="bg-white p-3.5 md:p-4 rounded-xl border border-purple-100 space-y-2 text-xs">
-                      <h4 className="font-bold text-purple-950 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                        <UserCheck size={14} className="text-purple-700 shrink-0" /> Designated CSR Head
-                      </h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                        <div>
-                          <span className="text-slate-400 block text-[10px] mb-0.5">Name</span>
-                          <span className="font-bold text-slate-900 break-words">{csrProfile.csrHeadName || "-"}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 block text-[10px] mb-0.5">Email</span>
-                          <span className="font-bold text-slate-900 break-all">{csrProfile.csrHeadEmail || "-"}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 block text-[10px] mb-0.5">Mobile</span>
-                          <span className="font-bold text-slate-900">{csrProfile.csrHeadMobile || "-"}</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
                   {/* Sector & Geography Preferences */}
                   <div className="bg-white p-3.5 md:p-4 rounded-xl border border-purple-100 space-y-3 text-xs">
                     <h4 className="font-bold text-purple-950 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                      <Target size={14} className="text-purple-700 shrink-0" /> Target Preferences
+                      <Target size={14} className="text-purple-700 shrink-0" /> Target Preferences & Focus Areas
                     </h4>
 
                     <div>
@@ -4192,12 +4229,41 @@ return (
                       </div>
                     </div>
 
-                    {(csrProfile.sdgFocusAreas || csrProfile.preferredBeneficiaryGroups || csrProfile.implementationPreference) && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
-                        {csrProfile.sdgFocusAreas && (
+                    {((csrProfile.preferredDivisions || []).length > 0 || (csrProfile.preferredTalukas || []).length > 0 || (csrProfile.preferredCities || []).length > 0) && (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
+                        {(csrProfile.preferredDivisions || []).length > 0 && (
                           <div>
-                            <span className="text-slate-400 block text-[10px] mb-0.5">SDG Focus Areas</span>
-                            <span className="font-semibold text-slate-800 break-words">{csrProfile.sdgFocusAreas}</span>
+                            <span className="text-slate-400 block text-[10px] mb-0.5">Divisions</span>
+                            <span className="font-semibold text-slate-800 break-words">{csrProfile.preferredDivisions.join(", ")}</span>
+                          </div>
+                        )}
+                        {(csrProfile.preferredTalukas || []).length > 0 && (
+                          <div>
+                            <span className="text-slate-400 block text-[10px] mb-0.5">Talukas</span>
+                            <span className="font-semibold text-slate-800 break-words">{csrProfile.preferredTalukas.join(", ")}</span>
+                          </div>
+                        )}
+                        {(csrProfile.preferredCities || []).length > 0 && (
+                          <div>
+                            <span className="text-slate-400 block text-[10px] mb-0.5">Cities</span>
+                            <span className="font-semibold text-slate-800 break-words">{csrProfile.preferredCities.join(", ")}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {(csrProfile.sdgFocusAreas || csrProfile.preferredBeneficiaryGroups || csrProfile.implementationPreference || csrProfile.fundingPreference) && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
+                        {csrProfile.fundingPreference && (
+                          <div>
+                            <span className="text-slate-400 block text-[10px] mb-0.5">Funding Model</span>
+                            <span className="font-semibold text-slate-800 break-words">{csrProfile.fundingPreference}</span>
+                          </div>
+                        )}
+                        {csrProfile.implementationPreference && (
+                          <div>
+                            <span className="text-slate-400 block text-[10px] mb-0.5">Implementation Model</span>
+                            <span className="font-semibold text-slate-800 break-words">{csrProfile.implementationPreference}</span>
                           </div>
                         )}
                         {csrProfile.preferredBeneficiaryGroups && (
@@ -4206,10 +4272,10 @@ return (
                             <span className="font-semibold text-slate-800 break-words">{csrProfile.preferredBeneficiaryGroups}</span>
                           </div>
                         )}
-                        {csrProfile.implementationPreference && (
-                          <div className="sm:col-span-2 md:col-span-1">
-                            <span className="text-slate-400 block text-[10px] mb-0.5">Implementation Model</span>
-                            <span className="font-semibold text-slate-800 break-words">{csrProfile.implementationPreference}</span>
+                        {csrProfile.sdgFocusAreas && (
+                          <div>
+                            <span className="text-slate-400 block text-[10px] mb-0.5">SDG Focus Areas</span>
+                            <span className="font-semibold text-slate-800 break-words">{csrProfile.sdgFocusAreas}</span>
                           </div>
                         )}
                       </div>
