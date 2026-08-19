@@ -4,13 +4,13 @@ import React from "react";
 import Link from "next/link";
 import {
   Activity, AlertCircle, ArrowRight, Bell, Building2, CheckCircle2,
-  Clock3, Compass, FileCheck, FileText, FolderKanban, HeartHandshake,
+  Clock3, FileText, FolderKanban, HeartHandshake,
   Landmark, RefreshCcw, ShieldAlert, ShieldCheck, Users, Target
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
 import { clearApiCache } from "@/lib/api";
-import { DashboardSummary, QUICK_ACTIONS, visibleByPermission } from "@/lib/dashboardEngine";
+import { DashboardSummary } from "@/lib/dashboardEngine";
 import { StatCard } from "@/components/ui/StatCard";
 import { WorkQueueSection } from "./WorkQueueSection";
 import { AlertsSection } from "./AlertsSection";
@@ -334,7 +334,6 @@ export default function DashboardEngine() {
     );
   }
 
-  const actions = visibleByPermission(QUICK_ACTIONS, summary);
   const asOf = new Date(summary.asOf || summary.generatedAt);
   const kpiList = summary.kpis || [];
   const workQueueItems = summary.workQueue || [];
@@ -546,39 +545,7 @@ export default function DashboardEngine() {
       {/* 6. Operational Charts & Data Funnels */}
       <DashboardCharts charts={summary.charts} userRoleId={summary.userRoleId} />
 
-      {/* 7. Quick Actions Navigation Shortcuts */}
-      {actions.length > 0 && (
-        <section aria-labelledby="quick-actions-heading" className="space-y-3">
-          <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-100 text-blue-800">
-              <Compass size={15} />
-            </div>
-            <h2 id="quick-actions-heading" className="font-heading text-xs font-extrabold uppercase tracking-wider text-slate-900">
-              Quick Workspace Actions
-            </h2>
-          </div>
-          <div className="flex flex-wrap gap-2.5">
-            {actions.map((action, index) => {
-              const Icon = action.icon || ([FileCheck, Building2, Users] as LucideIcon[])[index % 3];
-              return (
-                <Link
-                  key={action.key}
-                  href={action.href}
-                  className="group inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200/90 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:-translate-y-0.5 hover:border-blue-300 hover:text-blue-900 hover:shadow-sm hover:no-underline"
-                >
-                  <span className="rounded-lg bg-blue-50 p-1.5 text-blue-700 transition group-hover:bg-blue-900 group-hover:text-white">
-                    <Icon size={14} />
-                  </span>
-                  {action.label}
-                  <ArrowRight size={12} className="text-slate-400 group-hover:text-blue-700 transition" />
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* 8. Scoped Recent Activity Timeline */}
+      {/* 7. Scoped Recent Activity Timeline */}
       <section aria-labelledby="recent-activity-heading" className="space-y-3">
         <div className="flex items-center gap-2">
           <div className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-100 text-blue-800">

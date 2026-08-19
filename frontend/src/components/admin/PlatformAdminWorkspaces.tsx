@@ -2762,12 +2762,11 @@ export function OrganizationOnboardingStatusWorkspace() {
                 {isGovDept ? (
                   <>
                     <div>
-                      <div className="text-[11px] font-bold text-slate-400 uppercase">Department Code</div>
+                      <div className="text-[11px] font-bold text-slate-400 uppercase">Official Phone</div>
                       <div className="text-xs font-bold text-slate-800 mt-0.5 truncate">
-                        {(organization as any)?.departmentCode ||
-                          (organization as any)?.govDeptProfile?.departmentCode ||
-                          (organization as any)?.govDeptProfile?.deptOfficeCode ||
-                          (organization as any)?.govDeptProfile?.officialRegNo ||
+                        {(organization as any)?.officialPhone ||
+                          organization.phone ||
+                          (organization as any)?.govDeptProfile?.nodalOfficerMobile ||
                           "—"}
                       </div>
                     </div>
@@ -2777,16 +2776,14 @@ export function OrganizationOnboardingStatusWorkspace() {
                           ? "Parent Department"
                           : (organization as any)?.govDeptProfile?.nodalOfficerName
                           ? "Nodal Officer"
-                          : "Official Phone"}
+                          : "Government Level"}
                       </div>
                       <div className="text-xs font-bold text-slate-800 mt-0.5 truncate">
                         {(organization as any)?.govDeptProfile?.parentDepartment ||
                           (organization as any)?.parentDepartment ||
                           (organization as any)?.parentOrganization?.name ||
                           (organization as any)?.govDeptProfile?.nodalOfficerName ||
-                          (organization as any)?.officialPhone ||
-                          organization.phone ||
-                          "—"}
+                          ((organization as any)?.governmentLevel ? String((organization as any)?.governmentLevel).replace(/_/g, " ") : "State Level")}
                       </div>
                     </div>
                   </>
