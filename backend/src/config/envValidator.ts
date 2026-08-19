@@ -52,6 +52,9 @@ export function validateProductionEnv(): EnvValidationResult {
     if (!process.env.CLOUDINARY_URL && (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY)) {
       warnings.push("Cloudinary storage credentials missing; file upload service will require storage configuration");
     }
+    if (!process.env.APISETU_API_KEY && !process.env.GST_APISETU_APIKEY && !process.env.GST_API_KEY) {
+      warnings.push("APISETU_API_KEY is not configured; live API Setu verification requests will return 401 Unauthorized unless APISETU_ALLOW_FALLBACK=true is set.");
+    }
   }
 
   return {
