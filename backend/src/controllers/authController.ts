@@ -46,7 +46,7 @@ async function createAndSendOtp(email: string): Promise<void> {
     console.log(`[DEV OTP] Email: ${normalizedEmail} | OTP: ${otpCode}`);
   }
 
-  // Await email send with retry — do NOT fire-and-forget in production
+  // Await email send with retry
   const MAX_RETRIES = 2;
   let lastError: any = null;
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
@@ -56,17 +56,31 @@ async function createAndSendOtp(email: string): Promise<void> {
       return; // Success — exit
     } catch (err: any) {
       lastError = err;
+      const isQuotaError = String(err?.message || "").includes("Daily user sending limit exceeded") || String(err?.message || "").includes("550-5.4.5");
       console.warn(`[Email] OTP send attempt ${attempt}/${MAX_RETRIES} failed for ${normalizedEmail}: ${err?.message || err}`);
+      
+      // If it's a hard provider quota rejection (like Gmail 550 limit), retrying immediately will only hit the same quota
+      if (isQuotaError) {
+        break;
+      }
+
       if (attempt < MAX_RETRIES) {
-        // Wait 1 second before retry
         await new Promise((r) => setTimeout(r, 1000));
       }
     }
   }
 
-  // All retries exhausted — log but do NOT throw for register flow
-  // (OTP record is already in DB, user can use resend-otp endpoint)
-  console.error(`[Email] OTP email delivery FAILED after ${MAX_RETRIES} attempts for ${normalizedEmail}: ${lastError?.message || lastError}`);
+  // When email delivery cannot complete (e.g. Gmail daily quota exceeded or SMTP offline):
+  // Log prominent fallback OTP banner to terminal so development & verification can proceed smoothly
+  console.error(`\n======================================================`);
+  console.error(`⚠️ [SMTP DELIVERY NOTICE - OTP CODE LOGGED BELOW]`);
+  console.error(`📬 Recipient: ${normalizedEmail}`);
+  console.error(`🔑 OTP Code:  ${otpCode}`);
+  console.error(`⏰ Valid for: ${OTP_TTL_MINUTES} minutes`);
+  console.error(`🚨 Reason:    ${lastError?.message || lastError}`);
+  console.error(`💡 Note:      If using Gmail SMTP, Google's 500-email/day sending limit was reached.`);
+  console.error(`              Use the 6-digit code above to complete verification.`);
+  console.error(`======================================================\n`);
 }
 
 const generateTokens = (user: {
