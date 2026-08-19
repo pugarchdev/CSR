@@ -11,6 +11,7 @@ import {
   getCorporateInterests,
   updateCorporateInterest,
   verifyGovernmentPitch,
+  requestPitchClarification,
   logEnquiryInteraction,
   submitFeasibilityAssessment,
   getRMFeasibilityAssessment,
@@ -56,6 +57,7 @@ router.get("/pitches", listRMPitches);
 router.get("/pitches/:id", getRMPitchById);
 router.get("/pitches/:id/interactions", listRMPitchInteractions);
 router.post("/pitches/:id/interactions", logPitchInteraction);
+router.post("/pitches/:id/clarification", requestPitchClarification);
 router.patch("/pitches/:id/verify", verifyGovernmentPitch);
 
 router.get("/escalations", getRMEscalations);

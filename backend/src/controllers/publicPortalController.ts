@@ -83,14 +83,14 @@ export const getPublicPortalStats = async (req: Request, res: Response) => {
       orgDistricts
     ] = await Promise.all([
       prisma.project.count().catch(() => 0),
-      prisma.governmentPitch.count().catch(() => 0),
+      prisma.governmentPitch.count({ where: { status: "PUBLIC_LISTED" } }).catch(() => 0),
       prisma.corporateEnquiry.count().catch(() => 0),
       prisma.project.count({ where: { status: "COMPLETED" } }).catch(() => 0),
-      prisma.governmentPitch.aggregate({ _sum: { estimatedCost: true } }).catch(() => ({ _sum: { estimatedCost: 0 } })),
+      prisma.governmentPitch.aggregate({ where: { status: "PUBLIC_LISTED" }, _sum: { estimatedCost: true } }).catch(() => ({ _sum: { estimatedCost: 0 } })),
       prisma.corporateEnquiry.aggregate({ _sum: { indicativeBudget: true } }).catch(() => ({ _sum: { indicativeBudget: 0 } })),
       prisma.project.aggregate({ _sum: { approvedBudget: true } }).catch(() => ({ _sum: { approvedBudget: 0 } })),
       prisma.project.findMany({ select: { district: true }, distinct: ["district"], take: 50 }).catch(() => []),
-      prisma.governmentPitch.findMany({ select: { districts: true }, take: 50 }).catch(() => []),
+      prisma.governmentPitch.findMany({ where: { status: "PUBLIC_LISTED" }, select: { districts: true }, take: 50 }).catch(() => []),
       prisma.organization.findMany({ select: { district: true }, distinct: ["district"], take: 50 }).catch(() => [])
     ]);
 
@@ -139,11 +139,17 @@ export const getPublicRequirements = async (req: Request, res: Response) => {
     const limit = parseInt(req.query.limit as string) || 100;
     const [projects, pitches] = await Promise.all([
       prisma.project.findMany({
+        where: {
+          status: { in: ["APPROVED", "MARKETPLACE_LISTED", "IN_PROGRESS", "COMPLETED"] }
+        },
         take: limit,
         orderBy: { createdAt: "desc" },
         include: { organization: true }
       }).catch(() => []),
       prisma.governmentPitch.findMany({
+        where: {
+          status: "PUBLIC_LISTED"
+        },
         take: limit,
         orderBy: { createdAt: "desc" }
       }).catch(() => [])
@@ -300,21 +306,20 @@ export const getPublicRequirementDetail = async (req: Request, res: Response) =>
       });
     }
 
-    // 2. Try finding in GovernmentPitch table
-    let pitch = await prisma.governmentPitch.findUnique({
-      where: { id }
+    // 2. Try finding in GovernmentPitch table - ONLY if it is publicly listed by Joint Secretary
+    let pitch = await prisma.governmentPitch.findFirst({
+      where: {
+        AND: [
+          { status: "PUBLIC_LISTED" },
+          {
+            OR: [
+              { id: id },
+              { pitchReferenceId: id }
+            ]
+          }
+        ]
+      }
     }).catch(() => null);
-
-    if (!pitch) {
-      pitch = await prisma.governmentPitch.findFirst({
-        where: {
-          OR: [
-            { pitchReferenceId: id },
-            { id: id }
-          ]
-        }
-      }).catch(() => null);
-    }
 
     if (pitch) {
       const budgetNum = Number(pitch.estimatedCost || pitch.budget || 0);

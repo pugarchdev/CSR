@@ -176,7 +176,7 @@ export const getDashboardNavItems = (userRole?: string): NavItem[] => {
   const departmentItems: NavItem[] = [
     { label: "Organization Onboarding", href: "/organization/onboarding", permission: "page:organization/onboarding:view" },
     { label: "Onboarding Status", href: "/organization/onboarding/status", permission: "page:organization/onboarding:view" },
-    { label: "Track Application", href: "/department/track", permission: "pitch:create" },
+    { label: "Track Application", href: "/track", permission: "pitch:create" },
     { label: "Company Interest", href: "/interests", permission: "interest:view", featureKey: "enableCompanyInterest" },
     { label: "Projects", href: "/convergence-projects", permission: "project:view" },
     { label: "Handover", href: "/handover", permission: "project:view" },

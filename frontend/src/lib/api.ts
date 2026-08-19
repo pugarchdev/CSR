@@ -52,6 +52,8 @@ type CacheHit<T> = { data: T; isStale: boolean } | null;
 
 const getCachedData = <T>(path: string): CacheHit<T> => {
   if (typeof window === "undefined") return null;
+  // Dashboard routes must always reflect real-time live operational numbers
+  if (path.includes("/dashboard") || path.includes("/summary")) return null;
 
   const cached = localStorage.getItem(CACHE_PREFIX + btoa(path));
   if (!cached) return null;
@@ -82,6 +84,7 @@ export const getCachedApiData = <T>(path: string): T | undefined => {
 
 const setCachedData = <T>(path: string, data: T): void => {
   if (typeof window === "undefined") return;
+  if (path.includes("/dashboard") || path.includes("/summary")) return;
   localStorage.setItem(CACHE_PREFIX + btoa(path), JSON.stringify({ data, timestamp: Date.now() }));
 };
 

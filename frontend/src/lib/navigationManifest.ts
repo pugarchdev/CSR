@@ -46,7 +46,7 @@ export const NAVIGATION_GROUPS: NavGroupDef[] = [
     iconName: "FileText",
     section: "Applications",
     ordering: 20,
-    childIds: ["enquiries", "pitches", "interests", "assessments", "requirements", "marketplace"]
+    childIds: ["enquiries", "pitches", "track-pitch", "interests", "assessments", "marketplace"]
   },
   {
     id: "group-projects",
@@ -208,6 +208,20 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     requiredAnyPermissions: ["pitch:view", "pitch:create", "pitch:verify", "pitch:approve", "pitch:assign"],
     ordering: 20,
     breadcrumbMetadata: { title: "Government Pitches", parentRoute: "/dashboard" }
+  },
+  {
+    id: "track-pitch",
+    label: "Track Application",
+    formalTitle: "Track Application Status",
+    route: "/track",
+    iconName: "Search",
+    section: "Applications",
+    navigationLevel: "CHILD",
+    parentNavId: "group-applications",
+    showInSidebar: true,
+    requiredAnyPermissions: ["pitch:view", "pitch:create", "dashboard:view", "enquiry:view"],
+    ordering: 25,
+    breadcrumbMetadata: { title: "Track Application", parentRoute: "/dashboard" }
   },
   {
     id: "interests",

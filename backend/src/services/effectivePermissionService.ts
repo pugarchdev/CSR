@@ -29,6 +29,21 @@ export interface EffectiveAccessPayload {
   };
 }
 
+const effectiveAccessCache = new Map<string, { payload: EffectiveAccessPayload; expiresAt: number }>();
+const EFFECTIVE_ACCESS_TTL_MS = 120_000;
+
+export function invalidateEffectiveAccessCache(userId?: string) {
+  if (userId) {
+    for (const key of effectiveAccessCache.keys()) {
+      if (key.startsWith(`${userId}:`)) {
+        effectiveAccessCache.delete(key);
+      }
+    }
+  } else {
+    effectiveAccessCache.clear();
+  }
+}
+
 export class EffectivePermissionService {
   /**
    * Load active canonical role assignments for a given user.
@@ -65,6 +80,12 @@ export class EffectivePermissionService {
    * Compute effective access payload containing active permissions, roles, and contextual scopes.
    */
   public static async getEffectiveAccessPayload(userId: string, currentOrgIdContext?: string | null): Promise<EffectiveAccessPayload> {
+    const cacheKey = `${userId}:${currentOrgIdContext || "none"}`;
+    const cached = effectiveAccessCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.payload;
+    }
+
     const [user, assignments] = await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
@@ -227,7 +248,7 @@ export class EffectivePermissionService {
       resolveSeedRolePermissionKeys("SUPER_ADMIN").forEach((key) => permissionSet.add(key));
     }
 
-    return {
+    const finalPayload: EffectiveAccessPayload = {
       userId,
       isSuperAdmin: isSuperAdminUser,
       activeRoles,
@@ -242,6 +263,13 @@ export class EffectivePermissionService {
         projectIds: Array.from(projectScopeSet)
       }
     };
+
+    effectiveAccessCache.set(cacheKey, {
+      payload: finalPayload,
+      expiresAt: Date.now() + EFFECTIVE_ACCESS_TTL_MS
+    });
+
+    return finalPayload;
   }
 
   /**

@@ -80,7 +80,7 @@ function clearL1Pattern(pattern: string): void {
 /**
  * Timeout helper to prevent cross-ocean cloud Redis latency from blocking requests.
  */
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 150): Promise<T | null> {
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 40): Promise<T | null> {
   return Promise.race([
     promise,
     new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
@@ -94,7 +94,7 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 150): Promise<T
 /**
  * Super-fast GET:
  * 1. Checks L1 RAM Cache (0.01ms - instant).
- * 2. If L1 misses, queries L2 Cloud Redis with a 150ms max timeout.
+ * 2. If L1 misses, queries L2 Cloud Redis with a 40ms max timeout.
  */
 export async function getCache<T>(key: string): Promise<T | null> {
   // 1. Fast L1 RAM lookup (0ms)
@@ -103,10 +103,10 @@ export async function getCache<T>(key: string): Promise<T | null> {
     return l1Hit;
   }
 
-  // 2. L2 Cloud Redis lookup with 150ms timeout safeguard
+  // 2. L2 Cloud Redis lookup with 40ms timeout safeguard
   if (!isRedisConnected) return null;
   try {
-    const data = await withTimeout(redis.get(key), 150);
+    const data = await withTimeout(redis.get(key), 40);
     if (!data) return null;
     const parsed = JSON.parse(data) as T;
     setL1(key, parsed, 300);

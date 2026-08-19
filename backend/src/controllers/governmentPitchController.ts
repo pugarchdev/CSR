@@ -13,6 +13,28 @@ import { generateInterestTrackingId } from "../services/trackingIdService";
 import { routeApprovedGovernmentPitch } from "../services/approvedProjectRoutingService";
 import { PortalCaseType } from "@prisma/client";
 import { PortalCaseService } from "../services/portalCaseService";
+import { verifyGovernmentPitch } from "./relationshipManagerController";
+import { auditLog } from "../services/notificationService";
+
+function normalizeInteractionType(value: unknown): "CALL" | "VIDEO_CALL" | "PHYSICAL_MEETING" | "MESSAGE" {
+  const normalized = String(value || "MESSAGE").trim().toUpperCase().replace(/[ -]+/g, "_");
+  if (normalized === "CALL" || normalized === "VIDEO_CALL" || normalized === "PHYSICAL_MEETING") return normalized;
+  return "MESSAGE";
+}
+
+function normalizeParticipants(value: unknown, fallbackSide: "CORPORATE" | "GOVERNMENT") {
+  if (Array.isArray(value) && value.length > 0) {
+    return value.slice(0, 50).map((participant: any) => ({
+      name: participant?.name ? String(participant.name).slice(0, 160) : undefined,
+      userId: participant?.userId ? String(participant.userId) : undefined,
+      organizationId: participant?.organizationId ? String(participant.organizationId) : undefined,
+      side: ["CORPORATE", "GOVERNMENT", "PORTAL"].includes(String(participant?.side).toUpperCase())
+        ? String(participant.side).toUpperCase() as "CORPORATE" | "GOVERNMENT" | "PORTAL"
+        : fallbackSide,
+    }));
+  }
+  return [{ side: fallbackSide }];
+}
 
 const publishedStatusStage = (status: string) => {
   if (status === "PUBLIC_LISTED") return "PUBLICATION";
@@ -171,9 +193,142 @@ export const submitPitch = submitGovernmentPitch;
 
 export const getPitchById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const pitch = await prisma.governmentPitch.findUnique({ where: { id: req.params.id } });
+    const pitch = await prisma.governmentPitch.findFirst({
+      where: {
+        OR: [
+          { id: req.params.id },
+          { pitchReferenceId: req.params.id }
+        ]
+      }
+    });
     if (!pitch) return res.status(404).json({ error: "Pitch not found" });
-    return res.json(pitch);
+
+    let assignedRelationshipManager = null;
+    if (pitch.assignedRelationshipManagerId) {
+      const rmUser = await prisma.user.findUnique({
+        where: { id: pitch.assignedRelationshipManagerId },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          designation: true,
+          email: true,
+          mobile: true
+        }
+      });
+      if (rmUser) {
+        assignedRelationshipManager = {
+          id: rmUser.id,
+          name: [rmUser.firstName, rmUser.lastName].filter(Boolean).join(" ") || "Relationship Manager",
+          designation: rmUser.designation || "Relationship Manager",
+          email: rmUser.email,
+          mobile: rmUser.mobile
+        };
+      }
+    }
+
+    // Retrieve RM Verification Details word-for-word
+    let rmVerification: any = null;
+    try {
+      const trackedCase = await PortalCaseService.getByLegacyEntity(PortalCaseType.GOVERNMENT_PITCH, pitch.id);
+      if (trackedCase) {
+        const assessment = await prisma.caseFeasibilityAssessment.findFirst({
+          where: { caseId: trackedCase.id },
+          orderBy: { updatedAt: "desc" }
+        });
+        if (assessment) {
+          let assessorUser = null;
+          if (assessment.assessedByUserId) {
+            assessorUser = await prisma.user.findUnique({
+              where: { id: assessment.assessedByUserId },
+              select: { id: true, firstName: true, lastName: true, designation: true, email: true }
+            });
+          }
+          rmVerification = {
+            checklist: assessment.checklist,
+            recommendation: assessment.recommendation,
+            summary: assessment.executiveSummary,
+            conditions: (assessment.conditions as any)?.text || (typeof assessment.conditions === "string" ? assessment.conditions : null),
+            verifiedAt: assessment.submittedAt || assessment.createdAt,
+            verifiedBy: assessorUser ? {
+              id: assessorUser.id,
+              name: [assessorUser.firstName, assessorUser.lastName].filter(Boolean).join(" ") || "Relationship Manager",
+              designation: assessorUser.designation || "Relationship Manager",
+              email: assessorUser.email
+            } : null
+          };
+        }
+      }
+
+      if (!rmVerification) {
+        const audit = await prisma.auditLog.findFirst({
+          where: { action: "GOVERNMENT_PITCH_VERIFIED", entityId: pitch.id },
+          orderBy: { createdAt: "desc" }
+        });
+        if (audit && audit.details) {
+          const d = audit.details as any;
+          let assessorUser = null;
+          if (audit.actorUserId) {
+            assessorUser = await prisma.user.findUnique({
+              where: { id: audit.actorUserId },
+              select: { id: true, firstName: true, lastName: true, designation: true, email: true }
+            });
+          }
+          rmVerification = {
+            checklist: d.checklist || {},
+            recommendation: d.recommendation || "FEASIBLE",
+            summary: d.summary || "",
+            conditions: d.conditions || null,
+            verifiedAt: audit.createdAt,
+            verifiedBy: assessorUser ? {
+              id: assessorUser.id,
+              name: [assessorUser.firstName, assessorUser.lastName].filter(Boolean).join(" ") || "Relationship Manager",
+              designation: assessorUser.designation || "Relationship Manager",
+              email: assessorUser.email
+            } : null
+          };
+        }
+      }
+    } catch (verErr) {
+      console.warn("[getPitchById] Could not fetch RM verification details:", verErr);
+    }
+
+    // Retrieve all Department & RM interactions
+    let interactions: any[] = [];
+    try {
+      const rawInteractions = await prisma.applicationInteraction.findMany({
+        where: { entityType: "GOVERNMENT_PITCH", entityId: pitch.id },
+        orderBy: { occurredAt: "desc" }
+      });
+      const actorIds = [...new Set(rawInteractions.map((i) => i.actorUserId).filter(Boolean))] as string[];
+      const actorUsers = actorIds.length > 0
+        ? await prisma.user.findMany({
+            where: { id: { in: actorIds } },
+            select: { id: true, firstName: true, lastName: true, roleId: true, designation: true, email: true }
+          })
+        : [];
+      const actorMap = new Map(actorUsers.map((u) => [u.id, {
+        id: u.id,
+        name: [u.firstName, u.lastName].filter(Boolean).join(" ") || "Official",
+        designation: u.designation || "Officer",
+        roleId: u.roleId,
+        email: u.email
+      }]));
+
+      interactions = rawInteractions.map((i) => ({
+        ...i,
+        actor: i.actorUserId ? actorMap.get(i.actorUserId) || null : null
+      }));
+    } catch (intErr) {
+      console.warn("[getPitchById] Could not fetch interactions:", intErr);
+    }
+
+    return res.json({
+      ...pitch,
+      assignedRelationshipManager,
+      rmVerification,
+      interactions
+    });
   } catch (error) {
     next(error);
   }
@@ -181,9 +336,27 @@ export const getPitchById = async (req: AuthenticatedRequest, res: Response, nex
 
 export const getPitchByTrackingId = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const pitch = await prisma.governmentPitch.findUnique({ where: { pitchReferenceId: req.params.trackingId }, select: { pitchReferenceId: true, status: true, createdAt: true, districts: true, cities: true, talukas: true, exactLocation: true, estimatedCost: true, budget: true } });
+    const pitch = await prisma.governmentPitch.findUnique({ where: { pitchReferenceId: req.params.trackingId }, select: { pitchReferenceId: true, status: true, createdAt: true, districts: true, cities: true, talukas: true, exactLocation: true, estimatedCost: true, budget: true, assignedRelationshipManagerId: true } });
     if (!pitch) return res.status(404).json({ error: "Pitch not found" });
-    return res.json(pitch);
+
+    let assignedRelationshipManager = null;
+    if (pitch.assignedRelationshipManagerId) {
+      const rmUser = await prisma.user.findUnique({
+        where: { id: pitch.assignedRelationshipManagerId },
+        select: { id: true, firstName: true, lastName: true, designation: true, email: true, mobile: true }
+      });
+      if (rmUser) {
+        assignedRelationshipManager = {
+          id: rmUser.id,
+          name: [rmUser.firstName, rmUser.lastName].filter(Boolean).join(" ") || "Relationship Manager",
+          designation: rmUser.designation || "Relationship Manager",
+          email: rmUser.email,
+          mobile: rmUser.mobile
+        };
+      }
+    }
+
+    return res.json({ ...pitch, assignedRelationshipManager });
   } catch (error) {
     next(error);
   }
@@ -222,7 +395,27 @@ export const listGovernmentPitches = async (req: AuthenticatedRequest, res: Resp
     }
 
     const pitches = await prisma.governmentPitch.findMany({ where, orderBy: { createdAt: "desc" } });
-    return res.json(pitches);
+    const rmIds = [...new Set(pitches.map((p) => p.assignedRelationshipManagerId).filter(Boolean))] as string[];
+    const rmUsers = rmIds.length > 0
+      ? await prisma.user.findMany({
+          where: { id: { in: rmIds } },
+          select: { id: true, firstName: true, lastName: true, designation: true, email: true, mobile: true }
+        })
+      : [];
+    const rmMap = new Map(rmUsers.map((u) => [u.id, {
+      id: u.id,
+      name: [u.firstName, u.lastName].filter(Boolean).join(" ") || "Relationship Manager",
+      designation: u.designation || "Relationship Manager",
+      email: u.email,
+      mobile: u.mobile
+    }]));
+
+    const enrichedPitches = pitches.map((p) => ({
+      ...p,
+      assignedRelationshipManager: p.assignedRelationshipManagerId ? rmMap.get(p.assignedRelationshipManagerId) || null : null
+    }));
+
+    return res.json(enrichedPitches);
   } catch (error) {
     next(error);
   }
@@ -231,7 +424,9 @@ export const listGovernmentPitches = async (req: AuthenticatedRequest, res: Resp
 export const getPublicPitches = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const districtFilter = typeof req.query?.district === "string" && req.query.district !== "All Districts" ? req.query.district : null;
-    const where: any = {};
+    const where: any = {
+      status: "PUBLIC_LISTED"
+    };
     if (districtFilter) {
       where.districts = { has: districtFilter };
     }
@@ -403,9 +598,7 @@ export const submitInterest = async (req: AuthenticatedRequest, res: Response, n
   }
 };
 
-export const verifyPitch = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  return res.status(410).json({ error: "Use the assigned Relationship Manager verification workspace, including the mandatory checklist and recommendation." });
-};
+export const verifyPitch = verifyGovernmentPitch;
 
 /**
  * JS Pitch Approval — Auto-assigns project to both DNC (District Nodal Consultant) and Govt Department Admin
@@ -446,13 +639,51 @@ export const approvePitch = async (req: AuthenticatedRequest, res: Response, nex
     }
     await prisma.sLAEscalation.updateMany({ where: { entityType: "GOVERNMENT_PITCH", entityId: pitch.id, stage: "JS_DECISION", isResolved: false }, data: { isResolved: true, resolvedAt: new Date() } });
     await prisma.auditLog.create({ data: { actorUserId: req.user?.id || null, userId: req.user?.id || null, action: "GOVERNMENT_PITCH_JS_DECISION", entityType: "GovernmentPitch", entityId: pitch.id, details: { decision, reason: reason || null, conditions: conditions || null, resultingStatus: updated.status } } });
+
+    // Log decision in ApplicationInteraction for transparent timeline history
+    try {
+      if (req.user?.id) {
+        await prisma.applicationInteraction.create({
+          data: {
+            entityType: "GOVERNMENT_PITCH",
+            entityId: pitch.id,
+            actorUserId: req.user.id,
+            channel: decision === "RETURN_FOR_CLARIFICATION" ? "JS_CLARIFICATION_REQUEST" : `JS_${decision}`,
+            note: `Joint Secretary Decision: ${decision.replace(/_/g, " ")}${reason ? ` | Remarks: ${reason}` : ""}${conditions ? ` | Conditions: ${conditions}` : ""}`,
+            occurredAt: new Date()
+          }
+        });
+      }
+    } catch (intErr) {
+      console.warn("[approvePitch] Could not log interaction:", intErr);
+    }
+
     const published = updated.status === "PUBLIC_LISTED";
+
+    // If JS requests clarification or rejects, notify the assigned Relationship Manager directly
+    if (updated.assignedRelationshipManagerId && (decision === "RETURN_FOR_CLARIFICATION" || decision === "RETURN_FOR_CORRECTION" || decision === "REJECT")) {
+      dispatchNotification({
+        recipientId: updated.assignedRelationshipManagerId,
+        templateName: "GOVERNMENT_PITCH_JS_FEEDBACK",
+        channels: ["IN_APP", "SOCKET", "EMAIL", "SMS"],
+        variables: {
+          title: decision === "RETURN_FOR_CLARIFICATION" ? "Joint Secretary Requested Clarification" : "Joint Secretary Decision on Pitch",
+          message: `Joint Secretary has reviewed pitch ${updated.pitchReferenceId || updated.id} and recorded decision: ${decision.replace(/_/g, " ")}. Remarks: "${reason || conditions || "Please review and follow up with the department as needed."}"`,
+          currentStatus: updated.status,
+          workflowStatus: `JS Decision: ${decision.replace(/_/g, " ")}`
+        },
+        actionButtonUrl: `/pitches/${updated.id}`,
+        correlationId: updated.id,
+        notificationType: "JS_DECISION"
+      }).catch(err => console.error("[approvePitch] RM notification failed:", err));
+    }
+
     await dispatchToContact({
       referenceId: updated.pitchReferenceId || updated.id,
       email: updated.email,
       phone: updated.mobile,
       title: published ? "Government pitch approved and published" : "Joint Secretary decision recorded",
-      message: published ? `Your pitch ${updated.pitchReferenceId || updated.id} has been approved by the Joint Secretary and is now publicly listed for corporate interest.` : `A Joint Secretary decision has been recorded for pitch ${updated.pitchReferenceId || updated.id}: ${decision.replace(/_/g, " ")}.`,
+      message: published ? `Your pitch ${updated.pitchReferenceId || updated.id} has been approved by the Joint Secretary and is now publicly listed for corporate interest.` : `A Joint Secretary decision has been recorded for pitch ${updated.pitchReferenceId || updated.id}: ${decision.replace(/_/g, " ")}.${reason ? ` Remarks: ${reason}` : ""}`,
       trackingId: updated.pitchReferenceId || undefined,
       currentStatus: updated.status,
       actionButtonUrl: `/track?trackingId=${encodeURIComponent(updated.pitchReferenceId || updated.id)}`,
@@ -462,7 +693,7 @@ export const approvePitch = async (req: AuthenticatedRequest, res: Response, nex
 
     notifyHierarchy({
       title: published ? "Government Pitch Approved & Published" : "Joint Secretary Pitch Decision",
-      message: published ? `Government pitch ${updated.pitchReferenceId || updated.id} ("${updated.title}") has been approved by Joint Secretary and published to the public marketplace.` : `Joint Secretary decision recorded for pitch ${updated.pitchReferenceId || updated.id}.`,
+      message: published ? `Government pitch ${updated.pitchReferenceId || updated.id} ("${updated.title}") has been approved by Joint Secretary and published to the public marketplace.` : `Joint Secretary decision recorded for pitch ${updated.pitchReferenceId || updated.id}: ${decision.replace(/_/g, " ")}.`,
       organizationId: updated.departmentId,
       assignedRmId: updated.assignedRelationshipManagerId,
       district: Array.isArray(updated.districts) && updated.districts.length > 0 ? updated.districts[0] : null,
@@ -475,6 +706,81 @@ export const approvePitch = async (req: AuthenticatedRequest, res: Response, nex
     }).catch(err => console.error("Notification dispatch failed:", err));
 
     return res.json({ success: true, message: published ? "Pitch approved and published for corporate interest." : "Joint Secretary decision recorded.", pitch: updated, decision });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const respondToPitchClarification = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const { id } = req.params;
+    const { responseNote } = req.body;
+    const noteText = String(responseNote || "").trim();
+
+    if (noteText.length < 5) {
+      return res.status(400).json({ error: "Please enter your clarification response (minimum 5 characters)." });
+    }
+
+    const pitch = await prisma.governmentPitch.findUnique({ where: { id } });
+    if (!pitch) return res.status(404).json({ error: "Pitch not found." });
+
+    const nextStatus = "UNDER_RM_REVIEW";
+    const updated = await prisma.governmentPitch.update({
+      where: { id },
+      data: { status: nextStatus }
+    });
+
+    const interaction = await prisma.applicationInteraction.create({
+      data: {
+        entityType: "GOVERNMENT_PITCH",
+        entityId: pitch.id,
+        actorUserId: userId,
+        channel: "DEPARTMENT_RESPONSE",
+        note: `Department Clarification Response: ${noteText}`,
+        occurredAt: new Date()
+      }
+    });
+
+    const trackedCase = await PortalCaseService.getByLegacyEntity(PortalCaseType.GOVERNMENT_PITCH, pitch.id);
+    if (trackedCase) {
+      await PortalCaseService.transition({
+        caseId: trackedCase.id,
+        toStatus: nextStatus,
+        stage: "RM_REVIEW",
+        action: "CLARIFICATION_PROVIDED",
+        actorUserId: userId,
+        metadata: { responseNote: noteText }
+      });
+      await PortalCaseService.addInteraction({
+        caseId: trackedCase.id,
+        actorUserId: userId,
+        interactionType: normalizeInteractionType("DEPARTMENT_RESPONSE"),
+        participants: normalizeParticipants(req.body.participants, "GOVERNMENT"),
+        summary: `Department Clarification Response: ${noteText}`,
+        occurredAt: new Date()
+      });
+    }
+
+    if (pitch.assignedRelationshipManagerId) {
+      await dispatchNotification({
+        recipientId: pitch.assignedRelationshipManagerId,
+        templateName: "GOVERNMENT_PITCH_CLARIFICATION_RESPONDED",
+        channels: ["IN_APP", "SOCKET", "EMAIL", "SMS"],
+        variables: {
+          title: "Clarification Provided for Pitch",
+          message: `The submitting department has provided clarification for pitch ${pitch.pitchReferenceId || pitch.id}: "${noteText}"`,
+          currentStatus: nextStatus
+        },
+        actionButtonUrl: `/pitches/${pitch.id}`,
+        correlationId: pitch.id,
+        notificationType: "PITCH_CLARIFICATION_RESPONSE"
+      });
+    }
+
+    await auditLog(userId, "GOVERNMENT_PITCH_CLARIFICATION_PROVIDED", { pitchId: id, responseNote: noteText });
+
+    return res.json({ success: true, message: "Clarification submitted to Relationship Manager.", data: updated, interaction });
   } catch (error) {
     next(error);
   }

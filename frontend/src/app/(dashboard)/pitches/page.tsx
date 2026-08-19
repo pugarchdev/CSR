@@ -333,6 +333,12 @@ export default function PitchesPage() {
               >
                 <RefreshCw size={14} className={isLoading ? "animate-spin text-blue-700" : ""} /> Refresh
               </button>
+              <Link
+                href="/track"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-xs hover:bg-slate-50 hover:text-blue-900 transition-all no-underline"
+              >
+                <Search size={14} className="text-amber-500" /> Track Pitch Status
+              </Link>
               {canCreatePitch && (
                 <button
                   onClick={handleCreatePitchClick}

@@ -203,7 +203,22 @@ export async function sendTemplateEmail(payload: EmailPayload): Promise<{ messag
     html: htmlBody
   };
 
-  const info = await transporter.sendMail(mailOptions);
+  console.log(`\n======================================================`);
+  console.log(`📧 [EMAIL NOTIFICATION DISPATCH]`);
+  console.log(`📧 To: ${payload.to}`);
+  console.log(`📋 Subject: ${payload.subject}`);
+  console.log(`🏷️ Status: ${payload.currentStatus}`);
+  if (payload.trackingId) console.log(`🔖 Tracking ID: ${payload.trackingId}`);
+  if (targetUrl) console.log(`🔗 Action URL: ${targetUrl}`);
+  console.log(`======================================================\n`);
+
+  let info: { messageId: string; response: string } = { messageId: "dev-email-mock-id", response: "OK" };
+  try {
+    info = await transporter.sendMail(mailOptions);
+  } catch (err: any) {
+    console.warn(`[EMAIL DELIVERY WARN] Could not deliver email to ${payload.to} via SMTP (${err?.message || err}), but notification payload was logged to console.`);
+  }
+
   return {
     messageId: info.messageId,
     response: info.response

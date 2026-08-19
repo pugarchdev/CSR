@@ -13,8 +13,13 @@ import {
   approvePitch,
   assignPitchRelationshipManager,
   recordPitchRmContact,
-  convertPitchToProject
+  convertPitchToProject,
+  respondToPitchClarification
 } from "../controllers/governmentPitchController";
+import {
+  listRMPitchInteractions,
+  logPitchInteraction
+} from "../controllers/relationshipManagerController";
 
 const router = Router();
 
@@ -24,6 +29,9 @@ router.get("/public", getPublicPitches);
 router.post("/public/:id/interests", authenticateToken, requirePermission("pitch:view"), submitInterest);
 router.get("/my", authenticateToken, requirePermission("pitch:view"), getMyPitches);
 router.get("/:id", authenticateToken, requirePermission("pitch:view"), getPitchById);
+router.get("/:id/interactions", authenticateToken, requirePermission("pitch:view"), listRMPitchInteractions);
+router.post("/:id/interactions", authenticateToken, requirePermission("pitch:view"), logPitchInteraction);
+router.post("/:id/clarify-response", authenticateToken, requirePermission("pitch:view"), respondToPitchClarification);
 router.post("/:id/interest", authenticateToken, requirePermission("pitch:view"), submitInterest);
 router.post("/:id/verify", authenticateToken, requirePermission("pitch:verify"), verifyPitch);
 router.post("/:id/approve", authenticateToken, requirePermission("pitch:approve"), approvePitch);

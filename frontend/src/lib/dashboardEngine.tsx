@@ -112,12 +112,14 @@ export const SECTIONS: SectionDef[] = [
 
 // ── Quick-action registry ── shortcut buttons, gated by permission ──
 export const QUICK_ACTIONS: QuickActionDef[] = [
-  { key: "enquiry_create", label: "Submit Corporate Enquiry", href: "/partner/enquiries/new", permission: "enquiry:create", icon: Send },
-  { key: "pitches", label: "Submit Government Pitch", href: "/pitches/create", permission: "pitch:create", icon: Compass },
-  { key: "onboarding", label: "Organization Onboarding", href: "/organization/onboarding", permission: "page:organization/onboarding:view", icon: FileCheck },
-  { key: "marketplace", label: "Explore Marketplace", href: "/marketplace", permission: "marketplace:view", icon: Building2 },
-  { key: "projects", label: "Funded Projects", href: "/convergence-projects", permission: "project:view", icon: ShieldCheck },
-  { key: "reports", label: "Reports", href: "/reports", permission: "report:view", icon: BarChart2 },
+  { key: "enquiries_manage", label: "Corporate Enquiries", href: "/enquiries", permission: "dashboard:view", icon: FileText },
+  { key: "assessments_queue", label: "13-Point Feasibilities", href: "/enquiries", permission: "dashboard:view", icon: FileCheck },
+  { key: "pitches_manage", label: "Department Pitches", href: "/pitches", permission: "dashboard:view", icon: Compass },
+  { key: "interactions_log", label: "Stakeholder Interactions", href: "/interactions", permission: "dashboard:view", icon: HeartHandshake },
+  { key: "marketplace_view", label: "State CSR Marketplace", href: "/marketplace", permission: "dashboard:view", icon: Building2 },
+  { key: "projects_view", label: "Funded Projects", href: "/convergence-projects", permission: "dashboard:view", icon: ShieldCheck },
+  { key: "reports_view", label: "Executive Analytics", href: "/reports", permission: "dashboard:view", icon: BarChart2 },
+  { key: "escalations_view", label: "SLA Escalations", href: "/escalations", permission: "dashboard:view", icon: ShieldAlert },
 ];
 
 /**

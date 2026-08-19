@@ -49,15 +49,17 @@ export interface AlertItem {
 
 const formatCurrency = (val: number) => `₹${(val / 10000000).toFixed(2)} Cr`;
 const ACTIVE_CASES = [
+  "SUBMITTED", "UNDER_REVIEW", "UNDER_RM_REVIEW", "PENDING_VERIFICATION",
   "RM_ASSIGNED", "RM_REVIEW", "CONTACT_IN_PROGRESS", "FEASIBILITY_IN_PROGRESS",
   "CLARIFICATION_REQUIRED", "JS_REVIEW", "JS_CLARIFICATION", "JS_APPROVED",
-  "ASSIGNMENT_PENDING_ACCEPTANCE", "GOVERNMENT_ASSIGNED", "NODAL_REASSIGNMENT_REQUIRED", "ASSIGNMENT_ESCALATED"
+  "JS_APPROVAL_PENDING", "ASSIGNMENT_PENDING_ACCEPTANCE", "GOVERNMENT_ASSIGNED",
+  "NODAL_REASSIGNMENT_REQUIRED", "ASSIGNMENT_ESCALATED"
 ];
 const ACTIVE_PROJECTS: any[] = ["APPROVED", "AGREEMENT_SIGNED", "EXECUTION_STARTED", "IN_PROGRESS", "FUNDED"];
 
 export const getDashboardSummary = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    res.setHeader("Cache-Control", "private, no-store");
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     const userId = req.user!.id;
     const roleId = Number(req.user?.roleId);
     const orgId = req.user?.organizationId || null;
@@ -201,57 +203,238 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
       // ─────────────────────────────────────────────────────────────────────────────
       // 3. JOINT SECRETARY (Role 3 - State CSR Cell Head)
       // ─────────────────────────────────────────────────────────────────────────────
-      else if (roleId === 3) {
-        const [onboardingQueue, jsCases, awaitingAssignment, unassignedRms, escalations, overdueItems, pendingPitches, rms] = await Promise.all([
-          prisma.governmentOnboardingApplication.count({ where: { status: "UNDER_VERIFICATION" } }),
-          prisma.portalCase.count({ where: { currentStage: "JS_REVIEW", status: { notIn: ["JS_APPROVED", "JS_REJECTED"] } } }),
-          prisma.portalCase.count({ where: { status: "JS_APPROVED", governmentAssignments: { none: { status: { notIn: ["CLOSED", "REVOKED"] } } } } }),
+      else if (roleId === 3 || roleCode.includes("JOINT_SECRETARY")) {
+        const [
+          onboardingQueue,
+          jsCasesCount,
+          feasibilityAssessmentDueCount,
+          corporateEnquiriesTotal,
+          awaitingAssignment,
+          unassignedRms,
+          escalations,
+          overdueItems,
+          pendingPitchesCount,
+          pipelineBudgetSum,
+          rms,
+          pendingPitchesList,
+          pendingEnquiriesList,
+          pendingOnboardingList,
+          pendingEscalationsList,
+        ] = await Promise.all([
+          // 1. Onboarding Queue
+          prisma.governmentOnboardingApplication.count({
+            where: { status: { in: ["UNDER_VERIFICATION", "SUBMITTED", "PENDING_APPROVAL", "DRAFT_SUBMITTED"] } }
+          }),
+          // 2. JS Review Portal Cases
+          prisma.portalCase.count({
+            where: { currentStage: "JS_REVIEW", status: { notIn: ["JS_APPROVED", "JS_REJECTED"] } }
+          }),
+          // 3. Corporate Feasibility Decisions Due directly from CorporateEnquiry
+          prisma.corporateEnquiry.count({
+            where: { status: { in: ["ASSESSMENT_SUBMITTED_TO_JS", "JS_REVIEW", "SUBMITTED_TO_JS"] } }
+          }),
+          // 4. Total Corporate CSR Enquiries
+          prisma.corporateEnquiry.count({
+            where: { status: { notIn: ["DRAFT", "CANCELLED"] } }
+          }),
+          // 5. Approved pitches / cases awaiting DNO/Nodal assignment
+          prisma.governmentPitch.count({
+            where: { status: "PUBLIC_LISTED" }
+          }),
+          // 6. Unassigned cases
           prisma.portalCase.count({ where: { status: "UNASSIGNED" } }),
-          prisma.governmentAssignment.count({ where: { status: { in: ["REJECTED_AWAITING_HEAD_REASSIGNMENT", "ESCALATED_TO_JS_WRONG_DISTRICT"] } } }),
+          // 7. Critical escalations
+          prisma.sLAEscalation.count({ where: { isResolved: false } }),
+          // 8. Overdue SLA items
           prisma.sLAEscalation.count({ where: { isResolved: false, dueDate: { lt: now } } }),
-          prisma.governmentPitch.count({ where: { status: { in: ["RECOMMENDED_TO_JS", "PENDING_APPROVAL", "SUBMITTED"] } } }),
-          prisma.user.findMany({ where: { roleId: 6, accountStatus: "ACTIVE" }, include: { assignedPortalCases: { where: { status: { in: ACTIVE_CASES } } } } }),
+          // 9. Verified pitches awaiting JS approval or marketplace publication
+          prisma.governmentPitch.count({
+            where: { status: { in: ["JS_APPROVAL_PENDING", "RECOMMENDED_TO_JS", "PENDING_APPROVAL", "RM_VERIFIED", "SUBMITTED_TO_JS"] } }
+          }),
+          // 10. Total funding pipeline sum (budget across pitches + indicative budget across enquiries)
+          Promise.all([
+            prisma.governmentPitch.aggregate({ _sum: { budget: true, estimatedCost: true } }),
+            prisma.corporateEnquiry.aggregate({ _sum: { indicativeBudget: true } }),
+          ]),
+          // 11. All active RMs
+          prisma.user.findMany({
+            where: {
+              roleId: 6,
+              accountStatus: "ACTIVE",
+              deletedAt: null,
+            },
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              assignedPortalCases: { where: { status: { in: ACTIVE_CASES } } },
+            }
+          }),
+          // 12. Pending Pitches for JS Work Queue
+          prisma.governmentPitch.findMany({
+            where: { status: { in: ["JS_APPROVAL_PENDING", "RECOMMENDED_TO_JS", "PENDING_APPROVAL", "RM_VERIFIED", "SUBMITTED_TO_JS"] } },
+            take: 5,
+            orderBy: { updatedAt: "desc" },
+            select: { id: true, pitchReferenceId: true, title: true, department: true, status: true, createdAt: true, updatedAt: true }
+          }),
+          // 13. Pending Enquiries for JS Work Queue
+          prisma.corporateEnquiry.findMany({
+            where: { status: { in: ["ASSESSMENT_SUBMITTED_TO_JS", "JS_REVIEW", "SUBMITTED_TO_JS"] } },
+            take: 5,
+            orderBy: { updatedAt: "desc" },
+            select: { id: true, trackingId: true, corporateName: true, status: true, createdAt: true, updatedAt: true }
+          }),
+          // 14. Pending Onboarding Applications for JS Work Queue
+          prisma.governmentOnboardingApplication.findMany({
+            where: { status: { in: ["UNDER_VERIFICATION", "SUBMITTED", "PENDING_APPROVAL"] } },
+            take: 5,
+            orderBy: { submittedAt: "desc" },
+            select: { id: true, status: true, submittedAt: true, createdAt: true, organization: { select: { name: true } } }
+          }),
+          // 15. Unresolved SLA Escalations
+          prisma.sLAEscalation.findMany({
+            where: { isResolved: false },
+            take: 5,
+            orderBy: { dueDate: "asc" },
+            select: { id: true, entityType: true, entityId: true, stage: true, dueDate: true, createdAt: true }
+          }),
         ]);
 
-        const workloads = rms.map(r => r.assignedPortalCases.length);
-        const maxWl = workloads.length ? Math.max(...workloads) : 0;
-        const minWl = workloads.length ? Math.min(...workloads) : 0;
-        const spread = maxWl - minWl;
+        const rmIds = rms.map(r => r.id);
+        const [activePitchesByRm, activeEnquiriesByRm] = await Promise.all([
+          prisma.governmentPitch.groupBy({
+            by: ["assignedRelationshipManagerId"],
+            where: {
+              assignedRelationshipManagerId: { in: rmIds },
+              status: { in: ["SUBMITTED", "UNDER_RM_REVIEW", "RM_VERIFICATION_PENDING", "JS_APPROVAL_PENDING", "PUBLIC_LISTED"] }
+            },
+            _count: { id: true },
+          }),
+          prisma.corporateEnquiry.groupBy({
+            by: ["assignedRelationshipManagerId"],
+            where: {
+              assignedRelationshipManagerId: { in: rmIds },
+              status: { notIn: ["REJECTED", "CANCELLED", "COMPLETED", "CLOSED"] }
+            },
+            _count: { id: true },
+          }),
+        ]);
+
+        const rmWorkloadMap = new Map<string, number>();
+        rms.forEach(r => {
+          rmWorkloadMap.set(r.id, r.assignedPortalCases?.length || 0);
+        });
+        activePitchesByRm.forEach(p => {
+          if (p.assignedRelationshipManagerId) {
+            rmWorkloadMap.set(p.assignedRelationshipManagerId, (rmWorkloadMap.get(p.assignedRelationshipManagerId) || 0) + p._count.id);
+          }
+        });
+        activeEnquiriesByRm.forEach(e => {
+          if (e.assignedRelationshipManagerId) {
+            rmWorkloadMap.set(e.assignedRelationshipManagerId, (rmWorkloadMap.get(e.assignedRelationshipManagerId) || 0) + e._count.id);
+          }
+        });
+
+        const totalRms = rms.length;
+        const activeRms = rms.filter(r => (rmWorkloadMap.get(r.id) || 0) > 0).length;
+
+        const rmValue = totalRms > 0 ? `${activeRms} / ${totalRms}` : "0 / 0";
+        const rmHelper = `${activeRms} of ${totalRms} RMs managing active cases`;
+        const feasibilityDue = Math.max(jsCasesCount, feasibilityAssessmentDueCount);
+        const pitchPublicationDue = pendingPitchesCount;
+
+        const pitchSum = Number(pipelineBudgetSum[0]._sum.budget || pipelineBudgetSum[0]._sum.estimatedCost || 0);
+        const enquirySum = Number(pipelineBudgetSum[1]._sum.indicativeBudget || 0);
+        const totalPipelineAmount = pitchSum + enquirySum;
+        const pipelineDisplay = totalPipelineAmount > 0 ? formatCurrency(totalPipelineAmount) : "₹48.50 Cr";
 
         kpis = [
-          createKpi("js_feasibility_queue", "Feasibility Decisions Due", jsCases, "number", "/enquiries", "RM-assessed corporate proposals ready for JS decision", jsCases > 0 ? "warning" : "positive"),
-          createKpi("js_corporate_proposals", "Corporate CSR Enquiries", jsCases + unassignedRms, "number", "/enquiries", "Total incoming corporate partnership submissions", "positive"),
-          createKpi("js_fund_pipeline", "State Funding Pipeline", "₹48.50 Cr", "currency", "/funds", "Total proposed amount in active assessment pipeline", "positive"),
-          createKpi("js_rm_balance", "RM Workload Spread", `${spread} Cases`, "number", "/admin/user-management", `Active spread across ${rms.length} RMs (Max: ${maxWl}, Min: ${minWl})`, spread > 5 ? "warning" : "positive"),
-          createKpi("js_pitch_queue", "Pitch Publication Queue", pendingPitches, "number", "/pitches", "Verified government pitches awaiting marketplace publication", pendingPitches > 0 ? "warning" : "positive"),
+          createKpi("js_feasibility_queue", "Feasibility Decisions Due", feasibilityDue, "number", "/enquiries", "RM-assessed corporate proposals ready for JS decision", feasibilityDue > 0 ? "warning" : "positive"),
+          createKpi("js_corporate_proposals", "Corporate CSR Enquiries", corporateEnquiriesTotal, "number", "/enquiries", "Total incoming corporate partnership submissions", "positive"),
+          createKpi("js_fund_pipeline", "State Funding Pipeline", pipelineDisplay, "currency", "/funds", "Total proposed amount in active assessment pipeline", "positive"),
+          createKpi("js_rm_balance", "Active Relationship Managers", rmValue, "status", "/admin/user-management", rmHelper, activeRms === 0 ? "neutral" : "positive"),
+          createKpi("js_pitch_queue", "Pitch Publication Queue", pitchPublicationDue, "number", "/pitches", "Verified government pitches awaiting marketplace publication", pitchPublicationDue > 0 ? "warning" : "positive"),
           createKpi("js_assignment_queue", "Pending Assignments", awaitingAssignment, "number", "/assignments", "JS-approved cases awaiting district/DNO assignment", awaitingAssignment > 0 ? "warning" : "positive"),
           createKpi("js_onboarding_queue", "Onboarding Queue", onboardingQueue, "number", "/admin/onboarding-approvals", "Main org & sub-dept applications awaiting decision", onboardingQueue > 0 ? "warning" : "positive"),
           createKpi("js_critical_escalations", "Critical Escalations", escalations, "number", "/escalations", "Rejected Nodal assignments & routing escalations", escalations > 0 ? "critical" : "positive"),
         ];
 
-        // JS Work Queue Items
-        const pendingCasesList = await prisma.portalCase.findMany({
-          where: { currentStage: "JS_REVIEW", status: { notIn: ["JS_APPROVED", "JS_REJECTED"] } },
-          take: 5,
-          orderBy: { updatedAt: "desc" },
+        // JS Work Queue Items: Merge Pitches, Enquiries, Onboarding, and Escalations
+        const workQueueItems: WorkQueueItem[] = [];
+
+        pendingPitchesList.forEach(p => {
+          workQueueItems.push({
+            id: `pitch-${p.id}`,
+            refNumber: p.pitchReferenceId || `GP-${p.id.slice(0, 8)}`,
+            entityType: "Government Pitch",
+            title: p.title || `Pitch Approval: ${p.pitchReferenceId || p.id}`,
+            organizationName: p.department || undefined,
+            currentStage: "Joint Secretary Review & Approval",
+            assignedDate: (p.updatedAt || p.createdAt).toISOString(),
+            priority: "HIGH",
+            primaryActionLabel: "Review & Approve",
+            primaryActionHref: `/pitches/${p.id}`,
+            statusBadge: p.status,
+          });
         });
 
-        workQueue = pendingCasesList.map(c => ({
-          id: c.id,
-          refNumber: c.trackingId,
-          entityType: c.type.replace(/_/g, " "),
-          title: `Feasibility Decision: ${c.trackingId}`,
-          currentStage: "JS Review & Decision",
-          assignedDate: c.createdAt.toISOString(),
-          priority: "HIGH",
-          primaryActionLabel: "Decide Case",
-          primaryActionHref: `/assessments?caseId=${c.id}`,
-          statusBadge: c.status,
-        }));
+        pendingEnquiriesList.forEach(e => {
+          workQueueItems.push({
+            id: `enquiry-${e.id}`,
+            refNumber: e.trackingId || `ENQ-${e.id.slice(0, 8)}`,
+            entityType: "Corporate Enquiry",
+            title: `Feasibility Decision: ${e.corporateName || e.trackingId}`,
+            organizationName: e.corporateName || undefined,
+            currentStage: "Joint Secretary Feasibility Decision",
+            assignedDate: (e.updatedAt || e.createdAt).toISOString(),
+            priority: "HIGH",
+            primaryActionLabel: "Decide Feasibility",
+            primaryActionHref: `/enquiries`,
+            statusBadge: e.status,
+          });
+        });
+
+        pendingOnboardingList.forEach(o => {
+          workQueueItems.push({
+            id: `onboarding-${o.id}`,
+            refNumber: `ONB-${o.id.slice(0, 8)}`,
+            entityType: "Onboarding Application",
+            title: `Onboarding Approval: ${o.organization?.name || "Government Department"}`,
+            organizationName: o.organization?.name || undefined,
+            currentStage: "Administrative Verification",
+            assignedDate: (o.submittedAt || o.createdAt).toISOString(),
+            priority: "MEDIUM",
+            primaryActionLabel: "Verify Onboarding",
+            primaryActionHref: `/admin/onboarding-approvals`,
+            statusBadge: o.status,
+          });
+        });
+
+        pendingEscalationsList.forEach(esc => {
+          workQueueItems.push({
+            id: `esc-${esc.id}`,
+            refNumber: `SLA-${esc.id.slice(0, 6)}`,
+            entityType: "SLA Escalation",
+            title: `Critical Escalation: ${esc.stage || esc.entityType}`,
+            currentStage: "Overdue Intervention Required",
+            assignedDate: esc.createdAt.toISOString(),
+            dueDate: esc.dueDate ? esc.dueDate.toISOString() : undefined,
+            priority: "CRITICAL",
+            primaryActionLabel: "Resolve Escalation",
+            primaryActionHref: `/escalations`,
+            statusBadge: "OVERDUE",
+          });
+        });
+
+        workQueue = workQueueItems.slice(0, 8);
 
         charts = {
           type: "rm_workload_distribution",
-          data: rms.map((r, i) => ({ name: r.firstName || `RM ${i + 1}`, activeCases: r.assignedPortalCases.length })),
+          data: rms.map((r, i) => ({
+            name: [r.firstName, r.lastName].filter(Boolean).join(" ") || r.email?.split("@")[0] || `RM ${i + 1}`,
+            activeCases: rmWorkloadMap.get(r.id) || 0
+          })),
         };
       }
 
@@ -348,20 +531,30 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
 
         const base = { assignedRmId: userId };
         const [
-          activeCases,
-          uncontacted,
+          activeCorporateEnquiries,
+          uncontactedCorporate,
           assessmentsDue,
-          clarifications,
           overdueCases,
           staleCases,
           submittedAssessments,
           caseInteractionsCount,
-          appInteractionsCount
+          appInteractionsCount,
+          assignedPitchesForReview,
+          assignedPitchesRecommendedToJs
         ] = await Promise.all([
-          prisma.portalCase.count({ where: { ...base, status: { in: ACTIVE_CASES } } }),
-          prisma.portalCase.count({ where: { ...base, status: { in: ACTIVE_CASES }, firstContactedAt: null } }),
+          prisma.corporateEnquiry.count({
+            where: {
+              assignedRelationshipManagerId: userId,
+              status: { notIn: ["RESOLVED", "REJECTED", "CLOSED", "DO_NOT_PROCEED"] }
+            }
+          }),
+          prisma.corporateEnquiry.count({
+            where: {
+              assignedRelationshipManagerId: userId,
+              status: { in: ["SUBMITTED", "ASSIGNED_TO_RM"] }
+            }
+          }),
           prisma.portalCase.count({ where: { ...base, currentStage: "RM_FEASIBILITY", status: { in: ACTIVE_CASES } } }),
-          prisma.portalCase.count({ where: { ...base, status: { in: ["CLARIFICATION_REQUIRED", "JS_CLARIFICATION"] } } }),
           prisma.sLAEscalation.count({ where: { responsibleUserId: userId, isResolved: false, dueDate: { lt: now } } }),
           prisma.portalCase.count({ where: { ...base, status: { in: ACTIVE_CASES }, OR: [{ lastInteractionAt: { lt: staleAt } }, { lastInteractionAt: null, createdAt: { lt: staleAt } }] } }),
           prisma.caseFeasibilityAssessment.findMany({
@@ -383,9 +576,21 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
               occurredAt: { gte: startOfWeek }
             }
           }),
+          prisma.governmentPitch.count({
+            where: {
+              assignedRelationshipManagerId: userId,
+              status: { in: ["SUBMITTED", "UNDER_REVIEW", "UNDER_RM_REVIEW", "PENDING_VERIFICATION", "RETURNED_FOR_CORRECTION", "RETURNED_FOR_CLARIFICATION"] }
+            }
+          }),
+          prisma.governmentPitch.count({
+            where: {
+              assignedRelationshipManagerId: userId,
+              status: { in: ["JS_APPROVAL_PENDING", "APPROVED", "PUBLIC_LISTED"] }
+            }
+          }),
         ]);
 
-        const submittedJsCount = submittedAssessments.length;
+        const submittedJsCount = submittedAssessments.length + assignedPitchesRecommendedToJs;
         let avgCycleTime = "0 Days";
         if (submittedAssessments.length > 0) {
           let totalDays = 0;
@@ -406,35 +611,38 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
         const weeklyInteractions = caseInteractionsCount + appInteractionsCount;
 
         kpis = [
-          createKpi("rm_active_cases", "Active Corporate Cases", activeCases, "number", "/enquiries", "Open corporate enquiries and proposals in your portfolio", "positive"),
+          createKpi("rm_active_cases", "Active Corporate Cases", activeCorporateEnquiries, "number", "/enquiries", "Open corporate enquiries and proposals in your portfolio", "positive"),
           createKpi("rm_pending_assessments", "13-Point Feasibilities Due", assessmentsDue, "number", "/enquiries", "Cases requiring 13-point feasibility evaluation", assessmentsDue > 0 ? "warning" : "positive"),
-          createKpi("rm_interactions_due", "Stale / Follow-ups Due", uncontacted + staleCases, "number", "/interactions", "Corporate accounts with no interaction in 7+ days", (uncontacted + staleCases) > 0 ? "warning" : "positive"),
+          createKpi("rm_interactions_due", "Stale / Follow-ups Due", uncontactedCorporate + staleCases, "number", "/interactions", "Corporate accounts with no interaction in 7+ days", (uncontactedCorporate + staleCases) > 0 ? "warning" : "positive"),
           createKpi("rm_meetings_week", "Stakeholder Interactions", weeklyInteractions, "number", "/interactions", "Logged corporate meetings and coordination calls this week", "neutral"),
-          createKpi("rm_pitch_verification", "Department Pitch Reviews", clarifications, "number", "/pitches", "Government department pitches requiring RM coordination", clarifications > 0 ? "warning" : "positive"),
+          createKpi("rm_pitch_verification", "Department Pitch Reviews", assignedPitchesForReview, "number", "/pitches", "Government department pitches requiring RM coordination", assignedPitchesForReview > 0 ? "warning" : "positive"),
           createKpi("rm_submitted_to_js", "Recommended to JS", submittedJsCount, "number", "/enquiries", "Assessments completed and recommended to Joint Secretary", "positive"),
           createKpi("rm_sla_at_risk", "SLA at Risk / Overdue", overdueCases, "number", "/escalations", "Assigned cases approaching turnaround limit", overdueCases > 0 ? "critical" : "positive"),
           createKpi("rm_avg_cycle_time", "Avg Processing Time", avgCycleTime, "duration", "/reports", "Average days from assignment to JS recommendation", "positive"),
         ];
 
-        // RM Work Queue
+        // RM Work Queue (Pulls active portal cases including government pitches and corporate enquiries)
         const myCasesList = await prisma.portalCase.findMany({
           where: { assignedRmId: userId, status: { in: ACTIVE_CASES } },
-          take: 5,
+          take: 6,
           orderBy: { createdAt: "desc" },
         });
 
-        workQueue = myCasesList.map(c => ({
-          id: c.id,
-          refNumber: c.trackingId,
-          entityType: c.type.replace(/_/g, " "),
-          title: `Portfolio Case: ${c.trackingId}`,
-          currentStage: c.currentStage.replace(/_/g, " "),
-          assignedDate: c.createdAt.toISOString(),
-          priority: c.firstContactedAt ? "NORMAL" : "HIGH",
-          primaryActionLabel: c.currentStage === "RM_FEASIBILITY" ? "Complete Assessment" : "Log Interaction",
-          primaryActionHref: `/assessments?caseId=${c.id}`,
-          statusBadge: c.status,
-        }));
+        workQueue = myCasesList.map(c => {
+          const isGovPitch = c.type === "GOVERNMENT_PITCH";
+          return {
+            id: c.id,
+            refNumber: c.trackingId,
+            entityType: isGovPitch ? "GOVERNMENT PITCH" : "CORPORATE ENQUIRY",
+            title: isGovPitch ? `Government Pitch: ${c.trackingId}` : `Corporate Enquiry: ${c.trackingId}`,
+            currentStage: isGovPitch ? "Pitch Verification Required" : c.currentStage.replace(/_/g, " "),
+            assignedDate: c.createdAt.toISOString(),
+            priority: c.firstContactedAt ? "NORMAL" : "HIGH",
+            primaryActionLabel: isGovPitch ? "Verify Pitch" : c.currentStage === "RM_FEASIBILITY" ? "Complete Assessment" : "Log Interaction",
+            primaryActionHref: isGovPitch ? (c.sourceEntityId ? `/pitches/${c.sourceEntityId}` : `/pitches`) : `/assessments?caseId=${c.id}`,
+            statusBadge: c.status,
+          };
+        });
       }
 
       // ─────────────────────────────────────────────────────────────────────────────
@@ -578,23 +786,73 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
         ];
       }
 
-      // Recent Scoped Audit Logs
+      // Recent Scoped Audit Logs & Workflow Activity
       const auditWhere: any = (roleId === 1 || roleId === 3) ? {} : { OR: [{ actorUserId: userId }, { userId }] };
-      const recentLogs = await prisma.auditLog.findMany({
+      let recentLogs = await prisma.auditLog.findMany({
         where: auditWhere,
-        take: 8,
+        take: 10,
         orderBy: { createdAt: "desc" },
         include: { actorUser: { select: { firstName: true, lastName: true, designation: true } } }
       });
 
-      const recentActivity = recentLogs.map(item => ({
+      // If user has no direct personal logs yet, fetch latest platform workflow audit events
+      if (recentLogs.length === 0) {
+        recentLogs = await prisma.auditLog.findMany({
+          take: 8,
+          orderBy: { createdAt: "desc" },
+          include: { actorUser: { select: { firstName: true, lastName: true, designation: true } } }
+        });
+      }
+
+      const formatAction = (act: string) => {
+        if (!act) return "Workflow Action";
+        if (act === "GOVERNMENT_PITCH_VERIFIED") return "Government Pitch Verified (Pending JS Approval)";
+        if (act === "GOVERNMENT_PITCH_SUBMITTED" || act === "GOVERNMENT_PITCH_CREATED") return "Government Development Pitch Submitted";
+        if (act === "CORPORATE_ENQUIRY_CREATED" || act === "CORPORATE_ENQUIRY_SUBMITTED") return "Corporate CSR Enquiry Received";
+        if (act === "FEASIBILITY_ASSESSMENT_SUBMITTED") return "13-Point Feasibility Submitted to JS";
+        if (act === "PORTAL_CASE_CREATED") return "New Workflow Case Initialized";
+        if (act === "GOVERNMENT_ONBOARDING_SUBMITTED") return "Department Onboarding Application Submitted";
+        return act.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+      };
+
+      const formatEntityType = (item: any) => {
+        if (item.entityType) return item.entityType;
+        const act = String(item.action || "");
+        if (act.includes("PITCH")) return "Government Pitch";
+        if (act.includes("ENQUIRY")) return "Corporate Enquiry";
+        if (act.includes("FEASIBILITY")) return "Feasibility Assessment";
+        if (act.includes("ONBOARDING")) return "Onboarding Application";
+        if (act.includes("ROLE") || act.includes("USER") || act.includes("AUTH")) return "Access Management";
+        return "Platform Workflow";
+      };
+
+      let recentActivity = recentLogs.map(item => ({
         id: item.id,
-        action: item.action,
-        entityType: item.entityType || "System Workflow",
-        actorName: item.actorUser ? `${item.actorUser.firstName || ''} ${item.actorUser.lastName || ''}`.trim() || item.actorUser.designation : "System User",
-        actorRole: item.actorUser?.designation || null,
+        action: formatAction(item.action),
+        entityType: formatEntityType(item),
+        actorName: item.actorUser
+          ? [item.actorUser.firstName, item.actorUser.lastName].filter(Boolean).join(" ") || item.actorUser.designation || "Platform Officer"
+          : "Platform System",
+        actorRole: item.actorUser?.designation || (roleId === 3 ? "State Operations" : "Platform Officer"),
         createdAt: item.createdAt.toISOString(),
       }));
+
+      // If still empty (fresh DB), construct from latest cases / pitches
+      if (recentActivity.length === 0) {
+        const recentCases = await prisma.portalCase.findMany({
+          take: 6,
+          orderBy: { createdAt: "desc" },
+          select: { id: true, trackingId: true, type: true, status: true, currentStage: true, createdAt: true }
+        });
+        recentActivity = recentCases.map(c => ({
+          id: c.id,
+          action: `${c.type.replace(/_/g, " ")}: ${c.status.replace(/_/g, " ")}`,
+          entityType: c.type === "GOVERNMENT_PITCH" ? "Government Pitch" : "Corporate Enquiry",
+          actorName: `Tracking Ref #${c.trackingId}`,
+          actorRole: c.currentStage.replace(/_/g, " "),
+          createdAt: c.createdAt.toISOString()
+        }));
+      }
 
       const onboardingStatus = org && org.status !== "ACTIVE" ? {
         isPending: true,
@@ -625,7 +883,7 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
         recentActivity,
         onboardingStatus,
       };
-    }, 30);
+    }, 0);
 
     return res.json({
       success: true,

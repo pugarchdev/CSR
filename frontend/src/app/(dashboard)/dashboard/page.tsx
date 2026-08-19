@@ -18,14 +18,21 @@ import "@/styles/gov-theme.css";
 
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
+  const roleId = Number(user?.roleNumericId || user?.roleId || 0);
+  const roleCode = String(user?.role || "").toUpperCase();
+
+  // Project assignments are only for field execution roles (District Nodal Officers, DNCs, NGOs)
+  const isFieldOrAgencyRole = [4, 5, 9].includes(roleId) || /DISTRICT_NODAL|DNO|DNC|NGO|AGENCY/i.test(roleCode);
 
   return (
     <GovPortalLayout userRole={user?.role || ""}>
       <DashboardEngine />
 
-      <div className="mt-5">
-        <MyAssignmentsWidget />
-      </div>
+      {isFieldOrAgencyRole && (
+        <div className="mt-5">
+          <MyAssignmentsWidget />
+        </div>
+      )}
     </GovPortalLayout>
   );
 }
