@@ -8,7 +8,8 @@ import {
   Loader2, Send, FileCode, ShieldCheck, AlertCircle, Copy, Check, UserCheck,
   Mail, Phone, User, MapPin, ExternalLink, Image as ImageIcon,
   CheckSquare, ArrowUpRight, Sparkles, Clock, FileCheck, MessageSquare,
-  HelpCircle, RotateCcw, Video, SendHorizontal, MessageCircle, X, Upload
+  HelpCircle, RotateCcw, Video, SendHorizontal, MessageCircle, X, Upload,
+  CalendarDays, ArrowRight
 } from "lucide-react";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import { useApiQuery } from "@/lib/apiHooks";
@@ -132,6 +133,9 @@ export default function PitchDetailPage() {
   const [jsApprovalConditions, setJsApprovalConditions] = useState("");
   const [submittingJsDecision, setSubmittingJsDecision] = useState(false);
 
+  const [showMeetingModal, setShowMeetingModal] = useState(false);
+  const [meetingTarget, setMeetingTarget] = useState<{ name: string; email: string; role: string } | null>(null);
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -197,14 +201,7 @@ export default function PitchDetailPage() {
     && assessmentSummary.trim().length >= 20
     && (recommendation !== "PROCEED_WITH_CONDITIONS" || conditions.trim().length >= 10);
 
-  const rmVerification = pitch?.rmVerification || (checkedItems && answeredCheckCount > 0 ? {
-    checklist: checkedItems,
-    recommendation,
-    summary: assessmentSummary,
-    conditions: conditions || null,
-    verifiedAt: new Date().toISOString(),
-    verifiedBy: user ? { name: user.name || `${user.firstName || ""} ${user.lastName || ""}`.trim(), designation: user.designation || "Relationship Manager" } : null
-  } : null);
+  const rmVerification = pitch?.rmVerification || null;
 
   const budget = Number(pitch?.budget || pitch?.estimatedCost || 0);
 
@@ -355,6 +352,96 @@ export default function PitchDetailPage() {
       alert(err.message || "Failed to log interaction.");
     } finally {
       setLoggingInteraction(false);
+    }
+  };
+
+  const handleEmailOfficial = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!pitch?.email) return;
+    const recipient = pitch.email;
+    const refNo = pitch?.pitchReferenceId || params.id;
+    const subject = encodeURIComponent(`MahaCSR Proposal — Reference ${refNo}`);
+    const body = encodeURIComponent(
+      `Dear ${pitch.officialName || "Sir/Madam"},\n\nThis is regarding Government Pitch Proposal "${pitch.title || "CSR Requirement"}" (Reference: ${refNo}).\n\nRegards,\n${[user?.firstName, user?.lastName].filter(Boolean).join(" ") || "State CSR Cell"}\nMaharashtra State CSR Authority`
+    );
+    window.open(`mailto:${recipient}?subject=${subject}&body=${body}`, "_self");
+
+    try {
+      await apiFetch(`/government-pitches/${pitch.id}/interactions`, {
+        method: "POST",
+        body: JSON.stringify({
+          channel: "EMAIL",
+          note: `Initiated official email communication to submitting officer ${pitch.officialName || ""} (${recipient}) regarding proposal ${refNo}.`
+        })
+      });
+      refetchInteractions();
+    } catch (err) {
+      console.warn("Auto-log email interaction failed:", err);
+    }
+  };
+
+  const handleCallOfficial = async (e: React.MouseEvent) => {
+    if (!pitch?.mobile) return;
+    const phone = pitch.mobile;
+    const refNo = pitch?.pitchReferenceId || params.id;
+    window.open(`tel:${phone}`, "_self");
+
+    try {
+      await apiFetch(`/government-pitches/${pitch.id}/interactions`, {
+        method: "POST",
+        body: JSON.stringify({
+          channel: "PHONE",
+          note: `Initiated telephone call to submitting officer ${pitch.officialName || ""} (${phone}) regarding proposal ${refNo}.`
+        })
+      });
+      refetchInteractions();
+    } catch (err) {
+      console.warn("Auto-log phone call failed:", err);
+    }
+  };
+
+  const handleEmailRM = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!assignedRm?.email) return;
+    const recipient = assignedRm.email;
+    const refNo = pitch?.pitchReferenceId || params.id;
+    const subject = encodeURIComponent(`MahaCSR Proposal Coordination — Reference ${refNo}`);
+    const body = encodeURIComponent(
+      `Dear ${assignedRm.name || "Relationship Manager"},\n\nThis is regarding Government Pitch Proposal "${pitch.title || "CSR Requirement"}" (Reference: ${refNo}).\n\nRegards,\n${[user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Department Official"}\n${pitch.department || "Government Department"}`
+    );
+    window.open(`mailto:${recipient}?subject=${subject}&body=${body}`, "_self");
+
+    try {
+      await apiFetch(`/government-pitches/${pitch.id}/interactions`, {
+        method: "POST",
+        body: JSON.stringify({
+          channel: "EMAIL",
+          note: `Initiated email communication to assigned Relationship Manager ${assignedRm.name || ""} (${recipient}) regarding proposal ${refNo}.`
+        })
+      });
+      refetchInteractions();
+    } catch (err) {
+      console.warn("Auto-log RM email failed:", err);
+    }
+  };
+
+  const handleCallRM = async (e: React.MouseEvent) => {
+    if (!assignedRm?.mobile) return;
+    const phone = assignedRm.mobile;
+    const refNo = pitch?.pitchReferenceId || params.id;
+    window.open(`tel:${phone}`, "_self");
+
+    try {
+      await apiFetch(`/government-pitches/${pitch.id}/interactions`, {
+        method: "POST",
+        body: JSON.stringify({
+          channel: "PHONE",
+          note: `Initiated telephone call to assigned Relationship Manager ${assignedRm.name || ""} (${phone}) regarding proposal ${refNo}.`
+        })
+      });
+      refetchInteractions();
+    } catch (err) {
+      console.warn("Auto-log RM phone call failed:", err);
     }
   };
 
@@ -947,7 +1034,12 @@ export default function PitchDetailPage() {
                     {pitch.mobile && (
                       <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 flex items-center justify-between">
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Contact Number</span>
-                        <a href={`tel:${pitch.mobile}`} className="font-bold text-slate-900 hover:text-blue-900 flex items-center gap-1.5 no-underline">
+                        <a
+                          href={`tel:${pitch.mobile}`}
+                          onClick={handleCallOfficial}
+                          className="font-bold text-slate-900 hover:text-blue-900 flex items-center gap-1.5 no-underline cursor-pointer"
+                          title="Call official (auto-logs to timeline)"
+                        >
                           <Phone size={13} className="text-emerald-700" />
                           {pitch.mobile}
                         </a>
@@ -957,12 +1049,34 @@ export default function PitchDetailPage() {
                     {pitch.email && (
                       <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">Official Email</span>
-                        <a href={`mailto:${pitch.email}`} className="font-bold text-blue-900 hover:underline break-all flex items-center gap-1.5 text-xs">
+                        <a
+                          href={`mailto:${pitch.email}`}
+                          onClick={handleEmailOfficial}
+                          className="font-bold text-blue-900 hover:underline break-all flex items-center gap-1.5 text-xs cursor-pointer"
+                          title="Send official email (auto-logs to timeline)"
+                        >
                           <Mail size={13} className="text-blue-700 shrink-0" />
                           <span className="break-all">{pitch.email}</span>
                         </a>
                       </div>
                     )}
+
+                    {/* Schedule Meeting with Submitting Official */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMeetingTarget({
+                          name: pitch.officialName || "Department Nodal Officer",
+                          email: pitch.email || "",
+                          role: pitch.designation || "Submitting Official"
+                        });
+                        setShowMeetingModal(true);
+                      }}
+                      className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 py-2.5 text-xs font-bold text-purple-900 transition-all cursor-pointer shadow-2xs mt-1"
+                    >
+                      <CalendarDays size={14} className="text-purple-700" />
+                      Schedule Alignment Meeting
+                    </button>
                   </div>
                 </section>
 
@@ -997,7 +1111,12 @@ export default function PitchDetailPage() {
                         {assignedRm.email && (
                           <div className="rounded-xl border border-slate-100 bg-white p-2.5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between shadow-2xs">
                             <span className="text-[10px] font-bold text-slate-400 shrink-0">Email</span>
-                            <a href={`mailto:${assignedRm.email}`} className="font-bold text-blue-900 hover:underline flex items-center gap-1.5 text-xs break-all">
+                            <a
+                              href={`mailto:${assignedRm.email}`}
+                              onClick={handleEmailRM}
+                              className="font-bold text-blue-900 hover:underline flex items-center gap-1.5 text-xs break-all cursor-pointer"
+                              title="Email Relationship Manager (auto-logs to timeline)"
+                            >
                               <Mail size={12} className="text-blue-700 shrink-0" />
                               <span className="break-all">{assignedRm.email}</span>
                             </a>
@@ -1007,7 +1126,12 @@ export default function PitchDetailPage() {
                         {assignedRm.mobile && (
                           <div className="rounded-xl border border-slate-100 bg-white p-2.5 flex items-center justify-between shadow-2xs">
                             <span className="text-[10px] font-bold text-slate-400">Mobile</span>
-                            <a href={`tel:${assignedRm.mobile}`} className="font-bold text-slate-900 hover:text-blue-900 flex items-center gap-1.5">
+                            <a
+                              href={`tel:${assignedRm.mobile}`}
+                              onClick={handleCallRM}
+                              className="font-bold text-slate-900 hover:text-blue-900 flex items-center gap-1.5 cursor-pointer"
+                              title="Call Relationship Manager (auto-logs to timeline)"
+                            >
                               <Phone size={12} className="text-emerald-700" />
                               {assignedRm.mobile}
                             </a>
@@ -1029,7 +1153,7 @@ export default function PitchDetailPage() {
             </div>
 
             {/* RM Technical Verification & Feasibility Review Report (Word-for-Word for JS, Admins, & Stakeholders) */}
-            {(rmVerification || pitch?.status === "JS_APPROVAL_PENDING" || isAlreadyApproved || isJS) && (
+            {(Boolean(rmVerification) || pitch?.status === "JS_APPROVAL_PENDING" || isAlreadyApproved) && (
               <section className="rounded-3xl border-2 border-indigo-200/90 bg-white p-6 md:p-8 shadow-xs space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
                   <div className="flex items-center gap-3">
@@ -1759,7 +1883,188 @@ export default function PitchDetailPage() {
           </div>
         </div>
       )}
+      {/* Schedule Stakeholder Meeting Modal */}
+      {showMeetingModal && (
+        <SchedulePitchMeetingModal
+          pitchId={pitch?.id || params.id}
+          attendeeName={meetingTarget?.name || pitch?.officialName || "Official"}
+          attendeeEmail={meetingTarget?.email || pitch?.email || ""}
+          pitchRefNo={pitch?.pitchReferenceId || params.id}
+          pitchTitle={pitch?.title || "Government Pitch Proposal"}
+          onClose={() => {
+            setShowMeetingModal(false);
+            setMeetingTarget(null);
+          }}
+          onScheduled={() => {
+            refetchInteractions();
+            setShowMeetingModal(false);
+            setMeetingTarget(null);
+          }}
+        />
+      )}
     </GovPortalLayout>
+  );
+}
+
+/* ─── Schedule Stakeholder Alignment Meeting Modal ─── */
+function SchedulePitchMeetingModal({
+  pitchId,
+  attendeeName,
+  attendeeEmail,
+  pitchRefNo,
+  pitchTitle,
+  onClose,
+  onScheduled
+}: {
+  pitchId: string;
+  attendeeName: string;
+  attendeeEmail: string;
+  pitchRefNo: string;
+  pitchTitle: string;
+  onClose: () => void;
+  onScheduled: () => void;
+}) {
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("10:30");
+  const [mode, setMode] = useState("Virtual (Video Call / MahaGov VC)");
+  const [purpose, setPurpose] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSchedule = async () => {
+    setError("");
+    if (!date) return setError("Please select a meeting date.");
+    if (!purpose.trim()) return setError("Please enter the meeting agenda / purpose.");
+
+    const meetingDateTime = new Date(`${date}T${time}`);
+    const dayOfWeek = meetingDateTime.toLocaleDateString("en-IN", { weekday: "long" });
+    const formattedDate = meetingDateTime.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+
+    const note = `Stakeholder alignment meeting scheduled with ${attendeeName || "official"} (${attendeeEmail || "Contact"}) for proposal ${pitchRefNo} on ${dayOfWeek}, ${formattedDate} at ${time}. Mode: ${mode}. Agenda: ${purpose.trim()}.`;
+
+    setSubmitting(true);
+    try {
+      await apiFetch(`/government-pitches/${pitchId}/interactions`, {
+        method: "POST",
+        body: JSON.stringify({
+          channel: "MEETING",
+          note,
+          occurredAt: meetingDateTime.toISOString()
+        })
+      });
+      onScheduled();
+    } catch (err: any) {
+      setError(err instanceof Error ? err.message : "Failed to schedule meeting.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
+      <div
+        className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-lg p-6 space-y-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-900 flex items-center justify-center font-bold">
+              <CalendarDays size={18} />
+            </div>
+            <div>
+              <h3 className="text-sm font-extrabold text-slate-900">Schedule Alignment Meeting</h3>
+              <p className="text-[11px] text-slate-500">Coordinate proposal details with stakeholder.</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="space-y-3.5">
+          <div className="p-3 rounded-2xl bg-purple-50/70 border border-purple-100 text-xs space-y-1">
+            <p className="font-extrabold text-purple-950">Proposal: {pitchRefNo}</p>
+            <p className="text-purple-800 line-clamp-1">{pitchTitle}</p>
+            {attendeeName && (
+              <p className="text-slate-600 text-[11px] pt-1">
+                <strong>Attendee:</strong> {attendeeName} {attendeeEmail && `(${attendeeEmail})`}
+              </p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <label className="space-y-1 block">
+              <span className="text-xs font-bold text-slate-700">Date *</span>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                min={new Date().toISOString().split("T")[0]}
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600/20"
+              />
+            </label>
+            <label className="space-y-1 block">
+              <span className="text-xs font-bold text-slate-700">Time *</span>
+              <input
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600/20"
+              />
+            </label>
+          </div>
+
+          <label className="space-y-1 block">
+            <span className="text-xs font-bold text-slate-700">Meeting Mode</span>
+            <select
+              value={mode}
+              onChange={(e) => setMode(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600/20"
+            >
+              <option value="Virtual (Video Call / MahaGov VC)">Virtual (Video Call / MahaGov VC)</option>
+              <option value="In-Person (Collectorate Office)">In-Person (Collectorate Office)</option>
+              <option value="In-Person (State CSR Cell, Mantralaya)">In-Person (State CSR Cell, Mantralaya)</option>
+              <option value="Telephone Alignment Conference">Telephone Alignment Conference</option>
+              <option value="Field / Site Inspection Meeting">Field / Site Inspection Meeting</option>
+            </select>
+          </label>
+
+          <label className="space-y-1 block">
+            <span className="text-xs font-bold text-slate-700">Agenda / Discussion Purpose *</span>
+            <textarea
+              value={purpose}
+              onChange={(e) => setPurpose(e.target.value)}
+              rows={3}
+              placeholder="e.g. Feasibility assessment, budget alignment, or DPR review..."
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600/20 resize-none"
+            />
+          </label>
+
+          {error && (
+            <p className="text-xs font-bold text-rose-600">{error}</p>
+          )}
+        </div>
+
+        <div className="flex justify-end gap-2.5 pt-2 border-t border-slate-100">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 border border-slate-200 hover:bg-slate-100 transition-colors cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSchedule}
+            disabled={submitting}
+            className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-purple-700 text-white text-xs font-extrabold shadow-sm hover:bg-purple-800 transition-all disabled:opacity-50 cursor-pointer"
+          >
+            {submitting ? <Loader2 size={14} className="animate-spin" /> : <CalendarDays size={14} />}
+            Confirm & Schedule
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

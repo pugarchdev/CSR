@@ -3,6 +3,7 @@
 import React from "react";
 import { ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react";
 import { SortDirection } from "@/hooks/useTableSort";
+import { cn } from "@/lib/utils";
 
 export interface SortableThProps extends React.ThHTMLAttributes<HTMLTableCellElement> {
   sortKey?: string;
@@ -50,15 +51,12 @@ export function SortableTh({
             : "descending"
           : undefined
       }
-      className={`px-4 py-3.5 text-[11px] font-extrabold uppercase tracking-wider transition-colors ${
-        isSortable
-          ? "cursor-pointer select-none group hover:bg-slate-100/70 hover:text-slate-900"
-          : ""
-      } ${
-        isActive
-          ? "text-blue-900 bg-blue-50/50"
-          : "text-slate-500"
-      } ${className}`}
+      className={cn(
+        "px-4 py-3.5 text-[11px] font-extrabold uppercase tracking-wider transition-colors",
+        isSortable && "cursor-pointer select-none group hover:bg-slate-100/70 hover:text-slate-900",
+        isActive ? "text-blue-900 bg-blue-50/50" : "text-slate-500",
+        className
+      )}
     >
       <div className={`flex items-center gap-1.5 ${alignClass}`}>
         <span>{children}</span>
