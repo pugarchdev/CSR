@@ -108,6 +108,45 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
   const [mounted, setMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
+  const resolvedUser = storeUser || (mounted && typeof window !== "undefined" ? getStoredUser() : null);
+
+  const userName = (() => {
+    if (!resolvedUser) return "User Account";
+    const fullName = [resolvedUser.firstName, resolvedUser.lastName].filter(Boolean).join(" ").trim();
+    if (fullName) return fullName;
+    if (resolvedUser.name && typeof resolvedUser.name === "string" && resolvedUser.name.trim()) {
+      return resolvedUser.name.trim();
+    }
+    if (resolvedUser.email && typeof resolvedUser.email === "string") {
+      const emailPrefix = resolvedUser.email.split("@")[0];
+      return emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
+    }
+    return "User Account";
+  })();
+
+  const effectiveEmail = resolvedUser?.email || userEmail || "user@mahacsr.gov.in";
+
+  const userInitials = (() => {
+    if (!resolvedUser) return "U";
+    if (resolvedUser.firstName && resolvedUser.lastName) {
+      return `${resolvedUser.firstName[0]}${resolvedUser.lastName[0]}`.toUpperCase();
+    }
+    if (resolvedUser.firstName) {
+      return resolvedUser.firstName.slice(0, 2).toUpperCase();
+    }
+    if (resolvedUser.name && typeof resolvedUser.name === "string" && resolvedUser.name.trim()) {
+      const parts = resolvedUser.name.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+      }
+      return resolvedUser.name.slice(0, 2).toUpperCase();
+    }
+    if (resolvedUser.email && typeof resolvedUser.email === "string") {
+      return resolvedUser.email.slice(0, 2).toUpperCase();
+    }
+    return "U";
+  })();
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       localStorage.setItem("mahacsr_sidebar_collapsed", JSON.stringify(sidebarCollapsed));
@@ -336,6 +375,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
     // 2. Enforce roles permissions for dashboard routes
     if (token && user && isDashboard) {
       setUserEmail(user.email || "user@mahacsr.gov.in");
+      useAuthStore.getState().fetchEffectivePermissions(true).catch(() => {});
 
       const activeRoles = storeRoles.length > 0 ? storeRoles : (user.role ? [user.role] : []);
       const hasAnyAllowedRole = (allowedRoles: string[]) => {
@@ -663,25 +703,30 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
               <div className="relative" ref={userDropdownRef}>
                 <button
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                  className="flex items-center gap-2 p-1 rounded-xl hover:bg-slate-50/80 transition-colors"
+                  className="flex items-center gap-2 p-1 rounded-xl hover:bg-slate-50/80 transition-colors cursor-pointer"
+                  aria-label="User Account Menu"
                 >
                   <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center font-heading font-bold text-xs shadow-sm shadow-blue-500/20">
-                    U
+                    {userInitials}
                   </div>
                 </button>
 
                 {userDropdownOpen && (
-                  <div className="absolute right-0 mt-3 w-52 bg-white backdrop-blur-xl border border-slate-200/50 rounded-2xl py-2 z-50 shadow-lg">
+                  <div className="absolute right-0 mt-3 w-56 bg-white backdrop-blur-xl border border-slate-200/50 rounded-2xl py-2 z-50 shadow-lg">
                     <div className="px-4 py-2.5 border-b border-slate-100 flex flex-col">
-                      <span className="text-xs font-bold text-slate-900">User Account</span>
-                      <span className="text-[10px] text-slate-400 truncate mt-0.5">{userEmail}</span>
+                      <span className="text-xs font-bold text-slate-900 truncate" title={userName}>
+                        {userName}
+                      </span>
+                      <span className="text-[10px] text-slate-400 truncate mt-0.5" title={effectiveEmail}>
+                        {effectiveEmail}
+                      </span>
                     </div>
                     <button
                       onClick={() => {
                         setUserDropdownOpen(false);
                         router.push("/profile");
                       }}
-                      className="w-full text-left px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-blue-900 transition-colors flex items-center gap-2 mt-1"
+                      className="w-full text-left px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-blue-900 transition-colors flex items-center gap-2 mt-1 cursor-pointer"
                     >
                       <User size={14} className="text-slate-400" /> Profile
                     </button>
@@ -690,7 +735,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                         setUserDropdownOpen(false);
                         router.push("/settings");
                       }}
-                      className="w-full text-left px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-blue-900 transition-colors flex items-center gap-2"
+                      className="w-full text-left px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-blue-900 transition-colors flex items-center gap-2 cursor-pointer"
                     >
                       <Settings size={14} className="text-slate-400" /> Settings
                     </button>
@@ -699,7 +744,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                         setUserDropdownOpen(false);
                         handleLogout();
                       }}
-                      className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50/40 transition-colors flex items-center gap-2 border-t border-slate-100 mt-1 pt-2"
+                      className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50/40 transition-colors flex items-center gap-2 border-t border-slate-100 mt-1 pt-2 cursor-pointer"
                     >
                       <LogOut size={14} className="text-red-400" />
                       <span>Log Out</span>

@@ -88,7 +88,7 @@ type UserRow = {
   temporaryPasswordExpiresAt?: string | null;
   ngo?: { name: string; status?: string };
   company?: { name: string; status?: string };
-  organization?: { name: string; kind: string; status?: string };
+  organization?: { name: string; kind: string; status?: string; district?: string | null; taluka?: string | null };
   officerProfile?: { designation?: string | null; fullName?: string | null; department?: string | null; district?: string | null; taluka?: string | null; mobile?: string | null } | null;
   dynamicRoles?: { roleId: string; roleName: string }[];
 };
@@ -724,25 +724,32 @@ export default function AdminUserManagementPage() {
     }
   };
 
-  const openEditModal = (user: UserRow) => {
+  const openEditModal = (targetUser: UserRow) => {
     setError("");
-    const fullNameParts = (user.firstName || user.officerProfile?.fullName || "").trim().split(/\s+/);
-    const fName = user.firstName || fullNameParts[0] || "";
-    const lName = user.lastName || fullNameParts.slice(1).join(" ") || "";
+    const fullNameParts = (targetUser.firstName || targetUser.officerProfile?.fullName || "").trim().split(/\s+/);
+    const fName = targetUser.firstName || fullNameParts[0] || "";
+    const lName = targetUser.lastName || fullNameParts.slice(1).join(" ") || "";
+
+    const assignedDistrictValue =
+      targetUser.organization?.district ||
+      targetUser.officerProfile?.district ||
+      targetUser.assignedDistrict ||
+      userDistrict ||
+      "";
 
     setEditForm({
-      userId: user.id,
+      userId: targetUser.id,
       firstName: fName,
       lastName: lName,
-      email: user.email,
-      mobile: user.mobile || user.officerProfile?.mobile || "",
-      designation: user.designation || user.officerProfile?.designation || "",
-      department: user.officerProfile?.department || "MahaCSR Portal",
-      role: effectiveRole(user),
-      assignedDistrict: user.assignedDistrict || user.officerProfile?.district || "",
-      accountStatus: user.accountStatus || "ACTIVE",
+      email: targetUser.email,
+      mobile: targetUser.mobile || targetUser.officerProfile?.mobile || "",
+      designation: targetUser.designation || targetUser.officerProfile?.designation || "",
+      department: targetUser.officerProfile?.department || userOrgName || "MahaCSR Portal",
+      role: effectiveRole(targetUser),
+      assignedDistrict: assignedDistrictValue,
+      accountStatus: targetUser.accountStatus || "ACTIVE",
       password: "",
-      dynamicRoleIds: (user.dynamicRoles || []).map((r) => r.roleId),
+      dynamicRoleIds: (targetUser.dynamicRoles || []).map((r) => r.roleId),
     });
     setEditModalOpen(true);
   };
@@ -753,6 +760,11 @@ export default function AdminUserManagementPage() {
     setError("");
     setSuccess("");
     try {
+      const targetDistrict =
+        (isGov || Boolean(userDistrict))
+          ? (userDistrict || editForm.assignedDistrict || undefined)
+          : (editForm.assignedDistrict || undefined);
+
       await apiFetch(`/admin/users/${editForm.userId}`, {
         method: "PATCH",
         body: JSON.stringify({
@@ -761,10 +773,10 @@ export default function AdminUserManagementPage() {
           email: editForm.email.trim(),
           mobile: editForm.mobile.trim(),
           designation: editForm.designation.trim(),
-          department: editForm.department.trim() || "MahaCSR Portal",
-          role: editForm.role,
-          district: editForm.assignedDistrict || undefined,
-          assignedDistrict: editForm.assignedDistrict || undefined,
+          department: editForm.department.trim() || userOrgName || "MahaCSR Portal",
+          role: editForm.role || undefined,
+          district: targetDistrict,
+          assignedDistrict: targetDistrict,
           accountStatus: editForm.accountStatus,
           password: editForm.password.trim() || undefined,
         }),
@@ -775,6 +787,24 @@ export default function AdminUserManagementPage() {
         method: "POST",
         body: JSON.stringify({ roleIds: editForm.dynamicRoleIds }),
       }).catch(() => undefined);
+
+      const trimmedFirstName = editForm.firstName.trim();
+      const trimmedLastName = editForm.lastName.trim();
+      const trimmedFullName = [trimmedFirstName, trimmedLastName].filter(Boolean).join(" ");
+
+      // If the edited user is the current user, immediately update authStore and sync profile tray
+      const currentStoredUser = useAuthStore.getState().user;
+      if (currentStoredUser && (currentStoredUser.id === editForm.userId || currentStoredUser.email?.toLowerCase() === editForm.email.trim().toLowerCase())) {
+        useAuthStore.getState().updateUser({
+          firstName: trimmedFirstName,
+          lastName: trimmedLastName,
+          name: trimmedFullName,
+          mobile: editForm.mobile.trim(),
+          designation: editForm.designation.trim(),
+          email: editForm.email.trim(),
+        });
+        useAuthStore.getState().fetchEffectivePermissions(true).catch(() => {});
+      }
 
       setSuccess(`User ${editForm.email} updated successfully.`);
       setEditModalOpen(false);
@@ -1209,7 +1239,7 @@ export default function AdminUserManagementPage() {
                                           ? "border-slate-200 bg-slate-100/60 text-slate-400 opacity-50 cursor-not-allowed"
                                           : "border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100 text-indigo-800 shadow-2xs cursor-pointer"
                                       }`}
-                                      title={inviteTooltip}
+                                      title={isPendingOnboardingApproval ? undefined : inviteTooltip}
                                     >
                                       {isSending ? (
                                         <RefreshCw size={11} className="animate-spin text-indigo-700" />
@@ -1219,17 +1249,19 @@ export default function AdminUserManagementPage() {
                                       <span className="hidden sm:inline">{isSending ? "Sending..." : "Invite"}</span>
                                     </button>
 
-                                    {/* Floating Hover Tooltip — positioned left-aligned to prevent right-side clipping */}
+                                    {/* Floating Hover Tooltip — high contrast solid dark card */}
                                     {isPendingOnboardingApproval && (
-                                      <div className="absolute right-0 bottom-full mb-2 hidden group-hover/invite:flex flex-col items-end z-[9999] pointer-events-none" style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.25))' }}>
-                                        <div className="bg-slate-900 text-white text-[11px] font-medium py-2.5 px-3.5 rounded-xl max-w-[260px] w-max text-left leading-snug border border-slate-700/80 whitespace-normal">
-                                          <span className="font-bold text-amber-400 flex items-center gap-1.5 mb-1">
-                                            <AlertCircle size={12} className="text-amber-400 shrink-0" />
-                                            Awaiting JS Approval
-                                          </span>
-                                          Cannot invite officer until the Joint Secretary approves the organization onboarding application.
+                                      <div className="absolute right-0 bottom-full mb-2 hidden group-hover/invite:flex flex-col items-end z-[9999] pointer-events-none select-none drop-shadow-xl">
+                                        <div className="bg-[#0f172a] text-[#f8fafc] text-[11px] font-normal p-3 rounded-xl max-w-[280px] w-max text-left leading-relaxed border border-slate-700 shadow-2xl whitespace-normal">
+                                          <div className="font-bold text-amber-400 flex items-center gap-1.5 mb-1 text-xs">
+                                            <AlertCircle size={13} className="text-amber-400 shrink-0" />
+                                            <span>Awaiting JS Approval</span>
+                                          </div>
+                                          <p className="text-slate-200 text-[11px] leading-snug m-0">
+                                            Cannot invite officer until the Joint Secretary approves the organization onboarding application.
+                                          </p>
                                         </div>
-                                        <div className="w-2.5 h-2.5 bg-slate-900 rotate-45 mr-4 -mt-1.5 border-r border-b border-slate-700/80" />
+                                        <div className="w-2.5 h-2.5 bg-[#0f172a] rotate-45 mr-4 -mt-1.5 border-r border-b border-slate-700" />
                                       </div>
                                     )}
                                   </div>
@@ -1669,13 +1701,21 @@ export default function AdminUserManagementPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Role
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold text-slate-700">
+                  Role
+                </label>
+                {editForm.userId === user?.id && !isPlatformAdmin && (
+                  <span className="text-[10px] text-amber-700 font-semibold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                    Own Role Locked
+                  </span>
+                )}
+              </div>
               <select
+                disabled={editForm.userId === user?.id && !isPlatformAdmin}
                 value={editForm.role}
                 onChange={(e) => setEditForm((prev) => ({ ...prev, role: e.target.value }))}
-                className="w-full h-9 px-3 rounded-md border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
+                className="w-full h-9 px-3 rounded-md border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
               >
                 <option value="">None (dynamic roles only)</option>
                 {roleOptions}
@@ -1701,16 +1741,38 @@ export default function AdminUserManagementPage() {
               <label className="block text-xs font-bold text-slate-700 mb-1">
                 Assigned District
               </label>
-              <select
-                value={editForm.assignedDistrict}
-                onChange={(e) => setEditForm((prev) => ({ ...prev, assignedDistrict: e.target.value }))}
-                className="w-full h-9 px-3 rounded-md border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
-              >
-                <option value="">State level / not applicable</option>
-                {MAHARASHTRA_DISTRICTS.map((district) => (
-                  <option key={district} value={district}>{district}</option>
-                ))}
-              </select>
+              {(userDistrict || editForm.assignedDistrict || isGov) ? (
+                <div className="flex items-center justify-between w-full h-9 px-3 rounded-md border border-slate-200 bg-slate-50 text-xs font-bold text-slate-800">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <MapPin size={13} className="text-blue-600 shrink-0" />
+                    <span className="truncate">{userDistrict || editForm.assignedDistrict || "Maharashtra"}</span>
+                  </div>
+                  <span className="text-[9px] font-bold uppercase text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 shrink-0">
+                    Registration District (Locked)
+                  </span>
+                </div>
+              ) : isPlatformAdmin ? (
+                <select
+                  value={editForm.assignedDistrict}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, assignedDistrict: e.target.value }))}
+                  className="w-full h-9 px-3 rounded-md border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
+                >
+                  <option value="">State level / not applicable</option>
+                  {MAHARASHTRA_DISTRICTS.map((district) => (
+                    <option key={district} value={district}>{district}</option>
+                  ))}
+                </select>
+              ) : (
+                <div className="flex items-center justify-between w-full h-9 px-3 rounded-md border border-slate-200 bg-slate-50 text-xs font-bold text-slate-800">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <MapPin size={13} className="text-blue-600 shrink-0" />
+                    <span className="truncate">{editForm.assignedDistrict || userDistrict || "Maharashtra (State Level)"}</span>
+                  </div>
+                  <span className="text-[9px] font-bold uppercase text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 shrink-0">
+                    Locked
+                  </span>
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">

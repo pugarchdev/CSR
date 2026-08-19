@@ -61,6 +61,7 @@ interface AuthState {
   // Actions
   login: (user: UserProfile, permissionData?: PermissionData) => void;
   logout: () => void;
+  updateUser: (partial: Partial<UserProfile>) => void;
   setPermissions: (data: PermissionData) => void;
   clearPermissions: () => void;
   setLoadingPermissions: (loading: boolean) => void;
@@ -89,7 +90,23 @@ export const useAuthStore = create<AuthState>()(
       isLoadingPermissions: false,
       permissionsFetchedAt: 0,
 
+      updateUser: (partial) => {
+        const currentUser = get().user;
+        const updated = currentUser ? { ...currentUser, ...partial } : (partial as UserProfile);
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.setItem("user", JSON.stringify(updated));
+          } catch {}
+        }
+        set({ user: updated, accessVersion: get().accessVersion + 1 });
+      },
+
       login: (user, permissionData) => {
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.setItem("user", JSON.stringify(user));
+          } catch {}
+        }
         if (permissionData && Array.isArray(permissionData.permissions)) {
           set({
             user,

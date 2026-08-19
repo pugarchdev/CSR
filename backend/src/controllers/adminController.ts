@@ -424,11 +424,11 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response, next:
     }
 
     // Prevent self-role-change (SUPER_ADMIN exempt)
-    if (resolvedRoleId !== undefined && id === req.user?.id && !isGlobalAdmin) {
+    if (resolvedRoleId !== undefined && resolvedRoleId !== existingUser.roleId && id === req.user?.id && !isGlobalAdmin) {
       return res.status(403).json({ error: "Forbidden: You cannot change your own role." });
     }
 
-    if (resolvedRoleId && !isGlobalAdmin) {
+    if (resolvedRoleId && resolvedRoleId !== existingUser.roleId && !isGlobalAdmin) {
       const targetRole = await prisma.role.findUnique({ where: { id: resolvedRoleId }, select: { id: true, isSystemRole: true, organizationId: true } });
       if (targetRole && (targetRole.isSystemRole || targetRole.id <= 9)) {
         return res.status(403).json({ error: "Forbidden: Company Admins and Government Officers can only assign custom roles created for their organization." });

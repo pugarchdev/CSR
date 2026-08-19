@@ -558,7 +558,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       }),
       prisma.user.findFirst({
         where: { OR: [{ email: suppliedIdentifier }, { loginIdentifier: suppliedIdentifier }] },
-        include: { organization: true, role: true }
+        include: { organization: true, role: true, officerProfile: true }
       }),
     ]);
     if (ngoAccess) {
@@ -614,6 +614,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 
     const user = {
       ...finalUserRecord,
+      name: [finalUserRecord.firstName, finalUserRecord.lastName].filter(Boolean).join(" ").trim() || (finalUserRecord as any).officerProfile?.fullName || null,
       orgKind: finalUserRecord.organization?.kind || null,
       roleNumericId: finalUserRecord.roleId,
       roleSlug,
@@ -703,7 +704,7 @@ export const me = async (req: any, res: Response, next: NextFunction) => {
 
     const userRecord = await prisma.user.findUnique({
       where: { id: userId },
-      include: { organization: true, role: true }
+      include: { organization: true, role: true, officerProfile: true }
     });
 
     if (!userRecord || userRecord.deletedAt || userRecord.accountStatus !== "ACTIVE" || !userRecord.isVerified) {
@@ -715,6 +716,7 @@ export const me = async (req: any, res: Response, next: NextFunction) => {
 
     const user = {
       ...userRecord,
+      name: [userRecord.firstName, userRecord.lastName].filter(Boolean).join(" ").trim() || userRecord.officerProfile?.fullName || null,
       orgKind: userRecord.organization?.kind || null,
       roleNumericId: userRecord.roleId,
       roleSlug,
