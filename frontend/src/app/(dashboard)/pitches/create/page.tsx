@@ -256,7 +256,14 @@ export default function CreatePitchDashboardPage() {
       const PENDING_APPROVAL_STATUSES = ["SUBMITTED_FOR_REVIEW", "UNDER_VERIFICATION", "CLARIFICATION_REQUIRED", "PENDING_APPROVAL", "DOCUMENTS_SUBMITTED"];
 
       if (statusUpper === "ACTIVE" || statusUpper === "APPROVED" || Number(user?.roleId || user?.role) === 1) {
-        if (isMounted) setOnboardingGuardModal("NONE");
+        if (isMounted) {
+          setOnboardingGuardModal("NONE");
+          if (org) {
+            useAuthStore.setState((s) => ({
+              user: s.user ? { ...s.user, organization: { ...s.user.organization, ...org } } : null
+            }));
+          }
+        }
         return;
       } else if (PENDING_APPROVAL_STATUSES.includes(statusUpper)) {
         if (isMounted) setOnboardingGuardModal("APPROVAL_PENDING");

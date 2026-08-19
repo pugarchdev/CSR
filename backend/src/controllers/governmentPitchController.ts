@@ -541,19 +541,24 @@ export const submitInterest = async (req: AuthenticatedRequest, res: Response, n
     const pitchId = req.params.id || req.body.pitchId;
     if (!corporateId) return res.status(403).json({ error: "An approved company organization is required." });
 
-    const corporateOrg = await prisma.organization.findFirst({ where: { id: corporateId, status: "ACTIVE" } });
-    if (!corporateOrg) return res.status(403).json({ error: "Your organization onboarding must be Super-Admin approved (status 'ACTIVE') before expressing interest in public government pitches." });
+    const corporateOrg = await prisma.organization.findFirst({ where: { id: corporateId } });
+    if (!corporateOrg || corporateOrg.status !== "ACTIVE") {
+      return res.status(403).json({
+        error: "Your organization onboarding is not verified yet. Once approved by the State CSR Cell, you will be able to express interest in public government pitches.",
+        unverifiedOrganization: true
+      });
+    }
 
     const pitch = await prisma.governmentPitch.findFirst({ where: { id: pitchId, status: "PUBLIC_LISTED" }, select: { id: true, pitchReferenceId: true, districts: true, district: true } });
     if (!pitch) return res.status(404).json({ error: "This public pitch is not available for expressions of interest." });
     const existing = await prisma.corporatePitchInterest.findFirst({ where: { pitchId, corporateId } });
     if (existing) return res.status(409).json({ error: "Your company has already expressed interest in this pitch.", data: existing });
     const indicativeBudget = Number(req.body.indicativeBudget);
-    const preferredStartPeriod = typeof (req.body.preferredStartPeriod || req.body.preferredStartTimeline) === "string" ? String(req.body.preferredStartPeriod || req.body.preferredStartTimeline).trim() : "";
-    const implementationMode = typeof req.body.implementationMode === "string" ? req.body.implementationMode.trim() : "";
-    const message = typeof (req.body.message || req.body.messageToGovernment) === "string" ? String(req.body.message || req.body.messageToGovernment).trim() : "";
-    if (!Number.isFinite(indicativeBudget) || indicativeBudget <= 0 || !preferredStartPeriod || !implementationMode || message.length < 10 || req.body.declarationAccepted !== true) {
-      return res.status(400).json({ error: "Complete the budget, start period, implementation mode, message, and declaration." });
+    const preferredStartPeriod = typeof (req.body.preferredStartPeriod || req.body.preferredStartTimeline) === "string" && String(req.body.preferredStartPeriod || req.body.preferredStartTimeline).trim() ? String(req.body.preferredStartPeriod || req.body.preferredStartTimeline).trim() : "Q3 (Immediate)";
+    const implementationMode = typeof req.body.implementationMode === "string" && req.body.implementationMode.trim() ? req.body.implementationMode.trim() : "DIRECT_GOVERNMENT";
+    const message = typeof (req.body.message || req.body.messageToGovernment || req.body.remarks) === "string" && String(req.body.message || req.body.messageToGovernment || req.body.remarks).trim() ? String(req.body.message || req.body.messageToGovernment || req.body.remarks).trim() : "Corporate expression of interest for public development need.";
+    if (!Number.isFinite(indicativeBudget) || indicativeBudget <= 0 || req.body.declarationAccepted !== true) {
+      return res.status(400).json({ error: "Please enter a valid indicative budget and accept the submission declaration." });
     }
     let interest = await prisma.corporatePitchInterest.create({
       data: {

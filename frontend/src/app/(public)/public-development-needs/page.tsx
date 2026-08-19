@@ -8,9 +8,11 @@ import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import { useResponsiveViewMode } from "@/hooks/useResponsiveViewMode";
 import { ViewToggle } from "@/components/ui/ViewToggle";
 import RequirementDetailsModal from "@/components/marketplace/RequirementDetailsModal";
+import { useAuthStore } from "@/store/authStore";
 import {
   HeartHandshake, MapPin, Search, Filter, Loader2, Eye, CheckCircle2,
-  X, LogIn, UserPlus, Lock, Building2, Coins, ArrowRight, ImageIcon, FileCheck2, ShieldCheck, RefreshCcw
+  X, LogIn, UserPlus, Lock, Building2, Coins, ArrowRight, ImageIcon, FileCheck2, ShieldCheck, RefreshCcw,
+  ShieldAlert, AlertCircle
 } from "lucide-react";
 
 const money = (value: unknown) => {
@@ -39,6 +41,7 @@ const getSectorBadgeStyle = (sector: string) => {
 };
 
 export default function PublicDevelopmentNeedsPage() {
+  const user = useAuthStore((s) => s.user);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [needs, setNeeds] = useState<any[]>([]);
@@ -48,6 +51,8 @@ export default function PublicDevelopmentNeedsPage() {
   const [viewingNeed, setViewingNeed] = useState<any | null>(null);
   const [selectedNeed, setSelectedNeed] = useState<any | null>(null);
   const [loginRequiredNeed, setLoginRequiredNeed] = useState<any | null>(null);
+  const [unverifiedOrgNeed, setUnverifiedOrgNeed] = useState<any | null>(null);
+  const [interestError, setInterestError] = useState("");
   const [expressingInterest, setExpressingInterest] = useState<string | null>(null);
   const [viewMode, setViewMode] = useResponsiveViewMode();
 
@@ -172,12 +177,24 @@ export default function PublicDevelopmentNeedsPage() {
       setLoginRequiredNeed(need);
       return;
     }
+
+    const currentUser = user || (typeof window !== "undefined" ? JSON.parse(localStorage.getItem("user") || "null") : null);
+    const org = currentUser?.organization;
+    const orgStatus = org?.status || (currentUser as any)?.orgStatus || (currentUser as any)?.organizationStatus;
+
+    if (org && orgStatus && orgStatus !== "ACTIVE") {
+      setUnverifiedOrgNeed(need);
+      return;
+    }
+
     setSelectedNeed(need);
     setInterestResult("");
+    setInterestError("");
   };
 
   const handleExpressInterest = async () => {
     if (!selectedNeed) return;
+    setInterestError("");
     try {
       setExpressingInterest(selectedNeed.id);
       const budgetVal = Number(interestForm.indicativeBudget || selectedNeed.approvedBudget || selectedNeed.estimatedCost || 0);
@@ -197,7 +214,19 @@ export default function PublicDevelopmentNeedsPage() {
       });
       fetchNeeds();
     } catch (err: any) {
-      alert(err.message || "Failed to express corporate interest. Please check budget details.");
+      const errMsg = err?.message || "Failed to express corporate interest.";
+      if (
+        errMsg.toLowerCase().includes("not verified") ||
+        errMsg.toLowerCase().includes("unverified") ||
+        errMsg.toLowerCase().includes("under verification") ||
+        errMsg.toLowerCase().includes("onboarding") ||
+        err?.status === 403
+      ) {
+        setSelectedNeed(null);
+        setUnverifiedOrgNeed(selectedNeed);
+      } else {
+        setInterestError(errMsg);
+      }
     } finally {
       setExpressingInterest(null);
     }
@@ -671,6 +700,59 @@ export default function PublicDevelopmentNeedsPage() {
           </div>
         )}
 
+        {/* Organization Under Verification Modal */}
+        {unverifiedOrgNeed && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs animate-in fade-in">
+            <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl space-y-4 border border-amber-200">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-amber-100 text-amber-800 border border-amber-300">
+                    <ShieldAlert size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-slate-900">Organization Verification Pending</h3>
+                    <p className="text-xs text-slate-500 font-medium">State CSR Cell Approval Required</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setUnverifiedOrgNeed(null)}
+                  className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 space-y-2 text-xs text-amber-950">
+                <p className="font-extrabold text-sm text-amber-900 flex items-center gap-1.5">
+                  <Building2 size={16} className="text-amber-800 shrink-0" />
+                  {interestForm.companyName || user?.organization?.name || "Your Organization"}
+                </p>
+                <p className="leading-relaxed text-amber-900/90 font-medium">
+                  Your organization account is currently <strong>under verification by the State CSR Cell</strong>.
+                </p>
+                <p className="text-[11px] text-amber-800 leading-relaxed">
+                  As per Government of Maharashtra CSR regulations, corporate entities must complete onboarding verification before expressing binding interest or funding public pitches.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+                <button
+                  onClick={() => setUnverifiedOrgNeed(null)}
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-100 transition-all"
+                >
+                  Close & Dismiss
+                </button>
+                <Link
+                  href="/organization/onboarding/status"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-blue-900 text-xs font-extrabold text-white hover:bg-blue-950 transition-all shadow-xs"
+                >
+                  Check Onboarding Status <ArrowRight size={14} />
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Express Interest Modal (For Authenticated Corporate Users) */}
         {selectedNeed && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
@@ -684,6 +766,13 @@ export default function PublicDevelopmentNeedsPage() {
                   <X size={20} />
                 </button>
               </div>
+
+              {interestError && (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-bold text-rose-700 flex items-center gap-2">
+                  <AlertCircle size={15} className="shrink-0" />
+                  <span>{interestError}</span>
+                </div>
+              )}
 
               {interestResult ? (
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-center space-y-3">
