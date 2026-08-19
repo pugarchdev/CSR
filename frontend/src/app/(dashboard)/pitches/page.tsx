@@ -53,10 +53,11 @@ interface Pitch {
 }
 
 // Indian Currency Formatter (Handles Cr, Lakhs, Thousands, and Exact INR)
-function formatINR(val?: number | string | null) {
-  if (!val && val !== 0) return "—";
+function formatINR(val?: number | string | null, fallbackZero = "₹0") {
+  if (val === null || val === undefined || val === "") return fallbackZero;
   const num = Number(val);
-  if (isNaN(num) || num === 0) return "—";
+  if (isNaN(num)) return fallbackZero;
+  if (num === 0) return "₹0";
   if (num >= 10000000) return `₹${(num / 10000000).toFixed(2)} Cr`;
   if (num >= 100000) return `₹${(num / 100000).toFixed(2)} Lakh`;
   if (num >= 1000) return `₹${(num / 1000).toFixed(1)}k`;

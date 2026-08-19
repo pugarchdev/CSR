@@ -15,22 +15,15 @@ import {
   ShieldAlert,
   Compass,
   History,
-  TrendingUp,
   Sliders,
-  CheckCircle2,
   Clock,
-  ExternalLink,
-  CornerDownLeft,
   Mail,
   PieChart,
   HelpCircle,
   MessageSquare,
   FileCheck2,
   Camera,
-  Layers,
-  Settings,
   AlertTriangle,
-  Briefcase
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 
@@ -255,6 +248,8 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsContainerRef = useRef<HTMLDivElement>(null);
+  const clientCacheRef = useRef<Map<string, SearchItem[]>>(new Map());
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Load recent searches from localStorage
   useEffect(() => {
@@ -289,14 +284,12 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
     }
   };
 
-  // Focus input on open
+  // Focus input immediately on open
   useEffect(() => {
     if (isOpen) {
       setActiveCategory("all");
-      setTimeout(() => {
-        inputRef.current?.focus();
-        inputRef.current?.select();
-      }, 50);
+      inputRef.current?.focus();
+      inputRef.current?.select();
     } else {
       setQuery("");
       setApiResults([]);
@@ -305,7 +298,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
     }
   }, [isOpen]);
 
-  // Debounced API search
+  // High-Speed Instant Debounced Search with Client In-Memory Cache & In-Flight Abort
   useEffect(() => {
     const trimmed = query.trim();
     if (!trimmed || trimmed.length < 2) {
@@ -314,30 +307,56 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
       return;
     }
 
+    const cacheKey = trimmed.toLowerCase();
+
+    // 1. Instant 0ms memory cache hit
+    if (clientCacheRef.current.has(cacheKey)) {
+      setApiResults(clientCacheRef.current.get(cacheKey)!);
+      setIsLoading(false);
+      return;
+    }
+
+    // 2. Abort previous in-flight request to eliminate network queuing
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setIsLoading(true);
     const timer = setTimeout(async () => {
       try {
         const data = await apiFetch<{
           success: boolean;
           data: { results: SearchItem[]; total: number };
-        }>(`/search/global?q=${encodeURIComponent(trimmed)}&limit=12`);
+        }>(`/search/global?q=${encodeURIComponent(trimmed)}&limit=12`, {
+          signal: controller.signal,
+        });
 
+        let results: SearchItem[] = [];
         if (data?.success && Array.isArray(data.data?.results)) {
-          setApiResults(data.data.results);
+          results = data.data.results;
         } else if (Array.isArray((data as any)?.results)) {
-          setApiResults((data as any).results);
+          results = (data as any).results;
         }
-      } catch (err) {
-        console.error("Search fetch error:", err);
+
+        clientCacheRef.current.set(cacheKey, results);
+        setApiResults(results);
+      } catch (err: any) {
+        if (err?.name !== "AbortError" && !err?.message?.includes("aborted")) {
+          console.error("Search fetch error:", err);
+        }
       } finally {
         setIsLoading(false);
       }
-    }, 250);
+    }, 90); // 90ms ultra-fast debounce
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+    };
   }, [query]);
 
-  // Filter client-side navigation pages with keyword synonyms
+  // Synchronous Instant (0ms) Platform Navigation Match
   const filteredNavigation = useMemo(() => {
     if (!query.trim()) {
       return PLATFORM_PAGES.slice(0, 6);
@@ -352,16 +371,14 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
     );
   }, [query]);
 
-  // Combined and filtered results
+  // Combined Results Filtered by Active Category
   const displayedResults = useMemo(() => {
     const combined: SearchItem[] = [];
 
-    // Add navigation results
     if (activeCategory === "all" || activeCategory === "navigation") {
       combined.push(...filteredNavigation);
     }
 
-    // Add API results
     apiResults.forEach((item) => {
       if (activeCategory === "all") {
         combined.push(item);
@@ -463,17 +480,18 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: 0.1 }}
           onClick={onClose}
           className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity"
         />
 
         {/* Modal Container */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: -10 }}
+          initial={{ opacity: 0, scale: 0.98, y: -6 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.96, y: -10 }}
-          transition={{ duration: 0.18, ease: "easeOut" }}
-          className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200/90 overflow-hidden z-10 flex flex-col max-h-[82vh]"
+          exit={{ opacity: 0, scale: 0.98, y: -6 }}
+          transition={{ duration: 0.12, ease: "easeOut" }}
+          className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200/90 overflow-hidden z-10 flex flex-col max-h-[82vh] transform-gpu"
         >
           {/* Top Search Input Bar */}
           <div className="flex items-center px-4 py-3.5 border-b border-slate-100 gap-3 bg-white">
@@ -498,7 +516,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
               </button>
             ) : null}
             <div className="hidden sm:flex items-center gap-1 text-[10px] font-bold text-slate-400 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md select-none">
-              <span>ESC to exit</span>
+              <span>ESC</span>
             </div>
           </div>
 
@@ -509,7 +527,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
                 key={cat.id}
                 type="button"
                 onClick={() => setActiveCategory(cat.id)}
-                className={`px-2.5 py-1 rounded-lg font-semibold transition-all whitespace-nowrap text-[11px] ${
+                className={`px-2.5 py-1 rounded-lg font-semibold transition-all whitespace-nowrap text-[11px] cursor-pointer ${
                   activeCategory === cat.id
                     ? "bg-blue-600 text-white shadow-xs"
                     : "bg-white text-slate-600 hover:bg-slate-200/70 border border-slate-200/70"
@@ -546,7 +564,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
                           key={term}
                           type="button"
                           onClick={() => setQuery(term)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 text-xs font-semibold transition-colors"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
                         >
                           <History size={11} className="text-slate-400" />
                           {term}

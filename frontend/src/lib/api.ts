@@ -214,9 +214,17 @@ const networkFetch = async <T>(path: string, init: RequestInit, isCacheable: boo
   return data as T;
 };
 
-export const apiFetch = async <T>(path: string, init: RequestInit = {}): Promise<T> => {
+export interface ApiFetchOptions extends RequestInit {
+  skipCache?: boolean;
+}
+
+export const apiFetch = async <T>(path: string, init: ApiFetchOptions = {}): Promise<T> => {
   const method = init.method || "GET";
-  const isCacheable = method === "GET";
+  const isCacheable =
+    method === "GET" &&
+    init.cache !== "no-store" &&
+    init.cache !== "no-cache" &&
+    !init.skipCache;
 
   if (isCacheable) {
     const cached = getCachedData<T>(path);
@@ -254,7 +262,7 @@ export const invalidateCache = (pathPattern?: string): void => {
 
   if (pathPattern) {
     Object.keys(localStorage)
-      .filter(key => key.startsWith(CACHE_PREFIX) && key.includes(btoa(pathPattern)))
+      .filter(key => key.startsWith(CACHE_PREFIX) && (key.includes(btoa(pathPattern)) || key.includes(pathPattern)))
       .forEach(key => localStorage.removeItem(key));
   } else {
     clearApiCache();
