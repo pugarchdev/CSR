@@ -855,22 +855,41 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
       }
 
       // Recent Scoped Audit Logs & Workflow Activity
-      const auditWhere: any = (roleId === 1 || roleId === 3) ? {} : { OR: [{ actorUserId: userId }, { userId }] };
-      let recentLogs = await prisma.auditLog.findMany({
+      let auditWhere: any;
+      if (roleId === 1) {
+        // Super Admin sees global system audit logs
+        auditWhere = {};
+      } else if (org?.id) {
+        // Organization-scoped accounts (e.g. Company Admin, NGO Admin, Govt Department)
+        const orgUsers = await prisma.user.findMany({
+          where: { organizationId: org.id },
+          select: { id: true }
+        });
+        const allAccountUserIds = Array.from(new Set([userId, ...orgUsers.map((u) => u.id)]));
+
+        auditWhere = {
+          OR: [
+            { actorUserId: { in: allAccountUserIds } },
+            { userId: { in: allAccountUserIds } },
+            { entityId: org.id },
+          ]
+        };
+      } else {
+        // Individual user accounts without an organization
+        auditWhere = {
+          OR: [
+            { actorUserId: userId },
+            { userId: userId }
+          ]
+        };
+      }
+
+      const recentLogs = await prisma.auditLog.findMany({
         where: auditWhere,
         take: 10,
         orderBy: { createdAt: "desc" },
         include: { actorUser: { select: { firstName: true, lastName: true, designation: true } } }
       });
-
-      // If user has no direct personal logs yet, fetch latest platform workflow audit events
-      if (recentLogs.length === 0) {
-        recentLogs = await prisma.auditLog.findMany({
-          take: 8,
-          orderBy: { createdAt: "desc" },
-          include: { actorUser: { select: { firstName: true, lastName: true, designation: true } } }
-        });
-      }
 
       const formatAction = (act: string) => {
         if (!act) return "Workflow Action";
@@ -891,36 +910,19 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
         if (act.includes("FEASIBILITY")) return "Feasibility Assessment";
         if (act.includes("ONBOARDING")) return "Onboarding Application";
         if (act.includes("ROLE") || act.includes("USER") || act.includes("AUTH")) return "Access Management";
-        return "Platform Workflow";
+        return "Portal Workflow";
       };
 
-      let recentActivity = recentLogs.map(item => ({
+      const recentActivity = recentLogs.map((item) => ({
         id: item.id,
         action: formatAction(item.action),
         entityType: formatEntityType(item),
         actorName: item.actorUser
-          ? [item.actorUser.firstName, item.actorUser.lastName].filter(Boolean).join(" ") || item.actorUser.designation || "Platform Officer"
-          : "Platform System",
-        actorRole: item.actorUser?.designation || (roleId === 3 ? "State Operations" : "Platform Officer"),
+          ? [item.actorUser.firstName, item.actorUser.lastName].filter(Boolean).join(" ") || item.actorUser.designation || "Account User"
+          : "Account Action",
+        actorRole: item.actorUser?.designation || (roleId === 1 ? "Super Admin" : roleCode ? roleCode.replace(/_/g, " ") : "Account User"),
         createdAt: item.createdAt.toISOString(),
       }));
-
-      // If still empty (fresh DB), construct from latest cases / pitches
-      if (recentActivity.length === 0) {
-        const recentCases = await prisma.portalCase.findMany({
-          take: 6,
-          orderBy: { createdAt: "desc" },
-          select: { id: true, trackingId: true, type: true, status: true, currentStage: true, createdAt: true }
-        });
-        recentActivity = recentCases.map(c => ({
-          id: c.id,
-          action: `${c.type.replace(/_/g, " ")}: ${c.status.replace(/_/g, " ")}`,
-          entityType: c.type === "GOVERNMENT_PITCH" ? "Government Pitch" : "Corporate Enquiry",
-          actorName: `Tracking Ref #${c.trackingId}`,
-          actorRole: c.currentStage.replace(/_/g, " "),
-          createdAt: c.createdAt.toISOString()
-        }));
-      }
 
       const onboardingStatus = org && org.status !== "ACTIVE" ? {
         isPending: true,

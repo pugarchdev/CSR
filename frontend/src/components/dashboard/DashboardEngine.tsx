@@ -614,7 +614,7 @@ export default function DashboardEngine() {
           </div>
         ) : (
           <div className="rounded-2xl border border-slate-200 bg-white p-7 text-center text-xs font-medium text-slate-500 shadow-xs">
-            No recent workflow activity recorded for this scope.
+            No recent activity recorded for this account.
           </div>
         )}
       </section>

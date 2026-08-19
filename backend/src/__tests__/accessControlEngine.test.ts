@@ -354,5 +354,32 @@ describe("Canonical Access Control Engine Test Suite", () => {
       expect(protectedCodes).toContain("JOINT_SECRETARY");
       expect(protectedCodes).toContain("COMPANY_ADMIN");
     });
+
+    it("grants full organization onboarding decision and update permissions to JOINT_SECRETARY", async () => {
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: "usr-js-1",
+        isVerified: true,
+        accountStatus: "ACTIVE",
+        deletedAt: null,
+        roleId: 3,
+        role: {
+          id: 3,
+          code: "JOINT_SECRETARY",
+          name: "JOINT_SECRETARY",
+          displayName: "Joint Secretary",
+          type: "SYSTEM",
+          defaultScope: "GLOBAL",
+          rolePermissions: []
+        }
+      });
+      (prisma.userRoleAssignment.findMany as jest.Mock).mockResolvedValue([]);
+
+      const payload = await EffectivePermissionService.getEffectiveAccessPayload("usr-js-1");
+      expect(payload.permissions).toContain("organization:view");
+      expect(payload.permissions).toContain("organization:approve");
+      expect(payload.permissions).toContain("organization:reject");
+      expect(payload.permissions).toContain("organization:suspend");
+      expect(payload.permissions).toContain("organization:update");
+    });
   });
 });

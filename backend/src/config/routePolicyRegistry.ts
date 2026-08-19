@@ -91,6 +91,7 @@ export const ROUTE_POLICY_REGISTRY: RoutePolicy[] = [
   { method: "POST", path: "/api/organizations/:id/approve", controller: "approveOrganization", classification: "PROTECTED", permission: "organization:approve", scope: "GLOBAL", auditRequired: true },
   { method: "POST", path: "/api/organizations/:id/reject", controller: "rejectOrganization", classification: "PROTECTED", permission: "organization:reject", scope: "GLOBAL", auditRequired: true },
   { method: "POST", path: "/api/organizations/:id/suspend", controller: "suspendOrganization", classification: "PROTECTED", permission: "organization:suspend", scope: "GLOBAL", auditRequired: true },
+  { method: "POST", path: "/api/organizations/:id/request-clarification", controller: "requestClarification", classification: "PROTECTED", permission: "organization:update", scope: "GLOBAL", auditRequired: true },
   { method: "POST", path: "/api/organizations/:id/users", controller: "manageOrganizationUsers", classification: "PROTECTED", permission: "organization:manage-users", scope: "ORGANIZATION", auditRequired: true }
 ];
 

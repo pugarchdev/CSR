@@ -217,6 +217,7 @@ export const PERMISSIONS = {
     VIEW: "organization:view",
     UPDATE: "organization:update",
     APPROVE: "organization:approve",
+    REJECT: "organization:reject",
     SUSPEND: "organization:suspend",
   },
 

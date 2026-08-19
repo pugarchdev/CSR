@@ -235,7 +235,7 @@ function TrackContent() {
             ? enquiry.governmentPitch?.district
             : enquiry.preferredDistricts?.join(", "),
           contactPerson: isPitch
-            ? `${enquiry.officialName} (${enquiry.designation})`
+            ? undefined
             : enquiry.contactPersonName,
           requirement: isPitch
             ? enquiry.csrRequirement
@@ -499,9 +499,7 @@ function TrackContent() {
                     )}
                     {trackingData.details.contactPerson && (
                       <div>
-                        <p className="text-xs text-slate-500">
-                          {trackingData.type === "PITCH" ? "Official Name" : "Contact Person"}
-                        </p>
+                        <p className="text-xs text-slate-500">Contact Person</p>
                         <p className="font-medium">{trackingData.details.contactPerson}</p>
                       </div>
                     )}

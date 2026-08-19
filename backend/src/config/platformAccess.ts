@@ -286,7 +286,7 @@ export const SEED_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
     "dashboard:widget-charts", "dashboard:widget-activity", "dashboard:widget-quick-actions",
     "dashboard:analytics-global",
     "pitch:view", "pitch:approve", "pitch:reject", "pitch:verify", "enquiry:view", "assessment:view", "assessment:review",
-    "project:view", "organization:view", "interest:view",
+    "project:view", "organization:view", "organization:approve", "organization:reject", "organization:suspend", "organization:update", "interest:view",
     "override:js_decision", "assign:joint_secretary", "escalation:resolve", "grievance:final_decision",
     "report:view", "report:export", "audit:view", "audit:export",
     "fund:view", "fund:release", "fund:verify-utilization", "fund:export",
@@ -299,7 +299,7 @@ export const SEED_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
     "dashboard:widget-workqueue", "dashboard:widget-charts", "dashboard:widget-activity",
     "pitch:view", "pitch:approve", "pitch:reject", "pitch:verify", "enquiry:view", "assessment:view", "assessment:review",
     "project:view", "project:approve", "project:reject", "project:record_rejection_reason",
-    "dno:assign", "report:view_district", "organization:view", "organization:approve",
+    "dno:assign", "report:view_district", "organization:view", "organization:approve", "organization:reject", "organization:suspend", "organization:update",
     "fund:view", "fund:release", "fund:export", "report:view", "report:export",
     "verification:execute", "verification:reverify", "verification:view-history", "verification:dashboard",
   ],
@@ -420,12 +420,12 @@ export const SEED_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
  */
 export const SEED_ROLE_PAGES: Record<string, readonly string[]> = {
   PLANNING_SECRETARY: [
-    "dashboard", "profile", "reports", "audit-trail",
+    "dashboard", "profile", "reports", "audit-trail", "onboarding-approvals",
     "organizations", "companies", "ngo-registry", "convergence-projects", "milestones", "funds",
     "enquiries", "pitches", "feasibility", "escalations", "decisions", "grievances",
   ],
   JOINT_SECRETARY: [
-    "dashboard", "profile", "reports",
+    "dashboard", "profile", "reports", "onboarding-approvals",
     "organizations", "companies", "ngo-registry", "convergence-projects",
     "enquiries", "pitches", "feasibility", "nodal-appointments", "escalations", "funds",
   ],

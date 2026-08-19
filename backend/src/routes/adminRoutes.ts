@@ -46,7 +46,7 @@ router.get("/organizations/:id", requirePermission("organization:view"), getOrga
 router.post("/organizations/:id/approve", requirePermission("organization:approve"), approveOrganization);
 router.post("/organizations/:id/reject", requirePermission("organization:reject"), rejectOrganization);
 router.post("/organizations/:id/suspend", requirePermission("organization:suspend"), suspendOrganization);
-router.post("/organizations/:id/request-clarification", requirePermission("organization:update"), requestClarification);
+router.post("/organizations/:id/request-clarification", requireAnyPermission(["organization:update", "organization:approve"]), requestClarification);
 
 import { getRecommendedDepartments, routeEnquiryToDepartment, confirmDepartmentRouting } from "../controllers/enquiryRoutingController";
 
