@@ -141,12 +141,30 @@ export const sendOtpEmail = async (toEmail: string, otp: string) => {
     </html>
   `;
 
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM || (smtpUser ? `"MahaCSR Portal" <${smtpUser}>` : `"MahaCSR Portal" <noreply@mahacsr.gov.in>`),
-    to: toEmail,
-    subject: `[MahaCSR] Account OTP Verification Code - ${otp}`,
-    html: htmlContent,
-  });
+  try {
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM || (smtpUser ? `"MahaCSR Portal" <${smtpUser}>` : `"MahaCSR Portal" <noreply@mahacsr.gov.in>`),
+      to: toEmail,
+      subject: `[MahaCSR] Account OTP Verification Code - ${otp}`,
+      html: htmlContent,
+    });
+    console.log(`[Email] ✅ OTP email successfully delivered via SMTP to ${toEmail}`);
+  } catch (err: any) {
+    const isQuotaLimit = String(err?.message || "").includes("Daily user sending limit exceeded") || String(err?.message || "").includes("550-5.4.5");
+    if (isQuotaLimit) {
+      console.warn(`[Mailer] ⚠️ Gmail daily sending limit reached for ${smtpUser}. Fallback OTP logged to console.`);
+    } else {
+      console.warn(`[Mailer] ⚠️ SMTP delivery failed (${err?.message || err}). Fallback OTP logged to console.`);
+    }
+
+    // Always output clean fallback OTP box to terminal
+    console.log(`\n======================================================`);
+    console.log(`🔢 [OFFICIAL OTP VERIFICATION CODE]`);
+    console.log(`📬 To:        ${toEmail}`);
+    console.log(`🔑 OTP Code:  ${otp}`);
+    console.log(`⏰ Valid for: 10 minutes`);
+    console.log(`======================================================\n`);
+  }
 };
 
 export const sendNgoInvitationEmail = async (toEmail: string, ngoName: string, inviteUrl: string, companyName: string) => {

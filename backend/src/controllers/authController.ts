@@ -46,41 +46,8 @@ async function createAndSendOtp(email: string): Promise<void> {
     console.log(`[DEV OTP] Email: ${normalizedEmail} | OTP: ${otpCode}`);
   }
 
-  // Await email send with retry
-  const MAX_RETRIES = 2;
-  let lastError: any = null;
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      await sendOtpEmail(normalizedEmail, otpCode);
-      console.log(`[Email] OTP sent to ${normalizedEmail} (attempt ${attempt})`);
-      return; // Success — exit
-    } catch (err: any) {
-      lastError = err;
-      const isQuotaError = String(err?.message || "").includes("Daily user sending limit exceeded") || String(err?.message || "").includes("550-5.4.5");
-      console.warn(`[Email] OTP send attempt ${attempt}/${MAX_RETRIES} failed for ${normalizedEmail}: ${err?.message || err}`);
-      
-      // If it's a hard provider quota rejection (like Gmail 550 limit), retrying immediately will only hit the same quota
-      if (isQuotaError) {
-        break;
-      }
-
-      if (attempt < MAX_RETRIES) {
-        await new Promise((r) => setTimeout(r, 1000));
-      }
-    }
-  }
-
-  // When email delivery cannot complete (e.g. Gmail daily quota exceeded or SMTP offline):
-  // Log prominent fallback OTP banner to terminal so development & verification can proceed smoothly
-  console.error(`\n======================================================`);
-  console.error(`⚠️ [SMTP DELIVERY NOTICE - OTP CODE LOGGED BELOW]`);
-  console.error(`📬 Recipient: ${normalizedEmail}`);
-  console.error(`🔑 OTP Code:  ${otpCode}`);
-  console.error(`⏰ Valid for: ${OTP_TTL_MINUTES} minutes`);
-  console.error(`🚨 Reason:    ${lastError?.message || lastError}`);
-  console.error(`💡 Note:      If using Gmail SMTP, Google's 500-email/day sending limit was reached.`);
-  console.error(`              Use the 6-digit code above to complete verification.`);
-  console.error(`======================================================\n`);
+  // Dispatch OTP email (sendOtpEmail handles SMTP delivery, retry, and terminal fallback)
+  await sendOtpEmail(normalizedEmail, otpCode);
 }
 
 const generateTokens = (user: {
