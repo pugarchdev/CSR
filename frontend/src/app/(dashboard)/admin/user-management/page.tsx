@@ -1252,16 +1252,16 @@ export default function AdminUserManagementPage() {
                                     {/* Floating Hover Tooltip — high contrast solid dark card */}
                                     {isPendingOnboardingApproval && (
                                       <div className="absolute right-0 bottom-full mb-2 hidden group-hover/invite:flex flex-col items-end z-[9999] pointer-events-none select-none drop-shadow-xl">
-                                        <div className="bg-[#0f172a] text-[#f8fafc] text-[11px] font-normal p-3 rounded-xl max-w-[280px] w-max text-left leading-relaxed border border-slate-700 shadow-2xl whitespace-normal">
+                                        <div className="bg-[#0f172a] text-[#f8fafc] text-[11px] font-normal p-3 rounded-xl max-w-[280px] w-max text-left leading-relaxed border border-[#334155] shadow-2xl whitespace-normal">
                                           <div className="font-bold text-amber-400 flex items-center gap-1.5 mb-1 text-xs">
                                             <AlertCircle size={13} className="text-amber-400 shrink-0" />
                                             <span>Awaiting JS Approval</span>
                                           </div>
-                                          <p className="text-slate-200 text-[11px] leading-snug m-0">
+                                          <p className="text-gray-100 text-[11px] leading-snug m-0 font-medium" style={{ color: '#f1f5f9' }}>
                                             Cannot invite officer until the Joint Secretary approves the organization onboarding application.
                                           </p>
                                         </div>
-                                        <div className="w-2.5 h-2.5 bg-[#0f172a] rotate-45 mr-4 -mt-1.5 border-r border-b border-slate-700" />
+                                        <div className="w-2.5 h-2.5 bg-[#0f172a] rotate-45 mr-4 -mt-1.5 border-r border-b border-[#334155]" />
                                       </div>
                                     )}
                                   </div>
