@@ -222,6 +222,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                       pathname.startsWith("/chat") ||
                       pathname.startsWith("/analytics") ||
                       pathname.startsWith("/beneficiary") ||
+                      pathname.startsWith("/department") ||
                       pathname.startsWith("/admin") ||
                       pathname.startsWith("/rm") ||
                       pathname.startsWith("/js") ||
