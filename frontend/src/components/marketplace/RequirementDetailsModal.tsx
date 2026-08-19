@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   X,
   MapPin,
@@ -39,6 +40,7 @@ interface RequirementDetailsModalProps {
 }
 
 export default function RequirementDetailsModal({ item, onClose }: RequirementDetailsModalProps) {
+  const pathname = usePathname() || "";
   const [fullData, setFullData] = useState<any>(item);
   const [loading, setLoading] = useState(false);
   const [activePhoto, setActivePhoto] = useState<string | null>(null);
@@ -394,7 +396,7 @@ export default function RequirementDetailsModal({ item, onClose }: RequirementDe
               Close
             </button>
             <Link
-              href={`/csr-marketplace/${data.id}`}
+              href={pathname.startsWith("/company/marketplace") ? `/company/marketplace/${data.id}` : `/marketplace/${data.id}`}
               className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-5 py-2 text-xs font-bold text-white bg-[#14274e] hover:bg-blue-900 rounded-lg shadow-sm transition hover:no-underline"
             >
               <span>Open Full Dedicated Page</span>

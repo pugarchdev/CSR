@@ -306,6 +306,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
       "/faq-news-recognition",
       "/knowledge",
       "/marketplace",
+      "/csr-marketplace",
       "/circulars",
       "/news",
       "/contact",
@@ -392,6 +393,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
         pathname.startsWith("/assignments") ||
         pathname.startsWith("/milestones") ||
         pathname.startsWith("/marketplace") ||
+        pathname.startsWith("/csr-marketplace") ||
         pathname.startsWith("/escalations") ||
         pathname.startsWith("/decisions") ||
         pathname.startsWith("/nodal-appointments") ||
