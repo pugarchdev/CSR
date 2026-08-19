@@ -66,9 +66,9 @@ export const submitCorporateEnquiry = async (req: AuthenticatedRequest, res: Res
           data: {
         trackingId: await generateCorporateEnquiryTrackingId(),
         organizationId: user?.organizationId || null,
-        corporateName: user?.organization?.name || submission.corporateName,
+        corporateName: submission.corporateName || user?.organization?.name,
         contactEmail: submission.contactEmail,
-        mca21CIN: user?.organization?.cin || submission.cin,
+        mca21CIN: submission.cin || user?.organization?.cin,
         sector: submission.sector,
         indicativeBudget: submission.indicativeBudget,
         preferredDivisions: Array.isArray(req.body.preferredDivisions) ? req.body.preferredDivisions : [],

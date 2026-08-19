@@ -224,6 +224,11 @@ export const useAuthStore = create<AuthState>()(
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,
+        permissions: state.permissions,
+        roles: state.roles,
+        roleDetails: state.roleDetails,
+        isAdmin: state.isAdmin,
+        permissionsFetchedAt: state.permissionsFetchedAt,
       }),
     }
   )

@@ -83,6 +83,279 @@ function extractRoleTokens(user: any, roles: any[], roleDetails: any[]): string[
   return Array.from(tokens);
 }
 
+/* ─── Joint Secretary Decision Panel ─── */
+function JointSecretaryDecisionPanel({
+  assessmentId,
+  currentStatus,
+  existingDecision,
+  existingReason,
+  decidedAt,
+  defaultDistrict = "Nagpur",
+  defaultDepartmentId = "",
+  onDecisionRecorded,
+  isJS,
+}: {
+  assessmentId: string;
+  currentStatus?: string;
+  existingDecision?: string;
+  existingReason?: string;
+  decidedAt?: string;
+  defaultDistrict?: string;
+  defaultDepartmentId?: string;
+  onDecisionRecorded: () => void;
+  isJS?: boolean;
+}) {
+  const [reason, setReason] = useState("");
+  const [working, setWorking] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [selectedDistrict, setSelectedDistrict] = useState(defaultDistrict);
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState(defaultDepartmentId);
+
+  // Fetch government departments dynamically based on selected district
+  const { data: govOrgsResponse, isLoading: loadingOrgs } = useApiQuery<any>(
+    ["government-orgs-by-district", selectedDistrict],
+    `/departments/government-orgs?district=${encodeURIComponent(selectedDistrict)}`,
+    { enabled: Boolean(selectedDistrict) }
+  );
+
+  const govOrgs: Array<{ id: string; name: string; formattedLabel: string; type: string }> = useMemo(() => {
+    return govOrgsResponse?.data || [];
+  }, [govOrgsResponse]);
+
+  // Set default org when org list changes
+  useEffect(() => {
+    if (govOrgs.length > 0 && !govOrgs.some((o) => o.id === selectedDepartmentId)) {
+      setSelectedDepartmentId(govOrgs[0].id);
+    }
+  }, [govOrgs, selectedDepartmentId]);
+
+  const decide = async (decision: "PROCEED" | "PROCEED_WITH_CONDITIONS" | "RETURN_FOR_CLARIFICATION" | "DO_NOT_PROCEED") => {
+    setMessage("");
+    setError("");
+    if (decision !== "PROCEED" && (!reason.trim() || reason.trim().length < 5)) {
+      setError("Please provide a reason or conditions (minimum 5 characters) for this decision.");
+      return;
+    }
+    if ((decision === "PROCEED" || decision === "PROCEED_WITH_CONDITIONS") && !selectedDepartmentId) {
+      setError("Please select a target Government Organization to assign the project.");
+      return;
+    }
+    setWorking(decision);
+    try {
+      const res = await apiFetch<any>(`/js/assessments/${assessmentId}/decision`, {
+        method: "POST",
+        body: JSON.stringify({
+          decision,
+          reason: reason.trim(),
+          targetDepartmentId: selectedDepartmentId,
+          targetDistrict: selectedDistrict
+        })
+      });
+      setMessage(res?.message || "Joint Secretary decision recorded successfully.");
+      onDecisionRecorded();
+    } catch (err: any) {
+      setError(err instanceof Error ? err.message : "Failed to record decision.");
+    } finally {
+      setWorking("");
+    }
+  };
+
+  if (currentStatus === "JS_APPROVED" || existingDecision === "PROCEED" || existingDecision === "PROCEED_WITH_CONDITIONS") {
+    return (
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-5 space-y-2">
+        <div className="flex items-center gap-2 text-emerald-900 font-extrabold text-sm">
+          <CheckCircle2 size={18} className="text-emerald-700" />
+          <span>Approved by Joint Secretary</span>
+          <span className="ml-auto text-[11px] font-mono text-emerald-700">
+            {formatDateTime(decidedAt)}
+          </span>
+        </div>
+        {existingReason && (
+          <p className="text-xs text-emerald-800 bg-white/70 p-3 rounded-lg border border-emerald-200 leading-relaxed">
+            <strong>Decision Notes:</strong> {existingReason}
+          </p>
+        )}
+        <p className="text-xs text-emerald-700">
+          This enquiry has been sanctioned and routed to the assigned Government Organization and District Nodal Consultant.
+        </p>
+      </div>
+    );
+  }
+
+  if (currentStatus === "JS_REJECTED" || existingDecision === "DO_NOT_PROCEED") {
+    return (
+      <div className="rounded-xl border border-rose-200 bg-rose-50/70 p-5 space-y-2">
+        <div className="flex items-center gap-2 text-rose-900 font-extrabold text-sm">
+          <XCircle size={18} className="text-rose-700" />
+          <span>Rejected by Joint Secretary</span>
+          <span className="ml-auto text-[11px] font-mono text-rose-700">
+            {formatDateTime(decidedAt)}
+          </span>
+        </div>
+        {existingReason && (
+          <p className="text-xs text-rose-800 bg-white/70 p-3 rounded-lg border border-rose-200 leading-relaxed">
+            <strong>Rejection Reason:</strong> {existingReason}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  if (currentStatus === "RETURN_FOR_CLARIFICATION" || existingDecision === "RETURN_FOR_CLARIFICATION") {
+    return (
+      <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-5 space-y-2">
+        <div className="flex items-center gap-2 text-amber-900 font-extrabold text-sm">
+          <RotateCcw size={18} className="text-amber-700" />
+          <span>Returned to Relationship Manager for Clarification</span>
+          <span className="ml-auto text-[11px] font-mono text-amber-700">
+            {formatDateTime(decidedAt)}
+          </span>
+        </div>
+        {existingReason && (
+          <p className="text-xs text-amber-900 bg-white/70 p-3 rounded-lg border border-amber-200 leading-relaxed">
+            <strong>Clarification Instructions:</strong> {existingReason}
+          </p>
+        )}
+      </div>
+    );
+  }
+  if (!isJS) {
+    return (
+      <div className="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50/80 to-indigo-50/60 p-5 shadow-sm space-y-4">
+        <div className="flex items-center justify-between border-b border-blue-200/60 pb-3">
+          <h4 className="text-sm font-extrabold text-blue-950 flex items-center gap-2">
+            <ShieldCheck size={18} className="text-blue-900" /> Joint Secretary Executive Decision Desk
+          </h4>
+          <span className="text-[11px] font-bold text-blue-800 bg-blue-100 px-2.5 py-0.5 rounded-full border border-blue-200">
+            Awaiting Decision
+          </span>
+        </div>
+        <p className="text-xs text-slate-600 leading-relaxed">
+          The 13-point feasibility checklist has been submitted. The proposal is currently under review by the Joint Secretary.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50/80 to-indigo-50/60 p-5 shadow-sm space-y-4">
+      <div className="flex items-center justify-between border-b border-blue-200/60 pb-3">
+        <h4 className="text-sm font-extrabold text-blue-950 flex items-center gap-2">
+          <ShieldCheck size={18} className="text-blue-900" /> Joint Secretary Executive Decision Desk
+        </h4>
+        <span className="text-[11px] font-bold text-blue-800 bg-blue-100 px-2.5 py-0.5 rounded-full border border-blue-200">
+          Awaiting Decision
+        </span>
+      </div>
+
+      <p className="text-xs text-slate-600 leading-relaxed">
+        Review the 13-Point Feasibility Checklist and RM recommendations. Select the target district and government organization (ZP, Collectorate, Municipal Corporation) to allocate the project upon approval.
+      </p>
+
+      {/* Target District & Organization Selection Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-white/80 p-3.5 rounded-xl border border-blue-100">
+        <div className="space-y-1">
+          <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+            <MapPin size={13} className="text-blue-800" /> Target District
+          </label>
+          <select
+            value={selectedDistrict}
+            onChange={(e) => setSelectedDistrict(e.target.value)}
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+          >
+            {MAHARASHTRA_DISTRICTS.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+          <span className="text-[10px] text-slate-500">Auto-fetched from Corporate Enquiry preference</span>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+            <Building2 size={13} className="text-blue-800" /> Assign To Government Organization
+          </label>
+          <select
+            value={selectedDepartmentId}
+            onChange={(e) => setSelectedDepartmentId(e.target.value)}
+            disabled={loadingOrgs}
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-blue-950 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50"
+          >
+            {loadingOrgs ? (
+              <option value="">Loading organizations for {selectedDistrict}...</option>
+            ) : govOrgs.length > 0 ? (
+              govOrgs.map((org) => (
+                <option key={org.id} value={org.id}>
+                  {org.formattedLabel}
+                </option>
+              ))
+            ) : (
+              <option value="">No registered organization in {selectedDistrict} (Select another district)</option>
+            )}
+          </select>
+          <span className="text-[10px] text-slate-500">Filtered by selected district (ZP, Collectorate, MNC)</span>
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-xs font-bold text-slate-700">
+          Decision Notes / Approval Rationale / Clarification Remarks
+        </label>
+        <textarea
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          rows={3}
+          placeholder="Enter executive remarks, conditions, or required clarification points..."
+          className="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+        />
+      </div>
+
+      {error && <p className="text-xs font-bold text-rose-600">{error}</p>}
+      {message && <p className="text-xs font-bold text-emerald-700">{message}</p>}
+
+      <div className="flex flex-wrap gap-2.5 pt-1">
+        <button
+          disabled={Boolean(working) || (!selectedDepartmentId && govOrgs.length > 0)}
+          onClick={() => decide("PROCEED")}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2.5 text-xs font-extrabold text-white shadow-sm hover:bg-emerald-800 transition-all disabled:opacity-50"
+        >
+          {working === "PROCEED" ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+          Approve & Route to {govOrgs.find((o) => o.id === selectedDepartmentId)?.formattedLabel || "Organization"}
+        </button>
+
+        <button
+          disabled={Boolean(working) || (!selectedDepartmentId && govOrgs.length > 0)}
+          onClick={() => decide("PROCEED_WITH_CONDITIONS")}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-blue-900 px-4 py-2.5 text-xs font-extrabold text-white shadow-sm hover:bg-blue-950 transition-all disabled:opacity-50"
+        >
+          {working === "PROCEED_WITH_CONDITIONS" ? <Loader2 size={14} className="animate-spin" /> : <FileCheck2 size={14} />}
+          Approve with Conditions
+        </button>
+
+        <button
+          disabled={Boolean(working)}
+          onClick={() => decide("RETURN_FOR_CLARIFICATION")}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-100 px-4 py-2.5 text-xs font-extrabold text-amber-900 shadow-sm hover:bg-amber-200 transition-all disabled:opacity-50"
+        >
+          {working === "RETURN_FOR_CLARIFICATION" ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
+          Return to RM for Clarification
+        </button>
+
+        <button
+          disabled={Boolean(working)}
+          onClick={() => decide("DO_NOT_PROCEED")}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-rose-300 bg-rose-50 px-4 py-2.5 text-xs font-extrabold text-rose-800 shadow-sm hover:bg-rose-100 transition-all disabled:opacity-50"
+        >
+          {working === "DO_NOT_PROCEED" ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
+          Reject Proposal
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Main Page Component ─── */
 export default function EnquiryDetailPage() {
   const params = useParams<{ id: string }>();
@@ -520,14 +793,19 @@ export default function EnquiryDetailPage() {
         {/* TAB 4: JS DECISION                                     */}
         {/* ────────────────────────────────────────────────────── */}
         {activeTab === "js" && (
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
-            <h3 className="text-sm font-extrabold text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
-              <Send size={16} className="text-blue-800" /> Joint Secretary Submission
-            </h3>
-            {assessment?.status === "SUBMITTED_TO_JS" ? (
-              <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-200 text-sm text-emerald-950 font-bold">
-                ✓ Feasibility Assessment has been submitted to the Joint Secretary for approval.
-              </div>
+          <div className="space-y-4">
+            {assessment?.id ? (
+              <JointSecretaryDecisionPanel
+                assessmentId={assessment.id}
+                currentStatus={assessment.status}
+                existingDecision={assessment.jsDecision}
+                existingReason={assessment.jsDecisionReason}
+                decidedAt={assessment.jsDecidedAt}
+                defaultDistrict={enquiry?.preferredDistricts?.[0] || enquiry?.district || assessment?.targetDistricts?.[0] || "Nagpur"}
+                defaultDepartmentId={assessment?.targetDepartmentId || ""}
+                onDecisionRecorded={() => { refetchAssessment(); refetch(); }}
+                isJS={isJS}
+              />
             ) : (
               <div className="p-4 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-950">
                 Complete the 13-Factor Feasibility in the Feasibility tab to submit to JS.
