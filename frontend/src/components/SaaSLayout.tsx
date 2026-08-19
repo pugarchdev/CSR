@@ -22,6 +22,7 @@ import { resolveDashboardPath } from "@/lib/roleRouting";
 import { resolveNotificationUrl } from "@/lib/notificationUtils";
 import { Sidebar, resolveNavIcon } from "@/components/layout/Sidebar";
 import { NAVIGATION_GROUPS, NAVIGATION_MANIFEST, isNavItemAllowed, NavItemDef } from "@/lib/navigationManifest";
+import { GlobalSearchModal } from "@/components/search/GlobalSearchModal";
 
 interface SaaSLayoutProps {
   children: React.ReactNode;
@@ -103,6 +104,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
   const [openNavGroup, setOpenNavGroup] = useState<string | null>(null);
   const [mobileOpenNavGroup, setMobileOpenNavGroup] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Array<{ id: string; title: string; message: string; isRead: boolean }>>([]);
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [userEmail, setUserEmail] = useState("user@mahacsr.gov.in");
   const [tenantFeatures, setTenantFeatures] = useState<Record<string, boolean>>({});
   const [mounted, setMounted] = useState(false);
@@ -175,6 +177,24 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchModalOpen(true);
+      } else if (
+        e.key === "/" &&
+        !["INPUT", "TEXTAREA", "SELECT"].includes((e.target as HTMLElement)?.tagName) &&
+        !(e.target as HTMLElement)?.isContentEditable
+      ) {
+        e.preventDefault();
+        setSearchModalOpen(true);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   useEffect(() => {
@@ -589,18 +609,20 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
             </div>
 
             {/* Dashboard Search */}
-            <div className="hidden md:flex items-center gap-2 max-w-sm w-full relative">
-              <input
-                type="text"
-                placeholder="Search proposals, NGOs, or metrics..."
-                className="w-full bg-slate-50/70 hover:bg-slate-50 border border-slate-200/80 rounded-xl py-2 pl-10 pr-16 text-xs placeholder:text-slate-400 focus:outline-none focus:border-blue-500/50 focus:bg-white focus:ring-[3px] focus:ring-blue-500/10 transition-all font-sans"
-              />
-              <Search size={14} className="absolute left-3 text-slate-400" />
+            <button
+              type="button"
+              onClick={() => setSearchModalOpen(true)}
+              className="hidden md:flex items-center gap-2 max-w-sm w-full relative group text-left cursor-pointer"
+            >
+              <div className="w-full bg-slate-50/70 group-hover:bg-slate-100/90 group-hover:border-slate-300 border border-slate-200/80 rounded-xl py-2 pl-10 pr-16 text-xs text-slate-400 font-sans transition-all flex items-center shadow-2xs">
+                <span>Search proposals, NGOs, or metrics...</span>
+              </div>
+              <Search size={14} className="absolute left-3 text-slate-400 group-hover:text-blue-600 transition-colors" />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-0.5 pointer-events-none select-none text-[9px] font-semibold text-slate-400 bg-slate-100 border border-slate-200/80 px-1.5 py-0.5 rounded-md">
                 <span>⌘</span>
                 <span>K</span>
               </div>
-            </div>
+            </button>
 
             {/* Right Actions */}
             <div className="flex items-center gap-4">
@@ -1310,6 +1332,12 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
         </div>
 
       </div>
+
+      {/* Global Command Palette & Search Modal */}
+      <GlobalSearchModal
+        isOpen={searchModalOpen}
+        onClose={() => setSearchModalOpen(false)}
+      />
 
     </div>
   );

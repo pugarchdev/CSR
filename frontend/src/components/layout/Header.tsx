@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
+import { GlobalSearchModal } from "@/components/search/GlobalSearchModal";
 
 interface HeaderProps {
   userRole?: string;
@@ -36,6 +37,7 @@ export function Header({
 }: HeaderProps) {
   const router = useRouter();
   const logout = useAuthStore((state) => state.logout);
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -114,14 +116,19 @@ export function Header({
 
         {/* Center: Search (Hidden on Mobile) */}
         <div className="hidden md:flex flex-1 max-w-md mx-4 lg:mx-8">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input
-              type="text"
-              placeholder="Search proposals, NGOs, or metrics..."
-              className="w-full h-10 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-lg text-sm placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-            />
-          </div>
+          <button
+            type="button"
+            onClick={() => setSearchModalOpen(true)}
+            className="relative w-full text-left cursor-pointer group"
+          >
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-blue-600 transition-colors" size={18} />
+            <div className="w-full h-10 pl-10 pr-14 bg-slate-50 group-hover:bg-slate-100/80 border border-slate-200 group-hover:border-slate-300 rounded-lg text-sm text-slate-400 transition-colors flex items-center shadow-2xs">
+              <span>Search proposals, NGOs, or metrics...</span>
+            </div>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-0.5 pointer-events-none select-none text-[10px] font-semibold text-slate-400 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">
+              <span>⌘K</span>
+            </div>
+          </button>
         </div>
 
         {/* Right: Actions & User */}
@@ -165,6 +172,12 @@ export function Header({
 
         </div>
       </div>
+
+      {/* Global Command Palette & Search Modal */}
+      <GlobalSearchModal
+        isOpen={searchModalOpen}
+        onClose={() => setSearchModalOpen(false)}
+      />
     </motion.header>
   );
 }

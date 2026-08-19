@@ -55,10 +55,14 @@ import evidenceRoutes from "./evidenceRoutes";
 import issueRoutes from "./issueRoutes";
 import platformAdminRoutes from "./platformAdminRoutes";
 
+import globalSearchRoutes from "./globalSearchRoutes";
+
 // Verification Module
 import verificationRoutes from "../modules/verification";
 
 const router = Router();
+
+router.use("/search", globalSearchRoutes);
 
 router.use("/mou", mouRoutes);
 router.use("/milestones", milestoneRoutes);

@@ -3544,7 +3544,15 @@ export function AdminOrganizationsWorkspace() {
                         {data.status && (
                           <div>
                             <span className="text-slate-400 block font-bold text-[10px] uppercase">Account Status</span>
-                            <span className="font-bold text-emerald-700">{data.status}</span>
+                            <span className="font-bold text-emerald-700">
+                              {data.status === "UNDER_VERIFICATION"
+                                ? "Under Verification"
+                                : data.status === "CLARIFICATION_REQUIRED"
+                                ? "Clarification Required"
+                                : data.status === "APPROVED" || data.status === "ACTIVE"
+                                ? "Active"
+                                : data.status.replace(/_/g, " ")}
+                            </span>
                           </div>
                         )}
                       </div>
@@ -4113,7 +4121,19 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
 
                       <div>
                         <span className="text-slate-400 block font-medium mb-0.5">Department Status</span>
-                        <span className="font-bold text-blue-900 uppercase">{normStatus}</span>
+                        <span className="font-bold text-blue-900">
+                          {normStatus === "UNDER_VERIFICATION"
+                            ? "Under Verification"
+                            : normStatus === "APPROVED" || normStatus === "ACTIVE"
+                            ? "Active / Approved"
+                            : normStatus === "CLARIFICATION_REQUIRED"
+                            ? "Clarification Required"
+                            : normStatus === "REJECTED"
+                            ? "Rejected"
+                            : normStatus === "SUSPENDED"
+                            ? "Suspended"
+                            : normStatus.replace(/_/g, " ")}
+                        </span>
                       </div>
                     </>
                   ) : (
@@ -4160,7 +4180,9 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
                       {org.companyStatus && (
                         <div>
                           <span className="text-slate-400 block font-medium mb-0.5">Company Status</span>
-                          <span className="font-bold text-blue-900 uppercase">{org.companyStatus}</span>
+                          <span className="font-bold text-blue-900">
+                            {org.companyStatus === "ACTIVE" ? "Active" : org.companyStatus.replace(/_/g, " ")}
+                          </span>
                         </div>
                       )}
                     </>
