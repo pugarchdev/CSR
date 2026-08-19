@@ -32,6 +32,7 @@ import {
   AlertTriangle,
   Briefcase
 } from "lucide-react";
+import { apiFetch } from "@/lib/api";
 
 export interface GlobalSearchModalProps {
   isOpen: boolean;
@@ -291,6 +292,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
   // Focus input on open
   useEffect(() => {
     if (isOpen) {
+      setActiveCategory("all");
       setTimeout(() => {
         inputRef.current?.focus();
         inputRef.current?.select();
@@ -299,6 +301,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
       setQuery("");
       setApiResults([]);
       setSelectedIndex(0);
+      setActiveCategory("all");
     }
   }, [isOpen]);
 
@@ -314,14 +317,15 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
     setIsLoading(true);
     const timer = setTimeout(async () => {
       try {
-        const response = await fetch(`/api/search/global?q=${encodeURIComponent(trimmed)}&limit=8`, {
-          credentials: "include"
-        });
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && Array.isArray(data.data?.results)) {
-            setApiResults(data.data.results);
-          }
+        const data = await apiFetch<{
+          success: boolean;
+          data: { results: SearchItem[]; total: number };
+        }>(`/search/global?q=${encodeURIComponent(trimmed)}&limit=12`);
+
+        if (data?.success && Array.isArray(data.data?.results)) {
+          setApiResults(data.data.results);
+        } else if (Array.isArray((data as any)?.results)) {
+          setApiResults((data as any).results);
         }
       } catch (err) {
         console.error("Search fetch error:", err);
