@@ -3508,33 +3508,45 @@ export function AdminOrganizationsWorkspace() {
                     {/* Statutory & Identity Profile */}
                     <div className="p-4 rounded-xl border border-slate-200/90 bg-white space-y-3">
                       <h4 className="text-[11px] font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-2">
-                        <ShieldCheck size={15} className="text-purple-600 shrink-0" /> Statutory & Registration Profile
+                        <ShieldCheck size={15} className="text-purple-600 shrink-0" /> {type.includes("GOVERNMENT") || type.includes("GOVT") || data.kind === "GOVERNMENT_DEPARTMENT" ? "Department Administrative Profile" : "Statutory & Registration Profile"}
                       </h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
-                        <div>
-                          <span className="text-slate-400 block font-bold text-[10px] uppercase">Legal Name</span>
-                          <span className="font-bold text-slate-900 break-words">{data.legalName || data.name || "—"}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 block font-bold text-[10px] uppercase">Registration / CIN</span>
-                          <span className="font-mono font-semibold text-slate-800 break-all">{data.registrationNumber || data.cin || "—"}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 block font-bold text-[10px] uppercase">PAN Number</span>
-                          <span className="font-mono font-semibold text-slate-800">{data.pan || "—"}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 block font-bold text-[10px] uppercase">GSTIN Number</span>
-                          <span className="font-mono font-semibold text-slate-800">{data.gstin || "—"}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 block font-bold text-[10px] uppercase">Assigned District</span>
-                          <span className="font-semibold text-slate-800">{data.district || "Statewide / Mantralaya"}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 block font-bold text-[10px] uppercase">Account Status</span>
-                          <span className="font-bold text-emerald-700">{data.status || "ACTIVE"}</span>
-                        </div>
+                        {(data.legalName || data.name) && (
+                          <div>
+                            <span className="text-slate-400 block font-bold text-[10px] uppercase">{type.includes("GOVERNMENT") || type.includes("GOVT") || data.kind === "GOVERNMENT_DEPARTMENT" ? "Department Name" : "Legal Name"}</span>
+                            <span className="font-bold text-slate-900 break-words">{data.legalName || data.name}</span>
+                          </div>
+                        )}
+                        {!(type.includes("GOVERNMENT") || type.includes("GOVT") || data.kind === "GOVERNMENT_DEPARTMENT") && (data.registrationNumber || data.cin) && (data.registrationNumber || data.cin) !== "—" && (data.registrationNumber || data.cin) !== "-" && (
+                          <div>
+                            <span className="text-slate-400 block font-bold text-[10px] uppercase">Registration / CIN</span>
+                            <span className="font-mono font-semibold text-slate-800 break-all">{data.registrationNumber || data.cin}</span>
+                          </div>
+                        )}
+                        {!(type.includes("GOVERNMENT") || type.includes("GOVT") || data.kind === "GOVERNMENT_DEPARTMENT") && data.pan && data.pan !== "—" && data.pan !== "-" && (
+                          <div>
+                            <span className="text-slate-400 block font-bold text-[10px] uppercase">PAN Number</span>
+                            <span className="font-mono font-semibold text-slate-800">{data.pan}</span>
+                          </div>
+                        )}
+                        {!(type.includes("GOVERNMENT") || type.includes("GOVT") || data.kind === "GOVERNMENT_DEPARTMENT") && data.gstin && data.gstin !== "—" && data.gstin !== "-" && (
+                          <div>
+                            <span className="text-slate-400 block font-bold text-[10px] uppercase">GSTIN Number</span>
+                            <span className="font-mono font-semibold text-slate-800">{data.gstin}</span>
+                          </div>
+                        )}
+                        {data.district && data.district !== "—" && data.district !== "-" && (
+                          <div>
+                            <span className="text-slate-400 block font-bold text-[10px] uppercase">Assigned District</span>
+                            <span className="font-semibold text-slate-800">{data.district}</span>
+                          </div>
+                        )}
+                        {data.status && (
+                          <div>
+                            <span className="text-slate-400 block font-bold text-[10px] uppercase">Account Status</span>
+                            <span className="font-bold text-emerald-700">{data.status}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -3932,6 +3944,19 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
   const primaryUser = users.find((u: any) => u.roleId === 8 || u.roleId === 1 || u.roleId === 7 || u.roleId === 9) || users[0] || null;
   const nodalUser = users.find((u: any) => u.roleId === 4 || u.roleId === 10) || null;
 
+  const typeLabel = (org.organizationType || org.kind || "CSR_COMPANY").toString().replace(/_/g, " ");
+  const isGovDept =
+    org.kind === "GOVERNMENT_DEPARTMENT" ||
+    typeLabel.includes("GOVERNMENT") ||
+    typeLabel.includes("GOVT") ||
+    Boolean(org.governmentType);
+  const isNgo =
+    org.kind === "NON_PROFIT_NGO" ||
+    typeLabel.includes("NGO") ||
+    typeLabel.includes("NON PROFIT") ||
+    Boolean(org.ngoProfile);
+  const isCorporate = !isGovDept && !isNgo;
+
   const email = org.officialEmail || org.email || primaryUser?.email || "-";
   const phone = org.officialPhone || org.phone || primaryUser?.mobile || "-";
   const district = org.district || org.registeredOfficeAddress || org.address || "-";
@@ -3939,12 +3964,11 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
   const regNo = org.registrationNumber || org.cin || "-";
   const pan = org.pan || "-";
   const gst = org.gstin || org.gst || "-";
-  const typeLabel = (org.organizationType || org.kind || "CSR_COMPANY").toString().replace(/_/g, " ");
   const normStatus = (org.status || org.onboardingStatus || "UNDER_VERIFICATION").toUpperCase();
   const isApproved = normStatus === "ACTIVE" || normStatus === "APPROVED" || normStatus === "VERIFIED";
   const year = org.yearOfIncorporation || "-";
-  const companyType = org.companyType || "Private Limited Company";
-  const mcaStatus = org.mcaVerificationStatus || "VERIFIED";
+  const companyType = org.companyType || (isCorporate ? "Private Limited Company" : "");
+  const mcaStatus = org.mcaVerificationStatus || (isCorporate ? "VERIFIED" : "");
   const website = org.website || "-";
   const fullAddress = org.address || org.registeredOfficeAddress || org.corporateOfficeAddress || "-";
 
@@ -3991,9 +4015,11 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
                     {typeLabel}
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 font-medium mt-1 md:mt-0">
-                  CIN / Reg: <span className="font-mono font-bold text-purple-700 break-all">{regNo}</span>
-                </p>
+                {!isGovDept && regNo && regNo !== "-" && regNo !== "—" && (
+                  <p className="text-xs text-slate-500 font-medium mt-1 md:mt-0">
+                    CIN / Reg: <span className="font-mono font-bold text-purple-700 break-all">{regNo}</span>
+                  </p>
+                )}
               </div>
             </div>
 
@@ -4029,47 +4055,116 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
               {/* Section 1: Statutory & Registration Profile */}
               <div className="rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-4 md:p-6 shadow-xs space-y-4">
                 <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-3">
-                  <ShieldCheck size={16} className="text-purple-600 shrink-0" /> Statutory & Registration Profile
+                  <ShieldCheck size={16} className="text-purple-600 shrink-0" /> {isGovDept ? "Department Administrative Profile" : "Statutory & Registration Profile"}
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
-                  <div>
-                    <span className="text-slate-400 block font-medium mb-0.5">Legal Registered Name</span>
-                    <span className="font-bold text-slate-900 break-words">{org.legalName || org.name || "-"}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block font-medium mb-0.5">Brand / Trade Name</span>
-                    <span className="font-bold text-slate-900 break-words">{org.displayName || org.name || "-"}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block font-medium mb-0.5">PAN Number</span>
-                    <span className="font-mono font-bold text-slate-900 break-all">{pan}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block font-medium mb-0.5">GSTIN Number</span>
-                    <span className="font-mono font-bold text-slate-900 break-all">{gst}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block font-medium mb-0.5">Registration / CIN</span>
-                    <span className="font-mono font-semibold text-slate-800 break-all">{regNo}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block font-medium mb-0.5">Company Structure / Type</span>
-                    <span className="font-semibold text-slate-800">{companyType}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block font-medium mb-0.5">Year of Incorporation</span>
-                    <span className="font-semibold text-slate-800">{year}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block font-medium mb-0.5">MCA Statutory Check</span>
-                    <span className="font-bold text-emerald-700 flex items-center gap-1">
-                      <CheckCircle2 size={13} className="shrink-0" /> {mcaStatus}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block font-medium mb-0.5">Company Status</span>
-                    <span className="font-bold text-blue-900 uppercase">{org.companyStatus || "ACTIVE"}</span>
-                  </div>
+                  {/* Legal / Registered Name */}
+                  {(org.legalName || org.name) && (
+                    <div>
+                      <span className="text-slate-400 block font-medium mb-0.5">
+                        {isGovDept ? "Department / Office Name" : "Legal Registered Name"}
+                      </span>
+                      <span className="font-bold text-slate-900 break-words">{org.legalName || org.name}</span>
+                    </div>
+                  )}
+
+                  {/* Brand / Display Name */}
+                  {org.displayName && org.displayName !== (org.legalName || org.name) && org.displayName !== "-" && (
+                    <div>
+                      <span className="text-slate-400 block font-medium mb-0.5">
+                        {isGovDept ? "Administrative Unit" : "Brand / Trade Name"}
+                      </span>
+                      <span className="font-bold text-slate-900 break-words">{org.displayName}</span>
+                    </div>
+                  )}
+
+                  {/* Government Department specific fields */}
+                  {isGovDept ? (
+                    <>
+                      {(govProf.departmentType || org.governmentType) && (
+                        <div>
+                          <span className="text-slate-400 block font-medium mb-0.5">Department Level / Classification</span>
+                          <span className="font-bold text-purple-900 break-words">
+                            {govProf.departmentType || org.governmentType}
+                          </span>
+                        </div>
+                      )}
+
+                      {district && district !== "-" && (
+                        <div>
+                          <span className="text-slate-400 block font-medium mb-0.5">Jurisdiction District</span>
+                          <span className="font-semibold text-slate-800 break-words">{district}</span>
+                        </div>
+                      )}
+
+                      {org.organizationCode && org.organizationCode !== "-" && (
+                        <div>
+                          <span className="text-slate-400 block font-medium mb-0.5">Official Department Code</span>
+                          <span className="font-mono font-bold text-slate-900 break-all">{org.organizationCode}</span>
+                        </div>
+                      )}
+
+                      {org.state && (
+                        <div>
+                          <span className="text-slate-400 block font-medium mb-0.5">State Government</span>
+                          <span className="font-semibold text-slate-800">{org.state}</span>
+                        </div>
+                      )}
+
+                      <div>
+                        <span className="text-slate-400 block font-medium mb-0.5">Department Status</span>
+                        <span className="font-bold text-blue-900 uppercase">{normStatus}</span>
+                      </div>
+                    </>
+                  ) : (
+                    /* Corporate & NGO Statutory Fields - ONLY shown if non-blank / not '-' */
+                    <>
+                      {pan && pan !== "-" && (
+                        <div>
+                          <span className="text-slate-400 block font-medium mb-0.5">PAN Number</span>
+                          <span className="font-mono font-bold text-slate-900 break-all">{pan}</span>
+                        </div>
+                      )}
+                      {gst && gst !== "-" && (
+                        <div>
+                          <span className="text-slate-400 block font-medium mb-0.5">GSTIN Number</span>
+                          <span className="font-mono font-bold text-slate-900 break-all">{gst}</span>
+                        </div>
+                      )}
+                      {regNo && regNo !== "-" && (
+                        <div>
+                          <span className="text-slate-400 block font-medium mb-0.5">Registration / CIN</span>
+                          <span className="font-mono font-semibold text-slate-800 break-all">{regNo}</span>
+                        </div>
+                      )}
+                      {companyType && companyType !== "-" && (
+                        <div>
+                          <span className="text-slate-400 block font-medium mb-0.5">Company Structure / Type</span>
+                          <span className="font-semibold text-slate-800">{companyType}</span>
+                        </div>
+                      )}
+                      {year && year !== "-" && (
+                        <div>
+                          <span className="text-slate-400 block font-medium mb-0.5">Year of Incorporation</span>
+                          <span className="font-semibold text-slate-800">{year}</span>
+                        </div>
+                      )}
+                      {mcaStatus && mcaStatus !== "-" && (
+                        <div>
+                          <span className="text-slate-400 block font-medium mb-0.5">MCA Statutory Check</span>
+                          <span className="font-bold text-emerald-700 flex items-center gap-1">
+                            <CheckCircle2 size={13} className="shrink-0" /> {mcaStatus}
+                          </span>
+                        </div>
+                      )}
+                      {org.companyStatus && (
+                        <div>
+                          <span className="text-slate-400 block font-medium mb-0.5">Company Status</span>
+                          <span className="font-bold text-blue-900 uppercase">{org.companyStatus}</span>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -4079,30 +4174,38 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
                   <MapPin size={16} className="text-blue-600 shrink-0" /> Contact & Headquarters Location
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                  <div>
-                    <span className="text-slate-400 block font-medium mb-0.5">Official Email Address</span>
-                    <span className="font-bold text-slate-900 break-all">{email}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block font-medium mb-0.5">Official Contact Phone</span>
-                    <span className="font-bold text-slate-900">{phone}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block font-medium mb-0.5">Official Website</span>
-                    <a href={website !== "-" && !website.startsWith('http') ? `https://${website}` : website} target="_blank" rel="noreferrer" className="font-bold text-blue-600 break-all hover:underline">{website}</a>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block font-medium mb-0.5">District, Taluka & State</span>
-                    <span className="font-semibold text-slate-800">{district}{taluka !== "-" ? `, ${taluka}` : ""}, {org.state || "Maharashtra"} {org.pincode ? `- ${org.pincode}` : ""}</span>
-                  </div>
+                  {email && email !== "-" && (
+                    <div>
+                      <span className="text-slate-400 block font-medium mb-0.5">Official Email Address</span>
+                      <span className="font-bold text-slate-900 break-all">{email}</span>
+                    </div>
+                  )}
+                  {phone && phone !== "-" && (
+                    <div>
+                      <span className="text-slate-400 block font-medium mb-0.5">Official Contact Phone</span>
+                      <span className="font-bold text-slate-900">{phone}</span>
+                    </div>
+                  )}
+                  {website && website !== "-" && (
+                    <div>
+                      <span className="text-slate-400 block font-medium mb-0.5">Official Website</span>
+                      <a href={website.startsWith('http') ? website : `https://${website}`} target="_blank" rel="noreferrer" className="font-bold text-blue-600 break-all hover:underline">{website}</a>
+                    </div>
+                  )}
+                  {district && district !== "-" && (
+                    <div>
+                      <span className="text-slate-400 block font-medium mb-0.5">District, Taluka & State</span>
+                      <span className="font-semibold text-slate-800">{district}{taluka && taluka !== "-" ? `, ${taluka}` : ""}, {org.state || "Maharashtra"} {org.pincode ? `- ${org.pincode}` : ""}</span>
+                    </div>
+                  )}
                 </div>
-                {fullAddress !== "-" && (
+                {fullAddress && fullAddress !== "-" && (
                   <div className="pt-3 border-t border-slate-100 text-xs">
-                    <span className="text-slate-400 block font-medium mb-0.5">Registered Office Address</span>
+                    <span className="text-slate-400 block font-medium mb-0.5">{isGovDept ? "Official Office Address" : "Registered Office Address"}</span>
                     <span className="font-medium text-slate-800">{fullAddress}</span>
                   </div>
                 )}
-                {org.corporateOfficeAddress && org.corporateOfficeAddress !== fullAddress && (
+                {org.corporateOfficeAddress && org.corporateOfficeAddress !== fullAddress && org.corporateOfficeAddress !== "-" && (
                   <div className="pt-2 text-xs">
                     <span className="text-slate-400 block font-medium mb-0.5">Corporate Office Address</span>
                     <span className="font-medium text-slate-800">{org.corporateOfficeAddress}</span>
@@ -4125,7 +4228,7 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
                       {primaryUser.mobile && <p className="text-xs text-slate-600 font-medium">Mob: {primaryUser.mobile}</p>}
                     </div>
                   )}
-                  {(csrProfile.csrHeadName || csrProfile.csrHeadEmail || csrProfile.csrHeadMobile) && (
+                  {!isGovDept && (csrProfile.csrHeadName || csrProfile.csrHeadEmail || csrProfile.csrHeadMobile) && (
                     <div className="p-3.5 rounded-xl border border-purple-100 bg-purple-50/50 space-y-1">
                       <span className="text-[10px] font-extrabold uppercase text-purple-700 block">Designated CSR Head</span>
                       <p className="font-bold text-slate-900 text-sm">{csrProfile.csrHeadName || "CSR Department Head"}</p>
@@ -4134,7 +4237,7 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
                       {csrProfile.csrHeadMobile && <p className="text-xs text-slate-600 font-medium">Mob: {csrProfile.csrHeadMobile}</p>}
                     </div>
                   )}
-                  {nodalUser && (
+                  {nodalUser && (nodalUser.firstName || nodalUser.email) && (
                     <div className="p-3.5 rounded-xl border border-slate-100 bg-slate-50/70 space-y-1">
                       <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Operational Nodal Officer</span>
                       <p className="font-bold text-slate-900 text-sm">{`${nodalUser.firstName || ""} ${nodalUser.lastName || ""}`.trim() || nodalUser.email}</p>
@@ -4146,7 +4249,7 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
               </div>
 
               {/* Section 3: CSR Company Profile & Financial Obligations */}
-              {(typeLabel.includes("COMPANY") || typeLabel.includes("CORPORATE") || csrProfile.id || csrProfile.annualCsrBudget || csrProfile.currentYearCsrBudget) && (
+              {!isGovDept && (typeLabel.includes("COMPANY") || typeLabel.includes("CORPORATE") || csrProfile.id || csrProfile.annualCsrBudget || csrProfile.currentYearCsrBudget) && (
                 <div className="rounded-2xl border border-purple-200/80 bg-purple-50/40 p-3.5 sm:p-4 md:p-6 shadow-xs space-y-5">
                   <h3 className="text-xs font-extrabold text-purple-950 uppercase tracking-wider flex items-center gap-2 border-b border-purple-200/60 pb-3">
                     <Coins size={16} className="text-amber-600 shrink-0" /> CSR Portfolio, Outlay & Strategy
@@ -4282,28 +4385,36 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
               )}
 
               {/* Section 4: NGO Profile Details (If NGO) */}
-              {(ngoProf.darpanNumber || ngoProf.csr1Number || typeLabel.includes("NGO")) && (
+              {!isGovDept && (ngoProf.darpanNumber || ngoProf.csr1Number || typeLabel.includes("NGO")) && (
                 <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/40 p-3.5 sm:p-4 md:p-6 shadow-xs space-y-4">
                   <h3 className="text-xs font-extrabold text-emerald-950 uppercase tracking-wider flex items-center gap-2 border-b border-emerald-200/60 pb-3">
                     <HeartHandshake size={16} className="text-emerald-700 shrink-0" /> NGO Registration & Statutory Accreditation
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
-                    <div>
-                      <span className="text-slate-400 block font-medium mb-0.5">NITI Aayog DARPAN ID</span>
-                      <span className="font-mono font-bold text-emerald-900 break-all">{ngoProf.darpanNumber || "-"}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block font-medium mb-0.5">MCA CSR-1 Registration</span>
-                      <span className="font-mono font-bold text-emerald-900 break-all">{ngoProf.csr1Number || "-"}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block font-medium mb-0.5">Year Established</span>
-                      <span className="font-semibold text-slate-800">{ngoProf.yearEstablished || "-"}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block font-medium mb-0.5">FCRA Registration</span>
-                      <span className="font-semibold text-slate-800">{ngoProf.fcraDetails || "Not Applicable"}</span>
-                    </div>
+                    {ngoProf.darpanNumber && ngoProf.darpanNumber !== "-" && (
+                      <div>
+                        <span className="text-slate-400 block font-medium mb-0.5">NITI Aayog DARPAN ID</span>
+                        <span className="font-mono font-bold text-emerald-900 break-all">{ngoProf.darpanNumber}</span>
+                      </div>
+                    )}
+                    {ngoProf.csr1Number && ngoProf.csr1Number !== "-" && (
+                      <div>
+                        <span className="text-slate-400 block font-medium mb-0.5">MCA CSR-1 Registration</span>
+                        <span className="font-mono font-bold text-emerald-900 break-all">{ngoProf.csr1Number}</span>
+                      </div>
+                    )}
+                    {ngoProf.yearEstablished && ngoProf.yearEstablished !== "-" && (
+                      <div>
+                        <span className="text-slate-400 block font-medium mb-0.5">Year Established</span>
+                        <span className="font-semibold text-slate-800">{ngoProf.yearEstablished}</span>
+                      </div>
+                    )}
+                    {ngoProf.fcraDetails && ngoProf.fcraDetails !== "-" && (
+                      <div>
+                        <span className="text-slate-400 block font-medium mb-0.5">FCRA Registration</span>
+                        <span className="font-semibold text-slate-800">{ngoProf.fcraDetails}</span>
+                      </div>
+                    )}
                     {ngoProf.certificate12AUrl && (
                       <div>
                         <span className="text-slate-400 block font-medium mb-0.5">12A Certificate</span>
@@ -4321,32 +4432,42 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
               )}
 
               {/* Section 5: Government Profile */}
-              {(govProf.nodalOfficerName || typeLabel.includes("GOVERNMENT") || typeLabel.includes("GOVT")) && (
+              {isGovDept && (govProf.departmentType || govProf.nodalOfficerName || org.governmentType) && (
                 <div className="rounded-2xl border border-purple-200/80 bg-purple-50/40 p-3.5 sm:p-4 md:p-6 shadow-xs space-y-4">
                   <h3 className="text-xs font-extrabold text-purple-950 uppercase tracking-wider flex items-center gap-2 border-b border-purple-200/60 pb-3">
                     <ShieldCheck size={16} className="text-purple-700 shrink-0" /> Government Department Profile & Nodal Contact
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
-                    <div>
-                      <span className="text-slate-400 block font-medium mb-0.5">Department Type</span>
-                      <span className="font-bold text-purple-900 break-words">{govProf.departmentType || "State Government Department"}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block font-medium mb-0.5">Nodal Officer Name</span>
-                      <span className="font-bold text-slate-900 break-words">{govProf.nodalOfficerName || "-"}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block font-medium mb-0.5">Designation</span>
-                      <span className="font-semibold text-slate-800 break-words">{govProf.nodalOfficerDesignation || "-"}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block font-medium mb-0.5">Nodal Email</span>
-                      <span className="font-bold text-blue-900 break-all">{govProf.nodalOfficerEmail || "-"}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block font-medium mb-0.5">Nodal Mobile</span>
-                      <span className="font-semibold text-slate-800">{govProf.nodalOfficerMobile || "-"}</span>
-                    </div>
+                    {(govProf.departmentType || org.governmentType) && (
+                      <div>
+                        <span className="text-slate-400 block font-medium mb-0.5">Department Type</span>
+                        <span className="font-bold text-purple-900 break-words">{govProf.departmentType || org.governmentType || "State Government Department"}</span>
+                      </div>
+                    )}
+                    {govProf.nodalOfficerName && govProf.nodalOfficerName !== "-" && (
+                      <div>
+                        <span className="text-slate-400 block font-medium mb-0.5">Nodal Officer Name</span>
+                        <span className="font-bold text-slate-900 break-words">{govProf.nodalOfficerName}</span>
+                      </div>
+                    )}
+                    {govProf.nodalOfficerDesignation && govProf.nodalOfficerDesignation !== "-" && (
+                      <div>
+                        <span className="text-slate-400 block font-medium mb-0.5">Designation</span>
+                        <span className="font-semibold text-slate-800 break-words">{govProf.nodalOfficerDesignation}</span>
+                      </div>
+                    )}
+                    {govProf.nodalOfficerEmail && govProf.nodalOfficerEmail !== "-" && (
+                      <div>
+                        <span className="text-slate-400 block font-medium mb-0.5">Nodal Email</span>
+                        <span className="font-bold text-blue-900 break-all">{govProf.nodalOfficerEmail}</span>
+                      </div>
+                    )}
+                    {govProf.nodalOfficerMobile && govProf.nodalOfficerMobile !== "-" && (
+                      <div>
+                        <span className="text-slate-400 block font-medium mb-0.5">Nodal Mobile</span>
+                        <span className="font-semibold text-slate-800">{govProf.nodalOfficerMobile}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -4368,60 +4489,64 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
                   </h3>
                   <div className="flex flex-col gap-2.5">
                     {(org.onboardingStatus === "APPROVED" || org.status === "ACTIVE" || org.onboardingStatus === "ACTIVE") ? (
-                      <div className="w-full rounded-xl bg-emerald-50 border border-emerald-200/90 p-3.5 text-center text-xs font-extrabold text-emerald-800 flex items-center justify-center gap-2 shadow-2xs">
-                        <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+                      <div className="w-full rounded-xl bg-emerald-50 border border-emerald-200/90 p-3 text-center text-xs font-extrabold text-emerald-800 flex items-center justify-center gap-2 shadow-2xs">
+                        <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
                         Approved & Active
                       </div>
                     ) : (
                       <Button
+                        icon={CheckCircle2}
                         onClick={() => executeAction("approve")}
                         loading={actionLoading && activeAction === "approve"}
                         disabled={actionLoading}
-                        className="w-full justify-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 shadow-2xs cursor-pointer"
+                        className="w-full justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold h-10 rounded-xl shadow-2xs cursor-pointer text-xs sm:text-sm"
                       >
-                        <CheckCircle2 size={16} className="mr-1.5 shrink-0" /> Approve & Activate
+                        Approve & Activate
                       </Button>
                     )}
 
                     <Button
                       variant="secondary"
+                      icon={FileText}
                       onClick={() => openActionModal("request-clarification")}
                       loading={actionLoading && activeAction === "request-clarification"}
                       disabled={actionLoading}
-                      className="w-full justify-center font-bold cursor-pointer text-center text-xs sm:text-sm py-2.5"
+                      className="w-full justify-center font-bold cursor-pointer text-slate-700 hover:text-slate-900 border border-slate-200/90 bg-slate-100/80 hover:bg-slate-200/80 h-10 rounded-xl shadow-2xs text-xs sm:text-sm"
                     >
-                      <FileText size={16} className="mr-1.5 text-amber-600 shrink-0" /> Request Clarification
+                      Request Clarification
                     </Button>
 
                     {(org.onboardingStatus === "REJECTED" || org.status === "REJECTED") ? (
-                      <div className="w-full rounded-xl bg-rose-50 border border-rose-200 p-3.5 text-center text-xs font-extrabold text-rose-800 flex items-center justify-center gap-2">
+                      <div className="w-full rounded-xl bg-rose-50 border border-rose-200 p-3 text-center text-xs font-extrabold text-rose-800 flex items-center justify-center gap-2">
                         <XCircle size={16} className="text-rose-600 shrink-0" />
                         Application Rejected
                       </div>
                     ) : (
                       <Button
                         variant="danger"
+                        icon={XCircle}
                         onClick={() => openActionModal("reject")}
                         loading={actionLoading && activeAction === "reject"}
                         disabled={actionLoading}
-                        className="w-full justify-center font-bold cursor-pointer py-2.5"
+                        className="w-full justify-center font-bold cursor-pointer h-10 rounded-xl shadow-2xs text-xs sm:text-sm"
                       >
                         Reject Application
                       </Button>
                     )}
 
                     {(org.onboardingStatus === "SUSPENDED" || org.status === "SUSPENDED") ? (
-                      <div className="w-full rounded-xl bg-slate-100 border border-slate-300 p-3.5 text-center text-xs font-extrabold text-slate-700 flex items-center justify-center gap-2">
+                      <div className="w-full rounded-xl bg-slate-100 border border-slate-300 p-3 text-center text-xs font-extrabold text-slate-700 flex items-center justify-center gap-2">
                         <AlertCircle size={16} className="text-slate-500 shrink-0" />
                         Access Suspended
                       </div>
                     ) : (
                       <Button
                         variant="secondary"
+                        icon={AlertTriangle}
                         onClick={() => openActionModal("suspend")}
                         loading={actionLoading && activeAction === "suspend"}
                         disabled={actionLoading}
-                        className="w-full justify-center font-bold text-slate-600 cursor-pointer py-2.5"
+                        className="w-full justify-center font-bold text-slate-700 hover:text-amber-800 hover:bg-amber-50 border border-slate-200/90 bg-slate-100/80 hover:bg-slate-200/80 h-10 rounded-xl shadow-2xs cursor-pointer text-xs sm:text-sm"
                       >
                         Suspend Organization
                       </Button>

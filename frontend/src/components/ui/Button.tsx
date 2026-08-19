@@ -79,12 +79,12 @@ export function Button({
       {loading ? (
         <>
           <Loader2 size={size === "sm" ? 14 : 16} className="animate-spin text-current shrink-0" />
-          <span>{loadingText || children}</span>
+          <span className="inline-flex items-center justify-center gap-1.5">{loadingText || children}</span>
         </>
       ) : (
         <>
           {Icon && <Icon size={size === "sm" ? 14 : 16} className="shrink-0" />}
-          <span>{children}</span>
+          <span className="inline-flex items-center justify-center gap-1.5">{children}</span>
         </>
       )}
     </button>
