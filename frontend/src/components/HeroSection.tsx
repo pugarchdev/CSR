@@ -7,49 +7,36 @@ import { Building2, Landmark, CheckCircle2, ChevronLeft, ChevronRight, ArrowRigh
 import { API_BASE_URL } from "@/lib/api";
 
 /* ─── Default slides (overridden by API fetch) ─── */
-const CAROUSEL_IMAGES = [
-  "Gemini_Generated_Image_5g4qcn5g4qcn5g4q.jpg",
-  "Gemini_Generated_Image_8tv4ar8tv4ar8tv4.jpg",
-  "Gemini_Generated_Image_9qvw8v9qvw8v9qvw.jpg",
-  "Gemini_Generated_Image_cjsjr7cjsjr7cjsj.jpg",
-  "Gemini_Generated_Image_d21ndd21ndd21ndd.jpg",
-  "Gemini_Generated_Image_dmhfhhdmhfhhdmhf.jpg",
-  "Gemini_Generated_Image_ij7dwmij7dwmij7d.jpg",
-  "Gemini_Generated_Image_jobzsgjobzsgjobz.jpg",
-  "Gemini_Generated_Image_lf96bqlf96bqlf96.jpg",
-  "Gemini_Generated_Image_pv11gcpv11gcpv11.jpg",
-  "Gemini_Generated_Image_q5r488q5r488q5r4.jpg",
-  "Gemini_Generated_Image_v5khy9v5khy9v5kh.jpg",
-  "Gemini_Generated_Image_ypxh9zypxh9zypxh.jpg"
-];
-
 const slideContent = [
   {
     title: "One Platform. Many Partners.",
     highlight: "Greater Impact.",
     subtitle:
       "MahaCSR Setu is the official convergence platform connecting Government, Corporates and Implementing Agencies to drive sustainable development across Maharashtra.",
+    image: "/carousel/Gemini_Generated_Image_5g4qcn5g4qcn5g4q.jpg",
   },
   {
     title: "Transforming Maharashtra",
     highlight: "Through Convergence.",
     subtitle:
       "CSR investments aligned with district development priorities, driving sustainable infrastructure, education and healthcare across every taluka.",
+    image: "/carousel/Gemini_Generated_Image_8tv4ar8tv4ar8tv4.jpg",
   },
   {
     title: "State-Led. District-Executed.",
     highlight: "Corporate Powered.",
     subtitle:
       "A single State CSR Coordinating Unit routes every corporate to one accountable District Nodal Officer for transparent, time-bound project delivery.",
+    image: "/carousel/Gemini_Generated_Image_9qvw8v9qvw8v9qvw.jpg",
   },
 ];
 
-const DEFAULT_SLIDES = CAROUSEL_IMAGES.map((img, idx) => ({
+const DEFAULT_SLIDES = slideContent.map((s, idx) => ({
   id: String(idx + 1),
-  image: `/carousel/${img}`,
-  title: slideContent[idx % slideContent.length].title,
-  highlight: slideContent[idx % slideContent.length].highlight,
-  subtitle: slideContent[idx % slideContent.length].subtitle,
+  image: s.image,
+  title: s.title,
+  highlight: s.highlight,
+  subtitle: s.subtitle,
 }));
 
 /* ─── Mouse Trail Canvas ─── */
@@ -287,6 +274,33 @@ export default function HeroSection() {
     startTimer();
   };
 
+  // Touch swipe support for mobile
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.targetTouches[0].clientX;
+    touchEndX.current = null;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartX.current === null || touchEndX.current === null) return;
+    const distance = touchStartX.current - touchEndX.current;
+    const isLeftSwipe = distance > 45;
+    const isRightSwipe = distance < -45;
+    if (isLeftSwipe) {
+      next();
+    } else if (isRightSwipe) {
+      prev();
+    }
+    touchStartX.current = null;
+    touchEndX.current = null;
+  };
+
   // Mouse parallax
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!heroRef.current) return;
@@ -302,7 +316,10 @@ export default function HeroSection() {
     <section
       ref={heroRef}
       onMouseMove={handleMouseMove}
-      className="relative overflow-hidden bg-slate-950"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      className="relative overflow-hidden bg-slate-950 select-none"
       style={{ perspective: "1200px" }}
     >
       {/* Mouse trail canvas */}
@@ -360,7 +377,7 @@ export default function HeroSection() {
       />
 
       {/* Content */}
-      <div className="relative z-30 mx-auto max-w-[1370px] w-full px-4 pt-24 pb-10 sm:pt-28 sm:pb-16 md:pt-32 sm:px-6 md:px-8 flex flex-col justify-center items-center min-h-[560px] sm:min-h-[620px] md:min-h-[700px]">
+      <div className="relative z-30 mx-auto max-w-[1370px] w-full px-3.5 pt-20 pb-6 sm:pt-28 sm:pb-14 md:pt-32 sm:px-6 md:px-8 flex flex-col justify-center items-center min-h-[460px] sm:min-h-[600px] md:min-h-[680px]">
 
         {/* Centered Title & Subtitle */}
         <div className="flex flex-col items-center text-center pointer-events-none max-w-4xl px-2 sm:px-0">
@@ -369,7 +386,7 @@ export default function HeroSection() {
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
-            className="w-14 sm:w-20 h-1 bg-gradient-to-r from-amber-400 to-blue-500 mb-4 sm:mb-6 rounded-full"
+            className="w-12 sm:w-20 h-1 bg-gradient-to-r from-amber-400 to-blue-500 mb-3.5 sm:mb-6 rounded-full"
           />
 
           {/* Title with 3D text reveal */}
@@ -381,7 +398,7 @@ export default function HeroSection() {
                 initial="hidden"
                 animate="visible"
                 exit={{ opacity: 0, y: -20, transition: { duration: 0.3 } }}
-                className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-extrabold text-white leading-tight tracking-tight"
+                className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-tight tracking-tight px-1"
                 style={{
                   transform: `perspective(600px) rotateX(${mousePos.y * -2}deg) rotateY(${mousePos.x * 2}deg)`,
                   transition: "transform 0.3s ease-out",
@@ -401,7 +418,7 @@ export default function HeroSection() {
                 initial="hidden"
                 animate="visible"
                 exit={{ opacity: 0, transition: { duration: 0.2 } }}
-                className="mt-3 sm:mt-5 text-xs sm:text-sm md:text-base text-white/60 font-normal leading-relaxed max-w-2xl px-2 sm:px-0"
+                className="mt-2.5 sm:mt-5 text-xs sm:text-sm md:text-base text-white/75 font-normal leading-relaxed max-w-2xl px-2 sm:px-0"
               >
                 {slide.subtitle}
               </motion.p>
@@ -409,13 +426,13 @@ export default function HeroSection() {
           </AnimatePresence>
 
           {/* Carousel navigation dots */}
-          <div className="mt-5 sm:mt-7 flex items-center gap-2.5 sm:gap-3 pointer-events-auto">
+          <div className="mt-4 sm:mt-7 flex items-center justify-center gap-2 sm:gap-3 pointer-events-auto">
             {slides.map((s, i) => (
               <button
                 key={s.id}
                 onClick={() => goTo(i)}
-                className={`relative h-2 rounded-full transition-all duration-500 ${
-                  i === current ? "w-10 bg-gradient-to-r from-amber-400 to-blue-500" : "w-2 bg-white/30 hover:bg-white/50"
+                className={`relative h-1.5 sm:h-2 rounded-full transition-all duration-300 ${
+                  i === current ? "w-8 sm:w-10 bg-gradient-to-r from-amber-400 to-blue-500" : "w-1.5 sm:w-2 bg-white/30 hover:bg-white/50"
                 }`}
                 aria-label={`Go to slide ${i + 1}`}
               >
@@ -430,121 +447,105 @@ export default function HeroSection() {
           </div>
         </div>
 
-        {/* Bottom Center: Two Action Cards */}
-        <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-stretch gap-3 sm:gap-4 pointer-events-auto w-full max-w-2xl px-1 sm:px-0">
+        {/* Bottom Center: Two Action Cards (Visible on tablet/desktop, hidden on mobile so carousel image and title are not covered) */}
+        <div className="hidden sm:flex mt-6 sm:mt-8 flex-col sm:flex-row items-stretch gap-3 sm:gap-4 pointer-events-auto w-full max-w-2xl px-0">
           {/* Card 1: Partner with Maharashtra */}
           <Link href={isLoggedIn ? "/partner-with-maharashtra" : "/login?next=/partner-with-maharashtra"} className="flex-1 hover:no-underline group">
-            <div className="h-full bg-white/8 backdrop-blur-xl border border-white/15 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex items-center gap-3 transition-all hover:bg-white/15 hover:border-blue-400/30 hover:shadow-lg hover:shadow-blue-500/5">
-              <div className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 rounded-lg sm:rounded-xl bg-blue-500/20 border border-blue-400/25 flex items-center justify-center text-blue-300 group-hover:bg-blue-500/30 transition-colors">
+            <div className="h-full bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex items-center gap-3 transition-all hover:bg-white/15 hover:border-blue-400/40 hover:shadow-lg hover:shadow-blue-500/10">
+              <div className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 rounded-lg sm:rounded-xl bg-blue-500/25 border border-blue-400/30 flex items-center justify-center text-blue-300 group-hover:bg-blue-500/35 transition-colors">
                 <Building2 size={18} />
               </div>
               <div className="flex-1 min-w-0">
-                <span className="text-[9px] font-bold uppercase tracking-widest text-blue-300/80">Corporate Partners</span>
+                <span className="text-[9px] font-bold uppercase tracking-wider text-blue-300">Corporate Partners</span>
                 <h4 className="text-xs sm:text-sm font-bold text-white leading-tight">Partner with Maharashtra</h4>
               </div>
-              <ArrowRight size={16} className="text-white/40 group-hover:text-blue-300 group-hover:translate-x-1 transition-all shrink-0" />
+              <ArrowRight size={16} className="text-white/50 group-hover:text-blue-300 group-hover:translate-x-1 transition-all shrink-0" />
             </div>
           </Link>
 
           {/* Card 2: Pitch a Development Need */}
           <Link href={isLoggedIn ? "/pitch-development-need" : "/login?next=/pitch-development-need"} className="flex-1 hover:no-underline group">
-            <div className="h-full bg-white/8 backdrop-blur-xl border border-white/15 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex items-center gap-3 transition-all hover:bg-white/15 hover:border-amber-400/30 hover:shadow-lg hover:shadow-amber-500/5">
-              <div className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 rounded-lg sm:rounded-xl bg-amber-500/20 border border-amber-400/25 flex items-center justify-center text-amber-300 group-hover:bg-amber-500/30 transition-colors">
+            <div className="h-full bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex items-center gap-3 transition-all hover:bg-white/15 hover:border-amber-400/40 hover:shadow-lg hover:shadow-amber-500/10">
+              <div className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 rounded-lg sm:rounded-xl bg-amber-500/25 border border-amber-400/30 flex items-center justify-center text-amber-300 group-hover:bg-amber-500/35 transition-colors">
                 <Landmark size={18} />
               </div>
               <div className="flex-1 min-w-0">
-                <span className="text-[9px] font-bold uppercase tracking-widest text-amber-300/80">Government Depts</span>
+                <span className="text-[9px] font-bold uppercase tracking-wider text-amber-300">Government Depts</span>
                 <h4 className="text-xs sm:text-sm font-bold text-white leading-tight">Pitch a Development Need</h4>
               </div>
-              <ArrowRight size={16} className="text-white/40 group-hover:text-amber-300 group-hover:translate-x-1 transition-all shrink-0" />
+              <ArrowRight size={16} className="text-white/50 group-hover:text-amber-300 group-hover:translate-x-1 transition-all shrink-0" />
             </div>
           </Link>
         </div>
       </div>
 
-      {/* Liquid Glass Stats Strip — Below the Carousel */}
-      <div className="relative z-30 mx-auto max-w-[1380px] w-full px-4 sm:px-6 md:px-8 -mt-5 sm:-mt-7 mb-6 sm:mb-10">
-        {/* <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={statsContainer}
-          className="liquid-glass-container p-2.5 sm:p-3.5"
-        > */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-4">
-            <motion.div
-              variants={statItem}
-              className="liquid-glass-card flex items-center justify-between sm:justify-start gap-3.5 sm:gap-4 py-3.5 sm:py-4 px-4 sm:px-6"
-            >
-              <div className="flex items-center gap-3.5 sm:gap-4">
-                <div className="liquid-glass-icon h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl grid place-items-center text-blue-300 shrink-0">
-                  <Building2 size={20} className="drop-shadow-[0_2px_4px_rgba(59,130,246,0.5)]" />
-                </div>
-                <div>
-                  <div className="text-xl sm:text-2xl md:text-3xl font-black text-white leading-none tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] flex items-center gap-0.5">
-                    2,145<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300 font-extrabold">+</span>
-                  </div>
-                  <div className="text-[9px] sm:text-[10px] font-bold text-slate-300 uppercase tracking-widest mt-1">
-                    Corporates
-                  </div>
-                </div>
+      {/* Liquid Glass Stats Strip — Below the Carousel (3 Compact Columns on Mobile) */}
+      <div className="relative z-30 mx-auto max-w-[1380px] w-full px-3 sm:px-6 md:px-8 -mt-2 sm:-mt-6 mb-5 sm:mb-10">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
+          <motion.div
+            variants={statItem}
+            className="liquid-glass-card flex flex-col sm:flex-row items-center sm:items-start justify-center sm:justify-start gap-1.5 sm:gap-4 py-2.5 sm:py-4 px-2 sm:px-6 text-center sm:text-left"
+          >
+            <div className="liquid-glass-icon h-8 w-8 sm:h-12 sm:w-12 rounded-lg sm:rounded-2xl grid place-items-center text-blue-300 shrink-0">
+              <Building2 size={16} className="sm:w-5 sm:h-5 drop-shadow-[0_2px_4px_rgba(59,130,246,0.5)]" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-base sm:text-2xl md:text-3xl font-black text-white leading-tight tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] flex items-center justify-center sm:justify-start gap-0.5">
+                2,145<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300 font-extrabold">+</span>
               </div>
-              <div className="h-2 w-2 rounded-full bg-blue-400/60 shadow-[0_0_8px_#60a5fa] animate-pulse sm:hidden" />
-            </motion.div>
+              <div className="text-[8px] sm:text-[10px] font-bold text-slate-300 uppercase tracking-widest mt-0.5 sm:mt-1 truncate">
+                Corporates
+              </div>
+            </div>
+          </motion.div>
 
-            <motion.div
-              variants={statItem}
-              className="liquid-glass-card flex items-center justify-between sm:justify-start gap-3.5 sm:gap-4 py-3.5 sm:py-4 px-4 sm:px-6"
-            >
-              <div className="flex items-center gap-3.5 sm:gap-4">
-                <div className="liquid-glass-icon h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl grid place-items-center text-amber-300 shrink-0">
-                  <Landmark size={20} className="drop-shadow-[0_2px_4px_rgba(245,158,11,0.5)]" />
-                </div>
-                <div>
-                  <div className="text-xl sm:text-2xl md:text-3xl font-black text-white leading-none tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] flex items-center gap-0.5">
-                    1,734<span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-300 font-extrabold">+</span>
-                  </div>
-                  <div className="text-[9px] sm:text-[10px] font-bold text-slate-300 uppercase tracking-widest mt-1">
-                    Agencies
-                  </div>
-                </div>
+          <motion.div
+            variants={statItem}
+            className="liquid-glass-card flex flex-col sm:flex-row items-center sm:items-start justify-center sm:justify-start gap-1.5 sm:gap-4 py-2.5 sm:py-4 px-2 sm:px-6 text-center sm:text-left"
+          >
+            <div className="liquid-glass-icon h-8 w-8 sm:h-12 sm:w-12 rounded-lg sm:rounded-2xl grid place-items-center text-amber-300 shrink-0">
+              <Landmark size={16} className="sm:w-5 sm:h-5 drop-shadow-[0_2px_4px_rgba(245,158,11,0.5)]" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-base sm:text-2xl md:text-3xl font-black text-white leading-tight tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] flex items-center justify-center sm:justify-start gap-0.5">
+                1,734<span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-300 font-extrabold">+</span>
               </div>
-              <div className="h-2 w-2 rounded-full bg-amber-400/60 shadow-[0_0_8px_#fbbf24] animate-pulse sm:hidden" />
-            </motion.div>
+              <div className="text-[8px] sm:text-[10px] font-bold text-slate-300 uppercase tracking-widest mt-0.5 sm:mt-1 truncate">
+                Agencies
+              </div>
+            </div>
+          </motion.div>
 
-            <motion.div
-              variants={statItem}
-              className="liquid-glass-card flex items-center justify-between sm:justify-start gap-3.5 sm:gap-4 py-3.5 sm:py-4 px-4 sm:px-6"
-            >
-              <div className="flex items-center gap-3.5 sm:gap-4">
-                <div className="liquid-glass-icon h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl grid place-items-center text-emerald-300 shrink-0">
-                  <CheckCircle2 size={20} className="drop-shadow-[0_2px_4px_rgba(16,185,129,0.5)]" />
-                </div>
-                <div>
-                  <div className="text-xl sm:text-2xl md:text-3xl font-black text-white leading-none tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] flex items-center gap-0.5">
-                    4,812<span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300 font-extrabold">+</span>
-                  </div>
-                  <div className="text-[9px] sm:text-[10px] font-bold text-slate-300 uppercase tracking-widest mt-1">
-                    Projects
-                  </div>
-                </div>
+          <motion.div
+            variants={statItem}
+            className="liquid-glass-card flex flex-col sm:flex-row items-center sm:items-start justify-center sm:justify-start gap-1.5 sm:gap-4 py-2.5 sm:py-4 px-2 sm:px-6 text-center sm:text-left"
+          >
+            <div className="liquid-glass-icon h-8 w-8 sm:h-12 sm:w-12 rounded-lg sm:rounded-2xl grid place-items-center text-emerald-300 shrink-0">
+              <CheckCircle2 size={16} className="sm:w-5 sm:h-5 drop-shadow-[0_2px_4px_rgba(16,185,129,0.5)]" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-base sm:text-2xl md:text-3xl font-black text-white leading-tight tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] flex items-center justify-center sm:justify-start gap-0.5">
+                4,812<span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300 font-extrabold">+</span>
               </div>
-              <div className="h-2 w-2 rounded-full bg-emerald-400/60 shadow-[0_0_8px_#34d399] animate-pulse sm:hidden" />
-            </motion.div>
-          </div>
-        {/* </motion.div> */}
+              <div className="text-[8px] sm:text-[10px] font-bold text-slate-300 uppercase tracking-widest mt-0.5 sm:mt-1 truncate">
+                Projects
+              </div>
+            </div>
+          </motion.div>
+        </div>
       </div>
 
-      {/* Left/Right arrows */}
+      {/* Left/Right arrows - hidden on mobile to avoid overlapping action cards */}
       <button
         onClick={prev}
-        className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-30 grid h-8 w-8 sm:h-10 sm:w-10 place-items-center rounded-full bg-white/5 backdrop-blur-xl border border-white/10 text-white/60 hover:bg-white/15 hover:text-white transition-all hover:scale-110"
+        className="hidden sm:grid absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-30 h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-full bg-white/10 backdrop-blur-xl border border-white/15 text-white/70 hover:bg-white/20 hover:text-white transition-all hover:scale-110 shadow-lg"
         aria-label="Previous slide"
       >
         <ChevronLeft className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
       </button>
       <button
         onClick={next}
-        className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-30 grid h-8 w-8 sm:h-10 sm:w-10 place-items-center rounded-full bg-white/5 backdrop-blur-xl border border-white/10 text-white/60 hover:bg-white/15 hover:text-white transition-all hover:scale-110"
+        className="hidden sm:grid absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 z-30 h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-full bg-white/10 backdrop-blur-xl border border-white/15 text-white/70 hover:bg-white/20 hover:text-white transition-all hover:scale-110 shadow-lg"
         aria-label="Next slide"
       >
         <ChevronRight className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />

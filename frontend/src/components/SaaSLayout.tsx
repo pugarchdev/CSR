@@ -836,11 +836,11 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
 
               {/* Mobile Hamburger menu */}
               <button
-                className="lg:hidden p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-slate-900 focus:outline-none"
+                className="lg:hidden p-2 rounded-xl border border-slate-200/80 bg-slate-50/60 text-slate-700 hover:text-slate-900 hover:bg-slate-100/80 min-h-[38px] min-w-[38px] flex items-center justify-center transition-colors focus:outline-none"
                 onClick={() => setMobileMenuOpen(true)}
                 aria-label="Toggle Navigation Menu"
               >
-                <Menu size={16} />
+                <Menu size={18} />
               </button>
             </div>
           </div>

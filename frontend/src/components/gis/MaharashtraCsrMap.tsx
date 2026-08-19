@@ -203,6 +203,7 @@ export default function MaharashtraCsrMap() {
   }, [geo]);
 
   const handleMove = useCallback((event: React.MouseEvent, shape: DistrictShape) => {
+    if (typeof window !== "undefined" && window.innerWidth < 768) return;
     const bounds = containerRef.current?.getBoundingClientRect();
     if (!bounds) return;
     setHover({
@@ -213,22 +214,23 @@ export default function MaharashtraCsrMap() {
   }, []);
 
   return (
-    <div className="w-full overflow-hidden rounded-3xl border border-slate-200/60 bg-white text-[#10244a] shadow-sm">
-      <div className={cn("grid gap-5 p-4 lg:p-5", selected ? "lg:grid-cols-[1fr_340px]" : "lg:grid-cols-1")}>
+    <div className="w-full rounded-2xl sm:rounded-3xl border border-slate-200/80 bg-white text-[#10244a] shadow-sm p-4 sm:p-6">
+      <div className={cn("grid gap-5", selected ? "lg:grid-cols-[1fr_360px]" : "lg:grid-cols-1")}>
         {/* ------------------------------ Map panel ------------------------------ */}
-        <div className="flex min-w-0 flex-col rounded-2xl  p-4">
+        <div className="flex min-w-0 flex-col">
           <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
             <div>
-              <h3 className="font-heading text-base font-extrabold text-[#102c60]">Geographical Distribution</h3>
-              <p className="mt-1 text-xs font-medium text-[#5b6b80]">
-                Hover a district for a quick summary. Click to open full details with charts.
+              <h3 className="font-heading text-base sm:text-lg font-extrabold text-[#102c60]">Geographical Distribution</h3>
+              <p className="mt-0.5 text-xs font-medium text-[#5b6b80]">
+                <span className="hidden sm:inline">Hover a district for a quick summary. Click to open full details with charts.</span>
+                <span className="sm:hidden">Tap any district on the map to view CSR statistics.</span>
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2 rounded-md bg-white px-3 py-2 text-[10px] font-bold text-[#516986] shadow-sm border border-slate-100">
-              <span className="mr-1 font-extrabold uppercase tracking-wide">CSR Expenditure (₹)</span>
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[10px] font-semibold text-slate-500">
+              <span className="mr-0.5 font-extrabold uppercase tracking-wide text-slate-700">Spend:</span>
               {BUCKETS.map((bucket) => (
                 <span key={bucket.label} className="flex items-center gap-1">
-                  <span className="h-2.5 w-2.5 rounded-sm border border-black/10" style={{ backgroundColor: bucket.fill }} />
+                  <span className="h-2.5 w-2.5 rounded-xs border border-black/10 shrink-0" style={{ backgroundColor: bucket.fill }} />
                   {bucket.label}
                 </span>
               ))}
@@ -237,15 +239,15 @@ export default function MaharashtraCsrMap() {
 
           <div
             ref={containerRef}
-            className="relative mt-4 min-h-[320px] flex-1 rounded-2xl bg-white p-2 sm:p-3 shadow-sm border border-slate-100/50"
+            className="relative mt-3 w-full min-h-[280px] sm:min-h-[380px] flex items-center justify-center"
           >
             {!geo && !geoError && (
-              <div className="flex h-full min-h-[320px] items-center justify-center text-xs font-semibold text-[#5b6b80]">
+              <div className="flex h-full min-h-[280px] items-center justify-center text-xs font-semibold text-[#5b6b80]">
                 Loading Maharashtra map…
               </div>
             )}
             {geoError && (
-              <div className="flex h-full min-h-[320px] flex-col items-center justify-center gap-2 p-6 text-center">
+              <div className="flex h-full min-h-[280px] flex-col items-center justify-center gap-2 p-6 text-center">
                 <MapPin className="text-[#b6c6dd]" size={28} />
                 <p className="text-xs font-semibold text-[#5b6b80]">
                   Map data unavailable — place <code className="rounded bg-[#eef4fb] px-1">maharashtra-districts.geojson</code> in <code className="rounded bg-[#eef4fb] px-1">frontend/public/</code>.
@@ -256,7 +258,7 @@ export default function MaharashtraCsrMap() {
             {shapes.length > 0 && (
               <svg
                 viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
-                className="h-full w-full max-h-[560px]"
+                className="h-full w-full max-h-[480px] sm:max-h-[560px]"
                 role="img"
                 aria-label="Maharashtra district-wise CSR expenditure map"
                 onMouseLeave={() => setHover(null)}
@@ -270,7 +272,7 @@ export default function MaharashtraCsrMap() {
                       d={shape.path}
                       fill={bucketFill(shape.data?.csrSpend)}
                       stroke={isSelected ? "#f7941d" : isHovered ? "#0a3f92" : "#ffffff"}
-                      strokeWidth={isSelected ? 2.5 : isHovered ? 2 : 1}
+                      strokeWidth={isSelected ? 3 : isHovered ? 2 : 1}
                       className="cursor-pointer transition-[filter] duration-150"
                       style={{ filter: isHovered ? "brightness(1.08) drop-shadow(0 2px 4px rgba(10,63,146,0.35))" : undefined }}
                       onMouseMove={(event) => handleMove(event, shape)}
@@ -296,7 +298,7 @@ export default function MaharashtraCsrMap() {
               </svg>
             )}
 
-            {/* ------------------------- Hover tooltip ------------------------- */}
+            {/* ------------------------- Hover tooltip (Desktop only, never layers on mobile) ------------------------- */}
             <AnimatePresence>
               {hover?.shape.data && (
                 <motion.div
@@ -304,7 +306,7 @@ export default function MaharashtraCsrMap() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.12 }}
-                  className="pointer-events-none absolute z-20 w-56 rounded-lg border border-[#d8e2ef] bg-white p-3 shadow-xl"
+                  className="hidden md:block pointer-events-none absolute z-20 w-56 rounded-xl border border-[#d8e2ef] bg-white p-3 shadow-xl"
                   style={{
                     left: Math.min(hover.x + 14, (containerRef.current?.clientWidth ?? 400) - 235),
                     top: Math.max(hover.y - 10, 8),
@@ -333,7 +335,7 @@ export default function MaharashtraCsrMap() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="pointer-events-none absolute z-20 rounded-md border border-[#d8e2ef] bg-white px-3 py-1.5 text-xs font-bold text-[#102c60] shadow-lg"
+                  className="hidden md:block pointer-events-none absolute z-20 rounded-md border border-[#d8e2ef] bg-white px-3 py-1.5 text-xs font-bold text-[#102c60] shadow-lg"
                   style={{ left: hover.x + 14, top: Math.max(hover.y - 10, 8) }}
                 >
                   {hover.shape.geoName} — data coming soon
@@ -343,12 +345,12 @@ export default function MaharashtraCsrMap() {
           </div>
 
           {/* --------------------------- State totals --------------------------- */}
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="mt-5 pt-4 border-t border-slate-100 grid grid-cols-2 gap-2 sm:gap-3 sm:grid-cols-3 lg:grid-cols-5">
             <StateStat icon={Banknote} label="Total CSR Spent" value={formatCr(stateTotals.totalSpend)} delta="+8.2%" />
             <StateStat icon={Building2} label="Total Companies" value={stateTotals.totalCompanies.toLocaleString("en-IN")} delta="+6.1%" />
             <StateStat icon={Landmark} label="Total Districts" value={String(stateTotals.totalDistricts)} sub="Maharashtra" />
             <StateStat icon={MapPin} label="Top District" value={stateTotals.topDistrict} sub={formatCr(districtSpend(stateTotals.topDistrict))} />
-            <StateStat icon={Layers} label="Total Sectors" value={String(stateTotals.totalSectors)} sub="Covered" />
+            <StateStat icon={Layers} label="Total Sectors" value={String(stateTotals.totalSectors)} sub="Covered" className="col-span-2 sm:col-span-1 lg:col-span-1" />
           </div>
         </div>
 
@@ -357,38 +359,38 @@ export default function MaharashtraCsrMap() {
           {selected && (
             <motion.aside
               key={selected.name}
-              initial={{ opacity: 0, x: 24 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 24 }}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 16 }}
               transition={{ duration: 0.18 }}
-              className="flex min-w-0 flex-col rounded-2xl bg-white p-4 shadow-sm border border-slate-150"
+              className="flex min-w-0 flex-col rounded-2xl bg-slate-50/70 p-4 sm:p-5 border border-slate-200/70"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#456aa4]">District Details</span>
-                  <h4 className="mt-0.5 font-heading text-2xl font-extrabold leading-none tracking-tight text-[#102c60]">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-600">District Details</span>
+                  <h4 className="mt-0.5 font-heading text-xl sm:text-2xl font-extrabold leading-none tracking-tight text-[#102c60]">
                     {selected.name}
                   </h4>
                 </div>
                 <button
                   type="button"
                   onClick={() => setSelected(null)}
-                  className="rounded-md p-1.5 text-[#5b6b80] transition-colors hover:bg-[#eef4fb] hover:text-[#102c60]"
+                  className="rounded-full p-1.5 text-slate-500 transition-colors hover:bg-white hover:text-slate-900 border border-slate-200/60"
                   aria-label="Close district details"
                 >
                   <X size={16} />
                 </button>
               </div>
 
-              <div className="mt-4 rounded-xl bg-slate-50/50 p-4 border border-slate-150/40">
+              <div className="mt-4 rounded-xl bg-white p-3.5 border border-slate-200/60 shadow-2xs">
                 <div className="flex items-center justify-between text-[11px] font-semibold text-[#5b6b80]">
                   <span className="flex items-center gap-1"><Banknote size={12} /> CSR Spent</span>
                   <span className="flex items-center gap-0.5 font-bold text-emerald-600">
                     <TrendingUp size={11} /> +{selected.yoyGrowth}% vs 2023-24
                   </span>
                 </div>
-                <div className="mt-1 font-heading text-2xl font-extrabold text-[#0a3f92]">{formatCr(selected.csrSpend)}</div>
-                <div className="mt-2 h-16">
+                <div className="mt-1 font-heading text-xl sm:text-2xl font-extrabold text-[#0a3f92]">{formatCr(selected.csrSpend)}</div>
+                <div className="mt-2 h-14">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={selected.trend} margin={{ top: 2, right: 2, bottom: 0, left: 2 }}>
                       <defs>
@@ -410,7 +412,7 @@ export default function MaharashtraCsrMap() {
                 </div>
               </div>
 
-              <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="mt-3 grid grid-cols-2 gap-2">
                 <MiniStat icon={Building2} label="Total Companies" value={selected.companies.toLocaleString("en-IN")} />
                 <MiniStat icon={FolderKanban} label="Total Projects" value={selected.projects.toLocaleString("en-IN")} />
                 <MiniStat icon={HeartHandshake} label="Active NGOs" value={selected.activeNgos.toLocaleString("en-IN")} />
@@ -418,18 +420,18 @@ export default function MaharashtraCsrMap() {
               </div>
 
               {/* Sector donut */}
-              <div className="mt-4 rounded-md border border-[#d8e2ef] p-4">
-                <span className="text-[11px] font-extrabold uppercase tracking-wide text-[#456aa4]">Top Sectors</span>
+              <div className="mt-4 pt-4 border-t border-slate-200/60">
+                <span className="text-[11px] font-extrabold uppercase tracking-wide text-slate-600">Top Sectors</span>
                 <div className="mt-2 flex items-center gap-3">
-                  <div className="h-28 w-28 shrink-0">
+                  <div className="h-24 w-24 shrink-0">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
                           data={selected.sectors}
                           dataKey="value"
                           nameKey="name"
-                          innerRadius={32}
-                          outerRadius={52}
+                          innerRadius={28}
+                          outerRadius={44}
                           paddingAngle={2}
                           strokeWidth={0}
                         >
@@ -446,7 +448,7 @@ export default function MaharashtraCsrMap() {
                   </div>
                   <ul className="min-w-0 flex-1 space-y-1">
                     {selected.sectors.map((sector) => (
-                      <li key={sector.name} className="flex items-center justify-between gap-2 text-[11px] font-semibold text-[#4b5f7d]">
+                      <li key={sector.name} className="flex items-center justify-between gap-2 text-[10px] sm:text-[11px] font-semibold text-[#4b5f7d]">
                         <span className="flex min-w-0 items-center gap-1.5">
                           <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: sector.color }} />
                           <span className="truncate">{sector.name}</span>
@@ -459,18 +461,18 @@ export default function MaharashtraCsrMap() {
               </div>
 
               {/* Top companies */}
-              <div className="mt-3 rounded-md border border-[#d8e2ef] p-4">
-                <span className="text-[11px] font-extrabold uppercase tracking-wide text-[#456aa4]">Top Companies</span>
-                <div className="mt-2 space-y-2.5">
+              <div className="mt-4 pt-4 border-t border-slate-200/60">
+                <span className="text-[11px] font-extrabold uppercase tracking-wide text-slate-600">Top Companies</span>
+                <div className="mt-2 space-y-2">
                   {selected.topCompanies.map((company) => {
                     const maxSpend = selected.topCompanies[0]?.spend || 1;
                     return (
                       <div key={company.name}>
-                        <div className="flex items-center justify-between text-[11px] font-semibold text-[#4b5f7d]">
+                        <div className="flex items-center justify-between text-[10px] sm:text-[11px] font-semibold text-[#4b5f7d]">
                           <span className="truncate">{company.name}</span>
                           <span className="font-bold text-[#102c60]">{formatCr(company.spend)}</span>
                         </div>
-                        <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-[#eef2f7]">
+                        <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-200/80">
                           <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${(company.spend / maxSpend) * 100}%` }}
@@ -526,23 +528,25 @@ function StateStat({
   value,
   delta,
   sub,
+  className,
 }: {
   icon: typeof Banknote;
   label: string;
   value: string;
   delta?: string;
   sub?: string;
+  className?: string;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-slate-150 bg-white p-3 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-blue-200 bg-blue-50 text-[#1557c4]">
-        <Icon size={16} />
+    <div className={cn("flex items-center gap-2.5 sm:gap-3 rounded-xl border border-slate-200/60 bg-slate-50/70 p-2.5 sm:p-3 shadow-2xs hover:shadow-xs transition-shadow", className)}>
+      <div className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg border border-blue-200/80 bg-blue-50 text-[#1557c4]">
+        <Icon size={15} className="sm:w-4 sm:h-4" />
       </div>
       <div className="min-w-0 flex-1">
-        <span className="block text-[10px] font-semibold text-[#5b6b80] leading-tight break-words">{label}</span>
-        <span className="block font-heading text-sm font-extrabold text-[#102c60] leading-tight mt-0.5 break-words">{value}</span>
-        {delta && <span className="block text-[10px] font-bold text-emerald-600 mt-0.5">{delta}</span>}
-        {sub && <span className="block text-[10px] font-semibold text-[#5b6b80] mt-0.5 break-words">{sub}</span>}
+        <span className="block text-[9px] sm:text-[10px] font-semibold text-[#5b6b80] leading-tight truncate">{label}</span>
+        <span className="block font-heading text-xs sm:text-sm font-extrabold text-[#102c60] leading-tight mt-0.5 truncate">{value}</span>
+        {delta && <span className="block text-[9px] sm:text-[10px] font-bold text-emerald-600 mt-0.5">{delta}</span>}
+        {sub && <span className="block text-[9px] sm:text-[10px] font-semibold text-[#5b6b80] mt-0.5 truncate">{sub}</span>}
       </div>
     </div>
   );
@@ -558,11 +562,11 @@ function MiniStat({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-slate-150 bg-slate-50/50 p-3">
-      <span className="flex items-center gap-1 text-[10px] font-semibold text-[#5b6b80] break-words">
-        <Icon size={11} className="text-[#1557c4]" /> {label}
+    <div className="rounded-xl border border-slate-200/60 bg-white p-2.5 shadow-2xs">
+      <span className="flex items-center gap-1 text-[9px] sm:text-[10px] font-semibold text-[#5b6b80] truncate">
+        <Icon size={11} className="text-[#1557c4] shrink-0" /> {label}
       </span>
-      <span className="mt-0.5 block font-heading text-lg font-extrabold text-[#102c60] break-words">{value}</span>
+      <span className="mt-0.5 block font-heading text-sm sm:text-base font-extrabold text-[#102c60] truncate">{value}</span>
     </div>
   );
 }

@@ -591,10 +591,10 @@ html.lenis, html.lenis body {
 /* Liquid Glass Navigation Bar */
 .liquid-glass-nav {
   position: fixed !important;
-  top: 12px !important;
+  top: 8px !important;
   left: 50% !important;
   transform: translateX(-50%) !important;
-  width: calc(100% - 24px) !important;
+  width: calc(100% - 16px) !important;
   max-width: 1380px !important;
   border-radius: 9999px !important;
   background: #ffffff !important;
@@ -605,12 +605,19 @@ html.lenis, html.lenis body {
   transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease !important;
 }
 
+@media (min-width: 640px) {
+  .liquid-glass-nav {
+    top: 12px !important;
+    width: calc(100% - 24px) !important;
+  }
+}
+
 .liquid-glass-nav-scrolled {
   position: fixed !important;
-  top: 12px !important;
+  top: 8px !important;
   left: 50% !important;
   transform: translateX(-50%) !important;
-  width: calc(100% - 24px) !important;
+  width: calc(100% - 16px) !important;
   max-width: 1380px !important;
   border-radius: 9999px !important;
   background: #ffffff !important;
@@ -619,6 +626,13 @@ html.lenis, html.lenis body {
   border: 1px solid rgba(203, 213, 225, 0.9) !important;
   box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.12) !important;
   transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease !important;
+}
+
+@media (min-width: 640px) {
+  .liquid-glass-nav-scrolled {
+    top: 12px !important;
+    width: calc(100% - 24px) !important;
+  }
 }
 
 .liquid-glass-pill-btn {

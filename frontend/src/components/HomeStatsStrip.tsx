@@ -37,10 +37,10 @@ const cardContainer = {
 };
 
 const cardSlideFromRight = {
-  hidden: { opacity: 0, x: 60, scale: 0.95 },
+  hidden: { opacity: 0, y: 20, scale: 0.98 },
   show: {
     opacity: 1,
-    x: 0,
+    y: 0,
     scale: 1,
     transition: { type: "spring", stiffness: 120, damping: 16 },
   },
@@ -104,33 +104,35 @@ export default function HomeStatsStrip() {
   ];
 
   return (
-    <div className="relative z-20 mx-auto max-w-[1380px] px-4 sm:px-6 md:px-8 py-6 sm:py-10">
+    <div className="relative z-20 mx-auto max-w-[1380px] px-3 sm:px-6 md:px-8 py-4 sm:py-10">
       <motion.div
         variants={cardContainer}
         initial="hidden"
         whileInView="show"
         viewport={{ once: true, margin: "-30px" }}
-        className="grid gap-5 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5"
+        className="grid gap-3 sm:gap-6 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"
       >
-        {cards.map((c) => (
+        {cards.map((c, idx) => (
           <motion.div
             variants={cardSlideFromRight}
             key={c.label}
-            className="liquid-glass-card-light p-5 sm:p-6 relative group rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden"
+            className={`liquid-glass-card-light p-3.5 sm:p-6 relative group rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden ${
+              idx === 4 ? "col-span-2 sm:col-span-1 lg:col-span-1" : ""
+            }`}
           >
             {/* Ambient subtle glow blob */}
             <div className={`absolute -right-6 -bottom-6 w-20 h-20 rounded-full blur-xl transition-all duration-300 group-hover:scale-150 ${c.glow}`} />
 
-            <div className="relative z-10 flex flex-col items-start gap-4">
-              <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl border ${c.iconBg} shadow-sm backdrop-blur-md transition-transform duration-300 group-hover:scale-110`}>
-                <c.icon size={20} />
+            <div className="relative z-10 flex flex-col items-start gap-2.5 sm:gap-4">
+              <div className={`grid h-9 w-9 sm:h-11 sm:w-11 shrink-0 place-items-center rounded-xl border ${c.iconBg} shadow-sm backdrop-blur-md transition-transform duration-300 group-hover:scale-110`}>
+                <c.icon size={18} className="sm:w-5 sm:h-5" />
               </div>
 
               <div className="min-w-0 w-full">
-                <div className="text-2xl sm:text-3xl font-black text-slate-900 leading-none mb-2 tracking-tight">
+                <div className="text-xl sm:text-3xl font-black text-slate-900 leading-none mb-1.5 sm:mb-2 tracking-tight">
                   <AnimatedCounter value={c.formattedVal} duration={1.8} />
                 </div>
-                <div className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider leading-snug">
+                <div className="text-[10px] sm:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider leading-snug">
                   {c.label}
                 </div>
               </div>
