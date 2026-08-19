@@ -1054,7 +1054,7 @@ export default function CreatePitchDashboardPage() {
               Cancel
             </button>
             <GovButton type="submit" variant="primary" loading={loading} loadingText="Submitting Pitch..." className="px-7 py-3 rounded-xl font-bold shadow-md">
-              Submit Pitch to State Secretariat
+              Submit Pitch
             </GovButton>
           </div>
         </form>

@@ -23,6 +23,7 @@ import type { Assignment, DefaultScope } from "@/types/accessControl";
 import { useTableSort } from "@/hooks/useTableSort";
 import { SortableTh } from "@/components/ui/SortableTh";
 import "@/styles/gov-theme.css";
+import { invalidateCache } from "@/lib/api";
 
 import AccessControlTabs from "@/components/access-control/AccessControlTabs";
 
@@ -30,12 +31,32 @@ export default function AssignmentsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const { data: assignmentsData, isLoading, refetch } = useAssignments({ page, pageSize: 25, status: statusFilter || undefined });
+  const { data: assignmentsData, isLoading, isFetching, refetch } = useAssignments({ page, pageSize: 25, status: statusFilter || undefined });
   const { data: roles = [] } = useRoles();
   const { hasPermission } = useAuthStore();
   const canAssign = hasPermission("user:assign-role");
   const toast = useToastActions();
   const deleteAssignment = useDeleteAssignment();
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    invalidateCache("/admin/access-control");
+    invalidateCache("/roles");
+    const startTime = Date.now();
+    try {
+      await refetch();
+    } catch (err) {
+      console.error("Refresh error:", err);
+    } finally {
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, 650 - elapsed);
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, remaining);
+    }
+  };
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [previewUserId, setPreviewUserId] = useState<string | null>(null);
@@ -130,9 +151,23 @@ export default function AssignmentsPage() {
               </button>
             ))}
           </div>
-          <Button variant="ghost" size="sm" icon={RefreshCw} onClick={() => refetch()}>
-            Refresh
-          </Button>
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isRefreshing || isLoading}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 transition-all cursor-pointer group disabled:opacity-60 shadow-2xs"
+            title="Refresh user assignments"
+          >
+            <RefreshCw
+              size={13}
+              className={`transition-transform duration-300 ${
+                isRefreshing || isFetching
+                  ? "animate-spin text-blue-600"
+                  : "text-slate-500 group-hover:rotate-45"
+              }`}
+            />
+            <span>{isRefreshing || isFetching ? "Refreshing..." : "Refresh"}</span>
+          </button>
         </div>
 
         {/* Table */}

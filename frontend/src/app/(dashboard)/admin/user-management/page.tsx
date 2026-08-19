@@ -31,7 +31,7 @@ import {
   Building2,
 } from "lucide-react";
 import { useApiQuery } from "@/lib/apiHooks";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, invalidateCache } from "@/lib/api";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import { StandardPageHeader } from "@/components/layout/StandardPageHeader";
 import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
@@ -402,7 +402,7 @@ export default function AdminUserManagementPage() {
   }, [searchTerm]);
 
   // Fetch dynamic roles (cache for 5 minutes)
-  const { data: rolesResponse } = useApiQuery<any>(
+  const { data: rolesResponse, refetch: refetchRoles } = useApiQuery<any>(
     ["admin", "dynamic-roles"],
     "/roles?limit=200",
     { staleTime: 5 * 60 * 1000 }
@@ -410,11 +410,31 @@ export default function AdminUserManagementPage() {
   const dynamicRoles: DynamicRole[] = rolesResponse?.roles || rolesResponse?.data?.roles || [];
 
   // Fetch users list (paginated, filtered, cached)
-  const { data: usersResponse, isLoading: loading } = useApiQuery<any>(
+  const { data: usersResponse, isLoading: loading, isFetching, refetch: refetchUsers } = useApiQuery<any>(
     ["admin", "users", String(page), debouncedSearch, statusFilter],
     `/admin/users?page=${page}&limit=${limit}&search=${encodeURIComponent(debouncedSearch)}&status=${statusFilter}`,
     { staleTime: 30 * 1000 }
   );
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    invalidateCache("/admin/users");
+    invalidateCache("/roles");
+    const startTime = Date.now();
+    try {
+      await Promise.all([refetchUsers(), refetchRoles()]);
+    } catch (err) {
+      console.error("Refresh error:", err);
+    } finally {
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, 650 - elapsed);
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, remaining);
+    }
+  };
 
   const rawUsers = usersResponse?.data || [];
   const pagination = usersResponse?.pagination || { total: 0, totalPages: 1 };
@@ -916,6 +936,22 @@ export default function AdminUserManagementPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button
+              onClick={handleRefresh}
+              disabled={isRefreshing || loading}
+              title="Refresh user directory and dynamic roles"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-300 hover:border-slate-400 hover:bg-slate-50 text-slate-700 hover:text-slate-900 text-xs font-bold shadow-2xs transition-all cursor-pointer group disabled:opacity-60"
+            >
+              <RefreshCw
+                size={14}
+                className={`transition-transform duration-300 ${
+                  isRefreshing || isFetching
+                    ? "animate-spin text-blue-600"
+                    : "text-slate-600 group-hover:rotate-45"
+                }`}
+              />
+              <span>{isRefreshing || isFetching ? "Refreshing..." : "Refresh"}</span>
+            </button>
+            <button
               onClick={() => setBulkImportModalOpen(true)}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-300 hover:border-slate-400 hover:bg-slate-50 text-slate-700 hover:text-slate-900 text-xs font-bold shadow-2xs transition-colors cursor-pointer"
             >
@@ -1038,6 +1074,25 @@ export default function AdminUserManagementPage() {
                   </button>
                 )}
               </div>
+
+              {/* Refresh Table Button */}
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={isRefreshing || loading}
+                title="Refresh user directory data"
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 border border-slate-300 hover:border-slate-400 rounded-xl text-xs font-bold text-slate-700 shadow-2xs transition-all cursor-pointer group disabled:opacity-60 shrink-0"
+              >
+                <RefreshCw
+                  size={13}
+                  className={`transition-transform duration-300 ${
+                    isRefreshing || isFetching
+                      ? "animate-spin text-blue-600"
+                      : "text-slate-500 group-hover:rotate-45"
+                  }`}
+                />
+                <span className="hidden sm:inline">{isRefreshing || isFetching ? "Refreshing..." : "Refresh"}</span>
+              </button>
             </div>
           </div>
 

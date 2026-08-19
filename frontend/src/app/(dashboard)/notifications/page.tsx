@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, Check, Trash2, Search, AlertCircle, CheckCircle2, RefreshCw, ShieldAlert, ArrowRight } from "lucide-react";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, invalidateCache } from "@/lib/api";
 import { useToastActions } from "@/components/ui/Toast";
 import "@/styles/gov-theme.css";
 
@@ -27,21 +27,37 @@ export default function NotificationsPage() {
   const isAdmin = useAuthStore((s) => s.isAdmin);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "unread" | "read">("all");
 
-  const fetchNotifications = async () => {
-    setLoading(true);
+  const fetchNotifications = async (isManual = false) => {
+    if (isManual) {
+      setIsRefreshing(true);
+      invalidateCache("/notifications");
+    } else {
+      setLoading(true);
+    }
     setError("");
+    const startTime = Date.now();
     try {
-      const data = await apiFetch<any>("/notifications");
+      const data = await apiFetch<any>("/notifications", { skipCache: isManual });
       const list = Array.isArray(data) ? data : data?.notifications || data?.data || [];
       setNotifications(list);
     } catch (err: any) {
       setError(err.message || "Unable to fetch notifications");
     } finally {
-      setLoading(false);
+      if (isManual) {
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, 650 - elapsed);
+        setTimeout(() => {
+          setIsRefreshing(false);
+          setLoading(false);
+        }, remaining);
+      } else {
+        setLoading(false);
+      }
     }
   };
 
@@ -155,10 +171,19 @@ export default function NotificationsPage() {
               </button>
             )}
             <button
-              onClick={fetchNotifications}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all border border-slate-200 cursor-pointer"
+              onClick={() => fetchNotifications(true)}
+              disabled={isRefreshing || loading}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all border border-slate-200 cursor-pointer group disabled:opacity-60 shadow-2xs"
             >
-              <RefreshCw size={13} /> Refresh
+              <RefreshCw
+                size={13}
+                className={`transition-transform duration-300 ${
+                  isRefreshing || loading
+                    ? "animate-spin text-blue-600"
+                    : "text-slate-500 group-hover:rotate-45"
+                }`}
+              />
+              <span>{isRefreshing ? "Refreshing..." : "Refresh"}</span>
             </button>
           </div>
         </div>
@@ -216,7 +241,7 @@ export default function NotificationsPage() {
           <div className="p-6 rounded-2xl border border-rose-200 bg-rose-50 text-rose-900 text-xs font-bold text-center space-y-2">
             <AlertCircle className="mx-auto text-rose-600" size={24} />
             <p>{error}</p>
-            <button onClick={fetchNotifications} className="px-4 py-1.5 rounded-lg bg-rose-600 text-white font-bold cursor-pointer">
+            <button onClick={() => fetchNotifications(true)} className="px-4 py-1.5 rounded-lg bg-rose-600 text-white font-bold cursor-pointer">
               Retry
             </button>
           </div>

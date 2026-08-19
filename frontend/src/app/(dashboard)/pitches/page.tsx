@@ -12,7 +12,7 @@ import { useResponsiveViewMode } from "@/hooks/useResponsiveViewMode";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, invalidateCache } from "@/lib/api";
 import {
   Compass,
   Plus,
@@ -164,10 +164,30 @@ export default function PitchesPage() {
     }
   };
 
-  const { data: envelope, isLoading, error: fetchError, refetch } = useApiQuery<any>(
+  const { data: envelope, isLoading, isFetching, error: fetchError, refetch } = useApiQuery<any>(
     [isRM ? "rm-pitches" : "government-pitches"],
     isRM ? "/rm/pitches" : "/government-pitches"
   );
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    invalidateCache("/rm/pitches");
+    invalidateCache("/government-pitches");
+    const startTime = Date.now();
+    try {
+      await refetch();
+    } catch (err) {
+      console.error("Refresh error:", err);
+    } finally {
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, 650 - elapsed);
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, remaining);
+    }
+  };
 
   // Filters State matching Enquiries Page
   const [search, setSearch] = useState("");
@@ -333,11 +353,20 @@ export default function PitchesPage() {
           actions={
             <div className="flex items-center gap-2">
               <button
-                onClick={() => refetch()}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-xs hover:bg-slate-50 transition-all cursor-pointer"
+                onClick={handleRefresh}
+                disabled={isRefreshing || isLoading}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-xs hover:bg-slate-50 transition-all cursor-pointer group disabled:opacity-60"
                 title="Refresh Pitches"
               >
-                <RefreshCw size={14} className={isLoading ? "animate-spin text-blue-700" : ""} /> Refresh
+                <RefreshCw
+                  size={14}
+                  className={`transition-transform duration-300 ${
+                    isRefreshing || isFetching
+                      ? "animate-spin text-blue-700"
+                      : "text-slate-600 group-hover:rotate-45"
+                  }`}
+                />
+                <span>{isRefreshing || isFetching ? "Refreshing..." : "Refresh"}</span>
               </button>
               <Link
                 href="/track"

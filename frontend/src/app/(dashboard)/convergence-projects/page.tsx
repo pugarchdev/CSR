@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { useApiQuery } from "@/lib/apiHooks";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, invalidateCache } from "@/lib/api";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import { StandardPageHeader } from "@/components/layout/StandardPageHeader";
 import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
@@ -19,7 +19,7 @@ import { useTableSort } from "@/hooks/useTableSort";
 import { SortableTh } from "@/components/ui/SortableTh";
 import {
   Layers, Search, MapPin, Building2, Coins, CheckCircle2, Eye, FileText,
-  Landmark, ArrowRightLeft, AlertCircle, Check, Loader2
+  Landmark, ArrowRightLeft, AlertCircle, Check, Loader2, RefreshCw
 } from "lucide-react";
 
 interface Project {
@@ -99,11 +99,30 @@ export default function ProjectsPage() {
 
   const companyName = (user as any)?.organization?.name || (user as any)?.companyName || "";
 
-  const { data: apiResponse, isLoading, refetch } = useApiQuery<any>(
+  const { data: apiResponse, isLoading, isFetching, refetch } = useApiQuery<any>(
     ["convergence-projects-list"],
     "/convergence-projects",
     { staleTime: 30 * 1000 }
   );
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    invalidateCache("/convergence-projects");
+    const startTime = Date.now();
+    try {
+      await refetch();
+    } catch (err) {
+      console.error("Refresh error:", err);
+    } finally {
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, 650 - elapsed);
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, remaining);
+    }
+  };
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -328,6 +347,23 @@ export default function ProjectsPage() {
               </div>
 
               <span className="text-xs font-bold text-slate-500">{filteredProjects.length} Projects</span>
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={isRefreshing || isLoading}
+                title="Refresh projects"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-bold text-slate-700 shadow-2xs transition-all cursor-pointer group disabled:opacity-60"
+              >
+                <RefreshCw
+                  size={13}
+                  className={`transition-transform duration-300 ${
+                    isRefreshing || isFetching
+                      ? "animate-spin text-blue-600"
+                      : "text-slate-500 group-hover:rotate-45"
+                  }`}
+                />
+                <span className="hidden sm:inline">{isRefreshing || isFetching ? "Refreshing..." : "Refresh"}</span>
+              </button>
               <ViewToggle view={viewMode} onChange={setViewMode} />
             </div>
           </div>

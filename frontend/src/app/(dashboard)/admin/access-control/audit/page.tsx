@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { useAuditLogs } from "@/hooks/useAccessControl";
 import { cn } from "@/lib/utils";
+import { invalidateCache } from "@/lib/api";
 
 import "@/styles/gov-theme.css";
 
@@ -39,14 +40,6 @@ const getResourceDisplay = (entry: any) => {
   if (entry.resourceLabel && !entry.resourceLabel.includes("undefined")) {
     return entry.resourceLabel;
   }
-  if (
-    entry.resourceType &&
-    entry.resourceId &&
-    entry.resourceType !== "undefined" &&
-    entry.resourceId !== "undefined"
-  ) {
-    return `${entry.resourceType} #${String(entry.resourceId).slice(0, 8)}`;
-  }
   if (entry.resourceType && entry.resourceType !== "undefined") {
     return entry.resourceType;
   }
@@ -57,7 +50,26 @@ export default function AuditPage() {
   const [page, setPage] = useState(1);
   const [actionFilter, setActionFilter] = useState("");
   const [search, setSearch] = useState("");
-  const { data: auditData, isLoading, refetch } = useAuditLogs({ page, pageSize: 30, action: actionFilter || undefined });
+  const { data: auditData, isLoading, isFetching, refetch } = useAuditLogs({ page, pageSize: 30, action: actionFilter || undefined });
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    invalidateCache("/admin/access-control");
+    const startTime = Date.now();
+    try {
+      await refetch();
+    } catch (err) {
+      console.error("Refresh error:", err);
+    } finally {
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, 650 - elapsed);
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, remaining);
+    }
+  };
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -87,9 +99,23 @@ export default function AuditPage() {
         title="Access Audit Log"
         breadcrumb="Administration / Access Control"
         actions={
-          <Button variant="ghost" size="sm" icon={RefreshCw} onClick={() => refetch()}>
-            Refresh
-          </Button>
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isRefreshing || isLoading}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 transition-all cursor-pointer group disabled:opacity-60 shadow-2xs"
+            title="Refresh audit logs"
+          >
+            <RefreshCw
+              size={13}
+              className={`transition-transform duration-300 ${
+                isRefreshing || isFetching
+                  ? "animate-spin text-blue-600"
+                  : "text-slate-500 group-hover:rotate-45"
+              }`}
+            />
+            <span>{isRefreshing || isFetching ? "Refreshing..." : "Refresh"}</span>
+          </button>
         }
       />
 

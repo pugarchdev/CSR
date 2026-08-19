@@ -46,7 +46,7 @@ import { StatCard, StatCardGroup } from "@/components/ui/StatCard";
 import { ViewToggle } from "@/components/ui/ViewToggle";
 import { useResponsiveViewMode } from "@/hooks/useResponsiveViewMode";
 import { locationData } from "@/lib/locationData";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, invalidateCache } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 
 type ApplicationType = "ALL" | "GOVERNMENT" | "COMPANY" | "NGO";
@@ -237,14 +237,22 @@ export default function OnboardingApprovalsPage() {
     remarks: "",
     submitting: false,
   });
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (isManualRefresh = false) => {
+    if (isManualRefresh) {
+      setIsRefreshing(true);
+      invalidateCache("/government-onboarding");
+      invalidateCache("/admin/organizations");
+    } else {
+      setLoading(true);
+    }
     setError("");
+    const startTime = Date.now();
     try {
       const [govRes, orgRes] = await Promise.allSettled([
-        apiFetch<any>("/government-onboarding/reviews?status=ALL"),
-        apiFetch<any>("/admin/organizations/pending?status=ALL"),
+        apiFetch<any>("/government-onboarding/reviews?status=ALL", { skipCache: isManualRefresh }),
+        apiFetch<any>("/admin/organizations/pending?status=ALL", { skipCache: isManualRefresh }),
       ]);
 
       if (govRes.status === "fulfilled") {
@@ -262,7 +270,16 @@ export default function OnboardingApprovalsPage() {
     } catch (err: any) {
       setError(err.message || "Failed to load onboarding applications");
     } finally {
-      setLoading(false);
+      if (isManualRefresh) {
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, 650 - elapsed);
+        setTimeout(() => {
+          setIsRefreshing(false);
+          setLoading(false);
+        }, remaining);
+      } else {
+        setLoading(false);
+      }
     }
   };
 
@@ -527,12 +544,19 @@ export default function OnboardingApprovalsPage() {
           <div className="flex items-center gap-2">
             <ViewToggle view={viewMode} onChange={setViewMode} />
             <button
-              onClick={loadData}
-              disabled={loading}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 transition-colors shadow-2xs"
+              onClick={() => loadData(true)}
+              disabled={isRefreshing || loading}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 transition-all shadow-2xs cursor-pointer group disabled:opacity-60"
             >
-              <RefreshCw size={13} className={loading ? "animate-spin text-blue-600" : ""} />
-              <span className="hidden sm:inline">Refresh Data</span>
+              <RefreshCw
+                size={13}
+                className={`transition-transform duration-300 ${
+                  isRefreshing || loading
+                    ? "animate-spin text-blue-600"
+                    : "text-slate-600 group-hover:rotate-45"
+                }`}
+              />
+              <span className="hidden sm:inline">{isRefreshing ? "Refreshing..." : "Refresh Data"}</span>
             </button>
           </div>
         </div>
@@ -543,8 +567,8 @@ export default function OnboardingApprovalsPage() {
               <AlertCircle size={16} className="shrink-0 text-rose-600" />
               <span>{error}</span>
             </div>
-            <button onClick={loadData} className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-white px-2.5 py-1 text-xs font-bold text-rose-800 hover:bg-rose-50 transition-colors">
-              <RefreshCw size={12} />
+            <button onClick={() => loadData(true)} className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-white px-2.5 py-1 text-xs font-bold text-rose-800 hover:bg-rose-50 transition-colors cursor-pointer">
+              <RefreshCw size={12} className={isRefreshing ? "animate-spin" : ""} />
               <span>Retry</span>
             </button>
           </div>
