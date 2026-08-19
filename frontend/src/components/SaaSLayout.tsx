@@ -514,9 +514,10 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
   const handleLogout = () => {
     setUserDropdownOpen(false);
     useAuthStore.getState().logout();
-    router.replace("/login");
     if (typeof window !== "undefined") {
-      window.location.href = "/login";
+      window.location.replace("/login");
+    } else {
+      router.replace("/login");
     }
   };
 
@@ -1077,15 +1078,15 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
 
                         {/* Pitch a Development Need */}
                         <Link
-                          href="/pitch-development-need"
+                          href={isLoggedIn ? "/pitches/create" : "/login?next=/pitches/create"}
                           onClick={() => setMobileMenuOpen(false)}
                           className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${
-                            pathname.startsWith("/pitch-development-need")
+                            pathname.startsWith("/pitches/create") || pathname.startsWith("/pitch-development-need")
                               ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/10"
                               : "text-[#4b5563] hover:text-[#14274e] hover:bg-[#f4f5f7]"
                           }`}
                         >
-                          <Sparkles size={16} className={pathname.startsWith("/pitch-development-need") ? "text-white" : "text-[#97a0ac]"} />
+                          <Sparkles size={16} className={pathname.startsWith("/pitches/create") || pathname.startsWith("/pitch-development-need") ? "text-white" : "text-[#97a0ac]"} />
                           <span>Pitch a Development Need</span>
                         </Link>
 
@@ -1256,7 +1257,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                       {[
                         { label: "About MahaCSR", href: "/about" },
                         { label: "Partner with Maharashtra", href: "/partner-with-maharashtra" },
-                        { label: "Pitch a Development Need", href: "/pitch-development-need" },
+                        { label: "Pitch a Development Need", href: "/pitches/create" },
                         { label: "Development Needs (Live)", href: "/public-development-needs" },
                         { label: "Workflow Explainer", href: "/workflow" },
                         { label: "Knowledge Center", href: "/knowledge" },

@@ -39,19 +39,19 @@ export default function PitchDevelopmentNeedPage() {
       if (isRM) {
         router.replace("/pitches");
       } else if (isGovtOrAdmin) {
-        router.replace("/pitches");
+        router.replace("/pitches/create");
       } else {
-        router.replace("/marketplace");
+        router.replace("/pitches/create");
       }
     } else {
-      router.replace("/login?next=/pitch-development-need");
+      router.replace("/login?next=/pitches/create");
     }
   }, [router]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-[#f6f8fb] text-slate-600">
       <Loader2 size={28} className="animate-spin text-blue-900" />
-      <p className="text-sm">Redirecting you to sign in…</p>
+      <p className="text-sm">Opening pitch creation form…</p>
     </div>
   );
 }

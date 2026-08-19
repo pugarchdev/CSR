@@ -375,14 +375,13 @@ export default function PitchesPage() {
                 <Search size={14} className="text-amber-500" /> Track Pitch Status
               </Link>
               {canCreatePitch && (
-                <button
-                  onClick={handleCreatePitchClick}
-                  disabled={checkingStatus}
-                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 px-4 py-2 text-xs font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105 disabled:opacity-50 cursor-pointer"
+                <Link
+                  href="/pitches/create"
+                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 px-4 py-2 text-xs font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105 no-underline cursor-pointer"
                 >
-                  {checkingStatus ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                  <Plus size={16} />
                   Create Pitch Proposal
-                </button>
+                </Link>
               )}
             </div>
           }
@@ -735,18 +734,21 @@ export default function PitchesPage() {
                     </div>
 
                     {/* Pitch Title & Department */}
-                    <div>
-                      <h3 className="text-sm font-bold text-slate-900 group-hover:text-blue-900 transition-colors line-clamp-1">
+                    <div className="space-y-1.5">
+                      <h3
+                        className="text-sm font-bold text-slate-900 group-hover:text-blue-900 transition-colors leading-snug line-clamp-2"
+                        title={item.title}
+                      >
                         {item.title}
                       </h3>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
-                          <Building size={11} className="text-slate-400" />
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/80">
+                          <Building size={11} className="text-slate-500 shrink-0" />
                           {item.department}
                         </span>
                         {item.district && item.district !== "Not specified" && (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
-                            <MapPin size={11} className="text-slate-400" />
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600">
+                            <MapPin size={11} className="text-slate-400 shrink-0" />
                             {item.district}
                           </span>
                         )}
@@ -785,17 +787,17 @@ export default function PitchesPage() {
             </div>
           ) : (
             /* Table / List View */
-            <div className="w-full md:overflow-x-auto md:rounded-2xl md:border md:border-slate-200/80">
-              <table className="w-full block md:table text-left text-xs font-medium text-slate-700 border-collapse">
+            <div className="w-full overflow-x-auto rounded-2xl border border-slate-200/80 shadow-2xs">
+              <table className="w-full block md:table text-left text-xs font-medium text-slate-700 border-collapse md:min-w-[920px]">
                 <thead className="hidden md:table-header-group bg-slate-50 text-[11px] font-extrabold uppercase tracking-wider text-slate-500 border-b border-slate-200/80">
                   <tr>
-                    <SortableTh sortKey="refNo" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3">Tracking ID</SortableTh>
-                    <SortableTh sortKey="title" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3">Pitch Title & Department</SortableTh>
-                    <SortableTh sortKey="district" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3">District</SortableTh>
-                    <SortableTh sortKey="budgetInr" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3">Estimated Outlay</SortableTh>
-                    <SortableTh sortKey="status" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3">Status</SortableTh>
-                    <SortableTh sortKey="submittedDate" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3">Submitted Date</SortableTh>
-                    <th className="px-4 py-3 text-right">Action</th>
+                    <SortableTh sortKey="refNo" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3 min-w-[130px] whitespace-nowrap">Tracking ID</SortableTh>
+                    <SortableTh sortKey="title" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3 min-w-[280px] md:min-w-[340px]">Pitch Title & Department</SortableTh>
+                    <SortableTh sortKey="district" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3 min-w-[130px] whitespace-nowrap">District</SortableTh>
+                    <SortableTh sortKey="budgetInr" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3 min-w-[130px] whitespace-nowrap">Estimated Outlay</SortableTh>
+                    <SortableTh sortKey="status" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3 min-w-[130px] whitespace-nowrap">Status</SortableTh>
+                    <SortableTh sortKey="submittedDate" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3 min-w-[120px] whitespace-nowrap">Submitted Date</SortableTh>
+                    <th className="px-4 py-3 text-right min-w-[100px] whitespace-nowrap">Action</th>
                   </tr>
                 </thead>
                 <tbody className="block md:table-row-group divide-y-0 md:divide-y md:divide-slate-100">
@@ -804,37 +806,48 @@ export default function PitchesPage() {
                       key={item.id}
                       className="block md:table-row mb-4 md:mb-0 bg-white border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-sm md:shadow-none hover:bg-slate-50/80 transition-colors overflow-hidden"
                     >
-                      <td data-label="Tracking ID" className="flex md:table-cell justify-between items-center px-4 py-3 md:py-3.5 border-b border-slate-100 md:border-none font-mono font-bold text-purple-950 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden">
+                      <td data-label="Tracking ID" className="flex md:table-cell justify-between items-center px-4 py-3 md:py-3.5 border-b border-slate-100 md:border-none font-mono font-bold text-purple-950 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden whitespace-nowrap">
                         <span className="bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100 text-purple-950">
                           {item.refNo}
                         </span>
                       </td>
-                      <td data-label="Pitch Title & Dept" className="flex md:table-cell justify-between items-center px-4 py-3 md:py-3.5 border-b border-slate-100 md:border-none text-slate-900 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left">
-                        <div>
-                          <div className="font-bold text-slate-900 line-clamp-1">{item.title}</div>
-                          <div className="text-[11px] text-slate-400 font-normal hidden md:block">
-                            {item.department}
+                      <td data-label="Pitch Title & Dept" className="flex flex-col md:table-cell justify-start items-start px-4 py-3 md:py-3.5 border-b border-slate-100 md:border-none text-slate-900 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden before:mb-1.5 text-left min-w-0 md:min-w-[280px] max-w-lg">
+                        <div className="space-y-1.5 w-full text-left">
+                          <div className="font-bold text-slate-900 text-xs sm:text-sm leading-snug break-words" title={item.title}>
+                            {item.title}
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200/80 text-[11px] font-semibold text-slate-700">
+                              <Building size={11} className="text-slate-500 shrink-0" />
+                              <span>{item.department}</span>
+                            </span>
+                            {item.schemeName && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 text-blue-800 font-medium text-[10px] border border-blue-200/60" title={item.schemeName}>
+                                <Layers size={10} className="text-blue-500 shrink-0" />
+                                <span className="truncate max-w-[160px]">{item.schemeName}</span>
+                              </span>
+                            )}
                           </div>
                         </div>
                       </td>
-                      <td data-label="District" className="flex md:table-cell justify-between items-center px-4 py-3 md:py-3.5 border-b border-slate-100 md:border-none text-slate-600 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden">
+                      <td data-label="District" className="flex md:table-cell justify-between items-center px-4 py-3 md:py-3.5 border-b border-slate-100 md:border-none text-slate-600 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden whitespace-nowrap">
                         <span className="text-slate-700 font-medium flex items-center gap-1">
                           <MapPin size={12} className="text-blue-600 shrink-0" />
                           {item.district}
                         </span>
                       </td>
-                      <td data-label="Estimated Outlay" className="flex md:table-cell justify-between items-center px-4 py-3 md:py-3.5 border-b border-slate-100 md:border-none font-mono font-bold text-slate-900 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden">
+                      <td data-label="Estimated Outlay" className="flex md:table-cell justify-between items-center px-4 py-3 md:py-3.5 border-b border-slate-100 md:border-none font-mono font-bold text-slate-900 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden whitespace-nowrap">
                         {formatINR(item.budgetInr)}
                       </td>
-                      <td data-label="Status" className="flex md:table-cell justify-between items-center px-4 py-3 md:py-3.5 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden">
+                      <td data-label="Status" className="flex md:table-cell justify-between items-center px-4 py-3 md:py-3.5 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden whitespace-nowrap">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider border ${getStatusBadgeStyle(item.status)}`}>
                           {item.status.replace(/_/g, " ")}
                         </span>
                       </td>
-                      <td data-label="Submitted Date" className="flex md:table-cell justify-between items-center px-4 py-3 md:py-3.5 border-b border-slate-100 md:border-none text-slate-500 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden font-mono">
+                      <td data-label="Submitted Date" className="flex md:table-cell justify-between items-center px-4 py-3 md:py-3.5 border-b border-slate-100 md:border-none text-slate-500 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden font-mono whitespace-nowrap">
                         {item.submittedDate || "—"}
                       </td>
-                      <td className="block md:table-cell px-4 py-3 md:py-3.5 text-right bg-slate-50/50 md:bg-transparent">
+                      <td className="block md:table-cell px-4 py-3 md:py-3.5 text-right bg-slate-50/50 md:bg-transparent whitespace-nowrap">
                         <Link
                           href={`/pitches/${item.id}`}
                           className="inline-flex items-center justify-center md:justify-end gap-1 w-full md:w-auto text-xs font-bold text-blue-900 hover:text-blue-700 border border-blue-200 md:border-none bg-white md:bg-transparent rounded-lg py-2 md:py-0 transition-colors"

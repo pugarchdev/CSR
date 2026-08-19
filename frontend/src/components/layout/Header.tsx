@@ -41,9 +41,10 @@ export function Header({
 
   const handleLogout = () => {
     logout();
-    router.replace("/login");
     if (typeof window !== "undefined") {
-      window.location.href = "/login";
+      window.location.replace("/login");
+    } else {
+      router.replace("/login");
     }
   };
 

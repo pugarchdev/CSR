@@ -325,7 +325,7 @@ export default function LandingPageClient() {
                   </div>
                   <div className="mt-6 sm:mt-8">
                     <Link
-                      href={isLoggedIn ? "/pitch-development-need" : "/login?next=/pitch-development-need"}
+                      href={isLoggedIn ? "/pitches/create" : "/login?next=/pitches/create"}
                       className="inline-flex min-h-11 sm:min-h-12 items-center justify-center rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 px-6 sm:px-7 text-xs font-black uppercase tracking-wider text-white shadow-lg shadow-amber-500/20 hover:no-underline transition-all hover:scale-105 border border-white/30 w-full sm:w-auto text-center"
                     >
                       Pitch Development Need <ArrowRight size={15} className="ml-2" />

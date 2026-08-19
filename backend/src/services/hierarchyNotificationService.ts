@@ -45,12 +45,12 @@ export async function notifyHierarchy(input: HierarchyNotifyInput): Promise<void
       orgUsers.forEach((u) => recipientIds.add(u.id));
     }
 
-    // 3. Assigned RM / All RMs
+    // 3. Assigned RM / All RMs (Only notify the assigned RM if assignedRmId is present)
     if (input.includeRms !== false) {
       if (input.assignedRmId) {
         recipientIds.add(input.assignedRmId);
-      }
-      if (prisma.user?.findMany) {
+      } else if (prisma.user?.findMany) {
+        // Fallback pool notification ONLY when no specific RM is assigned
         const rms = await prisma.user.findMany({
           where: {
             roleId: ROLE_ID.RELATIONSHIP_MANAGER,

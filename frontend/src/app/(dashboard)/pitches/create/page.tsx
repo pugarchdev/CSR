@@ -219,6 +219,52 @@ interface FormErrors {
   [key: string]: string;
 }
 
+const getInitialPitchFormState = (initialUser?: any): PitchForm => {
+  let u = initialUser;
+  if (!u && typeof window !== "undefined") {
+    try {
+      const raw = localStorage.getItem("user");
+      if (raw) u = JSON.parse(raw);
+    } catch {}
+  }
+  const org = u?.organization || u?.company || {};
+  const profile = u?.govDeptProfile || org?.govDeptProfile || {};
+
+  const fullName = [u?.firstName, u?.lastName].filter(Boolean).join(" ").trim();
+  const officialName = u?.officialName || fullName || u?.name || profile?.nodalOfficerName || profile?.headOfDepartmentName || "";
+  const designation = u?.designation || profile?.nodalOfficerDesignation || profile?.headDesignation || "";
+  const department = org?.name || org?.legalName || org?.displayName || u?.department || "";
+  const officeName = org?.name || org?.legalName || org?.displayName || u?.officeName || "";
+  const email = u?.email || org?.officialEmail || org?.officialOfficeEmail || profile?.nodalOfficerEmail || profile?.headEmail || "";
+  const rawMobile = u?.mobile || u?.phone || org?.officialPhone || org?.officialOfficePhone || profile?.nodalOfficerMobile || profile?.headMobile || "";
+  const mobile = rawMobile ? String(rawMobile).replace(/\D/g, "").slice(0, 10) : "";
+
+  const rawDistrict = org?.district || u?.assignedDistrict || u?.district || profile?.district || "";
+  const { division, district } = getDivisionAndDistrict(rawDistrict);
+
+  return {
+    officialName,
+    designation,
+    department,
+    officeName,
+    serviceClass: "",
+    mobile,
+    email,
+    divisions: division ? [division] : [],
+    districts: district ? [district] : [],
+    cities: [],
+    talukas: [],
+    exactLocation: "",
+    csrRequirement: "",
+    estimatedCost: "",
+    govtFundDeclaration: false,
+    certificationType: "",
+    hodDocument: null,
+    supportingDocuments: [],
+    geoTaggedPhotos: [],
+  };
+};
+
 export default function CreatePitchDashboardPage() {
   const router = useRouter();
   const user = useAuthStore((s: any) => s.user);
@@ -235,10 +281,19 @@ export default function CreatePitchDashboardPage() {
   const [referenceId, setReferenceId] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
 
+  const [form, setForm] = useState<PitchForm>(() => getInitialPitchFormState(user || useAuthStore.getState().user));
+
   useEffect(() => {
     let isMounted = true;
     const checkOnboardingAndApproval = async () => {
       let org = (user as any)?.organization;
+
+      // Fast path: if the store or local user already has ACTIVE/APPROVED org or is Super Admin
+      const localStatusUpper = (org?.status || org?.onboardingStatus || (user as any)?.organizationStatus || "").toUpperCase();
+      const isPrivileged = Number(user?.roleId || user?.role) === 1 || Number(user?.roleId || user?.role) === 2 || Number(user?.roleId || user?.role) === 3;
+      if (localStatusUpper === "ACTIVE" || localStatusUpper === "APPROVED" || isPrivileged) {
+        if (isMounted) setOnboardingGuardModal("NONE");
+      }
 
       if (user?.organizationId) {
         try {
@@ -247,30 +302,33 @@ export default function CreatePitchDashboardPage() {
         } catch {}
       }
 
+      if (!isMounted) return;
+
       if (!user?.organizationId || !org) {
-        if (isMounted) setOnboardingGuardModal("ONBOARDING_INCOMPLETE");
+        if (isPrivileged) {
+          setOnboardingGuardModal("NONE");
+          return;
+        }
+        setOnboardingGuardModal("ONBOARDING_INCOMPLETE");
         return;
       }
 
       const statusUpper = (org.status || org.onboardingStatus || "").toUpperCase();
       const PENDING_APPROVAL_STATUSES = ["SUBMITTED_FOR_REVIEW", "UNDER_VERIFICATION", "CLARIFICATION_REQUIRED", "PENDING_APPROVAL", "DOCUMENTS_SUBMITTED"];
 
-      if (statusUpper === "ACTIVE" || statusUpper === "APPROVED" || Number(user?.roleId || user?.role) === 1) {
-        if (isMounted) {
-          setOnboardingGuardModal("NONE");
-          if (org) {
-            useAuthStore.setState((s) => ({
-              user: s.user ? { ...s.user, organization: { ...s.user.organization, ...org } } : null
-            }));
-          }
+      if (statusUpper === "ACTIVE" || statusUpper === "APPROVED" || isPrivileged) {
+        setOnboardingGuardModal("NONE");
+        if (org) {
+          useAuthStore.setState((s) => ({
+            user: s.user ? { ...s.user, organization: { ...s.user.organization, ...org } } : null
+          }));
         }
         return;
       } else if (PENDING_APPROVAL_STATUSES.includes(statusUpper)) {
-        if (isMounted) setOnboardingGuardModal("APPROVAL_PENDING");
+        setOnboardingGuardModal("APPROVAL_PENDING");
         return;
       } else {
-        // REGISTERED, PROFILE_INCOMPLETE, DOCUMENTS_PENDING, or un-submitted onboarding
-        if (isMounted) setOnboardingGuardModal("ONBOARDING_INCOMPLETE");
+        setOnboardingGuardModal("ONBOARDING_INCOMPLETE");
         return;
       }
     };
@@ -279,28 +337,6 @@ export default function CreatePitchDashboardPage() {
 
     return () => { isMounted = false; };
   }, [user]);
-
-  const [form, setForm] = useState<PitchForm>({
-    officialName: "",
-    designation: "",
-    department: "",
-    officeName: "",
-    serviceClass: "",
-    mobile: "",
-    email: "",
-    divisions: [],
-    districts: [],
-    cities: [],
-    talukas: [],
-    exactLocation: "",
-    csrRequirement: "",
-    estimatedCost: "",
-    govtFundDeclaration: false,
-    certificationType: "",
-    hodDocument: null,
-    supportingDocuments: [],
-    geoTaggedPhotos: [],
-  });
 
   // Auto-fetch and prepopulate official identity, credentials, department and location from user session and verified organization profile
   useEffect(() => {
@@ -328,33 +364,19 @@ export default function CreatePitchDashboardPage() {
 
         return {
           ...prev,
-          officialName: officialName || prev.officialName,
-          designation: designation || prev.designation,
-          department: department || prev.department,
-          officeName: officeName || prev.officeName,
-          email: email || prev.email,
-          mobile: mobile ? String(mobile).replace(/\D/g, "").slice(0, 10) : prev.mobile,
+          officialName: prev.officialName || officialName,
+          designation: prev.designation || designation,
+          department: prev.department || department,
+          officeName: prev.officeName || officeName,
+          email: prev.email || email,
+          mobile: prev.mobile || (mobile ? String(mobile).replace(/\D/g, "").slice(0, 10) : ""),
           divisions: nextDivisions,
           districts: nextDistricts,
         };
       });
     };
 
-    // 1. Immediate sync prepopulate from localStorage session or active authStore user
-    if (typeof window !== "undefined") {
-      try {
-        const raw = localStorage.getItem("user");
-        if (raw) {
-          applyUserData(JSON.parse(raw));
-        } else if (user) {
-          applyUserData(user);
-        }
-      } catch {
-        if (user) applyUserData(user);
-      }
-    }
-
-    // 2. Async fetch verified department profile and current auth profile from backend
+    // Async fetch verified department profile and current auth profile from backend in background
     const fetchDepartmentDetails = async () => {
       try {
         const [deptRes, meRes] = await Promise.allSettled([

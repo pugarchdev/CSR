@@ -141,21 +141,41 @@ export default function PageGuard({ children }: { children: React.ReactNode }) {
     if (decision.allowed) {
       setLastAllowedChildren(children);
       setHasNavigatedBack(false);
+    } else if (!isAuthenticated) {
+      // Instantly purge cached protected UI on logout
+      setLastAllowedChildren(null);
     }
-  }, [decision.allowed, children]);
+  }, [decision.allowed, isAuthenticated, children]);
 
   useEffect(() => {
-    if (!decision.allowed && !hasNavigatedBack) {
-      setHasNavigatedBack(true);
-      if (typeof window !== "undefined") {
-        if (window.history.length > 1) {
-          router.back();
-        } else {
-          router.replace("/dashboard");
+    if (!decision.allowed) {
+      if (!isAuthenticated) {
+        // Direct unauthenticated users straight to /login immediately
+        router.replace("/login");
+        return;
+      }
+      if (!hasNavigatedBack) {
+        setHasNavigatedBack(true);
+        if (typeof window !== "undefined") {
+          if (window.history.length > 1) {
+            router.back();
+          } else {
+            router.replace("/dashboard");
+          }
         }
       }
     }
-  }, [decision.allowed, router, hasNavigatedBack]);
+  }, [decision.allowed, isAuthenticated, router, hasNavigatedBack]);
+
+  // If unauthenticated on a protected route, blank the page immediately with a clean logging out screen
+  if (!isAuthenticated && !decision.allowed) {
+    return (
+      <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-slate-50/90 backdrop-blur-sm" role="status" aria-live="polite">
+        <Loader2 className="w-9 h-9 animate-spin text-blue-600 mb-3" />
+        <p className="text-xs font-bold text-slate-600">Signing out...</p>
+      </div>
+    );
+  }
 
   // 1. Loading State
   // Only block the UI with a full-screen loading spinner if the page access is not yet allowed
@@ -187,7 +207,7 @@ export default function PageGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // 3. Denied State -> Keep user on the last allowed page silently
+  // 3. Denied State -> Keep authenticated user on the last allowed page silently
   if (!decision.allowed) {
     if (lastAllowedChildren) {
       return <>{lastAllowedChildren}</>;

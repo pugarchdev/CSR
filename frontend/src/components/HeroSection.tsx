@@ -464,7 +464,7 @@ export default function HeroSection() {
           </Link>
 
           {/* Card 2: Pitch a Development Need */}
-          <Link href={isLoggedIn ? "/pitch-development-need" : "/login?next=/pitch-development-need"} className="flex-1 hover:no-underline group">
+          <Link href={isLoggedIn ? "/pitches/create" : "/login?next=/pitches/create"} className="flex-1 hover:no-underline group">
             <div className="h-full bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex items-center gap-3 transition-all hover:bg-white/15 hover:border-amber-400/40 hover:shadow-lg hover:shadow-amber-500/10">
               <div className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 rounded-lg sm:rounded-xl bg-amber-500/25 border border-amber-400/30 flex items-center justify-center text-amber-300 group-hover:bg-amber-500/35 transition-colors">
                 <Landmark size={18} />
