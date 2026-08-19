@@ -8,6 +8,7 @@ export const generalRateLimiter = rateLimit({
   max: isDev ? 10000 : 500,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false, forwardedHeader: false, default: true },
   skip: () => isDev,
   message: { success: false, error: { code: "RATE_LIMITED", message: "Too many requests. Please try again later." } },
 });
@@ -18,6 +19,7 @@ export const authRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true,
+  validate: { xForwardedForHeader: false, forwardedHeader: false, default: true },
   skip: () => isDev,
   message: { success: false, error: { code: "RATE_LIMITED", message: "Too many failed login attempts. Please try again in 15 minutes." } },
 });
@@ -27,6 +29,7 @@ export const strictRateLimiter = rateLimit({
   max: isDev ? 1000 : 10,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false, forwardedHeader: false, default: true },
   skip: () => isDev,
   message: { success: false, error: { code: "RATE_LIMITED", message: "Too many requests from this IP. Please try again in 1 hour." } },
 });
@@ -37,6 +40,7 @@ export const createCustomRateLimiter = (windowMs: number, max: number, message?:
     max: isDev ? 1000 : max,
     standardHeaders: true,
     legacyHeaders: false,
+    validate: { xForwardedForHeader: false, forwardedHeader: false, default: true },
     skip: () => isDev,
     message: { success: false, error: { code: "RATE_LIMITED", message: message || "Too many requests. Please try again later." } },
   });
