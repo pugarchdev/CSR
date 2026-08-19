@@ -299,19 +299,11 @@ export default function RegisterPage() {
         const cinErr = validateField("cin", formData.cin);
         if (cinErr) errors.cin = cinErr;
       }
-      // Address and contact validation for corporates
-      if (!formData.addressLine1.trim() && !formData.address.trim()) {
-        errors.addressLine1 = "Registered office address is required";
+      if (!formData.state.trim()) {
+        errors.state = "State selection is required";
       }
-      if (!formData.pincode.trim()) {
-        errors.pincode = "PIN Code is required";
-      } else {
-        const pincodeErr = validateField("pincode", formData.pincode);
-        if (pincodeErr) errors.pincode = pincodeErr;
-      }
-      if (formData.mobile.trim()) {
-        const mobileErr = validateField("phone", formData.mobile);
-        if (mobileErr) errors.mobile = mobileErr;
+      if (!formData.district.trim()) {
+        errors.district = "District selection is required";
       }
     }
 
