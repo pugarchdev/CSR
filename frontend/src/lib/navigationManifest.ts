@@ -301,7 +301,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-applications",
     showInSidebar: true,
-    requiredAnyPermissions: ["enquiry:view", "pitch:view", "project:view", "dashboard:view"],
+    requiredAnyPermissions: ["meeting:schedule"],
     ordering: 45,
     breadcrumbMetadata: { title: "Meetings", parentRoute: "/dashboard" }
   },
@@ -855,6 +855,16 @@ export function isNavItemAllowed(
   // Relationship Managers have no permission to view or access the administrative onboarding approvals queue
   if (item.id === "onboarding-approvals" && isRm) {
     return false;
+  }
+
+  // Stakeholder Alignment Meetings dashboard is exclusively designated for Relationship Managers,
+  // the State CSR Coordination Cell / Internal Authorities, and Portal Administrators / Super Admin.
+  if (item.id === "meetings") {
+    const isMeetingAllowed = isSuperAdmin || isInternalAuthority || isRm || hasPermission("meeting:schedule");
+    if (!isMeetingAllowed) {
+      return false;
+    }
+    return true;
   }
 
   if (isSuperAdmin) return true;

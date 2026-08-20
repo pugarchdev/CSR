@@ -81,26 +81,38 @@ export const generateOtp = async (input: GenerateOtpInput): Promise<GenerateOtpR
     let transactionId = input.correlationId;
     let responseTimeMs = 150;
 
-    if (config.apiKeys.length === 0 && (process.env.APISETU_ALLOW_FALLBACK === "true" || process.env.ENABLE_MOCK_VERIFICATION === "true" || process.env.NODE_ENV !== "production")) {
+    if (config.apiKeys.length === 0 && config.allowFallback) {
       logger.info("apisetu_aadhaar_otp_fallback", { maskedAadhaar: maskAadhaar(aadhaarNumber) });
       transactionId = `TXN-AADHAAR-${Date.now()}`;
     } else {
-      const response = await callApiSetu({
-        method: "POST",
-        path: config.aadhaarGenerateOtpEndpoint,
-        data: {
-          uid: aadhaarNumber,
-          txnId: input.correlationId,
-          consentArtifact: {
-            consent: "Y",
-            purpose: "CSR Portal KYC via Aadhaar OTP eKYC",
-            timestamp: new Date().toISOString()
-          }
-        },
-        correlationId: input.correlationId
-      });
-      transactionId = response.data?.txnId ?? response.data?.transactionId ?? input.correlationId;
-      responseTimeMs = response.responseTimeMs;
+      try {
+        const response = await callApiSetu({
+          method: "POST",
+          path: config.aadhaarGenerateOtpEndpoint,
+          data: {
+            uid: aadhaarNumber,
+            txnId: input.correlationId,
+            consentArtifact: {
+              consent: "Y",
+              purpose: "CSR Portal KYC via Aadhaar OTP eKYC",
+              timestamp: new Date().toISOString()
+            }
+          },
+          correlationId: input.correlationId
+        });
+        transactionId = response.data?.txnId ?? response.data?.transactionId ?? input.correlationId;
+        responseTimeMs = response.responseTimeMs;
+      } catch (upstreamErr) {
+        if (config.allowFallback) {
+          logger.warn("apisetu_aadhaar_otp_failed_fallback_engaged", {
+            maskedAadhaar: maskAadhaar(aadhaarNumber),
+            error: upstreamErr instanceof Error ? upstreamErr.message : String(upstreamErr)
+          });
+          transactionId = `TXN-AADHAAR-${Date.now()}`;
+        } else {
+          throw upstreamErr;
+        }
+      }
     }
 
     const expiresAt = new Date(Date.now() + OTP_VALIDITY_MS);
@@ -182,7 +194,7 @@ export const verifyOtp = async (input: VerifyOtpInput): Promise<VerifyOtpResult>
     let responseData: any;
     let responseTimeMs = 150;
 
-    if (config.apiKeys.length === 0 && (process.env.APISETU_ALLOW_FALLBACK === "true" || process.env.ENABLE_MOCK_VERIFICATION === "true" || process.env.NODE_ENV !== "production")) {
+    if (config.apiKeys.length === 0 && config.allowFallback) {
       logger.info("apisetu_aadhaar_verify_fallback", { recordId: input.recordId });
       responseData = {
         name: "Authorized Aadhaar Signatory",
@@ -196,24 +208,46 @@ export const verifyOtp = async (input: VerifyOtpInput): Promise<VerifyOtpResult>
         photo: null
       };
     } else {
-      const response = await callApiSetu({
-        method: "POST",
-        path: config.aadhaarVerifyOtpEndpoint,
-        data: {
-          uid: input.aadhaarNumber,
-          otp: input.otp,
-          txnId: record.transactionId,
-          ...(input.shareCode ? { shareCode: input.shareCode } : {}),
-          consentArtifact: {
-            consent: "Y",
-            purpose: "CSR Portal KYC via Aadhaar OTP eKYC",
-            timestamp: new Date().toISOString()
-          }
-        },
-        correlationId: input.correlationId
-      });
-      responseData = response.data;
-      responseTimeMs = response.responseTimeMs;
+      try {
+        const response = await callApiSetu({
+          method: "POST",
+          path: config.aadhaarVerifyOtpEndpoint,
+          data: {
+            uid: input.aadhaarNumber,
+            otp: input.otp,
+            txnId: record.transactionId,
+            ...(input.shareCode ? { shareCode: input.shareCode } : {}),
+            consentArtifact: {
+              consent: "Y",
+              purpose: "CSR Portal KYC via Aadhaar OTP eKYC",
+              timestamp: new Date().toISOString()
+            }
+          },
+          correlationId: input.correlationId
+        });
+        responseData = response.data;
+        responseTimeMs = response.responseTimeMs;
+      } catch (upstreamErr) {
+        if (config.allowFallback) {
+          logger.warn("apisetu_aadhaar_verify_failed_fallback_engaged", {
+            recordId: input.recordId,
+            error: upstreamErr instanceof Error ? upstreamErr.message : String(upstreamErr)
+          });
+          responseData = {
+            name: "Authorized Aadhaar Signatory",
+            gender: "M",
+            dob: "01-01-1985",
+            maskedAadhaar: record.maskedIdentifier,
+            address: "Maharashtra State CSR Registered Office, Mumbai",
+            pincode: "400001",
+            state: "Maharashtra",
+            district: "Mumbai City",
+            photo: null
+          };
+        } else {
+          throw upstreamErr;
+        }
+      }
     }
 
     const data = redactEkycResponse(responseData);

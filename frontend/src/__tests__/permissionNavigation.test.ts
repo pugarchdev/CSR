@@ -40,5 +40,35 @@ export function verifyPermissionNavigationLogic() {
     }
   });
 
-  return { success: true, totalManifestItems: NAVIGATION_MANIFEST.length };
+  // Test 5: Meetings is denied for standard non-RM users lacking meeting:schedule
+  useAuthStore.setState({
+    permissions: ["dashboard:view", "enquiry:view", "pitch:view", "project:view"],
+    isAdmin: false,
+    fetchStatus: "SUCCESS",
+    isAuthenticated: true
+  });
+  const meetingsItem = getNavItemForRoute("/meetings");
+  if (!meetingsItem) throw new Error("Manifest item for /meetings not found");
+  if (isNavItemAllowed(meetingsItem, mockHasPermission, false, ["ROLE_8"])) {
+    throw new Error("Expected /meetings to be denied for Corporate User (ROLE_8) without meeting:schedule");
+  }
+  if (isNavItemAllowed(meetingsItem, mockHasPermission, false, ["NGO_ADMIN"])) {
+    throw new Error("Expected /meetings to be denied for NGO_ADMIN without meeting:schedule");
+  }
+
+  // Test 6: Meetings is allowed for RM roles
+  if (!isNavItemAllowed(meetingsItem, mockHasPermission, false, ["ROLE_6"])) {
+    throw new Error("Expected /meetings to be allowed for RM (ROLE_6)");
+  }
+  if (!isNavItemAllowed(meetingsItem, mockHasPermission, false, ["RELATIONSHIP_MANAGER"])) {
+    throw new Error("Expected /meetings to be allowed for RELATIONSHIP_MANAGER");
+  }
+
+  // Test 7: Meetings is allowed for users holding meeting:schedule permission
+  const mockPermWithMeeting = (p: string) => p === "meeting:schedule" || p === "dashboard:view";
+  if (!isNavItemAllowed(meetingsItem, mockPermWithMeeting, false, ["CUSTOM_ROLE"])) {
+    throw new Error("Expected /meetings to be allowed for role possessing meeting:schedule permission");
+  }
+
+  return { success: true, totalManifestItems: NAVIGATION_MANIFEST.length, verifiedTestCases: 7 };
 }

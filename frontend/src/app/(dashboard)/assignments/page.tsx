@@ -402,7 +402,12 @@ export default function MasterAssignmentsPage() {
 
         {/* ── Section 1: Cases Awaiting Government Owner (Visible for Joint Secretary) ── */}
         {isJs && (
-          <Card variant="outlined" className="border-blue-200/80 bg-linear-to-b from-blue-50/20 to-transparent">
+          <Card
+            variant="outlined"
+            hover={false}
+            tilt={false}
+            className="border-blue-200/80 bg-linear-to-b from-blue-50/20 to-transparent"
+          >
             <CardHeader className="border-b border-blue-100/60 pb-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
@@ -481,7 +486,7 @@ export default function MasterAssignmentsPage() {
         )}
 
         {/* ── Section 2: Main Assignment Register ── */}
-        <Card variant="outlined">
+        <Card variant="outlined" hover={false} tilt={false}>
           <CardHeader className="pb-4">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div>

@@ -180,21 +180,21 @@ function getInstantFallbackSummary(user: any): any {
     ];
   } else if (roleId === 2 || roleCode.includes("PLANNING_SECRETARY")) {
     defaultKpis = [
-      { id: "ps_state_commitment", key: "ps_state_commitment", label: "State CSR Commitments", value: "₹52.0 Cr", format: "currency", href: "/strategy/state-portfolio", helperText: "Total corporate funds committed across Maharashtra" },
-      { id: "ps_corporate_participation", key: "ps_corporate_participation", label: "Corporate Sponsors", value: 28, format: "number", href: "/companies", helperText: "Distinct companies actively funding state initiatives" },
-      { id: "ps_sector_balance", key: "ps_sector_balance", label: "Funded Sectors", value: "9 Sectors", format: "status", href: "/strategy/sector-analytics", helperText: "Health, Education, Water, Agriculture & Skills" },
-      { id: "ps_funding_pipeline", key: "ps_funding_pipeline", label: "Committed CSR Outlay", value: "₹48.50 Cr", format: "currency", href: "/funds", helperText: "Total committed funds across registered projects" },
+      { id: "ps_state_commitment", key: "ps_state_commitment", label: "State CSR Commitments", value: "₹0.00 Cr", format: "currency", href: "/strategy/state-portfolio", helperText: "Total corporate funds committed across Maharashtra" },
+      { id: "ps_corporate_participation", key: "ps_corporate_participation", label: "Corporate Sponsors", value: 0, format: "number", href: "/companies", helperText: "Distinct companies actively funding state initiatives" },
+      { id: "ps_sector_balance", key: "ps_sector_balance", label: "Funded Sectors", value: "0 Sectors", format: "status", href: "/strategy/sector-analytics", helperText: "Priority sectors actively funded across districts" },
+      { id: "ps_funding_pipeline", key: "ps_funding_pipeline", label: "Committed CSR Outlay", value: "₹0.00 Cr", format: "currency", href: "/funds", helperText: "Total committed funds across registered projects" },
       { id: "ps_active_projects", key: "ps_active_projects", label: "Active State Projects", value: 0, format: "number", href: "/strategy/state-portfolio", helperText: "Non-closed convergence and corporate projects" },
-      { id: "ps_district_coverage", key: "ps_district_coverage", label: "District Coverage", value: "100%", format: "percentage", href: "/strategy/state-portfolio", helperText: "36 of 36 Maharashtra districts covered" },
+      { id: "ps_district_coverage", key: "ps_district_coverage", label: "District Coverage", value: "0%", format: "percentage", href: "/strategy/state-portfolio", helperText: "Districts with active CSR projects" },
       { id: "ps_critical_escalations", key: "ps_critical_escalations", label: "Critical Escalations", value: 0, format: "number", href: "/escalations", helperText: "High-severity unresolved state-level escalations" },
-      { id: "ps_impact_progress", key: "ps_impact_progress", label: "Impact Beneficiaries", value: "1.42 Lakh", format: "number", href: "/strategy/impact", helperText: "Validated citizens reached across funded projects" },
+      { id: "ps_impact_progress", key: "ps_impact_progress", label: "Impact Beneficiaries", value: 0, format: "number", href: "/strategy/impact", helperText: "Validated citizens reached across funded projects" },
     ];
   } else if (roleId === 3 || roleCode.includes("JOINT_SECRETARY")) {
     defaultKpis = [
       { id: "js_feasibility_queue", key: "js_feasibility_queue", label: "Feasibility Decisions Due", value: 0, format: "number", href: "/enquiries", helperText: "RM-assessed corporate proposals ready for JS decision" },
       { id: "js_corporate_proposals", key: "js_corporate_proposals", label: "Corporate CSR Enquiries", value: 0, format: "number", href: "/enquiries", helperText: "Total incoming corporate partnership submissions" },
-      { id: "js_fund_pipeline", key: "js_fund_pipeline", label: "State Funding Pipeline", value: "₹48.50 Cr", format: "currency", href: "/funds", helperText: "Total proposed amount in active assessment pipeline" },
-      { id: "js_rm_balance", key: "js_rm_balance", label: "Active Relationship Managers", value: "3 / 5", format: "status", href: "/admin/user-management", helperText: "Active RMs managing assignments" },
+      { id: "js_fund_pipeline", key: "js_fund_pipeline", label: "State Funding Pipeline", value: "₹0.00 Cr", format: "currency", href: "/funds", helperText: "Total proposed amount in active assessment pipeline" },
+      { id: "js_rm_balance", key: "js_rm_balance", label: "Active Relationship Managers", value: "0 / 0", format: "status", href: "/admin/user-management", helperText: "Active RMs managing assignments" },
       { id: "js_pitch_queue", key: "js_pitch_queue", label: "Pitch Publication Queue", value: 0, format: "number", href: "/pitches", helperText: "Verified government pitches awaiting marketplace publication" },
       { id: "js_assignment_queue", key: "js_assignment_queue", label: "Pending Assignments", value: 0, format: "number", href: "/assignments", helperText: "JS-approved cases awaiting district/DNO assignment" },
       { id: "js_onboarding_queue", key: "js_onboarding_queue", label: "Onboarding Queue", value: 0, format: "number", href: "/admin/onboarding-approvals", helperText: "Applications awaiting decision" },
@@ -220,7 +220,7 @@ function getInstantFallbackSummary(user: any): any {
       { id: "rm_pitch_verification", key: "rm_pitch_verification", label: "Department Pitch Reviews", value: 0, format: "number", href: "/pitches", helperText: "Government department pitches requiring RM coordination" },
       { id: "rm_submitted_to_js", key: "rm_submitted_to_js", label: "Recommended to JS", value: 0, format: "number", href: "/enquiries", helperText: "Assessments completed and recommended to Joint Secretary" },
       { id: "rm_sla_at_risk", key: "rm_sla_at_risk", label: "SLA at Risk / Overdue", value: 0, format: "number", href: "/escalations", helperText: "Assigned cases approaching turnaround limit" },
-      { id: "rm_avg_cycle_time", key: "rm_avg_cycle_time", label: "Avg Processing Time", value: "3.2 Days", format: "duration", href: "/reports", helperText: "Average days from assignment to JS recommendation" },
+      { id: "rm_avg_cycle_time", key: "rm_avg_cycle_time", label: "Avg Processing Time", value: "0 Days", format: "duration", href: "/reports", helperText: "Average days from assignment to JS recommendation" },
     ];
   } else if (roleId === 7 || roleCode.includes("GOVERNMENT") || roleCode.includes("GOV") || roleCode.includes("BENEFICIARY_AGENCY")) {
     // Check if user's org is a Collectorate (district boss) for Collector-specific fallback
@@ -250,14 +250,14 @@ function getInstantFallbackSummary(user: any): any {
     }
   } else if (roleId === 8 || roleCode.includes("CORPORATE") || roleCode.includes("COMPANY")) {
     defaultKpis = [
-      { id: "corp_committed_csr", key: "corp_committed_csr", label: "Committed CSR Capital", value: "₹35.0 Cr", format: "currency", href: "/funds", helperText: "Total CSR budget committed to Maharashtra projects" },
-      { id: "corp_active_projects", key: "corp_active_projects", label: "Funded Projects", value: 0, format: "number", href: "/convergence-projects", helperText: "Projects under active execution across Maharashtra districts" },
-      { id: "corp_enquiries_submitted", key: "corp_enquiries_submitted", label: "Enquiries & Proposals", value: 0, format: "number", href: "/partner/enquiries/new", helperText: "Corporate partnership enquiries submitted to State Cell" },
-      { id: "corp_districts_impacted", key: "corp_districts_impacted", label: "Districts Supported", value: 0, format: "number", href: "/strategy/state-portfolio", helperText: "Geographic spread of your CSR interventions" },
-      { id: "corp_mous_signed", key: "corp_mous_signed", label: "Executed MoUs", value: 0, format: "number", href: "/mou", helperText: "Formal tripartite and department partnership agreements" },
-      { id: "corp_fund_utilization", key: "corp_fund_utilization", label: "Fund Utilization Rate", value: "62%", format: "percentage", href: "/finance/ucs", helperText: "Verified expenditure against committed allocations" },
-      { id: "corp_beneficiaries_reached", key: "corp_beneficiaries_reached", label: "Total Beneficiaries", value: 0, format: "number", href: "/strategy/impact", helperText: "Validated lives touched by your CSR investments" },
-      { id: "corp_compliance_health", key: "corp_compliance_health", label: "MCA Compliance Index", value: "100%", format: "percentage", href: "/reports", helperText: "Schedule VII alignment and audit trail complete" },
+      { id: "ca_committed_funds", key: "ca_committed_funds", label: "Total Committed Funds", value: "₹0.00 Cr", format: "currency", href: "/funds", helperText: "Total CSR budget committed across approved projects" },
+      { id: "ca_released_funds", key: "ca_released_funds", label: "Funds Released", value: "₹0.00 Cr", format: "currency", href: "/funds", helperText: "Actual tranches disbursed for milestone execution" },
+      { id: "ca_utilization_rate", key: "ca_utilization_rate", label: "Reported Utilization", value: "0%", format: "percentage", href: "/funds", helperText: "Verified fund utilization against released amount" },
+      { id: "ca_active_projects", key: "ca_active_projects", label: "Active CSR Projects", value: 0, format: "number", href: "/company/projects", helperText: "Projects in execution with implementing partners" },
+      { id: "ca_milestone_pending", key: "ca_milestone_pending", label: "Milestone Plans Due Review", value: 0, format: "number", href: "/milestones", helperText: "NGO-proposed milestone plans awaiting Corporate approval" },
+      { id: "ca_active_ngos", key: "ca_active_ngos", label: "Approved NGO Partners", value: 0, format: "number", href: "/implementing-agencies", helperText: "Active Corporate-NGO implementation partnerships" },
+      { id: "ca_open_pipeline", key: "ca_open_pipeline", label: "Open Enquiries & Interests", value: 0, format: "number", href: "/enquiries", helperText: "Submitted enquiries & pitch interests in feasibility review" },
+      { id: "ca_compliance_alerts", key: "ca_compliance_alerts", label: "Compliance & KYC Status", value: "Pending Verification", format: "status", href: "/company/profile", helperText: "Organization onboarding & KYC verification in progress" },
     ];
   } else {
     // Implementing Agency (NGO / Role 9 / Default)
@@ -269,7 +269,7 @@ function getInstantFallbackSummary(user: any): any {
       { id: "ngo_utilization_certificates", key: "ngo_utilization_certificates", label: "UCs Submitted", value: 0, format: "number", href: "/finance/ucs", helperText: "Statutory Utilization Certificates audited and accepted" },
       { id: "ngo_field_inspections", key: "ngo_field_inspections", label: "Field Inspections Passed", value: 0, format: "number", href: "/field-visits", helperText: "Inspections verified by District Nodal Officers" },
       { id: "ngo_open_issues", key: "ngo_open_issues", label: "Active Project Grievances", value: 0, format: "number", href: "/issues", helperText: "Reported execution challenges awaiting district action" },
-      { id: "ngo_compliance_score", key: "ngo_compliance_score", label: "Compliance Status", value: "100%", format: "percentage", href: "/organization/onboarding/details", helperText: "Darpan, 12A/80G and statutory verification valid" },
+      { id: "ngo_compliance_score", key: "ngo_compliance_score", label: "Compliance Status", value: "Pending Verification", format: "status", href: "/organization/onboarding/details", helperText: "Darpan, 12A/80G and statutory verification in progress" },
     ];
   }
 

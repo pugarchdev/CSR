@@ -348,7 +348,7 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
         const pitchSum = Number(pipelineBudgetSum[0]._sum.budget || pipelineBudgetSum[0]._sum.estimatedCost || 0);
         const enquirySum = Number(pipelineBudgetSum[1]._sum.indicativeBudget || 0);
         const totalPipelineAmount = pitchSum + enquirySum;
-        const pipelineDisplay = totalPipelineAmount > 0 ? formatCurrency(totalPipelineAmount) : "₹48.50 Cr";
+        const pipelineDisplay = formatCurrency(totalPipelineAmount);
 
         kpis = [
           createKpi("js_feasibility_queue", "Feasibility Decisions Due", feasibilityDue, "number", "/enquiries", "RM-assessed corporate proposals ready for JS decision", feasibilityDue > 0 ? "warning" : "positive"),
@@ -775,37 +775,58 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
       // ─────────────────────────────────────────────────────────────────────────────
       // 8. COMPANY ADMIN (Role 8 - Corporate Primary Admin)
       // ─────────────────────────────────────────────────────────────────────────────
-      else if (roleId === 8 && orgId) {
-        const [enquiries, interests, companyProjects, milestoneReviews, ngoMemberships, commitments] = await Promise.all([
+      else if (roleId === 8) {
+        const [enquiries, interests, companyProjects, milestoneReviews, ngoMemberships, commitments] = orgId ? await Promise.all([
           prisma.corporateEnquiry.count({ where: { organizationId: orgId, status: { notIn: ["REJECTED", "CLOSED"] } } }),
           prisma.corporatePitchInterest.count({ where: { corporateId: orgId, status: { notIn: ["REJECTED", "CLOSED"] } } }),
           prisma.project.count({ where: { status: { in: ACTIVE_PROJECTS }, OR: [{ corporatePartnerId: orgId }, { organizationId: orgId }] } }),
           prisma.projectMilestone.count({ where: { status: "SUBMITTED", project: { OR: [{ corporatePartnerId: orgId }, { organizationId: orgId }] } } }),
           prisma.corporateNgoMembership.count({ where: { corporateOrganizationId: orgId, status: "APPROVED" } }),
           prisma.project.aggregate({ where: { OR: [{ corporatePartnerId: orgId }, { organizationId: orgId }] }, _sum: { committedAmount: true, utilizedAmount: true } }),
-        ]);
+        ]) : [0, 0, 0, 0, 0, { _sum: { committedAmount: null, utilizedAmount: null } } as any];
 
-        const committedVal = Number(commitments._sum.committedAmount || 0);
-        const utilizedVal = Number(commitments._sum.utilizedAmount || 0);
+        const committedVal = Number(commitments._sum?.committedAmount || 0);
+        const utilizedVal = Number(commitments._sum?.utilizedAmount || 0);
         const utilRate = committedVal > 0 ? Math.round((utilizedVal / committedVal) * 100) : 0;
 
+        const isOrgActive = org?.status === "ACTIVE";
+        const complianceStatus = isOrgActive
+          ? "Verified"
+          : org?.status === "CLARIFICATION_REQUIRED"
+          ? "Clarification Required"
+          : org?.status === "REJECTED"
+          ? "Rejected"
+          : "Pending Verification";
+        const complianceSemantic = isOrgActive
+          ? "positive"
+          : org?.status === "CLARIFICATION_REQUIRED"
+          ? "warning"
+          : org?.status === "REJECTED"
+          ? "critical"
+          : "neutral";
+        const complianceHelper = isOrgActive
+          ? "MCA CIN, CSR-1 and Committee records up-to-date"
+          : org?.status === "CLARIFICATION_REQUIRED"
+          ? "Clarifications requested on corporate onboarding details"
+          : "Organization onboarding & KYC verification in progress";
+
         kpis = [
-          createKpi("ca_committed_funds", "Total Committed Funds", formatCurrency(committedVal || 35000000), "currency", "/funds", "Total CSR budget committed across approved projects", "positive", "up"),
-          createKpi("ca_released_funds", "Funds Released", formatCurrency(utilizedVal || 18500000), "currency", "/funds", "Actual tranches disbursed for milestone execution", "positive"),
-          createKpi("ca_utilization_rate", "Reported Utilization", `${utilRate || 53}%`, "percentage", "/funds", "Verified fund utilization against released amount", "positive"),
+          createKpi("ca_committed_funds", "Total Committed Funds", formatCurrency(committedVal), "currency", "/funds", "Total CSR budget committed across approved projects", "positive", "up"),
+          createKpi("ca_released_funds", "Funds Released", formatCurrency(utilizedVal), "currency", "/funds", "Actual tranches disbursed for milestone execution", "positive"),
+          createKpi("ca_utilization_rate", "Reported Utilization", `${utilRate}%`, "percentage", "/funds", "Verified fund utilization against released amount", "positive"),
           createKpi("ca_active_projects", "Active CSR Projects", companyProjects, "number", "/company/projects", "Projects in execution with implementing partners", "positive"),
           createKpi("ca_milestone_pending", "Milestone Plans Due Review", milestoneReviews, "number", "/milestones", "NGO-proposed milestone plans awaiting Corporate approval", milestoneReviews > 0 ? "warning" : "positive"),
           createKpi("ca_active_ngos", "Approved NGO Partners", ngoMemberships, "number", "/implementing-agencies", "Active Corporate-NGO implementation partnerships", "neutral"),
           createKpi("ca_open_pipeline", "Open Enquiries & Interests", enquiries + interests, "number", "/enquiries", "Submitted enquiries & pitch interests in feasibility review", "neutral"),
-          createKpi("ca_compliance_alerts", "Compliance & KYC Status", "Verified", "status", "/company/profile", "MCA CIN, CSR-1 and Committee records up-to-date", "positive"),
+          createKpi("ca_compliance_alerts", "Compliance & KYC Status", complianceStatus, "status", "/company/profile", complianceHelper, complianceSemantic),
         ];
 
         // Corporate Work Queue
-        const pendingMilestones = await prisma.projectMilestone.findMany({
+        const pendingMilestones = orgId ? await prisma.projectMilestone.findMany({
           where: { status: "SUBMITTED", project: { OR: [{ corporatePartnerId: orgId }, { organizationId: orgId }] } },
           include: { project: true },
           take: 5,
-        });
+        }) : [];
 
         workQueue = pendingMilestones.map(m => ({
           id: m.id,
@@ -834,13 +855,19 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
           projectFilter = { id: { in: access?.projectIds || [] } };
         }
 
-        const [memberships, projects, milestonesDue, overdueMilestones, returnedPlans] = await Promise.all([
+        const [memberships, projects, milestonesDue, overdueMilestones, returnedPlans, evidenceDueCount, verifiedMilestones] = await Promise.all([
           prisma.corporateNgoMembership.count({ where: { ngoOrganizationId: orgId || "", status: "APPROVED" } }),
           prisma.project.count({ where: projectFilter }),
           prisma.projectMilestone.count({ where: { project: projectFilter, status: { in: ["APPROVED", "IN_PROGRESS"] } } }),
           prisma.projectMilestone.count({ where: { project: projectFilter, status: { notIn: ["VERIFIED", "COMPLETED"] }, dueDate: { lt: now } } }),
           prisma.projectMilestone.count({ where: { project: projectFilter, status: { in: ["REJECTED", "CHANGES_REQUIRED"] } } }),
+          prisma.projectMilestone.count({ where: { project: projectFilter, status: "IN_PROGRESS" } }),
+          prisma.projectMilestone.count({ where: { project: projectFilter, status: "VERIFIED" } }),
         ]);
+
+        const isNgoActive = org?.status === "ACTIVE";
+        const ngoComplianceStatus = isNgoActive ? "Valid (80G/12A)" : "Pending Verification";
+        const ngoComplianceSemantic = isNgoActive ? "positive" : "warning";
 
         kpis = [
           createKpi("ngo_active_projects", isContextScoped ? "Context Assigned Projects" : "Active NGO Projects", projects, "number", "/ngo/projects", "Assigned projects being implemented across districts", "positive"),
@@ -848,9 +875,9 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
           createKpi("ngo_milestones_overdue", "Overdue Milestones", overdueMilestones, "number", "/ngo/milestones?overdue=true", "Deliverables past scheduled completion date", overdueMilestones > 0 ? "critical" : "positive"),
           createKpi("ngo_corporate_feedback", "Feedback Awaiting Response", returnedPlans, "number", "/ngo/milestones?status=returned", "Milestone proposals returned for revision", returnedPlans > 0 ? "warning" : "positive"),
           createKpi("ngo_active_memberships", "Corporate Partnerships", memberships, "number", "/ngo/corporate-memberships", "Approved memberships with corporate sponsors", "neutral"),
-          createKpi("ngo_evidence_due", "Evidence Updates Due", 2, "number", "/ngo/evidence", "Milestones requiring geotagged photo uploads", "warning"),
-          createKpi("ngo_uc_due", "UC Submissions Due", 1, "number", "/ngo/funds-uc", "Utilization certificates ready for submission", "neutral"),
-          createKpi("ngo_document_alerts", "Registrations & Compliance", "Valid (80G/12A)", "status", "/ngo/profile", "Darpan ID, CSR-1 and tax exemption valid", "positive"),
+          createKpi("ngo_evidence_due", "Evidence Updates Due", evidenceDueCount, "number", "/ngo/evidence", "Milestones requiring geotagged photo uploads", evidenceDueCount > 0 ? "warning" : "positive"),
+          createKpi("ngo_uc_due", "UC Submissions Due", verifiedMilestones, "number", "/ngo/funds-uc", "Utilization certificates ready for submission", "neutral"),
+          createKpi("ngo_document_alerts", "Registrations & Compliance", ngoComplianceStatus, "status", "/ngo/profile", isNgoActive ? "Darpan ID, CSR-1 and tax exemption valid" : "NGO registration and statutory documents under review", ngoComplianceSemantic),
         ];
       }
 

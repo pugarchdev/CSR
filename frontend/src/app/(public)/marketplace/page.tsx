@@ -463,9 +463,9 @@ export default function MarketplacePage() {
                         </p>
                       </div>
                       <div className="border-l border-slate-200/80 pl-2.5">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Beneficiaries</p>
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Target Region</p>
                         <p className="mt-0.5 text-xs sm:text-sm font-extrabold text-slate-900 truncate">
-                          {benCount ? benCount.toLocaleString("en-IN") : "2,500"}
+                          {districtNames || "Maharashtra"}
                         </p>
                       </div>
                     </div>
@@ -580,9 +580,9 @@ export default function MarketplacePage() {
                         </div>
                         <div className="h-7 w-px bg-slate-200" />
                         <div>
-                          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Beneficiaries</p>
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Target Region</p>
                           <p className="mt-0.5 text-xs sm:text-sm font-extrabold text-slate-900">
-                            {benCount ? benCount.toLocaleString("en-IN") : "2,500"}
+                            {districtNames || "Maharashtra"}
                           </p>
                         </div>
                       </div>

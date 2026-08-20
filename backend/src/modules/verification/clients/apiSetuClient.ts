@@ -77,6 +77,7 @@ export const callApiSetu = async <T = any>(options: ApiSetuRequestOptions): Prom
   // and bounded by the number of configured keys.
   // eslint-disable-next-line no-constant-condition
   while (true) {
+    const activeApiKey = getActiveApiKey(config.apiKeys);
     const requestConfig: AxiosRequestConfig = {
       method: options.method,
       url: options.path,
@@ -84,8 +85,13 @@ export const callApiSetu = async <T = any>(options: ApiSetuRequestOptions): Prom
       params: options.params,
       headers: {
         "X-APISETU-CLIENTID": config.clientId,
-        "X-APISETU-APIKEY": getActiveApiKey(config.apiKeys),
-        "X-Request-Id": options.correlationId
+        "X-APISETU-APIKEY": activeApiKey,
+        "X-APISETU-CLIENT-ID": config.clientId,
+        "X-APISETU-API-KEY": activeApiKey,
+        "x-apisetu-clientid": config.clientId,
+        "x-apisetu-apikey": activeApiKey,
+        "X-Request-Id": options.correlationId,
+        ...(activeApiKey && !activeApiKey.includes(" ") ? { apiKey: activeApiKey } : {})
       }
     };
 

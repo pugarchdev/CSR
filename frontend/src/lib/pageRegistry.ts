@@ -55,7 +55,8 @@ export function isNavItemVisible(
   const navItem = getNavItemForRoute(href);
   if (!navItem) return false;
 
-  return isNavItemAllowed(navItem, hasPermission, store.isAdmin);
+  const userRoles = store.roles?.length > 0 ? store.roles : (store.user?.role ? [store.user.role] : []);
+  return isNavItemAllowed(navItem, hasPermission, store.isAdmin, userRoles);
 }
 
 export function pageSlugForPath(pathname: string): string | null {

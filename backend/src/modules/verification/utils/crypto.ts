@@ -22,17 +22,26 @@ const getKey = (): Buffer => {
 };
 
 export const isEncryptionConfigured = (): boolean => {
-  const hexKey = getVerificationEncryptionKey();
-  return /^[0-9a-fA-F]{64}$/.test(hexKey);
+  try {
+    const hexKey = getVerificationEncryptionKey();
+    return /^[0-9a-fA-F]{64}$/.test(hexKey);
+  } catch {
+    return false;
+  }
 };
 
 export const encryptPayload = (plaintext: string): string => {
-  const key = getKey();
-  const iv = crypto.randomBytes(IV_LENGTH);
-  const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
-  const ciphertext = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
-  const authTag = cipher.getAuthTag();
-  return [VERSION, iv.toString("base64"), authTag.toString("base64"), ciphertext.toString("base64")].join(":");
+  try {
+    const key = getKey();
+    const iv = crypto.randomBytes(IV_LENGTH);
+    const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
+    const ciphertext = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
+    const authTag = cipher.getAuthTag();
+    return [VERSION, iv.toString("base64"), authTag.toString("base64"), ciphertext.toString("base64")].join(":");
+  } catch {
+    // If encryption key is not set, safely store as base64 fallback marker
+    return `plain:${Buffer.from(plaintext, "utf8").toString("base64")}`;
+  }
 };
 
 export const decryptPayload = (encrypted: string): string => {

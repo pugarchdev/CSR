@@ -116,15 +116,28 @@ export const getAllowedOrigins = () => {
 export const getApiSetuConfig = () => {
   const apiKeyValue = process.env.APISETU_API_KEY || process.env.GST_APISETU_APIKEY || process.env.GST_API_KEY || "";
   const clientIdValue = process.env.APISETU_CLIENT_ID || process.env.GST_APISETU_CLIENTID || "in.pugarch";
+  const rawBase = (process.env.APISETU_BASE_URL || "https://apisetu.gov.in").trim().replace(/\/+$/, "");
+
+  let defaultGstEndpoint = "/partner/api/v2/gstn/taxpayers/{gstin}";
+  let defaultAadhaarOtpEndpoint = "/partner/api/v2/aadhaar/otp";
+  let defaultAadhaarVerifyEndpoint = "/partner/api/v2/aadhaar/verify";
+
+  if (rawBase.endsWith("/partner/api")) {
+    defaultGstEndpoint = "/v2/gstn/taxpayers/{gstin}";
+    defaultAadhaarOtpEndpoint = "/v2/aadhaar/otp";
+    defaultAadhaarVerifyEndpoint = "/v2/aadhaar/verify";
+  }
+
   return {
-    baseUrl: (process.env.APISETU_BASE_URL || "https://apisetu.gov.in").replace(/\/partner\/api\/?$/, "").replace(/\/$/, ""),
+    baseUrl: rawBase,
     requestTimeoutMs: Number(process.env.APISETU_REQUEST_TIMEOUT) || 10000,
     clientId: clientIdValue.trim(),
-    apiKeys: apiKeyValue.split(",").map(k => k.trim()).filter(Boolean),
-    maxRetries: Number(process.env.APISETU_MAX_RETRIES) || 3,
-    aadhaarGenerateOtpEndpoint: process.env.APISETU_AADHAAR_GENERATE_OTP_ENDPOINT || "/aadhaar/otp",
-    aadhaarVerifyOtpEndpoint: process.env.APISETU_AADHAAR_VERIFY_OTP_ENDPOINT || "/aadhaar/verify",
-    gstVerifyEndpoint: process.env.APISETU_GST_URL || process.env.APISETU_GST_VERIFY_ENDPOINT || "/gstn/v2/taxpayers/{gstin}"
+    apiKeys: apiKeyValue.split(",").map(k => k.trim().replace(/^["']|["']$/g, "")).filter(Boolean),
+    maxRetries: Number(process.env.APISETU_MAX_RETRIES) || 2,
+    aadhaarGenerateOtpEndpoint: process.env.APISETU_AADHAAR_GENERATE_OTP_ENDPOINT || defaultAadhaarOtpEndpoint,
+    aadhaarVerifyOtpEndpoint: process.env.APISETU_AADHAAR_VERIFY_OTP_ENDPOINT || defaultAadhaarVerifyEndpoint,
+    gstVerifyEndpoint: process.env.APISETU_GST_URL || process.env.APISETU_GST_VERIFY_ENDPOINT || defaultGstEndpoint,
+    allowFallback: process.env.APISETU_ALLOW_FALLBACK !== "false"
   };
 };
 

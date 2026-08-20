@@ -102,7 +102,6 @@ export default function PageGuard({ children }: { children: React.ReactNode }) {
       "/interactions",
       "/tasks",
       "/work-queue",
-      "/meetings",
     ];
     if (universalAuthRoutes.some((r) => pathname === r || pathname.startsWith(r + "/"))) {
       return { allowed: true, requiredPerm: undefined };

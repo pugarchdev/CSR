@@ -8,7 +8,6 @@ import {
   MapPin,
   Building2,
   CheckCircle2,
-  Users,
   Coins,
   Calendar,
   Phone,
@@ -93,7 +92,6 @@ export default function RequirementDetailsModal({ item, onClose }: RequirementDe
   const title = data.title || data.csrRequirement || "Verified Development Requirement";
   const description = data.description || data.csrRequirement || "Comprehensive development project under Maharashtra CSR convergence framework.";
   const budget = data.approvedBudget || data.budgetRequested || data.estimatedCost || data.budget || 0;
-  const beneficiaries = Number(data.beneficiaryCount || data.expectedBeneficiaries || 2500);
   const district = data.district || (Array.isArray(data.districts) && data.districts[0]) || "Maharashtra";
   const taluka = data.taluka || (Array.isArray(data.talukas) && data.talukas[0]) || "District HQ";
   const division = Array.isArray(data.divisions) && data.divisions.length ? data.divisions.join(", ") : "State Jurisdiction";
@@ -148,46 +146,60 @@ export default function RequirementDetailsModal({ item, onClose }: RequirementDe
         {/* Scrollable Content Body */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
           
-          {/* Key Metrics Strip (4 Highlights) */}
+          {/* Key Metrics Strip (4 Verified Pitch KPI Cards) */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-blue-50/70 border border-blue-100/90 rounded-xl p-3">
-              <div className="flex items-center gap-1.5 text-blue-800 text-[11px] font-bold uppercase tracking-wider">
-                <Coins size={14} /> Requested Outlay
+            {/* Card 1: Requested Outlay */}
+            <div className="bg-blue-50/70 border border-blue-100/90 rounded-xl p-3 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-1.5 text-blue-800 text-[11px] font-bold uppercase tracking-wider">
+                  <Coins size={14} /> Requested Outlay
+                </div>
+                <p className="mt-1 text-base sm:text-lg font-black text-blue-950 break-words leading-tight">
+                  {money(budget)}
+                </p>
               </div>
-              <p className="mt-1 text-base sm:text-lg font-black text-blue-950">
-                {money(budget)}
-              </p>
-              <span className="text-[10px] font-medium text-blue-700/80">Convergence Gap Grant</span>
+              <span className="text-[10px] font-medium text-blue-700/80 mt-1">Convergence Gap Grant</span>
             </div>
 
-            <div className="bg-emerald-50/70 border border-emerald-100/90 rounded-xl p-3">
-              <div className="flex items-center gap-1.5 text-emerald-800 text-[11px] font-bold uppercase tracking-wider">
-                <Users size={14} /> Beneficiaries
+            {/* Card 2: Target Region */}
+            <div className="bg-purple-50/70 border border-purple-100/90 rounded-xl p-3 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-1.5 text-purple-800 text-[11px] font-bold uppercase tracking-wider">
+                  <MapPin size={14} /> Target Region
+                </div>
+                <p className="mt-1 text-sm sm:text-base font-black text-purple-950 line-clamp-2 break-words leading-tight" title={`${taluka}, ${district}`}>
+                  {district}
+                </p>
               </div>
-              <p className="mt-1 text-base sm:text-lg font-black text-emerald-950">
-                {beneficiaries ? beneficiaries.toLocaleString("en-IN") : "2,500"}
-              </p>
-              <span className="text-[10px] font-medium text-emerald-700/80">Direct Community Reach</span>
+              <span className="text-[10px] font-medium text-purple-700/80 line-clamp-1 break-words mt-1">{taluka}</span>
             </div>
 
-            <div className="bg-purple-50/70 border border-purple-100/90 rounded-xl p-3">
-              <div className="flex items-center gap-1.5 text-purple-800 text-[11px] font-bold uppercase tracking-wider">
-                <MapPin size={14} /> Target Region
+            {/* Card 3: Organization */}
+            <div className="bg-emerald-50/70 border border-emerald-100/90 rounded-xl p-3 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-1.5 text-emerald-800 text-[11px] font-bold uppercase tracking-wider">
+                  <Building2 size={14} /> Organization
+                </div>
+                <p className="mt-1 text-sm sm:text-base font-black text-emerald-950 capitalize line-clamp-2 break-words leading-tight" title={departmentName}>
+                  {departmentName}
+                </p>
               </div>
-              <p className="mt-1 text-sm sm:text-base font-black text-purple-950 truncate">
-                {district}
-              </p>
-              <span className="text-[10px] font-medium text-purple-700/80">{taluka}</span>
+              <span className="text-[10px] font-medium text-emerald-700/80 mt-1">Authority</span>
             </div>
 
-            <div className="bg-amber-50/70 border border-amber-100/90 rounded-xl p-3">
-              <div className="flex items-center gap-1.5 text-amber-800 text-[11px] font-bold uppercase tracking-wider">
-                <Calendar size={14} /> Timeline
+            {/* Card 4: Governance & Audit */}
+            <div className="bg-amber-50/70 border border-amber-100/90 rounded-xl p-3 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-1.5 text-amber-800 text-[11px] font-bold uppercase tracking-wider">
+                  <ShieldCheck size={14} /> Governance & Audit
+                </div>
+                <p className="mt-1 text-sm sm:text-base font-black text-amber-950 line-clamp-2 break-words leading-tight" title={data.certificationType || "HOD Endorsed"}>
+                  {data.certificationType || "HOD Endorsed"}
+                </p>
               </div>
-              <p className="mt-1 text-sm sm:text-base font-black text-amber-950">
-                {data.completionTimeline || "6–12 Months"}
-              </p>
-              <span className="text-[10px] font-medium text-amber-700/80">Execution Period</span>
+              <span className="text-[10px] font-medium text-amber-700/80 line-clamp-1 break-words mt-1">
+                {photos.length > 0 ? `${photos.length} Field Media Attached` : "Non-Budgeted Gap Certified"}
+              </span>
             </div>
           </div>
 

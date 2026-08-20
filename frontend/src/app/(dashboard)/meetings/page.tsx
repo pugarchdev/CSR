@@ -26,7 +26,7 @@ interface MeetingItem {
 }
 
 export default function MeetingsPage() {
-  const { user, roles, roleDetails, isAdmin } = useAuthStore();
+  const { user, roles, roleDetails, isAdmin, hasPermission } = useAuthStore();
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<"ALL" | "UPCOMING" | "VIRTUAL" | "IN_PERSON">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
@@ -53,13 +53,15 @@ export default function MeetingsPage() {
       t.includes("RELATIONSHIP") ||
       t.includes("RM") ||
       t === "6" ||
-      t === "ROLE_6"
+      t === "ROLE_6" ||
+      t === "SYSTEM_ROLE_6"
     );
   }, [user, roles, roleDetails, isAdmin, mounted]);
 
   const isInternalAuthority = useMemo(() => {
     if (!mounted) return false;
     if (isAdmin || isRM) return true;
+    if (hasPermission("meeting:schedule")) return true;
     const tokens = [
       user?.role,
       user?.roleSlug,
@@ -72,9 +74,11 @@ export default function MeetingsPage() {
       t.includes("SECRETARY") ||
       t.includes("JOINT_SECRETARY") ||
       t.includes("PLANNING_SECRETARY") ||
-      t.includes("PORTAL_ADMIN")
+      t.includes("PORTAL_ADMIN") ||
+      t.includes("STATE_CSR_CELL") ||
+      t.includes("CSR_ADMIN")
     );
-  }, [user, roles, isAdmin, isRM, mounted]);
+  }, [user, roles, isAdmin, isRM, mounted, hasPermission]);
 
   // Fetch assigned pitches and enquiries for the RM
   const { data: pitchesData, isLoading: loadingPitches, refetch: refetchPitches } = useApiQuery<any>(

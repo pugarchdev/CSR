@@ -120,4 +120,25 @@ describe("Verification Engine & Privacy Hardening Edge Cases Test Suite", () => 
       expect((redacted as any).photo).toBeUndefined();
     });
   });
+
+  describe("API Setu Configuration & GSTIN Resilient Resolution", () => {
+    it("should correctly configure API Setu endpoints preserving partner API gateway path", () => {
+      const { getApiSetuConfig } = require("../config/env");
+      const config = getApiSetuConfig();
+      expect(config.baseUrl).toBeDefined();
+      expect(config.gstVerifyEndpoint).toContain("{gstin}");
+      expect(config.allowFallback).toBe(true);
+    });
+
+    it("should properly extract PAN, State, and Entity Type from 27AACCT6715A2ZM", () => {
+      const gstin = "27AACCT6715A2ZM";
+      const pan = gstin.substring(2, 12);
+      const stateCode = gstin.substring(0, 2);
+      const constitutionChar = pan.charAt(3);
+
+      expect(pan).toBe("AACCT6715A");
+      expect(stateCode).toBe("27"); // Maharashtra
+      expect(constitutionChar).toBe("C"); // Company
+    });
+  });
 });

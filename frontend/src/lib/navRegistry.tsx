@@ -131,10 +131,10 @@ export function resolveNavItems(params: {
   hasPermission: (perm: string) => boolean;
   isSuperAdmin: boolean;
 }): NavItem[] {
-  const { hasPermission, isSuperAdmin } = params;
+  const { hasPermission, isSuperAdmin, role } = params;
 
   const allowedManifestItems = NAVIGATION_MANIFEST.filter((item) =>
-    isNavItemAllowed(item, hasPermission, isSuperAdmin)
+    isNavItemAllowed(item, hasPermission, isSuperAdmin, role)
   );
 
   return allowedManifestItems.map((item) => ({

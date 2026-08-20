@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { apiFetch, uploadPortalFile } from "@/lib/api";
 import GovInput from "@/components/gov/GovInput";
 import GovSelect from "@/components/gov/GovSelect";
@@ -211,8 +211,45 @@ interface FormErrors {
   [key: string]: string;
 }
 
-export default function CreateCorporateEnquiryPage() {
+const matchSector = (rawSector: string): { sector: string; customSector: string } => {
+  if (!rawSector) return { sector: "", customSector: "" };
+  const sUpper = rawSector.toUpperCase().trim();
+  const directMatch = SECTORS.find(s => s.value === sUpper);
+  if (directMatch && directMatch.value) {
+    return { sector: directMatch.value, customSector: "" };
+  }
+  if (sUpper.includes("EDU")) return { sector: "EDUCATION", customSector: "" };
+  if (sUpper.includes("HEALTH") || sUpper.includes("MEDIC")) return { sector: "HEALTH", customSector: "" };
+  if (sUpper.includes("WATER") || sUpper.includes("IRRIG")) return { sector: "WATER", customSector: "" };
+  if (sUpper.includes("RURAL") || sUpper.includes("VILLAGE")) return { sector: "RURAL_DEVELOPMENT", customSector: "" };
+  if (sUpper.includes("ENV") || sUpper.includes("SOLAR") || sUpper.includes("CLIMATE")) return { sector: "ENVIRONMENT", customSector: "" };
+  if (sUpper.includes("WOMEN") || sUpper.includes("LIVELIHOOD")) return { sector: "WOMEN_EMPOWERMENT", customSector: "" };
+  if (sUpper.includes("SKILL") || sUpper.includes("EMPLOY")) return { sector: "SKILL_DEVELOPMENT", customSector: "" };
+  if (sUpper.includes("AGRI")) return { sector: "AGRICULTURE", customSector: "" };
+  if (sUpper.includes("SPORT")) return { sector: "SPORTS", customSector: "" };
+  return { sector: "OTHER", customSector: rawSector };
+};
+
+const findDivisionForDistrict = (dist: string): string[] => {
+  if (!dist) return [];
+  for (const [div, districts] of Object.entries(DIVISION_TO_DISTRICTS)) {
+    if (districts.some(d => d.toLowerCase() === dist.toLowerCase())) {
+      return [div];
+    }
+  }
+  return [];
+};
+
+function CreateCorporateEnquiryForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const paramProjectTitle = searchParams.get("projectTitle") || "";
+  const paramProjectId = searchParams.get("projectId") || "";
+  const paramDistrict = searchParams.get("district") || "";
+  const paramBudget = searchParams.get("budget") || "";
+  const paramSector = searchParams.get("sector") || "";
+  const paramDeptName = searchParams.get("departmentName") || "";
+
   const queryClient = useQueryClient();
   const user = useAuthStore((s: any) => s.user);
   const roles = useAuthStore((s: any) => s.roles);
@@ -456,11 +493,49 @@ export default function CreateCorporateEnquiryPage() {
     }));
   };
 
+  // Auto-fill from marketplace project search parameters if navigated from CSR Marketplace
+  useEffect(() => {
+    if (!paramProjectTitle && !paramProjectId && !paramDistrict && !paramBudget && !paramSector) return;
+
+    setForm((prev) => {
+      const { sector, customSector } = matchSector(paramSector);
+      const divisions = paramDistrict ? findDivisionForDistrict(paramDistrict) : prev.preferredDivisions;
+      const districts = paramDistrict ? [paramDistrict] : prev.preferredDistricts;
+      const budget = paramBudget ? paramBudget : prev.indicativeBudget;
+
+      const proposedWork = paramProjectTitle
+        ? `We express our CSR funding and partnership interest for "${paramProjectTitle}"${paramProjectId ? ` (Ref: ${paramProjectId})` : ""}. Our organization is keen to support this initiative in ${paramDistrict || "Maharashtra"} in alignment with State development priorities.`
+        : prev.proposedCSRWork;
+
+      return {
+        ...prev,
+        sector: sector || prev.sector,
+        customSector: customSector || prev.customSector,
+        preferredDivisions: divisions.length > 0 ? divisions : prev.preferredDivisions,
+        preferredDistricts: districts.length > 0 ? districts : prev.preferredDistricts,
+        indicativeBudget: budget || prev.indicativeBudget,
+        proposedCSRWork: proposedWork || prev.proposedCSRWork
+      };
+    });
+  }, [paramProjectTitle, paramProjectId, paramDistrict, paramBudget, paramSector]);
+
   useEffect(() => {
     apiFetch<any>("/corporate-enquiries/departments/active")
-      .then((response) => setDepartments(response?.data || []))
+      .then((response) => {
+        const depts: Array<{ id: string; name: string }> = response?.data || [];
+        setDepartments(depts);
+        if (paramDeptName && depts.length > 0) {
+          const matched = depts.find(d => 
+            d.name.toLowerCase().includes(paramDeptName.toLowerCase()) || 
+            paramDeptName.toLowerCase().includes(d.name.toLowerCase())
+          );
+          if (matched) {
+            setForm(prev => prev.departmentId ? prev : { ...prev, departmentId: matched.id });
+          }
+        }
+      })
       .catch(() => setDepartments([]));
-  }, []);
+  }, [paramDeptName]);
 
   const validateForm = (): boolean => {
     const errs: FormErrors = {};
@@ -676,6 +751,31 @@ export default function CreateCorporateEnquiryPage() {
         />
 
         {errors.submit && <GovAlert variant="danger">{errors.submit}</GovAlert>}
+
+        {/* Marketplace Project Linked Notice */}
+        {paramProjectTitle && (
+          <div className="rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50/90 via-blue-50/50 to-indigo-50/70 p-4 shadow-xs">
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg bg-blue-900 p-2 text-white shadow-xs shrink-0">
+                <Handshake size={18} />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-black uppercase tracking-wider text-blue-950">Marketplace Project Linked</span>
+                  {paramProjectId && (
+                    <span className="rounded-md bg-blue-100 px-2 py-0.5 font-mono text-[11px] font-bold text-blue-900">
+                      {paramProjectId}
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm font-bold text-slate-800">{paramProjectTitle}</p>
+                <p className="text-xs text-slate-600">
+                  Project scope, target district, sector, and requested outlay have been pre-filled. Complete and submit this Corporate Enquiry to initiate Joint Secretary review and dedicated Relationship Manager assignment.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           {/* SECTION 1: CORPORATE IDENTITY */}
@@ -1041,5 +1141,13 @@ export default function CreateCorporateEnquiryPage() {
         </form>
       </div>
     </GovPortalLayout>
+  );
+}
+
+export default function CreateCorporateEnquiryPage() {
+  return (
+    <Suspense fallback={<div className="p-12 text-center text-xs text-slate-500 font-bold">Loading Corporate Partnership Desk...</div>}>
+      <CreateCorporateEnquiryForm />
+    </Suspense>
   );
 }
