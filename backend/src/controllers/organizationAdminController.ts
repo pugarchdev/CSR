@@ -485,7 +485,7 @@ export const requestClarification = async (req: AuthenticatedRequest, res: Respo
       includeRms: true,
       includeStateOfficers: true,
       includeDistrictOfficers: true,
-      actionButtonUrl: `/organization/onboarding/status`,
+      actionButtonUrl: `/organization/onboarding/status?highlight=clarification`,
       variables: {
         currentStatus: "CLARIFICATION_REQUIRED",
         workflowStatus: remarks
@@ -614,7 +614,7 @@ export const submitOnboarding = async (req: AuthenticatedRequest, res: Response,
       includePortalAdmins: true,
       includeRms: true,
       includeStateOfficers: true,
-      actionButtonUrl: `/admin/onboarding-approvals`
+      actionButtonUrl: `/admin/onboarding-approvals?orgId=${updated.id}&highlight=${encodeURIComponent(updated.name)}`
     }).catch(err => console.error("Notification dispatch failed:", err));
     return res.json(updated);
   } catch (error: any) {
@@ -1042,7 +1042,7 @@ export const submitCompanyOnboarding = async (req: AuthenticatedRequest, res: Re
       includePortalAdmins: true,
       includeRms: true,
       includeStateOfficers: true,
-      actionButtonUrl: `/admin/onboarding-approvals`
+      actionButtonUrl: `/admin/onboarding-approvals?orgId=${updated.id}&highlight=${encodeURIComponent(updated.name)}`
     }).catch(err => console.error("Notification dispatch failed:", err));
 
     const finalSaved = await prisma.organization.findUnique({
@@ -1369,7 +1369,7 @@ export const submitDepartmentOnboarding = async (req: AuthenticatedRequest, res:
       includePortalAdmins: true,
       includeRms: true,
       includeStateOfficers: true,
-      actionButtonUrl: `/admin/onboarding-approvals`
+      actionButtonUrl: `/admin/onboarding-approvals?orgId=${updated.id}&highlight=${encodeURIComponent(updated.name)}`
     }).catch(err => console.error("Notification dispatch failed:", err));
     return res.json(updated);
   } catch (error: any) {

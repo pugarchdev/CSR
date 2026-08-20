@@ -775,16 +775,13 @@ export function isInternalAuthorityUser(roles?: string[] | string | null, isSupe
     r.includes("CSR_RELATIONSHIP_MANAGER") ||
     r.includes("RELATIONSHIP_MANAGER") ||
     r.includes("STATE_CSR_CELL") ||
-    r.includes("DISTRICT_NODAL") ||
-    r.includes("PORTAL_ADMIN") ||
-    r.includes("CSR_ADMIN") ||
+    r === "PORTAL_ADMIN" ||
+    r === "CSR_ADMIN" ||
     r === "ROLE_1" ||
     r === "ROLE_2" ||
     r === "ROLE_3" ||
-    r === "ROLE_4" ||
-    r === "ROLE_5" ||
     r === "ROLE_6" ||
-    r === "ROLE_7" ||
+    r === "SYSTEM_ROLE_6" ||
     r === "RM" ||
     r === "JS"
   );
@@ -858,9 +855,45 @@ export function isNavItemAllowed(
   }
 
   // Stakeholder Alignment Meetings dashboard is exclusively designated for Relationship Managers,
-  // the State CSR Coordination Cell / Internal Authorities, and Portal Administrators / Super Admin.
+  // the State CSR Coordination Cell, and Portal Administrators / Super Admin.
+  // Restricted access: strictly hidden from corporate users, government officers, NGOs without meeting:schedule.
   if (item.id === "meetings") {
-    const isMeetingAllowed = isSuperAdmin || isInternalAuthority || isRm || hasPermission("meeting:schedule");
+    let activeRoles: string[] = [];
+    if (Array.isArray(userRoles)) {
+      activeRoles = userRoles;
+    } else if (typeof userRoles === "string" && userRoles) {
+      activeRoles = [userRoles];
+    } else if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("user");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed?.role) activeRoles.push(parsed.role);
+          if (parsed?.roleSlug) activeRoles.push(parsed.roleSlug);
+        }
+      } catch {}
+    }
+    const normalized = activeRoles.map((r) => String(r).toUpperCase());
+
+    const isRmOrApexAuthority = normalized.some((r) =>
+      r.includes("RELATIONSHIP") ||
+      r.includes("CSR_RELATIONSHIP_MANAGER") ||
+      r.includes("PLANNING_SECRETARY") ||
+      r.includes("JOINT_SECRETARY") ||
+      r.includes("STATE_CSR_CELL") ||
+      r === "SUPER_ADMIN" ||
+      r === "PORTAL_ADMIN" ||
+      r === "CSR_ADMIN" ||
+      r === "ROLE_1" ||
+      r === "ROLE_2" ||
+      r === "ROLE_3" ||
+      r === "ROLE_6" ||
+      r === "SYSTEM_ROLE_6" ||
+      r === "RM" ||
+      r === "JS"
+    );
+
+    const isMeetingAllowed = isSuperAdmin || isRm || isRmOrApexAuthority || hasPermission("meeting:schedule");
     if (!isMeetingAllowed) {
       return false;
     }

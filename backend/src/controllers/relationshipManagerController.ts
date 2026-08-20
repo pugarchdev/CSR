@@ -77,11 +77,51 @@ export const listRMEnquiries = async (req: AuthenticatedRequest, res: Response, 
 export const getRMEnquiryById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const enquiry = await prisma.corporateEnquiry.findFirst({
-      where: { id, assignedRelationshipManagerId: req.user!.id }
-    });
+    const isSuperOrApex = ([ROLE_ID.SUPER_ADMIN, ROLE_ID.JOINT_SECRETARY, ROLE_ID.PLANNING_SECRETARY] as number[]).includes(Number(req.user?.roleId));
+    const where: any = { id };
+    if (!isSuperOrApex) {
+      where.assignedRelationshipManagerId = req.user!.id;
+    }
+
+    const enquiry = await prisma.corporateEnquiry.findFirst({ where });
     if (!enquiry) return res.status(404).json({ error: "Enquiry not found" });
-    return res.json({ success: true, data: enquiry });
+
+    let assignedRelationshipManager = null;
+    if (enquiry.assignedRelationshipManagerId) {
+      const rmUser = await prisma.user.findUnique({
+        where: { id: enquiry.assignedRelationshipManagerId },
+        select: { id: true, firstName: true, lastName: true, designation: true, email: true, mobile: true }
+      });
+      if (rmUser) {
+        assignedRelationshipManager = {
+          id: rmUser.id,
+          name: [rmUser.firstName, rmUser.lastName].filter(Boolean).join(" ") || "Relationship Manager",
+          designation: rmUser.designation || "State CSR Relationship Manager",
+          email: rmUser.email,
+          mobile: rmUser.mobile
+        };
+      }
+    }
+
+    let submittedByUser = null;
+    if (enquiry.submittedByUserId) {
+      submittedByUser = await prisma.user.findUnique({
+        where: { id: enquiry.submittedByUserId },
+        select: { id: true, firstName: true, lastName: true, designation: true, email: true, mobile: true }
+      });
+    }
+
+    const contactPersonDesignation = submittedByUser?.designation || "Corporate CSR Representative";
+
+    return res.json({
+      success: true,
+      data: {
+        ...enquiry,
+        contactPersonDesignation,
+        assignedRelationshipManager,
+        submittedByUser
+      }
+    });
   } catch (error) {
     next(error);
   }

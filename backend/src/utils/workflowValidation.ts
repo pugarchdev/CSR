@@ -16,7 +16,8 @@ export interface CorporateEnquirySubmission {
   sector: string;
   indicativeBudget: number;
   district: string;
-  departmentId: string;
+  talukas?: string[];
+  departmentId?: string;
   proposedCSRWork: string;
   documents: string[];
   declarationAccepted: boolean;
@@ -25,6 +26,7 @@ export interface CorporateEnquirySubmission {
 export function validateCorporateEnquirySubmission(body: unknown): ValidationResult<CorporateEnquirySubmission> {
   const input = (body && typeof body === "object" ? body : {}) as Record<string, unknown>;
   const districts = strings(input.preferredDistricts ?? (input.district ? [input.district] : []));
+  const talukas = strings(input.preferredTalukas ?? input.talukas);
   const budget = Number(input.indicativeBudget);
   const documents = strings(input.documents ?? input.supportingDocuments);
   const value = {
@@ -36,7 +38,8 @@ export function validateCorporateEnquirySubmission(body: unknown): ValidationRes
     sector: text(input.sector),
     indicativeBudget: budget,
     district: districts[0] || "",
-    departmentId: text(input.departmentId),
+    talukas,
+    departmentId: text(input.departmentId) || undefined,
     proposedCSRWork: text(input.proposedCSRWork),
     documents,
     declarationAccepted: input.declarationAccepted === true
@@ -50,7 +53,6 @@ export function validateCorporateEnquirySubmission(body: unknown): ValidationRes
   if (!value.sector) errors.push("CSR sector is required.");
   // if (!Number.isFinite(budget) || budget <= 0) errors.push("Indicative budget must be greater than zero.");
   if (districts.length !== 1) errors.push("Select exactly one district for this case.");
-  if (!value.departmentId) errors.push("Select exactly one government department for this case.");
   if (value.proposedCSRWork.length < 20) errors.push("Proposed CSR work must contain at least 20 characters.");
   if (!value.declarationAccepted) errors.push("The submission declaration must be accepted.");
   return errors.length ? { ok: false, errors } : { ok: true, value };

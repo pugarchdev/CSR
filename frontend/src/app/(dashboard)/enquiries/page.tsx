@@ -201,6 +201,9 @@ export default function EnquiriesPage() {
   const [filterDistrict, setFilterDistrict] = useState("ALL");
   const [sortBy, setSortBy] = useState("NEWEST");
   const [viewMode, setViewMode] = useResponsiveViewMode();
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+
+  const highlightParam = searchParams?.get("highlight") || searchParams?.get("trackingId") || searchParams?.get("id") || searchParams?.get("search") || "";
 
   useEffect(() => {
     if (searchParams.get("action") === "create" && !canSubmitEnquiry) {
@@ -236,6 +239,36 @@ export default function EnquiriesPage() {
       createdAt: e.createdAt || new Date().toISOString(),
     }));
   }, [rawEnquiries]);
+
+  // Deep-link matching and auto-scroll
+  useEffect(() => {
+    if (!items.length) return;
+    const target = (highlightParam || "").trim().toLowerCase();
+    if (!target) return;
+
+    const match = items.find(
+      (item) =>
+        item.id.toLowerCase() === target ||
+        item.trackingId.toLowerCase() === target ||
+        item.companyName.toLowerCase().includes(target)
+    );
+
+    if (match) {
+      setHighlightedId(match.id);
+      setFilterStatus("ALL");
+      setFilterSector("ALL");
+      setFilterBudget("ALL");
+      setFilterDistrict("ALL");
+
+      const timer = setTimeout(() => {
+        const el = document.getElementById(`enquiry-row-${match.id}`) || document.getElementById(`enquiry-card-${match.id}`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [items, highlightParam]);
 
   // Extract distinct sectors and districts for dynamic filters
   const allSectors = useMemo(() => {
@@ -715,84 +748,92 @@ export default function EnquiriesPage() {
         ) : viewMode === "grid" ? (
           /* Grid Card View */
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-1">
-            {filtered.map((item) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between group"
-              >
-                <div className="space-y-3">
-                  {/* Top Bar: Tracking ID & Status */}
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-[11px] font-extrabold text-blue-950 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
-                      {item.trackingId}
-                    </span>
-                    <span
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider border ${getStatusBadgeStyle(item.status)}`}
-                    >
-                      {item.status.replace(/_/g, " ")}
-                    </span>
-                  </div>
-
-                  {/* Company Name & Sector */}
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-900 group-hover:text-blue-900 transition-colors line-clamp-1">
-                      {item.companyName}
-                    </h3>
-                    <div className="flex items-center gap-2 mt-1 flex-wrap">
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
-                        <Tag size={11} className="text-slate-400" />
-                        {item.sector}
+            {filtered.map((item) => {
+              const isHighlighted = highlightedId === item.id;
+              return (
+                <motion.div
+                  key={item.id}
+                  id={`enquiry-card-${item.id}`}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`rounded-2xl border p-4 transition-all flex flex-col justify-between group ${
+                    isHighlighted
+                      ? "border-amber-400 ring-4 ring-amber-400/80 bg-amber-50/70 shadow-lg"
+                      : "border-slate-200 bg-white shadow-2xs hover:shadow-md"
+                  }`}
+                >
+                  <div className="space-y-3">
+                    {/* Top Bar: Tracking ID & Status */}
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-[11px] font-extrabold text-blue-950 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                        {item.trackingId}
                       </span>
-                      {item.preferredDistricts && item.preferredDistricts.length > 0 && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
-                          <MapPin size={11} className="text-slate-400" />
-                          {item.preferredDistricts.slice(0, 2).join(", ")}
-                          {item.preferredDistricts.length > 2 ? ` +${item.preferredDistricts.length - 2}` : ""}
-                        </span>
-                      )}
+                      <span
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider border ${getStatusBadgeStyle(item.status)}`}
+                      >
+                        {item.status.replace(/_/g, " ")}
+                      </span>
                     </div>
-                  </div>
 
-                  {/* Budget Highlight */}
-                  <div className="pt-2 border-t border-slate-100 flex items-baseline justify-between">
+                    {/* Company Name & Sector */}
                     <div>
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Indicative Outlay</span>
-                      <span className="text-base font-extrabold font-mono text-slate-900">
-                        {item.indicativeBudgetCr == null ? "Not specified" : `₹${item.indicativeBudgetCr.toFixed(2)} Cr`}
-                      </span>
+                      <h3 className="text-sm font-bold text-slate-900 group-hover:text-blue-900 transition-colors line-clamp-1">
+                        {item.companyName}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
+                          <Tag size={11} className="text-slate-400" />
+                          {item.sector}
+                        </span>
+                        {item.preferredDistricts && item.preferredDistricts.length > 0 && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
+                            <MapPin size={11} className="text-slate-400" />
+                            {item.preferredDistricts.slice(0, 2).join(", ")}
+                            {item.preferredDistricts.length > 2 ? ` +${item.preferredDistricts.length - 2}` : ""}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Submitted</span>
-                      <span className="text-xs font-semibold text-slate-600 font-mono flex items-center gap-1">
-                        <Calendar size={11} className="text-slate-400" />
-                        {item.submittedDate}
-                      </span>
+
+                    {/* Budget Highlight */}
+                    <div className="pt-2 border-t border-slate-100 flex items-baseline justify-between">
+                      <div>
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Indicative Outlay</span>
+                        <span className="text-base font-extrabold font-mono text-slate-900">
+                          {item.indicativeBudgetCr == null ? "Not specified" : `₹${item.indicativeBudgetCr.toFixed(2)} Cr`}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Submitted</span>
+                        <span className="text-xs font-semibold text-slate-600 font-mono flex items-center gap-1">
+                          <Calendar size={11} className="text-slate-400" />
+                          {item.submittedDate}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Footer Action */}
-                <div className="pt-3 mt-3 border-t border-slate-100">
-                  <Link
-                    href={`/enquiries/${item.id}`}
-                    className="inline-flex items-center justify-center gap-1.5 w-full rounded-xl bg-slate-50 hover:bg-blue-900 hover:text-white py-2 text-xs font-bold text-blue-950 border border-slate-200 hover:border-blue-900 transition-all shadow-2xs"
-                  >
-                    View Application Details <ArrowUpRight size={14} />
-                  </Link>
-                </div>
-              </motion.div>
-            ))}
+                  {/* Footer Action */}
+                  <div className="pt-3 mt-3 border-t border-slate-100">
+                    <Link
+                      href={`/enquiries/${item.id}`}
+                      className="inline-flex items-center justify-center gap-1.5 w-full rounded-xl bg-slate-50 hover:bg-blue-900 hover:text-white py-2 text-xs font-bold text-blue-950 border border-slate-200 hover:border-blue-900 transition-all shadow-2xs"
+                    >
+                      View Full Details <ArrowUpRight size={14} />
+                    </Link>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         ) : (
           /* Table / List View */
-          <div className="w-full md:overflow-x-auto md:rounded-2xl md:border md:border-slate-200/80">
+          <div className="w-full rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden bg-white">
             <table className="w-full block md:table text-left text-xs font-medium text-slate-700 border-collapse">
-              <thead className="hidden md:table-header-group bg-slate-50 text-[11px] font-extrabold uppercase tracking-wider text-slate-500 border-b border-slate-200/80">
+              <thead className="hidden md:table-header-group bg-slate-50 text-[10px] xl:text-[11px] font-extrabold uppercase tracking-wider text-slate-500 border-b border-slate-200/80">
                 <tr>
                   <SortableTh sortKey="trackingId" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3">Tracking ID</SortableTh>
-                  <SortableTh sortKey="companyName" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3">Corporate / Company</SortableTh>
+                  <SortableTh sortKey="companyName" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3">Company</SortableTh>
                   <SortableTh sortKey="sector" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3">Sector</SortableTh>
                   <SortableTh sortKey="preferredDistricts" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3">Preferred District</SortableTh>
                   <SortableTh sortKey="indicativeBudgetCr" currentSortKey={tableSortKey} currentSortDirection={tableSortDirection} onSort={requestTableSort} className="px-4 py-3">Outlay (₹ Cr)</SortableTh>
@@ -802,11 +843,18 @@ export default function EnquiriesPage() {
                 </tr>
               </thead>
               <tbody className="block md:table-row-group divide-y-0 md:divide-y md:divide-slate-100">
-                {sortedEnquiries.map((item) => (
-                  <tr
-                    key={item.id}
-                    className="block md:table-row mb-4 md:mb-0 bg-white border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-sm md:shadow-none hover:bg-slate-50/80 transition-colors overflow-hidden"
-                  >
+                {sortedEnquiries.map((item) => {
+                  const isHighlighted = highlightedId === item.id;
+                  return (
+                    <tr
+                      key={item.id}
+                      id={`enquiry-row-${item.id}`}
+                      className={`block md:table-row mb-4 md:mb-0 border md:border-none rounded-xl md:rounded-none shadow-sm md:shadow-none transition-colors overflow-hidden ${
+                        isHighlighted
+                          ? "bg-amber-50/90 ring-2 ring-amber-400 border-amber-300 shadow-md"
+                          : "bg-white border-slate-200 hover:bg-slate-50/80"
+                      }`}
+                    >
                     <td data-label="Tracking ID" className="flex md:table-cell justify-between items-center px-4 py-3 md:py-3.5 border-b border-slate-100 md:border-none font-mono font-bold text-blue-950 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden">
                       <span className="bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 text-blue-950">
                         {item.trackingId}
@@ -856,7 +904,8 @@ export default function EnquiriesPage() {
                       </Link>
                     </td>
                   </tr>
-                ))}
+                );
+              })}
               </tbody>
             </table>
           </div>

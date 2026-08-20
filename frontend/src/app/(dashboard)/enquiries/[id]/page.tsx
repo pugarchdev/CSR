@@ -7,7 +7,7 @@ import {
   ArrowLeft, Building2, Loader2, Mail, Send,
   MapPin, FileText, ClipboardCheck,
   MessageSquare, History, FileCheck,
-  Copy, Check, PhoneCall, Video, Globe, User, ArrowRight,
+  Copy, Check, PhoneCall, Video, Globe, User, ArrowRight, UserCheck,
   X, CalendarDays, FileImage, ExternalLink, Briefcase,
   CheckCircle2, AlertCircle, ShieldCheck, FileCheck2, RotateCcw, XCircle, Clock
 } from "lucide-react";
@@ -346,6 +346,7 @@ export default function EnquiryDetailPage() {
   const roles = useAuthStore((state) => state.roles);
   const roleDetails = useAuthStore((state) => state.roleDetails);
   const isAdmin = useAuthStore((state) => state.isAdmin);
+  const hasPermission = useAuthStore((state) => state.hasPermission);
 
   const [mounted, setMounted] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -371,11 +372,33 @@ export default function EnquiryDetailPage() {
     const tokens = extractRoleTokens(user, roles, roleDetails);
     return tokens.some((t) => {
       const u = t.toUpperCase();
-      return u.includes("RELATIONSHIP") || u.includes("RM") || u === "6";
+      return u.includes("RELATIONSHIP") || u.includes("RM") || u === "6" || u === "ROLE_6";
     }) || user?.roleId === 6;
   }, [user, roles, roleDetails, isJS, mounted]);
 
-  const canAccessRMWorkspace = isRM || isJS || isAdmin;
+  const isStateAuthority = useMemo(() => {
+    if (!mounted) return false;
+    if (isAdmin || isRM || isJS) return true;
+    const tokens = extractRoleTokens(user, roles, roleDetails);
+    return tokens.some((t) => {
+      const u = t.toUpperCase();
+      return (
+        u === "SUPER_ADMIN" ||
+        u === "PORTAL_ADMIN" ||
+        u === "CSR_ADMIN" ||
+        u === "STATE_CSR_CELL" ||
+        u.includes("PLANNING_SECRETARY") ||
+        u.includes("JOINT_SECRETARY") ||
+        u === "1" ||
+        u === "2" ||
+        u === "3" ||
+        u === "6"
+      );
+    });
+  }, [user, roles, roleDetails, isAdmin, isRM, isJS, mounted]);
+
+  const canAccessQuickActions = isStateAuthority || hasPermission("meeting:schedule") || hasPermission("enquiry:contact");
+  const canAccessRMWorkspace = isRM || isJS || isAdmin || isStateAuthority;
   const path = canAccessRMWorkspace ? `/rm/enquiries/${params.id}` : `/corporate-enquiries/${params.id}`;
 
   const { data: response, isLoading, refetch } = useApiQuery<any>(
@@ -402,9 +425,40 @@ export default function EnquiryDetailPage() {
     ? interactionsResponse.data
     : Array.isArray(interactionsResponse) ? interactionsResponse : [];
 
-  const contactEmail = enquiry?.contactEmail || enquiry?.email || "";
-  const contactPhone = enquiry?.mobile || enquiry?.phone || "";
-  const contactName = enquiry?.contactPersonName || "";
+  const contactEmail = enquiry?.contactEmail || enquiry?.email || enquiry?.submittedByUser?.email || "";
+  const contactPhone = enquiry?.mobile || enquiry?.phone || enquiry?.submittedByUser?.mobile || "";
+  const contactName = enquiry?.contactPersonName || [enquiry?.submittedByUser?.firstName, enquiry?.submittedByUser?.lastName].filter(Boolean).join(" ") || "";
+  const contactDesignation =
+    enquiry?.contactPersonDesignation ||
+    enquiry?.designation ||
+    enquiry?.contactDesignation ||
+    enquiry?.submittedByUser?.designation ||
+    (contactName ? "Corporate CSR Representative" : "—");
+
+  const assignedRm = useMemo(() => {
+    if (enquiry?.assignedRelationshipManager) {
+      const rm = enquiry.assignedRelationshipManager;
+      return {
+        id: rm.id,
+        name: rm.name || [rm.firstName, rm.lastName].filter(Boolean).join(" ") || rm.email || "State CSR Relationship Manager",
+        designation: rm.designation || "State CSR Relationship Manager",
+        email: rm.email || "",
+        mobile: rm.mobile || ""
+      };
+    }
+    if (isRM && user) {
+      return {
+        id: user.id,
+        name: [user.firstName, user.lastName].filter(Boolean).join(" ") || user.name || "Assigned Relationship Manager",
+        designation: user.designation || "State CSR Relationship Manager",
+        email: user.email || "",
+        mobile: user.mobile || ""
+      };
+    }
+    return null;
+  }, [enquiry?.assignedRelationshipManager, isRM, user]);
+
+  const hasRm = Boolean(assignedRm?.name || enquiry?.assignedRelationshipManagerId);
 
   const copyTrackingId = () => {
     const textToCopy = enquiry?.trackingId || params.id;
@@ -415,7 +469,7 @@ export default function EnquiryDetailPage() {
     }
   };
 
-  /* ─── Quick Action: Call Company ─── */
+  /* ─── Quick Action: Call Company (RM/State Desk) ─── */
   const handleCallCompany = useCallback(async () => {
     if (contactPhone) {
       window.open(`tel:${contactPhone.replace(/\s/g, "")}`, "_self");
@@ -434,7 +488,7 @@ export default function EnquiryDetailPage() {
     }
   }, [params.id, contactPhone, contactName, refetchInteractions]);
 
-  /* ─── Quick Action: Send Email ─── */
+  /* ─── Quick Action: Send Email (RM/State Desk) ─── */
   const handleSendEmail = useCallback(async () => {
     const subject = encodeURIComponent(`MahaCSR Convergence — Enquiry ${enquiry?.trackingId || params.id}`);
     const body = encodeURIComponent(
@@ -456,6 +510,52 @@ export default function EnquiryDetailPage() {
     }
   }, [params.id, contactEmail, contactName, enquiry?.trackingId, user, refetchInteractions]);
 
+  /* ─── RM Contact Action: Email Relationship Manager (auto-logs to timeline) ─── */
+  const handleEmailRM = useCallback(async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!assignedRm?.email) return;
+    const refNo = enquiry?.trackingId || params.id;
+    const subject = encodeURIComponent(`Regarding Corporate CSR Enquiry ${refNo} — ${enquiry?.corporateName || "Convergence Proposal"}`);
+    const body = encodeURIComponent(
+      `Dear ${assignedRm.name || "Relationship Manager"},\n\nThis is regarding Corporate CSR Enquiry "${enquiry?.corporateName || "Proposal"}" (Tracking ID: ${refNo}).\n\nRegards,\n${[user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Corporate Representative"}\n${enquiry?.corporateName || ""}`
+    );
+    window.open(`mailto:${assignedRm.email}?subject=${subject}&body=${body}`, "_self");
+
+    try {
+      await apiFetch(`/rm/enquiries/${params.id}/interactions`, {
+        method: "POST",
+        body: JSON.stringify({
+          channel: "EMAIL",
+          note: `Initiated email communication to assigned Relationship Manager ${assignedRm.name || ""} (${assignedRm.email}) regarding enquiry ${refNo}.`
+        })
+      });
+      refetchInteractions();
+    } catch (err) {
+      console.warn("Auto-log email to RM failed:", err);
+    }
+  }, [params.id, assignedRm, enquiry, user, refetchInteractions]);
+
+  /* ─── RM Contact Action: Call Relationship Manager (auto-logs to timeline) ─── */
+  const handleCallRM = useCallback(async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!assignedRm?.mobile) return;
+    const refNo = enquiry?.trackingId || params.id;
+    window.open(`tel:${assignedRm.mobile.replace(/\s/g, "")}`, "_self");
+
+    try {
+      await apiFetch(`/rm/enquiries/${params.id}/interactions`, {
+        method: "POST",
+        body: JSON.stringify({
+          channel: "CALL",
+          note: `Initiated telephone call to assigned Relationship Manager ${assignedRm.name || ""} (${assignedRm.mobile}) regarding enquiry ${refNo}.`
+        })
+      });
+      refetchInteractions();
+    } catch (err) {
+      console.warn("Auto-log call to RM failed:", err);
+    }
+  }, [params.id, assignedRm, enquiry, refetchInteractions]);
+
   if (!mounted || isLoading) {
     return (
       <GovPortalLayout>
@@ -469,6 +569,8 @@ export default function EnquiryDetailPage() {
   const documents = Array.isArray(enquiry?.documents) ? enquiry.documents : [];
   const preferredDistricts = Array.isArray(enquiry?.preferredDistricts) ? enquiry.preferredDistricts : [];
   const preferredDivisions = Array.isArray(enquiry?.preferredDivisions) ? enquiry.preferredDivisions : [];
+  const preferredTalukas = Array.isArray(enquiry?.preferredTalukas) ? enquiry.preferredTalukas : [];
+  const preferredCities = Array.isArray(enquiry?.preferredCities) ? enquiry.preferredCities : [];
 
   const tabs = [
     { id: "overview", label: "Overview", icon: Briefcase },
@@ -526,7 +628,7 @@ export default function EnquiryDetailPage() {
               {contactName && (
                 <p className="text-xs text-slate-500">
                   Contact: <strong className="text-slate-700">{contactName}</strong>
-                  {enquiry?.contactPersonDesignation && ` — ${enquiry.contactPersonDesignation}`}
+                  {contactDesignation && contactDesignation !== "—" && ` — ${contactDesignation}`}
                 </p>
               )}
             </div>
@@ -585,14 +687,14 @@ export default function EnquiryDetailPage() {
                   <DetailField label="Company Name" value={enquiry?.corporateName} />
                   <DetailField label="CIN Registration" value={enquiry?.mca21CIN || enquiry?.cin} mono />
                   <DetailField label="Contact Person" value={contactName} />
-                  <DetailField label="Designation" value={enquiry?.contactPersonDesignation} />
+                  <DetailField label="Designation" value={contactDesignation} />
                   <DetailField label="Email" value={contactEmail} href={`mailto:${contactEmail}`} />
                   <DetailField label="Mobile" value={contactPhone} href={`tel:${contactPhone?.replace(/\s/g, "")}`} />
                 </div>
               </div>
 
               {/* Preferred Locations */}
-              {(preferredDistricts.length > 0 || preferredDivisions.length > 0) && (
+              {(preferredDistricts.length > 0 || preferredDivisions.length > 0 || preferredTalukas.length > 0 || preferredCities.length > 0) && (
                 <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
                   <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
                     <MapPin size={16} className="text-blue-800" /> Preferred Locations
@@ -605,7 +707,17 @@ export default function EnquiryDetailPage() {
                     ))}
                     {preferredDivisions.map((d: string, i: number) => (
                       <span key={`dv-${i}`} className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-indigo-50 text-indigo-900 text-xs font-bold border border-indigo-200">
-                        {d}
+                        {d} Division
+                      </span>
+                    ))}
+                    {preferredTalukas.map((t: string, i: number) => (
+                      <span key={`t-${i}`} className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 text-emerald-900 text-xs font-bold border border-emerald-200">
+                        Taluka: {t}
+                      </span>
+                    ))}
+                    {preferredCities.map((c: string, i: number) => (
+                      <span key={`c-${i}`} className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-50 text-amber-900 text-xs font-bold border border-amber-200">
+                        City: {c}
                       </span>
                     ))}
                   </div>
@@ -658,85 +770,87 @@ export default function EnquiryDetailPage() {
             {/* ── Right: Sidebar (1/3) ── */}
             <div className="space-y-4">
 
-              {/* Quick Actions */}
-              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
-                <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2">
-                  Quick Actions
-                </h4>
-                <div className="space-y-2.5">
+              {/* Quick Actions — Strictly restricted to RM, JS, PS, Super Admin, and State CSR Cell */}
+              {canAccessQuickActions && (
+                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
+                  <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2">
+                    Quick Actions
+                  </h4>
+                  <div className="space-y-2.5">
 
-                  {/* Call Company */}
-                  <div className="w-full flex items-center gap-3 p-3 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 transition-all group">
+                    {/* Call Company */}
+                    <div className="w-full flex items-center gap-3 p-3 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 transition-all group">
+                      <button
+                        onClick={handleCallCompany}
+                        className="flex items-center gap-3 flex-1 min-w-0 text-left cursor-pointer bg-transparent border-0 p-0"
+                      >
+                        <div className="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                          <PhoneCall size={16} />
+                        </div>
+                        <div className="text-left min-w-0">
+                          <p className="text-xs font-extrabold text-emerald-900">Call Company</p>
+                          <p className="text-[11px] text-emerald-700 font-mono truncate">{contactPhone || "No phone available"}</p>
+                        </div>
+                      </button>
+                      {contactPhone && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(contactPhone);
+                            setPhoneCopied(true);
+                            setTimeout(() => setPhoneCopied(false), 2000);
+                          }}
+                          title="Copy Phone Number"
+                          className="ml-auto shrink-0 px-2.5 py-1 rounded-lg bg-emerald-100/90 hover:bg-emerald-200 text-emerald-900 transition-colors border border-emerald-300/80 flex items-center gap-1 text-[11px] font-extrabold cursor-pointer"
+                        >
+                          {phoneCopied ? (
+                            <>
+                              <Check size={13} className="text-emerald-800" />
+                              <span className="text-[10px] text-emerald-900">Copied</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy size={13} className="text-emerald-800" />
+                              <span className="text-[10px] text-emerald-900">Copy</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Send Email */}
                     <button
-                      onClick={handleCallCompany}
-                      className="flex items-center gap-3 flex-1 min-w-0 text-left cursor-pointer bg-transparent border-0 p-0"
+                      onClick={handleSendEmail}
+                      className="w-full flex items-center gap-3 p-3 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-all group"
                     >
-                      <div className="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                        <PhoneCall size={16} />
+                      <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                        <Mail size={16} />
                       </div>
                       <div className="text-left min-w-0">
-                        <p className="text-xs font-extrabold text-emerald-900">Call Company</p>
-                        <p className="text-[11px] text-emerald-700 font-mono truncate">{contactPhone || "No phone available"}</p>
+                        <p className="text-xs font-extrabold text-blue-900">Send Email</p>
+                        <p className="text-[11px] text-blue-700 truncate">{contactEmail || "No email available"}</p>
                       </div>
+                      <ArrowRight size={14} className="text-blue-500 ml-auto shrink-0" />
                     </button>
-                    {contactPhone && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigator.clipboard.writeText(contactPhone);
-                          setPhoneCopied(true);
-                          setTimeout(() => setPhoneCopied(false), 2000);
-                        }}
-                        title="Copy Phone Number"
-                        className="ml-auto shrink-0 px-2.5 py-1 rounded-lg bg-emerald-100/90 hover:bg-emerald-200 text-emerald-900 transition-colors border border-emerald-300/80 flex items-center gap-1 text-[11px] font-extrabold cursor-pointer"
-                      >
-                        {phoneCopied ? (
-                          <>
-                            <Check size={13} className="text-emerald-800" />
-                            <span className="text-[10px] text-emerald-900">Copied</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy size={13} className="text-emerald-800" />
-                            <span className="text-[10px] text-emerald-900">Copy</span>
-                          </>
-                        )}
-                      </button>
-                    )}
+
+                    {/* Schedule Meeting */}
+                    <button
+                      onClick={() => setShowMeetingModal(true)}
+                      className="w-full flex items-center gap-3 p-3 rounded-xl border border-purple-200 bg-purple-50 hover:bg-purple-100 transition-all group"
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-purple-600 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                        <CalendarDays size={16} />
+                      </div>
+                      <div className="text-left min-w-0">
+                        <p className="text-xs font-extrabold text-purple-900">Schedule Meeting</p>
+                        <p className="text-[11px] text-purple-700">Set date, time & purpose</p>
+                      </div>
+                      <ArrowRight size={14} className="text-purple-500 ml-auto shrink-0" />
+                    </button>
                   </div>
-
-                  {/* Send Email */}
-                  <button
-                    onClick={handleSendEmail}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-all group"
-                  >
-                    <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                      <Mail size={16} />
-                    </div>
-                    <div className="text-left min-w-0">
-                      <p className="text-xs font-extrabold text-blue-900">Send Email</p>
-                      <p className="text-[11px] text-blue-700 truncate">{contactEmail || "No email available"}</p>
-                    </div>
-                    <ArrowRight size={14} className="text-blue-500 ml-auto shrink-0" />
-                  </button>
-
-                  {/* Schedule Meeting */}
-                  <button
-                    onClick={() => setShowMeetingModal(true)}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-purple-200 bg-purple-50 hover:bg-purple-100 transition-all group"
-                  >
-                    <div className="w-9 h-9 rounded-lg bg-purple-600 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                      <CalendarDays size={16} />
-                    </div>
-                    <div className="text-left min-w-0">
-                      <p className="text-xs font-extrabold text-purple-900">Schedule Meeting</p>
-                      <p className="text-[11px] text-purple-700">Set date, time & purpose</p>
-                    </div>
-                    <ArrowRight size={14} className="text-purple-500 ml-auto shrink-0" />
-                  </button>
                 </div>
-              </div>
+              )}
 
               {/* Navigate to Other Tabs */}
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
@@ -750,29 +864,75 @@ export default function EnquiryDetailPage() {
                 </div>
               </div>
 
-              {/* Assigned RM */}
-              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-2">
-                <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2">
-                  Assigned Relationship Manager
-                </h4>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center">
-                    <User size={18} className="text-blue-800" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-extrabold text-slate-900">
-                      {enquiry?.assignedRelationshipManager
-                        ? `${enquiry.assignedRelationshipManager.firstName || ""} ${enquiry.assignedRelationshipManager.lastName || ""}`.trim() || enquiry.assignedRelationshipManager.email
-                        : isRM
-                        ? `${user?.firstName || "RM"} ${user?.lastName || ""}`.trim()
-                        : "State CSR Cell (Unassigned)"}
-                    </p>
-                    <p className="text-[11px] text-slate-500">
-                      {enquiry?.assignedRelationshipManager?.email || (isRM ? user?.email : "csr-cell@mahacsr.gov.in")}
-                    </p>
-                  </div>
+              {/* Assigned Relationship Manager (RM) Card (Matches Pitches View Page) */}
+              <section className="rounded-2xl border border-blue-100 bg-gradient-to-b from-blue-50/50 via-white to-white p-5 shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <h4 className="text-xs font-extrabold text-slate-900 flex items-center gap-2">
+                    <UserCheck size={16} className="text-blue-900" /> Assigned RM
+                  </h4>
+                  <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-extrabold ${
+                    hasRm
+                      ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                      : "bg-amber-100 text-amber-900 border border-amber-200"
+                  }`}>
+                    {hasRm ? "Active Assignment" : "Allocation Pending"}
+                  </span>
                 </div>
-              </div>
+
+                {assignedRm ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-blue-900 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
+                        {assignedRm.name ? assignedRm.name.charAt(0).toUpperCase() : "R"}
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-extrabold text-slate-900 truncate">{assignedRm.name}</h4>
+                        <p className="text-[11px] font-semibold text-blue-900">{assignedRm.designation || "State CSR Relationship Manager"}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-xs pt-1">
+                      {assignedRm.email && (
+                        <div className="rounded-xl border border-slate-100 bg-white p-2.5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between shadow-2xs">
+                          <span className="text-[10px] font-bold text-slate-400 shrink-0">Email</span>
+                          <a
+                            href={`mailto:${assignedRm.email}`}
+                            onClick={handleEmailRM}
+                            className="font-bold text-blue-900 hover:underline flex items-center gap-1.5 text-xs break-all cursor-pointer"
+                            title="Email Relationship Manager (auto-logs to timeline)"
+                          >
+                            <Mail size={12} className="text-blue-700 shrink-0" />
+                            <span className="break-all">{assignedRm.email}</span>
+                          </a>
+                        </div>
+                      )}
+
+                      {assignedRm.mobile && (
+                        <div className="rounded-xl border border-slate-100 bg-white p-2.5 flex items-center justify-between shadow-2xs">
+                          <span className="text-[10px] font-bold text-slate-400">Mobile</span>
+                          <a
+                            href={`tel:${assignedRm.mobile}`}
+                            onClick={handleCallRM}
+                            className="font-bold text-slate-900 hover:text-blue-900 flex items-center gap-1.5 cursor-pointer"
+                            title="Call Relationship Manager (auto-logs to timeline)"
+                          >
+                            <PhoneCall size={12} className="text-emerald-700" />
+                            {assignedRm.mobile}
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-amber-200 bg-amber-50/40 p-4 text-center space-y-1.5">
+                    <Clock size={20} className="mx-auto text-amber-700" />
+                    <p className="text-xs font-bold text-amber-950">Workload Allocation Engine</p>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      Relationship Manager is being assigned automatically based on district and departmental specialization.
+                    </p>
+                  </div>
+                )}
+              </section>
             </div>
           </div>
         )}

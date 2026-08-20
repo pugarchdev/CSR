@@ -70,13 +70,19 @@ export default function MeetingsPage() {
     ].filter(Boolean).map((t) => String(t).toUpperCase());
 
     return tokens.some((t) =>
-      t.includes("SUPER_ADMIN") ||
+      t === "SUPER_ADMIN" ||
+      t === "PORTAL_ADMIN" ||
+      t === "CSR_ADMIN" ||
+      t === "ROLE_1" ||
+      t === "ROLE_2" ||
+      t === "ROLE_3" ||
+      t === "ROLE_6" ||
+      t === "RM" ||
+      t === "JS" ||
       t.includes("SECRETARY") ||
       t.includes("JOINT_SECRETARY") ||
       t.includes("PLANNING_SECRETARY") ||
-      t.includes("PORTAL_ADMIN") ||
-      t.includes("STATE_CSR_CELL") ||
-      t.includes("CSR_ADMIN")
+      t.includes("STATE_CSR_CELL")
     );
   }, [user, roles, isAdmin, isRM, mounted, hasPermission]);
 

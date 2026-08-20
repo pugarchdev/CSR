@@ -52,16 +52,43 @@ export function verifyPermissionNavigationLogic() {
   if (isNavItemAllowed(meetingsItem, mockHasPermission, false, ["ROLE_8"])) {
     throw new Error("Expected /meetings to be denied for Corporate User (ROLE_8) without meeting:schedule");
   }
+  if (isNavItemAllowed(meetingsItem, mockHasPermission, false, ["COMPANY_ADMIN"])) {
+    throw new Error("Expected /meetings to be denied for COMPANY_ADMIN without meeting:schedule");
+  }
+  if (isNavItemAllowed(meetingsItem, mockHasPermission, false, ["CSR_COMPANY_ADMIN"])) {
+    throw new Error("Expected /meetings to be denied for CSR_COMPANY_ADMIN without meeting:schedule");
+  }
+  if (isNavItemAllowed(meetingsItem, mockHasPermission, false, ["ROLE_7"])) {
+    throw new Error("Expected /meetings to be denied for Government Officer (ROLE_7) without meeting:schedule");
+  }
+  if (isNavItemAllowed(meetingsItem, mockHasPermission, false, ["GOVERNMENT_OFFICER"])) {
+    throw new Error("Expected /meetings to be denied for GOVERNMENT_OFFICER without meeting:schedule");
+  }
+  if (isNavItemAllowed(meetingsItem, mockHasPermission, false, ["ROLE_4"])) {
+    throw new Error("Expected /meetings to be denied for District Nodal Officer (ROLE_4) without meeting:schedule");
+  }
+  if (isNavItemAllowed(meetingsItem, mockHasPermission, false, ["DISTRICT_NODAL_OFFICER"])) {
+    throw new Error("Expected /meetings to be denied for DISTRICT_NODAL_OFFICER without meeting:schedule");
+  }
+  if (isNavItemAllowed(meetingsItem, mockHasPermission, false, ["ROLE_5"])) {
+    throw new Error("Expected /meetings to be denied for District Nodal Consultant (ROLE_5) without meeting:schedule");
+  }
   if (isNavItemAllowed(meetingsItem, mockHasPermission, false, ["NGO_ADMIN"])) {
     throw new Error("Expected /meetings to be denied for NGO_ADMIN without meeting:schedule");
   }
 
-  // Test 6: Meetings is allowed for RM roles
+  // Test 6: Meetings is allowed for RM roles and Apex State Authorities
   if (!isNavItemAllowed(meetingsItem, mockHasPermission, false, ["ROLE_6"])) {
     throw new Error("Expected /meetings to be allowed for RM (ROLE_6)");
   }
   if (!isNavItemAllowed(meetingsItem, mockHasPermission, false, ["RELATIONSHIP_MANAGER"])) {
     throw new Error("Expected /meetings to be allowed for RELATIONSHIP_MANAGER");
+  }
+  if (!isNavItemAllowed(meetingsItem, mockHasPermission, false, ["CSR_RELATIONSHIP_MANAGER"])) {
+    throw new Error("Expected /meetings to be allowed for CSR_RELATIONSHIP_MANAGER");
+  }
+  if (!isNavItemAllowed(meetingsItem, mockHasPermission, false, ["ROLE_3"])) {
+    throw new Error("Expected /meetings to be allowed for Joint Secretary (ROLE_3)");
   }
 
   // Test 7: Meetings is allowed for users holding meeting:schedule permission

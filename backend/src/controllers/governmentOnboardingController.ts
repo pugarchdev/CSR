@@ -228,7 +228,7 @@ export const submitGovernmentOnboarding = async (req: AuthenticatedRequest, res:
       includeRms: true,
       includeStateOfficers: true,
       includeDistrictOfficers: true,
-      actionButtonUrl: `/admin/onboarding-approvals`,
+      actionButtonUrl: `/admin/onboarding-approvals?orgId=${organizationId}&highlight=${encodeURIComponent(org?.name || "")}`,
       variables: {
         currentStatus: "UNDER_VERIFICATION",
         workflowStatus: "Submitted for verification"
@@ -463,7 +463,9 @@ export const decideGovernmentOnboarding = async (req: AuthenticatedRequest, res:
       includeRms: true,
       includeStateOfficers: true,
       includeDistrictOfficers: true,
-      actionButtonUrl: `/government-onboarding`,
+      actionButtonUrl: decision === "CLARIFICATION"
+        ? `/organization/onboarding/status?highlight=clarification`
+        : `/admin/onboarding-approvals?orgId=${application.organizationId}&highlight=${encodeURIComponent(application.organization.name)}`,
       variables: {
         currentStatus: status,
         workflowStatus: remarks || `Government onboarding decision: ${decision}`

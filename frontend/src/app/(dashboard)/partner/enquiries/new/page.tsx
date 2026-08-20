@@ -197,13 +197,13 @@ interface EnquiryForm {
   indicativeBudget: string;
   preferredDivisions: string[];
   preferredDistricts: string[];
+  preferredTalukas: string[];
   preferredCities: string[];
   contactPersonName: string;
   mobile: string;
   email: string;
   proposedCSRWork: string;
   supportingDocuments: File[];
-  departmentId: string;
   declarationAccepted: boolean;
 }
 
@@ -248,7 +248,6 @@ function CreateCorporateEnquiryForm() {
   const paramDistrict = searchParams.get("district") || "";
   const paramBudget = searchParams.get("budget") || "";
   const paramSector = searchParams.get("sector") || "";
-  const paramDeptName = searchParams.get("departmentName") || "";
 
   const queryClient = useQueryClient();
   const user = useAuthStore((s: any) => s.user);
@@ -318,16 +317,15 @@ function CreateCorporateEnquiryForm() {
     indicativeBudget: "",
     preferredDivisions: [],
     preferredDistricts: [],
+    preferredTalukas: [],
     preferredCities: [],
     contactPersonName: "",
     mobile: "",
     email: "",
     proposedCSRWork: "",
     supportingDocuments: [],
-    departmentId: "",
     declarationAccepted: false,
   });
-  const [departments, setDepartments] = useState<Array<{ id: string; name: string }>>([]);
 
   const [errors, setErrors] = useState<FormErrors>({});
 
@@ -445,10 +443,14 @@ function CreateCorporateEnquiryForm() {
     const validCities = districtsList.filter(d => nextDistricts.includes(d.name)).flatMap(d => d.cities || []);
     const nextCities = form.preferredCities.filter(c => validCities.includes(c));
 
+    const validTalukas = districtsList.filter(d => nextDistricts.includes(d.name)).flatMap(d => d.talukas || []);
+    const nextTalukas = form.preferredTalukas.filter(t => validTalukas.includes(t));
+
     setForm(prev => ({
       ...prev,
       preferredDivisions: nextDivisions,
       preferredDistricts: nextDistricts,
+      preferredTalukas: nextTalukas,
       preferredCities: nextCities,
     }));
 
@@ -465,9 +467,13 @@ function CreateCorporateEnquiryForm() {
     const validCities = districtsList.filter(d => nextDistricts.includes(d.name)).flatMap(d => d.cities || []);
     const nextCities = form.preferredCities.filter(c => validCities.includes(c));
 
+    const validTalukas = districtsList.filter(d => nextDistricts.includes(d.name)).flatMap(d => d.talukas || []);
+    const nextTalukas = form.preferredTalukas.filter(t => validTalukas.includes(t));
+
     setForm(prev => ({
       ...prev,
       preferredDistricts: nextDistricts,
+      preferredTalukas: nextTalukas,
       preferredCities: nextCities,
     }));
 
@@ -519,24 +525,6 @@ function CreateCorporateEnquiryForm() {
     });
   }, [paramProjectTitle, paramProjectId, paramDistrict, paramBudget, paramSector]);
 
-  useEffect(() => {
-    apiFetch<any>("/corporate-enquiries/departments/active")
-      .then((response) => {
-        const depts: Array<{ id: string; name: string }> = response?.data || [];
-        setDepartments(depts);
-        if (paramDeptName && depts.length > 0) {
-          const matched = depts.find(d => 
-            d.name.toLowerCase().includes(paramDeptName.toLowerCase()) || 
-            paramDeptName.toLowerCase().includes(d.name.toLowerCase())
-          );
-          if (matched) {
-            setForm(prev => prev.departmentId ? prev : { ...prev, departmentId: matched.id });
-          }
-        }
-      })
-      .catch(() => setDepartments([]));
-  }, [paramDeptName]);
-
   const validateForm = (): boolean => {
     const errs: FormErrors = {};
     if (!form.companyName.trim()) errs.companyName = "Company name is required";
@@ -547,7 +535,6 @@ function CreateCorporateEnquiryForm() {
     }
     if (form.preferredDivisions.length === 0) errs.preferredDivisions = "At least one division must be selected";
     if (form.preferredDistricts.length !== 1) errs.preferredDistricts = "Select exactly one district";
-    if (!form.departmentId) errs.departmentId = "Government department is required";
     if (!form.contactPersonName.trim()) errs.contactPersonName = "Contact person name is required";
     if (!form.mobile.trim() || !/^[6-9]\d{9}$/.test(form.mobile)) errs.mobile = "Valid 10-digit mobile number is required";
     if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = "Valid email is required";
@@ -576,7 +563,7 @@ function CreateCorporateEnquiryForm() {
         documentUrls.push(await uploadPortalFile(doc));
       }
 
- const response = await apiFetch<any>("/corporate-enquiries", {
+      const response = await apiFetch<any>("/corporate-enquiries", {
         method: "POST",
         body: JSON.stringify({
           corporateName: form.companyName,             // CHANGED: Matches backend 'corporateName'
@@ -585,13 +572,14 @@ function CreateCorporateEnquiryForm() {
           indicativeBudget: form.indicativeBudget ? parseFloat(form.indicativeBudget) : undefined,
           preferredDivisions: form.preferredDivisions,
           district: form.preferredDistricts[0],        // CHANGED: Backend expects a single string 'district', not an array
+          preferredDistricts: form.preferredDistricts,
+          preferredTalukas: form.preferredTalukas,
           preferredCities: form.preferredCities,
           contactPersonName: form.contactPersonName,
           mobile: form.mobile,
           contactEmail: form.email,                    // CHANGED: Matches backend 'contactEmail'
           proposedCSRWork: form.proposedCSRWork,
           documents: documentUrls,
-          departmentId: form.departmentId,
           declarationAccepted: form.declarationAccepted,
         }),
       });
@@ -920,19 +908,17 @@ function CreateCorporateEnquiryForm() {
                 </div>
 
                 <div className="gov-field">
-                  <GovSelect
-                    label="Responsible Government Department"
-                    required
-                    value={form.departmentId}
-                    error={errors.departmentId}
-                    onChange={(event) => {
-                      setForm((current) => ({ ...current, departmentId: event.target.value }));
-                      if (errors.departmentId) setErrors((current) => ({ ...current, departmentId: "" }));
-                    }}
-                  >
-                    <option value="">Select one active department</option>
-                    {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
-                  </GovSelect>
+                  <MultiSelectField
+                    label="Preferred Taluka(s) (Optional)"
+                    values={form.preferredTalukas}
+                    options={
+                      districtsList
+                        .filter(d => form.preferredDistricts.includes(d.name))
+                        .flatMap(d => d.talukas || [])
+                    }
+                    onChange={(values) => setForm(prev => ({ ...prev, preferredTalukas: values }))}
+                    placeholder={form.preferredDistricts.length === 0 ? "Select district first..." : "Select taluka(s)..."}
+                  />
                 </div>
 
                 <div className="gov-field">

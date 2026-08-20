@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle, AlertTriangle, ArrowRight, Building2, Check, CheckCircle2, Clock, Coins, Compass, ExternalLink, Eye, FileText, HeartHandshake, HelpCircle, LayoutGrid, List, Loader2, Mail, MapPin, Phone, Plus, RefreshCw, Save, Search, ShieldAlert, ShieldCheck, Target, ToggleLeft, ToggleRight, Trash2, Upload, User, UserCheck, UserPlus, XCircle } from "lucide-react";
@@ -2250,6 +2250,9 @@ export function OrganizationOnboardingWorkspace() {
 
 export function OrganizationOnboardingStatusWorkspace() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const highlightParam = searchParams?.get("highlight");
+
   const toast = useToastActions();
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [error, setError] = useState("");
@@ -2281,6 +2284,25 @@ export function OrganizationOnboardingStatusWorkspace() {
   useEffect(() => {
     fetchStatus();
   }, []);
+
+  const onboardingStatus = (organization?.onboardingStatus || organization?.status || "REGISTERED").toUpperCase();
+  const isApproved = onboardingStatus === "APPROVED" || onboardingStatus === "VERIFIED" || onboardingStatus === "ACTIVE";
+  const isClarification = onboardingStatus === "CLARIFICATION_REQUIRED";
+  const isRejected = onboardingStatus === "REJECTED";
+  const isSuspended = onboardingStatus === "SUSPENDED";
+
+  // Auto-scroll to clarification workspace if deep-linked or in clarification status
+  useEffect(() => {
+    if (!loading && (isClarification || highlightParam === "clarification")) {
+      const timer = setTimeout(() => {
+        const el = document.getElementById("clarification-workspace");
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, isClarification, highlightParam]);
 
   const handleUploadDocument = async (e: React.ChangeEvent<HTMLInputElement>, docType: string) => {
     const file = e.target.files?.[0];
@@ -2355,15 +2377,11 @@ export function OrganizationOnboardingStatusWorkspace() {
       router.push(targetRoute);
     } catch (err: any) {
       setError(err.message || "Unable to reset application for re-application");
+    } finally {
       setReapplying(false);
     }
   };
 
-  const onboardingStatus = (organization?.onboardingStatus || organization?.status || "REGISTERED").toUpperCase();
-  const isApproved = onboardingStatus === "APPROVED" || onboardingStatus === "VERIFIED" || onboardingStatus === "ACTIVE";
-  const isClarification = onboardingStatus === "CLARIFICATION_REQUIRED";
-  const isRejected = onboardingStatus === "REJECTED";
-  const isSuspended = onboardingStatus === "SUSPENDED";
   const isGovDept =
     organization?.organizationType === "GOVERNMENT_DEPARTMENT" ||
     organization?.organizationType === "GOVERNMENT" ||
@@ -2501,7 +2519,14 @@ export function OrganizationOnboardingStatusWorkspace() {
 
           {/* DEDICATED CLARIFICATION & DOCUMENT WORKSPACE */}
           {isClarification && (
-            <div className="rounded-3xl border border-amber-200 bg-white p-6 shadow-md space-y-6">
+            <div
+              id="clarification-workspace"
+              className={`rounded-3xl border p-6 shadow-md space-y-6 transition-all ${
+                highlightParam === "clarification" || isClarification
+                  ? "border-amber-400 ring-4 ring-amber-400/80 bg-white shadow-xl"
+                  : "border-amber-200 bg-white"
+              }`}
+            >
               {/* Admin Remarks Callout Box */}
               <div className="rounded-2xl border border-amber-300 bg-amber-50/90 p-5 space-y-2">
                 <div className="flex items-center gap-2 text-amber-950 font-extrabold text-xs uppercase tracking-wider">
@@ -3980,6 +4005,30 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
   const website = org.website || "-";
   const fullAddress = org.address || org.registeredOfficeAddress || org.corporateOfficeAddress || "-";
 
+  const isFilledVal = (val: any) => Boolean(val && typeof val === "string" ? val.trim() && val.trim() !== "-" && val.trim() !== "—" && val.trim() !== "Not Specified" : val !== null && val !== undefined && val !== "");
+  const isFilledNum = (val: any) => val !== null && val !== undefined && String(val).trim() !== "" && !isNaN(Number(val));
+
+  const hasAnyCsrFinancials =
+    isFilledNum(csrProfile.annualCsrBudget || csrProfile.currentYearCsrBudget) ||
+    isFilledNum(csrProfile.netWorth) ||
+    isFilledNum(csrProfile.turnover) ||
+    isFilledNum(csrProfile.netProfit) ||
+    isFilledNum(csrProfile.twoPercentCsrObligation || csrProfile.csrObligationAmount || (csrProfile.averageNetProfit ? Number(csrProfile.averageNetProfit) * 0.02 : null)) ||
+    isFilledNum(csrProfile.unspentCsrAmount) ||
+    isFilledVal(csrProfile.csrRegistrationNo) ||
+    isFilledVal(csrProfile.financialYear);
+
+  const hasAnyCsrPreferences =
+    (csrProfile.preferredSectors || []).length > 0 ||
+    (csrProfile.preferredDistricts || []).length > 0 ||
+    (csrProfile.preferredDivisions || []).length > 0 ||
+    (csrProfile.preferredTalukas || []).length > 0 ||
+    (csrProfile.preferredCities || []).length > 0 ||
+    isFilledVal(csrProfile.fundingPreference) ||
+    isFilledVal(csrProfile.implementationPreference) ||
+    isFilledVal(csrProfile.preferredBeneficiaryGroups) ||
+    isFilledVal(csrProfile.sdgFocusAreas);
+
   const formatCurrency = (val: any) => {
     if (val === null || val === undefined || val === "" || isNaN(Number(val))) return "Not Specified";
     const num = Number(val);
@@ -4253,9 +4302,9 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
                   {!isGovDept && (csrProfile.csrHeadName || csrProfile.csrHeadEmail || csrProfile.csrHeadMobile) && (
                     <div className="p-3.5 rounded-xl border border-purple-100 bg-purple-50/50 space-y-1">
                       <span className="text-[10px] font-extrabold uppercase text-purple-700 block">Designated CSR Head</span>
-                      <p className="font-bold text-slate-900 text-sm">{csrProfile.csrHeadName || "CSR Department Head"}</p>
+                      {csrProfile.csrHeadName && <p className="font-bold text-slate-900 text-sm">{csrProfile.csrHeadName}</p>}
                       <p className="text-xs font-medium text-purple-800">Head of CSR Operations</p>
-                      <p className="text-xs text-slate-600 font-medium">{csrProfile.csrHeadEmail || email}</p>
+                      {csrProfile.csrHeadEmail && <p className="text-xs text-slate-600 font-medium">{csrProfile.csrHeadEmail}</p>}
                       {csrProfile.csrHeadMobile && <p className="text-xs text-slate-600 font-medium">Mob: {csrProfile.csrHeadMobile}</p>}
                     </div>
                   )}
@@ -4264,145 +4313,161 @@ export function AdminOrganizationDetailsWorkspace({ organizationId }: { organiza
                       <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Operational Nodal Officer</span>
                       <p className="font-bold text-slate-900 text-sm">{`${nodalUser.firstName || ""} ${nodalUser.lastName || ""}`.trim() || nodalUser.email}</p>
                       <p className="text-xs font-medium text-slate-700">{nodalUser.designation || "Nodal Officer"}</p>
-                      <p className="text-xs text-slate-600 font-medium">{nodalUser.email}</p>
+                      {nodalUser.email && <p className="text-xs text-slate-600 font-medium">{nodalUser.email}</p>}
                     </div>
                   )}
                 </div>
               </div>
 
               {/* Section 3: CSR Company Profile & Financial Obligations */}
-              {!isGovDept && (typeLabel.includes("COMPANY") || typeLabel.includes("CORPORATE") || csrProfile.id || csrProfile.annualCsrBudget || csrProfile.currentYearCsrBudget) && (
+              {!isGovDept && (hasAnyCsrFinancials || hasAnyCsrPreferences) && (
                 <div className="rounded-2xl border border-purple-200/80 bg-purple-50/40 p-3.5 sm:p-4 md:p-6 shadow-xs space-y-5">
                   <h3 className="text-xs font-extrabold text-purple-950 uppercase tracking-wider flex items-center gap-2 border-b border-purple-200/60 pb-3">
                     <Coins size={16} className="text-amber-600 shrink-0" /> CSR Portfolio, Outlay & Strategy
                   </h3>
 
                   {/* Financial Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2.5 md:gap-3 text-xs">
-                    <div className="bg-white p-2.5 md:p-3 rounded-xl border border-purple-100 shadow-2xs flex flex-col justify-center">
-                      <span className="text-slate-400 block text-[10px] font-extrabold uppercase truncate">CSR Budget</span>
-                      <span className="font-extrabold text-purple-900 text-sm md:text-sm truncate" title={formatCurrency(csrProfile.annualCsrBudget || csrProfile.currentYearCsrBudget)}>{formatCurrency(csrProfile.annualCsrBudget || csrProfile.currentYearCsrBudget)}</span>
+                  {hasAnyCsrFinancials && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2.5 md:gap-3 text-xs">
+                      {isFilledNum(csrProfile.annualCsrBudget || csrProfile.currentYearCsrBudget) && (
+                        <div className="bg-white p-2.5 md:p-3 rounded-xl border border-purple-100 shadow-2xs flex flex-col justify-center">
+                          <span className="text-slate-400 block text-[10px] font-extrabold uppercase truncate">CSR Budget</span>
+                          <span className="font-extrabold text-purple-900 text-sm md:text-sm truncate" title={formatCurrency(csrProfile.annualCsrBudget || csrProfile.currentYearCsrBudget)}>{formatCurrency(csrProfile.annualCsrBudget || csrProfile.currentYearCsrBudget)}</span>
+                        </div>
+                      )}
+                      {isFilledNum(csrProfile.netWorth) && (
+                        <div className="bg-white p-2.5 md:p-3 rounded-xl border border-purple-100 shadow-2xs flex flex-col justify-center">
+                          <span className="text-slate-400 block text-[10px] font-extrabold uppercase truncate">Net Worth</span>
+                          <span className="font-extrabold text-slate-900 text-sm md:text-sm truncate" title={formatCurrency(csrProfile.netWorth)}>{formatCurrency(csrProfile.netWorth)}</span>
+                        </div>
+                      )}
+                      {isFilledNum(csrProfile.turnover) && (
+                        <div className="bg-white p-2.5 md:p-3 rounded-xl border border-purple-100 shadow-2xs flex flex-col justify-center">
+                          <span className="text-slate-400 block text-[10px] font-extrabold uppercase truncate">Turnover</span>
+                          <span className="font-extrabold text-slate-900 text-sm md:text-sm truncate" title={formatCurrency(csrProfile.turnover)}>{formatCurrency(csrProfile.turnover)}</span>
+                        </div>
+                      )}
+                      {isFilledNum(csrProfile.netProfit) && (
+                        <div className="bg-white p-2.5 md:p-3 rounded-xl border border-purple-100 shadow-2xs flex flex-col justify-center">
+                          <span className="text-slate-400 block text-[10px] font-extrabold uppercase truncate">Net Profit</span>
+                          <span className="font-extrabold text-slate-900 text-sm md:text-sm truncate" title={formatCurrency(csrProfile.netProfit)}>{formatCurrency(csrProfile.netProfit)}</span>
+                        </div>
+                      )}
+                      {isFilledNum(csrProfile.twoPercentCsrObligation || csrProfile.csrObligationAmount || (csrProfile.averageNetProfit ? Number(csrProfile.averageNetProfit) * 0.02 : null)) && (
+                        <div className="bg-white p-2.5 md:p-3 rounded-xl border border-purple-100 shadow-2xs flex flex-col justify-center">
+                          <span className="text-slate-400 block text-[10px] font-extrabold uppercase truncate">2% Obligation</span>
+                          <span className="font-extrabold text-amber-900 text-sm md:text-sm truncate" title={formatCurrency(csrProfile.twoPercentCsrObligation || csrProfile.csrObligationAmount || (csrProfile.averageNetProfit ? Number(csrProfile.averageNetProfit) * 0.02 : null))}>
+                            {formatCurrency(csrProfile.twoPercentCsrObligation || csrProfile.csrObligationAmount || (csrProfile.averageNetProfit ? Number(csrProfile.averageNetProfit) * 0.02 : null))}
+                          </span>
+                        </div>
+                      )}
+                      {isFilledNum(csrProfile.unspentCsrAmount) && (
+                        <div className="bg-white p-2.5 md:p-3 rounded-xl border border-purple-100 shadow-2xs flex flex-col justify-center">
+                          <span className="text-slate-400 block text-[10px] font-extrabold uppercase truncate">Unspent CSR</span>
+                          <span className="font-extrabold text-slate-900 text-sm md:text-sm truncate" title={formatCurrency(csrProfile.unspentCsrAmount)}>{formatCurrency(csrProfile.unspentCsrAmount)}</span>
+                        </div>
+                      )}
+                      {isFilledVal(csrProfile.csrRegistrationNo) && (
+                        <div className="bg-white p-2.5 md:p-3 rounded-xl border border-purple-100 shadow-2xs flex flex-col justify-center">
+                          <span className="text-slate-400 block text-[10px] font-extrabold uppercase truncate">CSR Reg No</span>
+                          <span className="font-mono font-bold text-indigo-900 text-xs truncate" title={csrProfile.csrRegistrationNo}>{csrProfile.csrRegistrationNo}</span>
+                        </div>
+                      )}
+                      {isFilledVal(csrProfile.financialYear) && (
+                        <div className="bg-white p-2.5 md:p-3 rounded-xl border border-purple-100 shadow-2xs flex flex-col justify-center">
+                          <span className="text-slate-400 block text-[10px] font-extrabold uppercase truncate">Financial Year</span>
+                          <span className="font-bold text-slate-800 text-xs truncate" title={csrProfile.financialYear}>{csrProfile.financialYear}</span>
+                        </div>
+                      )}
                     </div>
-                    <div className="bg-white p-2.5 md:p-3 rounded-xl border border-purple-100 shadow-2xs flex flex-col justify-center">
-                      <span className="text-slate-400 block text-[10px] font-extrabold uppercase truncate">Net Worth</span>
-                      <span className="font-extrabold text-slate-900 text-sm md:text-sm truncate" title={formatCurrency(csrProfile.netWorth)}>{formatCurrency(csrProfile.netWorth)}</span>
-                    </div>
-                    <div className="bg-white p-2.5 md:p-3 rounded-xl border border-purple-100 shadow-2xs flex flex-col justify-center">
-                      <span className="text-slate-400 block text-[10px] font-extrabold uppercase truncate">Turnover</span>
-                      <span className="font-extrabold text-slate-900 text-sm md:text-sm truncate" title={formatCurrency(csrProfile.turnover)}>{formatCurrency(csrProfile.turnover)}</span>
-                    </div>
-                    <div className="bg-white p-2.5 md:p-3 rounded-xl border border-purple-100 shadow-2xs flex flex-col justify-center">
-                      <span className="text-slate-400 block text-[10px] font-extrabold uppercase truncate">Net Profit</span>
-                      <span className="font-extrabold text-slate-900 text-sm md:text-sm truncate" title={formatCurrency(csrProfile.netProfit)}>{formatCurrency(csrProfile.netProfit)}</span>
-                    </div>
-                    <div className="bg-white p-2.5 md:p-3 rounded-xl border border-purple-100 shadow-2xs flex flex-col justify-center">
-                      <span className="text-slate-400 block text-[10px] font-extrabold uppercase truncate">2% Obligation</span>
-                      <span className="font-extrabold text-amber-900 text-sm md:text-sm truncate" title={formatCurrency(csrProfile.twoPercentCsrObligation || csrProfile.csrObligationAmount || (csrProfile.averageNetProfit ? Number(csrProfile.averageNetProfit) * 0.02 : null))}>
-                        {formatCurrency(csrProfile.twoPercentCsrObligation || csrProfile.csrObligationAmount || (csrProfile.averageNetProfit ? Number(csrProfile.averageNetProfit) * 0.02 : null))}
-                      </span>
-                    </div>
-                    <div className="bg-white p-2.5 md:p-3 rounded-xl border border-purple-100 shadow-2xs flex flex-col justify-center">
-                      <span className="text-slate-400 block text-[10px] font-extrabold uppercase truncate">Unspent CSR</span>
-                      <span className="font-extrabold text-slate-900 text-sm md:text-sm truncate" title={formatCurrency(csrProfile.unspentCsrAmount)}>{formatCurrency(csrProfile.unspentCsrAmount)}</span>
-                    </div>
-                    <div className="bg-white p-2.5 md:p-3 rounded-xl border border-purple-100 shadow-2xs flex flex-col justify-center">
-                      <span className="text-slate-400 block text-[10px] font-extrabold uppercase truncate">CSR Reg No</span>
-                      <span className="font-mono font-bold text-indigo-900 text-xs truncate" title={csrProfile.csrRegistrationNo || "-"}>{csrProfile.csrRegistrationNo || "-"}</span>
-                    </div>
-                    <div className="bg-white p-2.5 md:p-3 rounded-xl border border-purple-100 shadow-2xs flex flex-col justify-center">
-                      <span className="text-slate-400 block text-[10px] font-extrabold uppercase truncate">Financial Year</span>
-                      <span className="font-bold text-slate-800 text-xs truncate" title={csrProfile.financialYear || "FY 2025-26"}>{csrProfile.financialYear || "FY 2025-26"}</span>
-                    </div>
-                  </div>
+                  )}
 
                   {/* Sector & Geography Preferences */}
-                  <div className="bg-white p-3.5 md:p-4 rounded-xl border border-purple-100 space-y-3 text-xs">
-                    <h4 className="font-bold text-purple-950 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                      <Target size={14} className="text-purple-700 shrink-0" /> Target Preferences & Focus Areas
-                    </h4>
+                  {hasAnyCsrPreferences && (
+                    <div className="bg-white p-3.5 md:p-4 rounded-xl border border-purple-100 space-y-3 text-xs">
+                      <h4 className="font-bold text-purple-950 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                        <Target size={14} className="text-purple-700 shrink-0" /> Target Preferences & Focus Areas
+                      </h4>
 
-                    <div>
-                      <span className="text-slate-400 block text-[10px] font-bold uppercase mb-1.5">Preferred Focus Sectors</span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {(csrProfile.preferredSectors || []).length > 0 ? (
-                          csrProfile.preferredSectors.map((s: string, i: number) => (
-                            <span key={i} className="px-2.5 py-1 rounded-lg bg-purple-50 text-purple-900 font-bold border border-purple-200 text-[10px] md:text-[11px]">
-                              {s}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-slate-500 font-medium">All Maharashtra CSR Development Sectors</span>
-                        )}
-                      </div>
+                      {(csrProfile.preferredSectors || []).length > 0 && (
+                        <div>
+                          <span className="text-slate-400 block text-[10px] font-bold uppercase mb-1.5">Preferred Focus Sectors</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {csrProfile.preferredSectors.map((s: string, i: number) => (
+                              <span key={i} className="px-2.5 py-1 rounded-lg bg-purple-50 text-purple-900 font-bold border border-purple-200 text-[10px] md:text-[11px]">
+                                {s}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {(csrProfile.preferredDistricts || []).length > 0 && (
+                        <div className={(csrProfile.preferredSectors || []).length > 0 ? "pt-2 border-t border-slate-100" : ""}>
+                          <span className="text-slate-400 block text-[10px] font-bold uppercase mb-1.5">Target Focus Districts</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {csrProfile.preferredDistricts.map((d: string, i: number) => (
+                              <span key={i} className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-900 font-bold border border-blue-200 text-[10px] md:text-[11px]">
+                                {d}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {((csrProfile.preferredDivisions || []).length > 0 || (csrProfile.preferredTalukas || []).length > 0 || (csrProfile.preferredCities || []).length > 0) && (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
+                          {(csrProfile.preferredDivisions || []).length > 0 && (
+                            <div>
+                              <span className="text-slate-400 block text-[10px] mb-0.5">Divisions</span>
+                              <span className="font-semibold text-slate-800 break-words">{csrProfile.preferredDivisions.join(", ")}</span>
+                            </div>
+                          )}
+                          {(csrProfile.preferredTalukas || []).length > 0 && (
+                            <div>
+                              <span className="text-slate-400 block text-[10px] mb-0.5">Talukas</span>
+                              <span className="font-semibold text-slate-800 break-words">{csrProfile.preferredTalukas.join(", ")}</span>
+                            </div>
+                          )}
+                          {(csrProfile.preferredCities || []).length > 0 && (
+                            <div>
+                              <span className="text-slate-400 block text-[10px] mb-0.5">Cities</span>
+                              <span className="font-semibold text-slate-800 break-words">{csrProfile.preferredCities.join(", ")}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {(isFilledVal(csrProfile.sdgFocusAreas) || isFilledVal(csrProfile.preferredBeneficiaryGroups) || isFilledVal(csrProfile.implementationPreference) || isFilledVal(csrProfile.fundingPreference)) && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
+                          {isFilledVal(csrProfile.fundingPreference) && (
+                            <div>
+                              <span className="text-slate-400 block text-[10px] mb-0.5">Funding Model</span>
+                              <span className="font-semibold text-slate-800 break-words">{csrProfile.fundingPreference}</span>
+                            </div>
+                          )}
+                          {isFilledVal(csrProfile.implementationPreference) && (
+                            <div>
+                              <span className="text-slate-400 block text-[10px] mb-0.5">Implementation Model</span>
+                              <span className="font-semibold text-slate-800 break-words">{csrProfile.implementationPreference}</span>
+                            </div>
+                          )}
+                          {isFilledVal(csrProfile.preferredBeneficiaryGroups) && (
+                            <div>
+                              <span className="text-slate-400 block text-[10px] mb-0.5">Beneficiary Groups</span>
+                              <span className="font-semibold text-slate-800 break-words">{csrProfile.preferredBeneficiaryGroups}</span>
+                            </div>
+                          )}
+                          {isFilledVal(csrProfile.sdgFocusAreas) && (
+                            <div>
+                              <span className="text-slate-400 block text-[10px] mb-0.5">SDG Focus Areas</span>
+                              <span className="font-semibold text-slate-800 break-words">{csrProfile.sdgFocusAreas}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
-
-                    <div className="pt-2 border-t border-slate-100">
-                      <span className="text-slate-400 block text-[10px] font-bold uppercase mb-1.5">Target Focus Districts</span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {(csrProfile.preferredDistricts || []).length > 0 ? (
-                          csrProfile.preferredDistricts.map((d: string, i: number) => (
-                            <span key={i} className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-900 font-bold border border-blue-200 text-[10px] md:text-[11px]">
-                              {d}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-slate-500 font-medium">Statewide (All 36 Districts)</span>
-                        )}
-                      </div>
-                    </div>
-
-                    {((csrProfile.preferredDivisions || []).length > 0 || (csrProfile.preferredTalukas || []).length > 0 || (csrProfile.preferredCities || []).length > 0) && (
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
-                        {(csrProfile.preferredDivisions || []).length > 0 && (
-                          <div>
-                            <span className="text-slate-400 block text-[10px] mb-0.5">Divisions</span>
-                            <span className="font-semibold text-slate-800 break-words">{csrProfile.preferredDivisions.join(", ")}</span>
-                          </div>
-                        )}
-                        {(csrProfile.preferredTalukas || []).length > 0 && (
-                          <div>
-                            <span className="text-slate-400 block text-[10px] mb-0.5">Talukas</span>
-                            <span className="font-semibold text-slate-800 break-words">{csrProfile.preferredTalukas.join(", ")}</span>
-                          </div>
-                        )}
-                        {(csrProfile.preferredCities || []).length > 0 && (
-                          <div>
-                            <span className="text-slate-400 block text-[10px] mb-0.5">Cities</span>
-                            <span className="font-semibold text-slate-800 break-words">{csrProfile.preferredCities.join(", ")}</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {(csrProfile.sdgFocusAreas || csrProfile.preferredBeneficiaryGroups || csrProfile.implementationPreference || csrProfile.fundingPreference) && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
-                        {csrProfile.fundingPreference && (
-                          <div>
-                            <span className="text-slate-400 block text-[10px] mb-0.5">Funding Model</span>
-                            <span className="font-semibold text-slate-800 break-words">{csrProfile.fundingPreference}</span>
-                          </div>
-                        )}
-                        {csrProfile.implementationPreference && (
-                          <div>
-                            <span className="text-slate-400 block text-[10px] mb-0.5">Implementation Model</span>
-                            <span className="font-semibold text-slate-800 break-words">{csrProfile.implementationPreference}</span>
-                          </div>
-                        )}
-                        {csrProfile.preferredBeneficiaryGroups && (
-                          <div>
-                            <span className="text-slate-400 block text-[10px] mb-0.5">Beneficiary Groups</span>
-                            <span className="font-semibold text-slate-800 break-words">{csrProfile.preferredBeneficiaryGroups}</span>
-                          </div>
-                        )}
-                        {csrProfile.sdgFocusAreas && (
-                          <div>
-                            <span className="text-slate-400 block text-[10px] mb-0.5">SDG Focus Areas</span>
-                            <span className="font-semibold text-slate-800 break-words">{csrProfile.sdgFocusAreas}</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
               )}
 

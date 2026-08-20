@@ -6,7 +6,7 @@ import {
 } from "../utils/workflowValidation";
 
 describe("MahaCSR transactional workflow validation", () => {
-  test("corporate enquiry requires one district, one department and declaration", () => {
+  test("corporate enquiry requires one district and declaration", () => {
     const result = validateCorporateEnquirySubmission({
       companyName: "Acme Foundation", email: "csr@acme.test", contactPersonName: "Asha",
       mca21CIN: "U12345MH2020PTC123456",
@@ -17,7 +17,6 @@ describe("MahaCSR transactional workflow validation", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.errors).toEqual(expect.arrayContaining([
       "Select exactly one district for this case.",
-      "Select exactly one government department for this case.",
       "The submission declaration must be accepted."
     ]));
   });

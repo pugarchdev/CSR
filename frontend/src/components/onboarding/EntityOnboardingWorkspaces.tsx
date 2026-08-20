@@ -12,11 +12,29 @@ const maharashtraState = locationData.find((state) => state.name === "Maharashtr
 
 const DIVISION_TO_DISTRICTS: Record<string, string[]> = {
   Amravati: ["Akola", "Amravati", "Buldhana", "Washim", "Yavatmal"],
-  Aurangabad: ["Aurangabad", "Beed", "Hingoli", "Jalna", "Latur", "Nanded", "Osmanabad", "Parbhani"],
+  Aurangabad: ["Aurangabad", "Chhatrapati Sambhajinagar", "Beed", "Hingoli", "Jalna", "Latur", "Nanded", "Osmanabad", "Dharashiv", "Parbhani"],
   Konkan: ["Mumbai City", "Mumbai Suburban", "Palghar", "Raigad", "Ratnagiri", "Sindhudurg", "Thane"],
   Nagpur: ["Bhandara", "Chandrapur", "Gadchiroli", "Gondia", "Nagpur", "Wardha"],
-  Nashik: ["Ahmednagar", "Dhule", "Jalgaon", "Nandurbar", "Nashik"],
+  Nashik: ["Ahmednagar", "Ahilyanagar", "Dhule", "Jalgaon", "Nandurbar", "Nashik"],
   Pune: ["Kolhapur", "Pune", "Sangli", "Satara", "Solapur"],
+};
+
+export const findDivisionForDistrict = (districtName?: string | null): string | null => {
+  if (!districtName) return null;
+  const clean = districtName.trim().toLowerCase();
+  for (const [division, districts] of Object.entries(DIVISION_TO_DISTRICTS)) {
+    if (districts.some(d => {
+      const dClean = d.toLowerCase();
+      return dClean === clean || clean.includes(dClean) || dClean.includes(clean);
+    })) {
+      return division;
+    }
+  }
+  if (clean.includes("sambhajinagar") || clean.includes("aurangabad")) return "Aurangabad";
+  if (clean.includes("dharashiv") || clean.includes("osmanabad")) return "Aurangabad";
+  if (clean.includes("ahilyanagar") || clean.includes("ahmednagar")) return "Nashik";
+  if (clean.includes("mumbai")) return "Konkan";
+  return null;
 };
 
 const yearFromGstRegistrationDate = (value: unknown): string => {
@@ -794,6 +812,30 @@ function useEntityProfile(type: "company" | "department") {
     const rawProfile = fetchedProfile || {};
     const storedDeptProfile = storedOrg.govDeptProfile || {};
     const storedCsrProfile = storedOrg.csrCompanyProfile || {};
+    const defaultDistrict = mergedOrg.district || "Mumbai City";
+
+    const rawDistricts = rawProfile.preferredDistricts?.length
+      ? rawProfile.preferredDistricts
+      : (storedCsrProfile.preferredDistricts?.length
+        ? storedCsrProfile.preferredDistricts
+        : (defaultDistrict ? [defaultDistrict] : []));
+
+    const rawDivisions = rawProfile.preferredDivisions?.length
+      ? rawProfile.preferredDivisions
+      : (storedCsrProfile.preferredDivisions?.length
+        ? storedCsrProfile.preferredDivisions
+        : []);
+
+    const autoDivisions = rawDivisions.length > 0
+      ? rawDivisions
+      : Array.from(new Set(
+          (rawDistricts || []).map((d: string) => findDivisionForDistrict(d)).filter(Boolean) as string[]
+        ));
+
+    if (autoDivisions.length === 0 && defaultDistrict) {
+      const div = findDivisionForDistrict(defaultDistrict);
+      if (div) autoDivisions.push(div);
+    }
 
     const mergedProfile: Record<string, any> = {
       ...rawProfile,
@@ -810,7 +852,8 @@ function useEntityProfile(type: "company" | "department") {
         currentYearCsrBudget: rawProfile.currentYearCsrBudget ?? storedCsrProfile.currentYearCsrBudget,
         annualCsrBudget: rawProfile.annualCsrBudget ?? storedCsrProfile.annualCsrBudget,
         csrObligationAmount: rawProfile.csrObligationAmount ?? storedCsrProfile.csrObligationAmount,
-        preferredDistricts: rawProfile.preferredDistricts?.length ? rawProfile.preferredDistricts : (storedCsrProfile.preferredDistricts || [mergedOrg.district].filter(Boolean)),
+        preferredDistricts: rawDistricts,
+        preferredDivisions: autoDivisions,
         preferredSectors: rawProfile.preferredSectors?.length ? rawProfile.preferredSectors : (storedCsrProfile.preferredSectors || []),
       })
     };
@@ -877,6 +920,29 @@ export function CompanyOnboardingStep() {
     setOrganization((current) => current ? { ...current, [key]: value } : current);
     setProfile((current) => ({ ...current, [key]: value }));
   };
+
+  // Auto-fetch & auto-fill division if empty on preferences step or profile load
+  useEffect(() => {
+    if (!organization && !profile) return;
+    const currentDivisions = parseToArray(data.preferredDivisions);
+    const currentDistricts = parseToArray(data.preferredDistricts);
+
+    if (currentDivisions.length === 0) {
+      let autoDivs: string[] = [];
+      if (currentDistricts.length > 0) {
+        autoDivs = Array.from(new Set(
+          currentDistricts.map(d => findDivisionForDistrict(d)).filter(Boolean) as string[]
+        ));
+      } else if (data.district || org.district) {
+        const div = findDivisionForDistrict(data.district || org.district);
+        if (div) autoDivs = [div];
+      }
+
+      if (autoDivs.length > 0) {
+        setData("preferredDivisions", autoDivs);
+      }
+    }
+  }, [step, data.district, data.preferredDistricts, data.preferredDivisions]);
 
   const save = async (event: FormEvent) => {
     event.preventDefault();
@@ -1071,13 +1137,38 @@ export function CompanyOnboardingStep() {
                     setData("registeredOfficeAddress", result.data.address);
                     setData("corporateOfficeAddress", result.data.address);
                   }
-                  if (result.data.district) setData("district", result.data.district);
+                  if (result.data.district) {
+                    setData("district", result.data.district);
+                    const derivedDiv = findDivisionForDistrict(result.data.district);
+                    if (derivedDiv) {
+                      setData("preferredDivisions", [derivedDiv]);
+                      setData("preferredDistricts", [result.data.district]);
+                    }
+                  }
                 }}
               />
             </div>
             <TextAreaField label="Registered office address" value={data.registeredOfficeAddress || data.address} onChange={(value) => setData("registeredOfficeAddress", value)} />
             <TextAreaField label="Corporate office address" value={data.corporateOfficeAddress} onChange={(value) => setData("corporateOfficeAddress", value)} />
-            <SelectField label="District" value={data.district} onChange={(value) => setData("district", value)} options={["Select District", ...(maharashtraState?.districts.map(d => d.name) || [])]} />
+            <SelectField
+              label="District"
+              value={data.district}
+              onChange={(value) => {
+                setData("district", value);
+                if (value && value !== "Select District") {
+                  const derivedDiv = findDivisionForDistrict(value);
+                  if (derivedDiv) {
+                    if (selectedDivisions.length === 0) {
+                      setData("preferredDivisions", [derivedDiv]);
+                    }
+                    if (selectedDistricts.length === 0) {
+                      setData("preferredDistricts", [value]);
+                    }
+                  }
+                }
+              }}
+              options={["Select District", ...(maharashtraState?.districts.map(d => d.name) || [])]}
+            />
             <Field label="Official website" value={data.website} onChange={(value) => setData("website", value)} />
             <Field label="Official email" required format="email" value={data.officialEmail || data.email} onChange={(value) => setData("officialEmail", value)} />
             <Field label="Contact Number" format="phone" value={data.officialPhone || data.phone} onChange={(value) => setData("officialPhone", value)} />
@@ -1103,41 +1194,63 @@ export function CompanyOnboardingStep() {
         )}
         {step === "preferences" && (
           <>
-            <MultiSelectField
-              label="Preferred divisions"
-              values={selectedDivisions}
-              options={Object.keys(DIVISION_TO_DISTRICTS)}
-              onChange={(values) => {
-                const validDistricts = values.flatMap(div => DIVISION_TO_DISTRICTS[div] || []);
-                const nextDistricts = selectedDistricts.filter(d => validDistricts.includes(d));
-                const validCities = maharashtraState?.districts.filter(d => nextDistricts.includes(d.name)).flatMap(d => d.cities) || [];
-                const nextCities = selectedCities.filter(c => validCities.includes(c));
-                const validTalukas = maharashtraState?.districts.filter(d => nextDistricts.includes(d.name)).flatMap(d => d.talukas) || [];
-                const nextTalukas = selectedTalukas.filter(t => validTalukas.includes(t));
+            <div className="md:col-span-2 space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-700">Preferred divisions</span>
+                {selectedDivisions.length > 0 && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 shadow-xs">
+                    <Sparkles size={12} className="text-emerald-600" />
+                    Auto-fetched & filled
+                  </span>
+                )}
+              </div>
+              <MultiSelectField
+                label=""
+                values={selectedDivisions}
+                options={Object.keys(DIVISION_TO_DISTRICTS)}
+                onChange={(values) => {
+                  const validDistricts = values.length > 0
+                    ? values.flatMap(div => DIVISION_TO_DISTRICTS[div] || [])
+                    : maharashtraDistrictsList;
+                  const nextDistricts = selectedDistricts.filter(d => validDistricts.includes(d));
+                  const validCities = maharashtraState?.districts.filter(d => nextDistricts.includes(d.name)).flatMap(d => d.cities) || [];
+                  const nextCities = selectedCities.filter(c => validCities.includes(c));
+                  const validTalukas = maharashtraState?.districts.filter(d => nextDistricts.includes(d.name)).flatMap(d => d.talukas) || [];
+                  const nextTalukas = selectedTalukas.filter(t => validTalukas.includes(t));
 
-                setData("preferredDivisions", values);
-                setData("preferredDistricts", nextDistricts);
-                setData("preferredCities", nextCities);
-                setData("preferredTalukas", nextTalukas);
-              }}
-              placeholder="Select preferred divisions"
-            />
-            <MultiSelectField
-              label="Preferred districts"
-              values={selectedDistricts}
-              options={availableDistrictsOptions}
-              onChange={(values) => {
-                const validCities = maharashtraState?.districts.filter(d => values.includes(d.name)).flatMap(d => d.cities) || [];
-                const nextCities = selectedCities.filter(c => validCities.includes(c));
-                const validTalukas = maharashtraState?.districts.filter(d => values.includes(d.name)).flatMap(d => d.talukas) || [];
-                const nextTalukas = selectedTalukas.filter(t => validTalukas.includes(t));
+                  setData("preferredDivisions", values);
+                  setData("preferredDistricts", nextDistricts);
+                  setData("preferredCities", nextCities);
+                  setData("preferredTalukas", nextTalukas);
+                }}
+                placeholder="Select preferred divisions"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <MultiSelectField
+                label="Preferred districts"
+                values={selectedDistricts}
+                options={availableDistrictsOptions}
+                onChange={(values) => {
+                  // Auto fetch & auto fill divisions for selected districts
+                  const derivedDivisions = Array.from(
+                    new Set(values.map(d => findDivisionForDistrict(d)).filter(Boolean) as string[])
+                  );
+                  const nextDivisions = Array.from(new Set([...selectedDivisions, ...derivedDivisions]));
 
-                setData("preferredDistricts", values);
-                setData("preferredCities", nextCities);
-                setData("preferredTalukas", nextTalukas);
-              }}
-              placeholder="Select preferred districts"
-            />
+                  const validCities = maharashtraState?.districts.filter(d => values.includes(d.name)).flatMap(d => d.cities) || [];
+                  const nextCities = selectedCities.filter(c => validCities.includes(c));
+                  const validTalukas = maharashtraState?.districts.filter(d => values.includes(d.name)).flatMap(d => d.talukas) || [];
+                  const nextTalukas = selectedTalukas.filter(t => validTalukas.includes(t));
+
+                  setData("preferredDistricts", values);
+                  setData("preferredDivisions", nextDivisions);
+                  setData("preferredCities", nextCities);
+                  setData("preferredTalukas", nextTalukas);
+                }}
+                placeholder="Select preferred districts"
+              />
+            </div>
             <MultiSelectField
               label="Preferred talukas (Optional)"
               values={selectedTalukas}

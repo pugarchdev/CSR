@@ -146,7 +146,7 @@ export const submitApplication = async (req: AuthenticatedRequest, res: Response
       includePortalAdmins: true,
       includeRms: true,
       includeStateOfficers: true,
-      actionButtonUrl: `/admin/onboarding-approvals/${org.id}`,
+      actionButtonUrl: `/admin/onboarding-approvals?orgId=${org.id}&highlight=${encodeURIComponent(org.name)}`,
       variables: {
         currentStatus: "UNDER_VERIFICATION",
         workflowStatus: responseNotes || "Resubmitted for verification"
@@ -252,7 +252,7 @@ export const respondToQuery = async (req: AuthenticatedRequest, res: Response, n
       includeOrgUsers: false,
       includePortalAdmins: true,
       includeRms: true,
-      actionButtonUrl: `/admin/onboarding-approvals/${org.id}`,
+      actionButtonUrl: `/admin/onboarding-approvals?orgId=${org.id}&highlight=${encodeURIComponent(org.name)}`,
       variables: {
         currentStatus: "UNDER_VERIFICATION",
         workflowStatus: notesText

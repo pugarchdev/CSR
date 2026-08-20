@@ -167,26 +167,42 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
       // 2. PLANNING SECRETARY (Role 2)
       // ─────────────────────────────────────────────────────────────────────────────
       else if (roleId === 2) {
-        const [totalProjects, activeProjectsCount, commitmentsAggregate, distinctDistricts, escalationsCount] = await Promise.all([
+        const [
+          totalProjects,
+          activeProjectsCount,
+          commitmentsAggregate,
+          distinctDistricts,
+          escalationsCount,
+          distinctCompanies,
+          distinctSectors,
+          beneficiariesAggregate,
+        ] = await Promise.all([
           prisma.project.count(),
           prisma.project.count({ where: { status: { in: ACTIVE_PROJECTS } } }),
           prisma.project.aggregate({ _sum: { committedAmount: true, approvedBudget: true } }),
           prisma.project.findMany({ select: { district: true }, distinct: ["district"] }),
           prisma.sLAEscalation.count({ where: { isResolved: false } }),
+          prisma.project.findMany({ where: { corporatePartnerId: { not: null } }, select: { corporatePartnerId: true }, distinct: ["corporatePartnerId"] }),
+          prisma.project.findMany({ select: { sector: true }, distinct: ["sector"] }),
+          prisma.project.aggregate({ _sum: { beneficiaryCount: true } }),
         ]);
 
         const committedSum = Number(commitmentsAggregate._sum.committedAmount || 0);
-        const districtCoveragePct = Math.round((distinctDistricts.length / 36) * 100);
+        const districtCoveragePct = distinctDistricts.length > 0 ? Math.round((distinctDistricts.length / 36) * 100) : 0;
+        const totalBeneficiaries = Number(beneficiariesAggregate._sum.beneficiaryCount || 0);
+        const beneficiaryDisplay = totalBeneficiaries >= 100000
+          ? `${(totalBeneficiaries / 100000).toFixed(2)} Lakh`
+          : totalBeneficiaries.toLocaleString("en-IN");
 
         kpis = [
           createKpi("ps_state_commitment", "State CSR Commitments", formatCurrency(committedSum), "currency", "/strategy/state-portfolio", "Total corporate funds committed across Maharashtra", "positive", "up"),
-          createKpi("ps_corporate_participation", "Corporate Sponsors", 28, "number", "/companies", "Distinct companies actively funding state initiatives", "neutral"),
-          createKpi("ps_sector_balance", "Funded Sectors", "9 Priority Sectors", "status", "/strategy/sector-analytics", "Health, Education, Water, Agriculture & Skills", "positive"),
-          createKpi("ps_funding_pipeline", "Committed CSR Outlay", "₹52.0 Cr", "currency", "/funds", "Total committed funds across registered projects", "positive"),
+          createKpi("ps_corporate_participation", "Corporate Sponsors", distinctCompanies.length, "number", "/companies", "Distinct companies actively funding state initiatives", "neutral"),
+          createKpi("ps_sector_balance", "Funded Sectors", `${distinctSectors.length} Sectors`, "status", "/strategy/sector-analytics", "Priority sectors actively funded across districts", "positive"),
+          createKpi("ps_funding_pipeline", "Committed CSR Outlay", formatCurrency(committedSum), "currency", "/funds", "Total committed funds across registered projects", "positive"),
           createKpi("ps_active_projects", "Active State Projects", activeProjectsCount, "number", "/strategy/state-portfolio", "Non-closed convergence and corporate projects", "positive"),
           createKpi("ps_district_coverage", "District Coverage", `${districtCoveragePct}%`, "percentage", "/strategy/state-portfolio", `${distinctDistricts.length} of 36 Maharashtra districts covered`, "positive"),
           createKpi("ps_critical_escalations", "Critical Escalations", escalationsCount, "number", "/escalations", "High-severity unresolved state-level escalations", escalationsCount > 0 ? "critical" : "positive"),
-          createKpi("ps_impact_progress", "Impact Beneficiaries", "1.42 Lakh", "number", "/strategy/impact", "Validated citizens reached across funded projects", "positive"),
+          createKpi("ps_impact_progress", "Impact Beneficiaries", beneficiaryDisplay, "number", "/strategy/impact", "Validated citizens reached across funded projects", "positive"),
         ];
 
         charts = {
@@ -443,7 +459,7 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
       // 4. DISTRICT NODAL OFFICER (Role 4)
       // ─────────────────────────────────────────────────────────────────────────────
       else if (roleId === 4) {
-        const [pendingAssignments, activeAssignments, overdueItems, milestonesDue, plannedVisits, dncCount, pendingEvidence] = await Promise.all([
+        const [pendingAssignments, activeAssignments, overdueItems, milestonesDue, plannedVisits, dncCount, pendingEvidence, openIssues] = await Promise.all([
           prisma.projectDistrictAssignment.count({ where: { nodalUserId: userId, status: "PENDING_ACCEPTANCE" } }),
           prisma.projectDistrictAssignment.count({ where: { nodalUserId: userId, status: "ACTIVE" } }),
           prisma.sLAEscalation.count({ where: { responsibleUserId: userId, isResolved: false, dueDate: { lt: now } } }),
@@ -459,14 +475,15 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
             }
           }),
           prisma.districtDncAssignment.count({ where: { assignedById: userId, isActive: true } }),
-          prisma.projectInspection.count({ where: { issuesFound: { not: null } } }),
+          prisma.projectInspection.count({ where: { project: { nodalOfficerUserId: userId }, issuesFound: { not: null } } }),
+          prisma.projectIssue.count({ where: { project: { nodalOfficerUserId: userId, status: { in: ACTIVE_PROJECTS } }, status: "OPEN" } }),
         ]);
 
         kpis = [
           createKpi("dno_incoming_assignments", "New Incoming Assignments", pendingAssignments, "number", "/assignments?owner=me&status=PENDING_ACCEPTANCE", "District execution assignments awaiting your acceptance", pendingAssignments > 0 ? "warning" : "positive"),
           createKpi("dno_active_projects", "Active District Projects", activeAssignments, "number", "/convergence-projects", "Accepted ongoing project execution responsibilities", "positive"),
           createKpi("dno_milestones_due", "Milestones Due for Review", milestonesDue, "number", "/milestones", "Milestones requiring field inspection & verification", milestonesDue > 0 ? "warning" : "positive"),
-          createKpi("dno_high_risk_issues", "Open Project Grievances", 2, "number", "/issues", "Ground bottlenecks requiring administrative resolution", "warning"),
+          createKpi("dno_high_risk_issues", "Open Project Grievances", openIssues, "number", "/issues", "Ground bottlenecks requiring administrative resolution", openIssues > 0 ? "warning" : "positive"),
           createKpi("dno_visits_planned", "Field Inspections Logged", plannedVisits, "number", "/field-visits", "Ground inspections recorded across assigned projects", "neutral"),
           createKpi("dno_evidence_pending", "Evidence Pending Review", pendingEvidence, "number", "/evidence", "Submitted geotagged photos & DNC visit logs", pendingEvidence > 0 ? "warning" : "positive"),
           createKpi("dno_active_dnc", "Supporting DNCs", dncCount, "number", "/assignments/dnc", "District Nodal Consultants delegated for field monitoring", "neutral"),
@@ -498,11 +515,14 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
       // 5. DISTRICT NODAL CONSULTANT (Role 5)
       // ─────────────────────────────────────────────────────────────────────────────
       else if (roleId === 5) {
-        const [supportedAssignments, pendingSupport, overdueSupport, inspections] = await Promise.all([
+        const [supportedAssignments, pendingSupport, overdueSupport, inspections, pendingEvidenceCount, criticalObsCount, issuesAssistedCount] = await Promise.all([
           prisma.governmentAssignmentDnc.count({ where: { dncUserId: userId, status: "ACTIVE", governmentAssignment: { status: "ACTIVE" } } }),
           prisma.governmentAssignmentDnc.count({ where: { dncUserId: userId, status: "ACTIVE", governmentAssignment: { status: "PENDING_ACCEPTANCE" } } }),
           prisma.sLAEscalation.count({ where: { responsibleUserId: userId, isResolved: false, dueDate: { lt: now } } }),
           prisma.projectInspection.findMany({ where: { inspectorUserId: userId } }),
+          prisma.projectInspection.count({ where: { inspectorUserId: userId, geoTaggedImages: { equals: [] } } }),
+          prisma.projectInspection.count({ where: { inspectorUserId: userId, issuesFound: { not: null } } }),
+          prisma.projectIssue.count({ where: { project: { dncUserId: userId }, status: "OPEN" } }),
         ]);
 
         const visitsCompleted = inspections.length;
@@ -510,14 +530,14 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
         const geotagCompliance = visitsCompleted > 0 ? Math.round((geotaggedVisits / visitsCompleted) * 100) : 100;
 
         kpis = [
-          createKpi("dnc_visits_due", "Field Visits Scheduled", 3, "number", "/field-visits", "Assigned inspections scheduled for this week", "warning"),
+          createKpi("dnc_visits_due", "Field Visits Scheduled", supportedAssignments, "number", "/field-visits", "Assigned inspections scheduled for this week", supportedAssignments > 0 ? "warning" : "positive"),
           createKpi("dnc_visits_completed", "Field Visits Completed", visitsCompleted, "number", "/field-visits", "Inspections submitted with observations & records", "positive"),
-          createKpi("dnc_evidence_pending", "Evidence Pending Upload", 1, "number", "/evidence", "Completed visit tasks missing geotagged photos", "warning"),
-          createKpi("dnc_high_risk_obs", "High-Risk Observations", 1, "number", "/issues", "Field bottlenecks flagged for DNO review", "critical"),
+          createKpi("dnc_evidence_pending", "Evidence Pending Upload", pendingEvidenceCount, "number", "/evidence", "Completed visit tasks missing geotagged photos", pendingEvidenceCount > 0 ? "warning" : "positive"),
+          createKpi("dnc_high_risk_obs", "High-Risk Observations", criticalObsCount, "number", "/issues", "Field bottlenecks flagged for DNO review", criticalObsCount > 0 ? "critical" : "positive"),
           createKpi("dnc_assigned_projects", "Supported Projects", supportedAssignments, "number", "/convergence-projects", "Active projects with delegated DNC monitoring rights", "positive"),
           createKpi("dnc_overdue_tasks", "Overdue Support Tasks", overdueSupport, "number", "/tasks", "Monitoring tasks past scheduled due date", overdueSupport > 0 ? "warning" : "positive"),
           createKpi("dnc_photo_compliance", "Geotag Compliance", `${geotagCompliance}%`, "percentage", "/evidence", "Submitted inspection logs with verified GPS coordinates", "positive"),
-          createKpi("dnc_issue_assist", "Issues Assisted", 4, "number", "/issues", "Field grievances investigated and logged for resolution", "neutral"),
+          createKpi("dnc_issue_assist", "Issues Assisted", issuesAssistedCount, "number", "/issues", "Field grievances investigated and logged for resolution", "neutral"),
         ];
       }
 
@@ -654,32 +674,52 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
         const isStateNodal = roleCode === "STATE_NODAL_OFFICER";
 
         if (isStateNodal) {
+          const [multiProjects, pendingRouting, pendingAcceptance, overdueUpdates, criticalIssues, coordinationTasks, distinctReportingDistricts, stateEscalations] = await Promise.all([
+            prisma.project.count({ where: { status: { in: ACTIVE_PROJECTS } } }),
+            prisma.governmentAssignment.count({ where: { status: "PENDING_ACCEPTANCE" } }),
+            prisma.projectDistrictAssignment.count({ where: { status: "PENDING_ACCEPTANCE" } }),
+            prisma.projectMilestone.count({ where: { status: { notIn: ["COMPLETED", "VERIFIED"] }, dueDate: { lt: now } } }),
+            prisma.projectIssue.count({ where: { status: "OPEN", severity: "CRITICAL" } }),
+            prisma.sLAEscalation.count({ where: { isResolved: false } }),
+            prisma.project.findMany({ where: { status: { in: ACTIVE_PROJECTS } }, select: { district: true }, distinct: ["district"] }),
+            prisma.sLAEscalation.count({ where: { isResolved: false, stage: { contains: "STATE" } } }),
+          ]);
+
+          const reportingPct = distinctReportingDistricts.length > 0 ? Math.round((distinctReportingDistricts.length / 36) * 100) : 0;
+
           kpis = [
-            createKpi("sno_active_multi", "Active Multi-District Projects", 6, "number", "/state-projects", "Assigned inter-district projects under state coordination", "positive"),
-            createKpi("sno_district_legs_pending", "District Legs Pending Routing", 2, "number", "/state-projects", "District work packages awaiting local Nodal routing", "warning"),
-            createKpi("sno_acceptance_pending", "DNO Acceptance Pending", 3, "number", "/coordination/tasks", "Routed district assignments awaiting local DNO acceptance", "warning"),
-            createKpi("sno_updates_overdue", "Progress Updates Overdue", 1, "number", "/progress", "District legs past scheduled reporting interval", "critical"),
-            createKpi("sno_critical_issues", "Cross-District Issues", 2, "number", "/issues", "Inter-department bottlenecks flagged for resolution", "warning"),
-            createKpi("sno_coordination_tasks", "Coordination Tasks Due", 4, "number", "/coordination/tasks", "State follow-ups and alignment meetings due this week", "neutral"),
-            createKpi("sno_reporting_districts", "District Reporting Coverage", "84%", "percentage", "/reports", "Percentage of active district legs submitting timely updates", "positive"),
-            createKpi("sno_escalations_open", "State Escalations", 1, "number", "/escalations", "Open routing escalations submitted to State CSR Cell", "neutral"),
+            createKpi("sno_active_multi", "Active Multi-District Projects", multiProjects, "number", "/state-projects", "Assigned inter-district projects under state coordination", "positive"),
+            createKpi("sno_district_legs_pending", "District Legs Pending Routing", pendingRouting, "number", "/state-projects", "District work packages awaiting local Nodal routing", pendingRouting > 0 ? "warning" : "positive"),
+            createKpi("sno_acceptance_pending", "DNO Acceptance Pending", pendingAcceptance, "number", "/coordination/tasks", "Routed district assignments awaiting local DNO acceptance", pendingAcceptance > 0 ? "warning" : "positive"),
+            createKpi("sno_updates_overdue", "Progress Updates Overdue", overdueUpdates, "number", "/progress", "District legs past scheduled reporting interval", overdueUpdates > 0 ? "critical" : "positive"),
+            createKpi("sno_critical_issues", "Cross-District Issues", criticalIssues, "number", "/issues", "Inter-department bottlenecks flagged for resolution", criticalIssues > 0 ? "warning" : "positive"),
+            createKpi("sno_coordination_tasks", "Coordination Tasks Due", coordinationTasks, "number", "/coordination/tasks", "State follow-ups and alignment meetings due this week", "neutral"),
+            createKpi("sno_reporting_districts", "District Reporting Coverage", `${reportingPct}%`, "percentage", "/reports", "Percentage of active district legs submitting timely updates", "positive"),
+            createKpi("sno_escalations_open", "State Escalations", stateEscalations, "number", "/escalations", "Open routing escalations submitted to State CSR Cell", stateEscalations > 0 ? "warning" : "positive"),
           ];
         } else if (isSubDeptHead) {
-          const [activePitches, domainProjects, clarifications] = await Promise.all([
+          const [activePitches, domainProjects, clarifications, nodalCount, openIssuesCount, upcomingMilestones, domainCommitments] = await Promise.all([
             prisma.governmentPitch.count({ where: { OR: [{ departmentOrganizationId: orgId }, { departmentId: orgId }, { organizationId: orgId }] } }),
             prisma.project.count({ where: { status: { in: ACTIVE_PROJECTS }, OR: [{ departmentOrganizationId: orgId }, { organizationId: orgId }] } }),
             prisma.governmentPitch.count({ where: { status: { contains: "CLARIFICATION" }, OR: [{ departmentOrganizationId: orgId }, { departmentId: orgId }, { organizationId: orgId }] } }),
+            prisma.user.count({ where: { organizationId: orgId, roleId: 4, accountStatus: "ACTIVE" } }),
+            prisma.projectIssue.count({ where: { project: { OR: [{ departmentOrganizationId: orgId }, { organizationId: orgId }] }, status: "OPEN" } }),
+            prisma.projectMilestone.count({ where: { project: { OR: [{ departmentOrganizationId: orgId }, { organizationId: orgId }] }, status: { in: ["APPROVED", "IN_PROGRESS"] }, dueDate: { lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) } } }),
+            prisma.project.aggregate({ where: { status: { in: ACTIVE_PROJECTS }, OR: [{ departmentOrganizationId: orgId }, { organizationId: orgId }] }, _sum: { committedAmount: true, beneficiaryCount: true } }),
           ]);
+
+          const domainVal = Number(domainCommitments._sum.committedAmount || 0);
+          const reachVal = Number(domainCommitments._sum.beneficiaryCount || 0);
 
           kpis = [
             createKpi("gsh_active_projects", "Active Domain Projects", domainProjects, "number", "/convergence-projects", "Projects assigned to your specific department", "positive"),
             createKpi("gsh_pitch_pipeline", "Domain Pitches", activePitches, "number", "/pitches", "Proposals submitted from your sub-department", "neutral"),
             createKpi("gsh_pending_pitch_action", "Pitches Needing Action", clarifications, "number", "/pitches?status=clarification", "Pitches returned for clarification by RM or JS", clarifications > 0 ? "warning" : "positive"),
-            createKpi("gsh_nodal_coverage", "Nodal Officers Assigned", 2, "number", "/nodal-management", "Dedicated Nodal Officers active in your department", "positive"),
-            createKpi("gsh_open_issues", "Open Domain Issues", 1, "number", "/issues", "Grievances and implementation bottlenecks", "warning"),
-            createKpi("gsh_milestones_due", "Upcoming Milestones", 4, "number", "/milestones", "Approved project milestones due in the next 30 days", "neutral"),
-            createKpi("gsh_domain_commitment", "Domain Commitments", "₹6.80 Cr", "currency", "/reports", "Corporate funding committed to domain initiatives", "positive"),
-            createKpi("gsh_beneficiary_reach", "Beneficiary Reach", "38,500", "number", "/reports", "Citizens impacted across sub-department projects", "positive"),
+            createKpi("gsh_nodal_coverage", "Nodal Officers Assigned", nodalCount, "number", "/nodal-management", "Dedicated Nodal Officers active in your department", "positive"),
+            createKpi("gsh_open_issues", "Open Domain Issues", openIssuesCount, "number", "/issues", "Grievances and implementation bottlenecks", openIssuesCount > 0 ? "warning" : "positive"),
+            createKpi("gsh_milestones_due", "Upcoming Milestones", upcomingMilestones, "number", "/milestones", "Approved project milestones due in the next 30 days", "neutral"),
+            createKpi("gsh_domain_commitment", "Domain Commitments", formatCurrency(domainVal), "currency", "/reports", "Corporate funding committed to domain initiatives", "positive"),
+            createKpi("gsh_beneficiary_reach", "Beneficiary Reach", reachVal >= 100000 ? `${(reachVal / 100000).toFixed(2)} Lakh` : reachVal.toLocaleString("en-IN"), "number", "/reports", "Citizens impacted across sub-department projects", "positive"),
           ];
         } else if (isCollectorOrg(org)) {
           // ── DISTRICT COLLECTOR — district-wide aggregated dashboard ──
@@ -748,16 +788,19 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
           };
         } else {
           // ── ZP / MNC / Generic Main Org Head — org-scoped dashboard ──
-          const [subDeptsCount, activePitches, publicPitches, treeProjects, incomingAssignments, subDeptsPending] = await Promise.all([
+          const [subDeptsCount, activePitches, publicPitches, treeProjects, incomingAssignments, subDeptsPending, atRiskCount, treeCommitments] = await Promise.all([
             prisma.organization.count({ where: { parentOrganizationId: orgId, governmentLevel: "SUB_DEPARTMENT", status: "ACTIVE" } }),
             prisma.governmentPitch.count({ where: { OR: [{ organizationId: orgId }, { parentOrganizationId: orgId }] } }),
             prisma.governmentPitch.count({ where: { status: "PUBLIC", OR: [{ organizationId: orgId }, { parentOrganizationId: orgId }] } }),
             prisma.project.count({ where: { status: { in: ACTIVE_PROJECTS }, OR: [{ organizationId: orgId }, { parentOrganizationId: orgId }] } }),
             prisma.governmentAssignment.count({ where: { governmentOrganizationId: orgId, status: { in: ["PENDING_ACCEPTANCE", "ACTIVE"] } } }),
             prisma.governmentOnboardingApplication.count({ where: { organization: { parentOrganizationId: orgId }, status: "UNDER_VERIFICATION" } }),
+            prisma.projectIssue.count({ where: { project: { OR: [{ organizationId: orgId }, { parentOrganizationId: orgId }] }, status: "OPEN", severity: "CRITICAL" } }),
+            prisma.project.aggregate({ where: { status: { in: ACTIVE_PROJECTS }, OR: [{ organizationId: orgId }, { parentOrganizationId: orgId }] }, _sum: { committedAmount: true } }),
           ]);
 
           const deptLabel = org?.governmentType === "ZILLA_PARISHAD" ? "Zilla Parishad" : org?.governmentType === "MUNICIPAL_CORPORATION" ? "Municipal Corporation" : "Organization";
+          const treeCommittedVal = Number(treeCommitments._sum.committedAmount || 0);
 
           kpis = [
             createKpi("gmh_active_projects", `Active ${deptLabel} Projects`, treeProjects, "number", "/convergence-projects", `Projects in your ${deptLabel} and sub-departments`, "positive"),
@@ -766,8 +809,8 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
             createKpi("gmh_pitch_pipeline", "Pitches in Pipeline", activePitches, "number", "/pitches", `${deptLabel} & child department pitches in workflow`, "neutral"),
             createKpi("gmh_nodal_coverage", "Nodal Coverage", "100%", "percentage", "/nodal-management", "Designated Nodal Officers active across all units", "positive"),
             createKpi("gmh_assignment_rejections", "Incoming Assignments", incomingAssignments, "number", "/assignments", "Assignments received for district execution", incomingAssignments > 0 ? "warning" : "positive"),
-            createKpi("gmh_at_risk_projects", "At-Risk Projects", 1, "number", "/convergence-projects?risk=high", "Projects with open critical bottlenecks", "warning"),
-            createKpi("gmh_committed_funds", "Committed Funds", "₹18.40 Cr", "currency", "/reports", `Corporate funds committed to ${deptLabel} tree`, "positive"),
+            createKpi("gmh_at_risk_projects", "At-Risk Projects", atRiskCount, "number", "/convergence-projects?risk=high", "Projects with open critical bottlenecks", atRiskCount > 0 ? "warning" : "positive"),
+            createKpi("gmh_committed_funds", "Committed Funds", formatCurrency(treeCommittedVal), "currency", "/reports", `Corporate funds committed to ${deptLabel} tree`, "positive"),
           ];
         }
       }

@@ -43,12 +43,15 @@ export const submitCorporateEnquiry = async (req: AuthenticatedRequest, res: Res
       return res.status(400).json({ error: "Corporate enquiry submission is incomplete.", validationErrors: validation.errors });
     }
     const submission = validation.value;
-    const targetDepartment = await prisma.organization.findFirst({
-      where: { id: submission.departmentId, kind: "GOVERNMENT_DEPARTMENT", status: "ACTIVE" },
-      select: { id: true, name: true }
-    });
-    if (!targetDepartment) {
-      return res.status(400).json({ error: "Select an active government department." });
+    let targetDepartment: { id: string; name: string } | null = null;
+    if (submission.departmentId) {
+      targetDepartment = await prisma.organization.findFirst({
+        where: { id: submission.departmentId, kind: "GOVERNMENT_DEPARTMENT", status: "ACTIVE" },
+        select: { id: true, name: true }
+      });
+      if (!targetDepartment) {
+        return res.status(400).json({ error: "Select an active government department." });
+      }
     }
 
     const preferredDistrict = submission.district;
@@ -70,7 +73,7 @@ export const submitCorporateEnquiry = async (req: AuthenticatedRequest, res: Res
         preferredDivisions: Array.isArray(req.body.preferredDivisions) ? req.body.preferredDivisions : [],
         preferredDistricts: [submission.district],
         preferredCities: Array.isArray(req.body.preferredCities) ? req.body.preferredCities : [],
-        preferredTalukas: Array.isArray(req.body.preferredTalukas) ? req.body.preferredTalukas : [],
+        preferredTalukas: Array.isArray(req.body.preferredTalukas) ? req.body.preferredTalukas : (submission.talukas || []),
         contactPersonName: submission.contactPersonName,
         mobile: submission.mobile,
         proposedCSRWork: submission.proposedCSRWork,
@@ -97,7 +100,7 @@ export const submitCorporateEnquiry = async (req: AuthenticatedRequest, res: Res
       currentStage: "RM_ALLOCATION",
       status: "SUBMITTED",
       actorUserId: userId,
-      metadata: { targetDepartmentId: targetDepartment.id },
+      metadata: targetDepartment ? { targetDepartmentId: targetDepartment.id } : {},
     });
     const assignedRmId = await RmAssignmentService.autoAssignRm({ caseId: trackedCase.id });
     enquiry = await prisma.corporateEnquiry.update({
@@ -118,8 +121,7 @@ export const submitCorporateEnquiry = async (req: AuthenticatedRequest, res: Res
         details: {
           trackingId: enquiry.trackingId,
           district: submission.district,
-          departmentId: targetDepartment.id,
-          departmentName: targetDepartment.name,
+          ...(targetDepartment ? { departmentId: targetDepartment.id, departmentName: targetDepartment.name } : {}),
           declarationAccepted: true,
           submittedDocumentCount: submission.documents.length
         }
@@ -316,15 +318,39 @@ export const getEnquiryById = async (req: AuthenticatedRequest, res: Response, n
 
     let assignedRelationshipManager = null;
     if (enquiry.assignedRelationshipManagerId) {
-      assignedRelationshipManager = await prisma.user.findUnique({
+      const rmUser = await prisma.user.findUnique({
         where: { id: enquiry.assignedRelationshipManagerId },
-        select: { id: true, firstName: true, lastName: true, email: true, designation: true }
+        select: { id: true, firstName: true, lastName: true, email: true, mobile: true, designation: true }
+      });
+      if (rmUser) {
+        assignedRelationshipManager = {
+          id: rmUser.id,
+          name: [rmUser.firstName, rmUser.lastName].filter(Boolean).join(" ") || "Relationship Manager",
+          designation: rmUser.designation || "State CSR Relationship Manager",
+          email: rmUser.email,
+          mobile: rmUser.mobile
+        };
+      }
+    }
+
+    let submittedByUser = null;
+    if (enquiry.submittedByUserId) {
+      submittedByUser = await prisma.user.findUnique({
+        where: { id: enquiry.submittedByUserId },
+        select: { id: true, firstName: true, lastName: true, designation: true, email: true, mobile: true }
       });
     }
 
+    const contactPersonDesignation = submittedByUser?.designation || "Corporate CSR Representative";
+
     return res.json({
-      ...enquiry,
-      assignedRelationshipManager
+      success: true,
+      data: {
+        ...enquiry,
+        contactPersonDesignation,
+        assignedRelationshipManager,
+        submittedByUser
+      }
     });
   } catch (error) {
     next(error);
