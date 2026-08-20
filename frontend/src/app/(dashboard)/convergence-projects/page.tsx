@@ -21,7 +21,8 @@ import { MAHARASHTRA_DISTRICTS } from "@/lib/locationData";
 import {
   Layers, Search, MapPin, Building2, Coins, CheckCircle2, Eye, FileText,
   Landmark, ArrowRightLeft, AlertCircle, Check, Loader2, RefreshCw, X,
-  Filter, Briefcase, ShieldCheck, Tag, ChevronRight, Sparkles, SlidersHorizontal
+  Filter, Briefcase, ShieldCheck, Tag, ChevronRight, Sparkles, SlidersHorizontal,
+  ChevronDown, RotateCcw, ArrowUpDown, Clock, CheckCircle, HelpCircle
 } from "lucide-react";
 
 interface Project {
@@ -42,6 +43,7 @@ interface Project {
   progress: number;
   governmentType?: string;
   organizationId?: string;
+  createdAt?: string;
 }
 
 const statusOptions = [
@@ -54,10 +56,10 @@ const statusOptions = [
 ];
 
 const deptOptions = [
-  { label: "All Departments", value: "" },
-  { label: "Collectorate", value: "COLLECTORATE" },
-  { label: "Zilla Parishad", value: "ZILLA_PARISHAD" },
-  { label: "Municipal Corporation", value: "MUNICIPAL_CORPORATION" },
+  { label: "All Departments", value: "", icon: Building2 },
+  { label: "Collectorate", value: "COLLECTORATE", icon: Landmark },
+  { label: "Zilla Parishad", value: "ZILLA_PARISHAD", icon: Building2 },
+  { label: "Municipal Corp", value: "MUNICIPAL_CORPORATION", icon: Building2 },
 ];
 
 const SECTOR_OPTIONS = [
@@ -73,31 +75,39 @@ const SECTOR_OPTIONS = [
   "General CSR"
 ];
 
+const SORT_OPTIONS = [
+  { label: "Newest First", value: "NEWEST" },
+  { label: "Budget: High to Low", value: "BUDGET_DESC" },
+  { label: "Budget: Low to High", value: "BUDGET_ASC" },
+  { label: "Progress: High to Low", value: "PROGRESS_DESC" },
+  { label: "Project Title (A-Z)", value: "TITLE_ASC" },
+];
+
 function DepartmentBadge({ type }: { type?: string }) {
   if (!type) return null;
   if (type === "COLLECTORATE") {
     return (
-      <span className="inline-flex items-center gap-1 font-extrabold text-[10px] bg-amber-50 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-md shadow-2xs">
+      <span className="inline-flex items-center gap-1 font-bold text-[10px] bg-amber-50 text-amber-900 border border-amber-300/80 px-2 py-0.5 rounded-md shadow-2xs">
         <Landmark size={11} className="text-amber-700 shrink-0" /> Collectorate
       </span>
     );
   }
   if (type === "ZILLA_PARISHAD") {
     return (
-      <span className="inline-flex items-center gap-1 font-extrabold text-[10px] bg-blue-50 text-blue-900 border border-blue-300 px-2 py-0.5 rounded-md shadow-2xs">
+      <span className="inline-flex items-center gap-1 font-bold text-[10px] bg-blue-50 text-blue-900 border border-blue-300/80 px-2 py-0.5 rounded-md shadow-2xs">
         <Building2 size={11} className="text-blue-700 shrink-0" /> Zilla Parishad
       </span>
     );
   }
   if (type === "MUNICIPAL_CORPORATION") {
     return (
-      <span className="inline-flex items-center gap-1 font-extrabold text-[10px] bg-purple-50 text-purple-900 border border-purple-300 px-2 py-0.5 rounded-md shadow-2xs">
+      <span className="inline-flex items-center gap-1 font-bold text-[10px] bg-purple-50 text-purple-900 border border-purple-300/80 px-2 py-0.5 rounded-md shadow-2xs">
         <Building2 size={11} className="text-purple-700 shrink-0" /> Municipal Corp
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 font-extrabold text-[10px] bg-slate-50 text-slate-800 border border-slate-300 px-2 py-0.5 rounded-md shadow-2xs">
+    <span className="inline-flex items-center gap-1 font-bold text-[10px] bg-slate-50 text-slate-800 border border-slate-300/80 px-2 py-0.5 rounded-md shadow-2xs">
       <Building2 size={11} className="text-slate-600 shrink-0" /> {type.replace(/_/g, " ")}
     </span>
   );
@@ -201,6 +211,8 @@ export default function ProjectsPage() {
   });
   const [sectorFilter, setSectorFilter] = useState("");
   const [districtFilter, setDistrictFilter] = useState("");
+  const [sortBy, setSortBy] = useState("NEWEST");
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [viewMode, setViewMode] = useResponsiveViewMode();
 
   // Reassignment Modal State (for Collector)
@@ -251,6 +263,7 @@ export default function ProjectsPage() {
       progress: p.physicalProgressPercent || p.progress || 0,
       governmentType: p.organization?.governmentType,
       organizationId: p.organizationId || p.organization?.id,
+      createdAt: p.createdAt || new Date().toISOString(),
     }));
   }, [rawProjects, isCompany, companyName]);
 
@@ -264,9 +277,21 @@ export default function ProjectsPage() {
     };
   }, [projectsList]);
 
-  // Filtered Projects
+  // Dynamic Status Breakdown Counts
+  const statusCounts = useMemo(() => {
+    return {
+      all: projectsList.length,
+      inProgress: projectsList.filter(p => p.status === "IN_PROGRESS").length,
+      completed: projectsList.filter(p => p.status === "COMPLETED").length,
+      approved: projectsList.filter(p => p.status === "APPROVED" || p.status === "SUBMITTED").length,
+      notStarted: projectsList.filter(p => p.status === "NOT_STARTED").length,
+      onHold: projectsList.filter(p => p.status === "ON_HOLD").length,
+    };
+  }, [projectsList]);
+
+  // Filtered & Sorted Projects
   const filteredProjects = useMemo(() => {
-    return projectsList.filter((project) => {
+    const list = projectsList.filter((project) => {
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch = !q ||
         project.title.toLowerCase().includes(q) ||
@@ -286,7 +311,16 @@ export default function ProjectsPage() {
 
       return matchesSearch && matchesStatus && matchesDept && matchesSector && matchesDistrict;
     });
-  }, [projectsList, searchQuery, statusFilter, deptFilter, sectorFilter, districtFilter]);
+
+    return [...list].sort((a, b) => {
+      if (sortBy === "BUDGET_DESC") return b.budget - a.budget;
+      if (sortBy === "BUDGET_ASC") return a.budget - b.budget;
+      if (sortBy === "PROGRESS_DESC") return b.progress - a.progress;
+      if (sortBy === "TITLE_ASC") return a.title.localeCompare(b.title);
+      // default: NEWEST
+      return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+    });
+  }, [projectsList, searchQuery, statusFilter, deptFilter, sectorFilter, districtFilter, sortBy]);
 
   const { sortedItems: sortedProjects, sortKey, sortDirection, requestSort } = useTableSort(filteredProjects, {
     customGetters: {
@@ -313,9 +347,19 @@ export default function ProjectsPage() {
 
   const completedCount = useMemo(() => projectsList.filter(p => p.status === "COMPLETED").length, [projectsList]);
   const inProgressCount = useMemo(() => projectsList.filter(p => p.status === "IN_PROGRESS").length, [projectsList]);
-  const approvedCount = useMemo(() => projectsList.filter(p => p.status === "APPROVED" || p.status === "SUBMITTED").length, [projectsList]);
 
-  const hasActiveFilters = Boolean(searchQuery || statusFilter || deptFilter || (sectorFilter && sectorFilter !== "All Sectors") || districtFilter);
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (searchQuery.trim()) count++;
+    if (statusFilter) count++;
+    if (deptFilter) count++;
+    if (sectorFilter && sectorFilter !== "All Sectors") count++;
+    if (districtFilter) count++;
+    if (sortBy !== "NEWEST") count++;
+    return count;
+  }, [searchQuery, statusFilter, deptFilter, sectorFilter, districtFilter, sortBy]);
+
+  const hasActiveFilters = activeFiltersCount > 0;
 
   const handleClearFilters = () => {
     setSearchQuery("");
@@ -323,6 +367,7 @@ export default function ProjectsPage() {
     setDeptFilter("");
     setSectorFilter("");
     setDistrictFilter("");
+    setSortBy("NEWEST");
   };
 
   const handleOpenReassign = (project: Project) => {
@@ -405,24 +450,48 @@ export default function ProjectsPage() {
     <GovPortalLayout>
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 text-slate-900">
 
-        {/* ─── Page Header with Scope Badge ─── */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-blue-900 text-white shadow-2xs">
+        {/* ─── Page Header with Scope Badge & Action Buttons ─── */}
+        <div className="space-y-3">
+          {/* Eyebrow scope pill */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-900 text-white shadow-2xs">
               <ShieldCheck size={13} />
               {scopeBadgeText}
             </span>
             {userDistrict && !isStateAdmin && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
                 <MapPin size={11} className="text-blue-700" />
                 {userDistrict}
               </span>
             )}
           </div>
+
           <StandardPageHeader
             title={pageTitle}
             category="Projects & Milestones"
             description={pageDescription}
+            actions={
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={handleRefresh}
+                  disabled={isRefreshing || isLoading}
+                  title="Refresh projects register"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 shadow-xs hover:border-slate-300 transition-all cursor-pointer group disabled:opacity-60"
+                >
+                  <RefreshCw
+                    size={14}
+                    className={`transition-transform duration-300 ${
+                      isRefreshing || isFetching
+                        ? "animate-spin text-blue-600"
+                        : "text-slate-500 group-hover:rotate-45"
+                    }`}
+                  />
+                  <span>{isRefreshing || isFetching ? "Refreshing..." : "Refresh"}</span>
+                </button>
+                <ViewToggle view={viewMode} onChange={setViewMode} />
+              </div>
+            }
           />
         </div>
 
@@ -447,7 +516,7 @@ export default function ProjectsPage() {
           <StatCard
             label="Active In Execution"
             value={isLoading ? "…" : inProgressCount}
-            icon={CheckCircle2}
+            icon={Clock}
             index={2}
             colorTheme="purple"
             sublabel="Under field milestone rollout"
@@ -462,84 +531,108 @@ export default function ProjectsPage() {
           />
         </StatCardGroup>
 
-        {/* ─── Filter & Control Workspace ─── */}
-        <div className="rounded-3xl border border-slate-200/90 bg-white p-5 shadow-sm space-y-4">
-          {/* Main Top Row: Search + Status Tabs + Refresh + ViewToggle */}
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3.5">
-            {/* Search Box */}
-            <div className="relative flex-1 min-w-[280px]">
-              <Search className="absolute left-3.5 top-3 text-slate-400" size={16} />
+        {/* ─── REDESIGNED UNIFIED FILTER & SEARCH HUB ─── */}
+        <div className="rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-xs space-y-4">
+          
+          {/* Top Row: Search Input + Status Pills + Mobile Filter Toggle */}
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+            {/* Search Box with Clear */}
+            <div className="relative flex-1 min-w-0">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
               <input
                 type="text"
                 placeholder="Search project title, ID, corporate partner, department, district..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50/70 py-2.5 pl-10 pr-9 text-xs font-semibold text-slate-900 placeholder-slate-400 outline-none focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50/70 py-2.5 pl-10 pr-9 text-xs font-semibold text-slate-900 placeholder-slate-400 outline-none focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all shadow-2xs"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-3 text-slate-400 hover:text-slate-700 cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 rounded-full cursor-pointer"
+                  title="Clear search"
                 >
-                  <X size={15} />
+                  <X size={14} />
                 </button>
               )}
             </div>
 
-            {/* Quick Status Segmented Tabs */}
-            <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-2xl border border-slate-200/70 overflow-x-auto shrink-0">
+            {/* Status Segmented Pills (Desktop & Tablet) */}
+            <div className="hidden sm:flex items-center gap-1 bg-slate-100/90 p-1 rounded-2xl border border-slate-200/70 overflow-x-auto shrink-0 scrollbar-none">
               {statusOptions.map((opt) => {
                 const isSelected = statusFilter === opt.value;
+                const count = opt.value === ""
+                  ? statusCounts.all
+                  : opt.value === "IN_PROGRESS"
+                  ? statusCounts.inProgress
+                  : opt.value === "COMPLETED"
+                  ? statusCounts.completed
+                  : opt.value === "APPROVED"
+                  ? statusCounts.approved
+                  : opt.value === "NOT_STARTED"
+                  ? statusCounts.notStarted
+                  : statusCounts.onHold;
+
                 return (
                   <button
                     key={opt.value}
                     type="button"
                     onClick={() => setStatusFilter(opt.value)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all whitespace-nowrap cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
                       isSelected
-                        ? "bg-blue-900 text-white shadow-xs scale-[1.02]"
+                        ? "bg-blue-900 text-white shadow-xs font-black"
                         : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
                     }`}
                   >
-                    {opt.label}
+                    <span>{opt.label}</span>
+                    {count > 0 && (
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+                        isSelected ? "bg-blue-800 text-blue-100" : "bg-slate-200 text-slate-600"
+                      }`}>
+                        {count}
+                      </span>
+                    )}
                   </button>
                 );
               })}
             </div>
 
-            {/* Right Controls: Refresh & View Toggle */}
-            <div className="flex items-center gap-2.5 self-end lg:self-center shrink-0">
+            {/* Mobile Filter Toggle Button */}
+            <div className="flex sm:hidden items-center justify-between gap-2">
               <button
                 type="button"
-                onClick={handleRefresh}
-                disabled={isRefreshing || isLoading}
-                title="Refresh projects register"
-                className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-black text-slate-700 shadow-2xs transition-all cursor-pointer group disabled:opacity-60"
+                onClick={() => setShowMobileFilters(!showMobileFilters)}
+                className={`flex-1 inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                  hasActiveFilters || showMobileFilters
+                    ? "bg-blue-50 border-blue-300 text-blue-900"
+                    : "bg-slate-50 border-slate-200 text-slate-700"
+                }`}
               >
-                <RefreshCw
-                  size={13}
-                  className={`transition-transform duration-300 ${
-                    isRefreshing || isFetching
-                      ? "animate-spin text-blue-600"
-                      : "text-slate-500 group-hover:rotate-45"
-                  }`}
-                />
-                <span className="hidden sm:inline">{isRefreshing || isFetching ? "Refreshing..." : "Refresh"}</span>
+                <SlidersHorizontal size={14} />
+                <span>Filters & Options</span>
+                {activeFiltersCount > 0 && (
+                  <span className="ml-1 bg-blue-900 text-white rounded-full text-[10px] w-5 h-5 flex items-center justify-center font-black">
+                    {activeFiltersCount}
+                  </span>
+                )}
               </button>
-              <ViewToggle view={viewMode} onChange={setViewMode} />
+
+              <div className="shrink-0">
+                <ViewToggle view={viewMode} onChange={setViewMode} />
+              </div>
             </div>
           </div>
 
-          {/* Secondary Filter Row: Department (Collector/State) + Sector + District */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
-            <div className="flex flex-wrap items-center gap-2.5">
-              {/* Department Filter Pills (Collectorate or State Admin) */}
-              {(isCollector || isStateAdmin) && (
-                <div className="flex items-center gap-1.5 bg-amber-50/60 border border-amber-200/80 p-1 rounded-2xl">
-                  <span className="text-[11px] font-black text-amber-900 px-2 flex items-center gap-1">
-                    <Landmark size={12} className="text-amber-700" /> Dept:
-                  </span>
+          {/* Department Breakdown Tab Bar (For District Collector & State Admins) */}
+          {(isCollector || isStateAdmin) && (
+            <div className="pt-2">
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 shrink-0 flex items-center gap-1 pr-1">
+                  <Landmark size={13} className="text-blue-700" />
+                  Department:
+                </span>
+                <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
                   {deptOptions.map((opt) => {
                     const isSelected = deptFilter === opt.value;
                     const count = opt.value === ""
@@ -550,20 +643,23 @@ export default function ProjectsPage() {
                       ? deptCounts.zp
                       : deptCounts.mnc;
 
+                    const IconComponent = opt.icon;
+
                     return (
                       <button
                         key={opt.value}
                         type="button"
                         onClick={() => setDeptFilter(opt.value)}
-                        className={`px-2.5 py-1 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
                           isSelected
-                            ? "bg-amber-900 text-white shadow-2xs"
-                            : "text-amber-950 hover:bg-amber-100/80"
+                            ? "bg-blue-950 text-white border-blue-950 shadow-2xs font-black"
+                            : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300"
                         }`}
                       >
+                        <IconComponent size={12} className={isSelected ? "text-blue-200" : "text-slate-500"} />
                         <span>{opt.label}</span>
-                        <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
-                          isSelected ? "bg-amber-950/40 text-amber-100" : "bg-amber-200/60 text-amber-900"
+                        <span className={`text-[10.5px] font-mono px-1.5 py-0.2 rounded-md font-bold ${
+                          isSelected ? "bg-blue-800 text-blue-100" : "bg-slate-200/80 text-slate-600"
                         }`}>
                           {count}
                         </span>
@@ -571,108 +667,239 @@ export default function ProjectsPage() {
                     );
                   })}
                 </div>
-              )}
+              </div>
+            </div>
+          )}
 
-              {/* Sector Dropdown Filter */}
-              <div className="flex items-center gap-1">
+          {/* Secondary Filters Strip (Dropdowns & Active Chips) */}
+          <div className={`space-y-3 pt-3 border-t border-slate-100 ${showMobileFilters ? "block" : "hidden sm:block"}`}>
+            {/* Status Dropdown on Mobile */}
+            <div className="sm:hidden space-y-1">
+              <label className="text-[11px] font-bold text-slate-500">Status</label>
+              <div className="relative">
                 <select
-                  value={sectorFilter}
-                  onChange={(e) => setSectorFilter(e.target.value)}
-                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-blue-600 focus:bg-white transition-all cursor-pointer shadow-2xs"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-blue-600 focus:bg-white transition-all cursor-pointer shadow-2xs pr-8"
                 >
-                  {SECTOR_OPTIONS.map((sec) => (
-                    <option key={sec} value={sec === "All Sectors" ? "" : sec}>
-                      {sec}
+                  {statusOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
                     </option>
                   ))}
                 </select>
+                <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
               </div>
+            </div>
 
-              {/* District Dropdown Filter (for State Admins) */}
-              {isStateAdmin && (
-                <div className="flex items-center gap-1">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 flex-wrap">
+              {/* Dropdown Selectors Group */}
+              <div className="flex flex-wrap items-center gap-2.5">
+                {/* Sector Dropdown */}
+                <div className="relative min-w-[170px] flex-1 sm:flex-initial">
                   <select
-                    value={districtFilter}
-                    onChange={(e) => setDistrictFilter(e.target.value)}
-                    className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-blue-600 focus:bg-white transition-all cursor-pointer shadow-2xs"
+                    value={sectorFilter}
+                    onChange={(e) => setSectorFilter(e.target.value)}
+                    className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 hover:bg-white focus:bg-white px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-blue-600 transition-all cursor-pointer shadow-2xs pr-8"
                   >
-                    <option value="">All 36 Districts</option>
-                    {MAHARASHTRA_DISTRICTS.map((d) => (
-                      <option key={d} value={d}>
-                        {d} District
+                    {SECTOR_OPTIONS.map((sec) => (
+                      <option key={sec} value={sec === "All Sectors" ? "" : sec}>
+                        {sec}
                       </option>
                     ))}
                   </select>
+                  <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 </div>
-              )}
+
+                {/* District Dropdown (for State Admins) */}
+                {isStateAdmin && (
+                  <div className="relative min-w-[170px] flex-1 sm:flex-initial">
+                    <select
+                      value={districtFilter}
+                      onChange={(e) => setDistrictFilter(e.target.value)}
+                      className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 hover:bg-white focus:bg-white px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-blue-600 transition-all cursor-pointer shadow-2xs pr-8"
+                    >
+                      <option value="">All 36 Districts</option>
+                      {MAHARASHTRA_DISTRICTS.map((d) => (
+                        <option key={d} value={d}>
+                          {d} District
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  </div>
+                )}
+
+                {/* Sort Dropdown */}
+                <div className="relative min-w-[170px] flex-1 sm:flex-initial">
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 hover:bg-white focus:bg-white px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-blue-600 transition-all cursor-pointer shadow-2xs pr-8"
+                  >
+                    {SORT_OPTIONS.map((s) => (
+                      <option key={s.value} value={s.value}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                </div>
+              </div>
+
+              {/* Match Counter & Clear All Button */}
+              <div className="flex items-center gap-3 text-xs text-slate-500 font-medium sm:ml-auto justify-between sm:justify-end">
+                <span>
+                  Showing <strong className="text-slate-900 font-black">{filteredProjects.length}</strong> of {projectsList.length} Projects
+                </span>
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    onClick={handleClearFilters}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 hover:text-rose-900 bg-rose-50 hover:bg-rose-100 border border-rose-200/80 px-2.5 py-1 rounded-xl transition-all cursor-pointer"
+                  >
+                    <RotateCcw size={12} />
+                    <span>Reset Filters</span>
+                  </button>
+                )}
+              </div>
             </div>
 
-            {/* Results Count & Clear Filters */}
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-500 ml-auto">
-              <span>Showing <strong className="text-slate-900 font-black">{filteredProjects.length}</strong> of {projectsList.length} Projects</span>
-              {hasActiveFilters && (
-                <button
-                  type="button"
-                  onClick={handleClearFilters}
-                  className="inline-flex items-center gap-1 text-[11px] font-black text-rose-700 hover:text-rose-900 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-2.5 py-1 rounded-xl transition-all cursor-pointer"
-                >
-                  <X size={12} /> Clear Filters
-                </button>
-              )}
-            </div>
+            {/* Active Filter Chips Strip */}
+            {hasActiveFilters && (
+              <div className="flex items-center gap-1.5 flex-wrap pt-1 text-xs">
+                <span className="text-[11px] font-bold text-slate-400 mr-1">Active filters:</span>
+
+                {searchQuery && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-900 border border-blue-200 text-xs font-semibold">
+                    <Search size={11} className="text-blue-600" />
+                    <span className="max-w-[120px] truncate">"{searchQuery}"</span>
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      className="hover:text-blue-950 p-0.5 rounded-full cursor-pointer ml-0.5"
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                )}
+
+                {statusFilter && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-900 border border-blue-200 text-xs font-semibold">
+                    <span>Status: {statusOptions.find(s => s.value === statusFilter)?.label || statusFilter}</span>
+                    <button
+                      type="button"
+                      onClick={() => setStatusFilter("")}
+                      className="hover:text-blue-950 p-0.5 rounded-full cursor-pointer ml-0.5"
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                )}
+
+                {deptFilter && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-900 border border-blue-200 text-xs font-semibold">
+                    <Landmark size={11} className="text-blue-600" />
+                    <span>Dept: {deptOptions.find(d => d.value === deptFilter)?.label || deptFilter}</span>
+                    <button
+                      type="button"
+                      onClick={() => setDeptFilter("")}
+                      className="hover:text-blue-950 p-0.5 rounded-full cursor-pointer ml-0.5"
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                )}
+
+                {sectorFilter && sectorFilter !== "All Sectors" && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-900 border border-blue-200 text-xs font-semibold">
+                    <Tag size={11} className="text-blue-600" />
+                    <span>{sectorFilter}</span>
+                    <button
+                      type="button"
+                      onClick={() => setSectorFilter("")}
+                      className="hover:text-blue-950 p-0.5 rounded-full cursor-pointer ml-0.5"
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                )}
+
+                {districtFilter && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-900 border border-blue-200 text-xs font-semibold">
+                    <MapPin size={11} className="text-blue-600" />
+                    <span>{districtFilter}</span>
+                    <button
+                      type="button"
+                      onClick={() => setDistrictFilter("")}
+                      className="hover:text-blue-950 p-0.5 rounded-full cursor-pointer ml-0.5"
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
         {/* ─── Projects Display View (Grid / List) ─── */}
         {isLoading ? (
-          <div className="py-16 flex justify-center">
+          <div className="py-20 flex flex-col items-center justify-center gap-3">
             <Loader label="Loading Assigned Convergence Projects..." />
           </div>
         ) : projectsList.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center shadow-xs space-y-3">
-            <div className="w-14 h-14 mx-auto rounded-3xl bg-blue-50 text-blue-900 flex items-center justify-center font-bold">
-              <FileText size={28} />
+          <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center shadow-xs space-y-4">
+            <div className="w-16 h-16 mx-auto rounded-3xl bg-blue-50 text-blue-900 flex items-center justify-center font-bold">
+              <FileText size={32} />
             </div>
-            <h3 className="text-base font-black text-slate-900">
-              {isZP || isMNC || (isGovtDepartment && !isCollector)
-                ? "No Projects Assigned to Your Department Yet"
-                : isCollector
-                ? `No Active CSR Projects in ${userDistrict || "District"}`
-                : "No Convergence Projects Recorded"}
-            </h3>
-            <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-              {isZP || isMNC || (isGovtDepartment && !isCollector)
-                ? "Once a Corporate Enquiry receives Joint Secretary executive sanction and is allocated to your organization, it will appear here for project kickoff and milestone execution."
-                : isCollector
-                ? `Projects sanctioned by the Joint Secretary for ${userDistrict || "this district"} across Collectorate, ZP, and Municipal Corporation will automatically appear here.`
-                : "There are currently no active CSR convergence projects in the platform database."}
-            </p>
+            <div className="space-y-1.5">
+              <h3 className="text-base font-black text-slate-900">
+                {isZP || isMNC || (isGovtDepartment && !isCollector)
+                  ? "No Projects Assigned to Your Department Yet"
+                  : isCollector
+                  ? `No Active CSR Projects in ${userDistrict || "District"}`
+                  : "No Convergence Projects Recorded"}
+              </h3>
+              <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                {isZP || isMNC || (isGovtDepartment && !isCollector)
+                  ? "Once a Corporate Enquiry receives Joint Secretary executive sanction and is allocated to your organization, it will appear here for project kickoff and milestone execution."
+                  : isCollector
+                  ? `Projects sanctioned by the Joint Secretary for ${userDistrict || "this district"} across Collectorate, ZP, and Municipal Corporation will automatically appear here.`
+                  : "There are currently no active CSR convergence projects in the platform database."}
+              </p>
+            </div>
           </div>
         ) : filteredProjects.length === 0 ? (
-          <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-xs space-y-3">
-            <Filter size={32} className="mx-auto text-slate-400" />
-            <h3 className="text-sm font-black text-slate-900">No Projects Match Your Filters</h3>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              Try adjusting your search query, sector, department, or status filters.
-            </p>
+          <div className="rounded-3xl border border-slate-200 bg-white p-12 text-center shadow-xs space-y-4">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center">
+              <Filter size={28} />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm font-black text-slate-900">No Projects Match Your Filter Criteria</h3>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                Try modifying your search query or reset your status, department, and sector filters.
+              </p>
+            </div>
             <button
               type="button"
               onClick={handleClearFilters}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-900 text-white text-xs font-black hover:bg-blue-950 transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-900 text-white text-xs font-bold hover:bg-blue-950 transition-all cursor-pointer shadow-xs"
             >
-              Reset All Filters
+              <RotateCcw size={13} />
+              <span>Reset All Filters</span>
             </button>
           </div>
         ) : viewMode === "grid" ? (
-          /* ─── GRID VIEW (VIBRANT CARDS) ─── */
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4.5">
+          /* ─── GRID VIEW (MODERN CARDS) ─── */
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {filteredProjects.map((p, idx) => (
               <motion.div
                 key={p.id}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: Math.min(idx * 0.02, 0.25) }}
-                className="group relative rounded-3xl border border-slate-200/90 bg-white p-5 shadow-2xs hover:shadow-xl hover:border-blue-300 transition-all duration-200 flex flex-col justify-between gap-4 overflow-hidden"
+                className="group relative rounded-3xl border border-slate-200 bg-white p-5 shadow-2xs hover:shadow-lg hover:border-blue-300 transition-all duration-200 flex flex-col justify-between gap-4 overflow-hidden"
               >
                 {/* Top Accent Gradient Bar */}
                 <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-900 via-indigo-700 to-teal-600" />
@@ -694,7 +921,7 @@ export default function ProjectsPage() {
                   {/* Project Title */}
                   <Link
                     href={`/convergence-projects/${p.id}`}
-                    className="block font-black text-sm text-slate-900 group-hover:text-blue-950 transition-colors line-clamp-2 leading-snug no-underline hover:underline"
+                    className="block font-black text-sm text-slate-900 group-hover:text-blue-900 transition-colors line-clamp-2 leading-snug no-underline hover:underline"
                   >
                     {p.title}
                   </Link>
@@ -759,7 +986,7 @@ export default function ProjectsPage() {
                         <button
                           type="button"
                           onClick={() => handleOpenReassign(p)}
-                          className="inline-flex items-center gap-1 text-[11px] font-black text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2.5 py-1.5 rounded-xl transition-all shadow-2xs cursor-pointer"
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2.5 py-1.5 rounded-xl transition-all shadow-2xs cursor-pointer"
                           title="Reassign to another department in district"
                         >
                           <ArrowRightLeft size={12} className="text-amber-700" />
@@ -768,7 +995,7 @@ export default function ProjectsPage() {
                       )}
                       <Link
                         href={`/convergence-projects/${p.id}`}
-                        className="inline-flex items-center gap-1 text-xs font-black text-white bg-blue-900 hover:bg-blue-950 px-3.5 py-1.5 rounded-xl shadow-xs transition-all no-underline"
+                        className="inline-flex items-center gap-1 text-xs font-bold text-white bg-blue-900 hover:bg-blue-950 px-3.5 py-1.5 rounded-xl shadow-xs transition-all no-underline"
                       >
                         <Eye size={13} />
                         <span>View</span>
@@ -781,7 +1008,7 @@ export default function ProjectsPage() {
           </div>
         ) : (
           /* ─── LIST VIEW (TABLE) ─── */
-          <div className="rounded-3xl border border-slate-200/90 bg-white p-4 shadow-sm overflow-x-auto">
+          <div className="rounded-3xl border border-slate-200/90 bg-white p-4 shadow-xs overflow-x-auto">
             <table className="gov-table w-full text-xs">
               <thead>
                 <tr>
@@ -799,13 +1026,13 @@ export default function ProjectsPage() {
               <tbody>
                 {sortedProjects.map((p) => (
                   <tr key={p.id} className="hover:bg-blue-50/30 transition-colors">
-                    <td className="font-mono font-black text-blue-900">
+                    <td className="font-mono font-bold text-blue-900">
                       <Link href={`/convergence-projects/${p.id}`} className="hover:underline">
                         {p.projectId}
                       </Link>
                     </td>
                     <td>
-                      <div className="font-black text-slate-900 max-w-[240px] truncate">{p.title}</div>
+                      <div className="font-bold text-slate-900 max-w-[240px] truncate">{p.title}</div>
                       <div className="text-[11px] text-slate-500 font-semibold flex items-center gap-1 mt-0.5 truncate">
                         <Briefcase size={11} className="text-indigo-700 shrink-0" />
                         <span className="truncate">{p.company}</span>
@@ -832,9 +1059,9 @@ export default function ProjectsPage() {
                     </td>
                     <td>
                       <div className="w-24 space-y-1">
-                        <div className="text-[10px] font-black text-slate-700 flex justify-between">
+                        <div className="text-[10px] font-bold text-slate-700 flex justify-between">
                           <span>Progress</span>
-                          <span className={p.progress === 100 ? "text-emerald-700" : "text-blue-900"}>{p.progress}%</span>
+                          <span className={p.progress === 100 ? "text-emerald-700 font-black" : "text-blue-900 font-black"}>{p.progress}%</span>
                         </div>
                         <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
                           <div
@@ -845,7 +1072,7 @@ export default function ProjectsPage() {
                       </div>
                     </td>
                     <td>
-                      <div className="font-black text-blue-950 font-mono">
+                      <div className="font-bold text-blue-950 font-mono">
                         {p.budget >= 10000000
                           ? `₹${(p.budget / 10000000).toFixed(2)} Cr`
                           : `₹${(p.budget / 100000).toFixed(1)}L`}
@@ -870,7 +1097,7 @@ export default function ProjectsPage() {
                         )}
                         <Link
                           href={`/convergence-projects/${p.id}`}
-                          className="inline-flex items-center justify-center px-3 py-1.5 text-xs font-black text-blue-900 hover:text-white bg-blue-50 hover:bg-blue-900 border border-blue-200 hover:border-blue-900 rounded-xl transition-all shadow-2xs"
+                          className="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold text-blue-900 hover:text-white bg-blue-50 hover:bg-blue-900 border border-blue-200 hover:border-blue-900 rounded-xl transition-all shadow-2xs"
                           title="View Details"
                         >
                           <Eye size={13} className="mr-1" />
@@ -897,7 +1124,7 @@ export default function ProjectsPage() {
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
                 <div className="font-black text-slate-900 text-sm">{selectedProject.title}</div>
                 <div className="flex items-center gap-2 text-slate-600 flex-wrap">
-                  <span className="font-mono font-black text-blue-900 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-200 text-[10.5px]">
+                  <span className="font-mono font-bold text-blue-900 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-200 text-[10.5px]">
                     {selectedProject.projectId}
                   </span>
                   <span>Currently assigned: <strong>{selectedProject.department}</strong></span>

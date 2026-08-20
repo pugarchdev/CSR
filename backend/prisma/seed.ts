@@ -154,35 +154,35 @@ async function main() {
     console.log("Seeding realistic Maharashtra demo accounts for testing...");
     const demoUsers = [
       // Authorities
-      { email: "admin@mahacsr.gov.in", firstName: "Super", lastName: "Admin", roleId: 1, orgId: mainOrg.id, district: "Mumbai", designation: "Platform Super Administrator", dept: "Planning Department, Mantralaya" },
-      { email: "secretary@mahacsr.gov.in", firstName: "Planning", lastName: "Secretary", roleId: 2, orgId: mainOrg.id, district: "Mumbai", designation: "Principal Secretary", dept: "Planning Department, Govt of Maharashtra" },
-      { email: "js@mahacsr.gov.in", firstName: "Joint", lastName: "Secretary", roleId: 3, orgId: mainOrg.id, district: "Mumbai", designation: "Joint Secretary (CSR Cell)", dept: "Planning Department, Mantralaya" },
+      { email: "admin@mahacsr.gov.in", firstName: "Super", lastName: "Admin", roleId: 1, orgId: mainOrg.id, district: "Mumbai", designation: "Platform Super Administrator", dept: "Planning Department, Mantralaya", mobile: "+91 98200 00001" },
+      { email: "secretary@mahacsr.gov.in", firstName: "Planning", lastName: "Secretary", roleId: 2, orgId: mainOrg.id, district: "Mumbai", designation: "Principal Secretary", dept: "Planning Department, Govt of Maharashtra", mobile: "+91 98200 00002" },
+      { email: "js@mahacsr.gov.in", firstName: "Joint", lastName: "Secretary", roleId: 3, orgId: mainOrg.id, district: "Mumbai", designation: "Joint Secretary (CSR Cell)", dept: "Planning Department, Mantralaya", mobile: "+91 98200 00003" },
       
       // Relationship Managers (RMs)
-      { email: "rm@mahacsr.gov.in", firstName: "Rajesh", lastName: "Kulkarni", roleId: 6, orgId: mainOrg.id, district: "Pune", designation: "Senior CSR Relationship Manager", dept: "Western Maharashtra Desk" },
-      { email: "rm.vidarbha@mahacsr.gov.in", firstName: "Anand", lastName: "Deshmukh", roleId: 6, orgId: mainOrg.id, district: "Nagpur", designation: "CSR Relationship Manager", dept: "Vidarbha Desk" },
-      { email: "rm.konkan@mahacsr.gov.in", firstName: "Sunil", lastName: "Patil", roleId: 6, orgId: mainOrg.id, district: "Thane", designation: "CSR Relationship Manager", dept: "Konkan Desk" },
+      { email: "rm@mahacsr.gov.in", firstName: "Rajesh", lastName: "Kulkarni", roleId: 6, orgId: mainOrg.id, district: "Pune", designation: "Senior CSR Relationship Manager", dept: "Western Maharashtra Desk", mobile: "+91 98201 12345" },
+      { email: "rm.vidarbha@mahacsr.gov.in", firstName: "Anand", lastName: "Deshmukh", roleId: 6, orgId: mainOrg.id, district: "Nagpur", designation: "CSR Relationship Manager", dept: "Vidarbha Desk", mobile: "+91 98202 23456" },
+      { email: "rm.konkan@mahacsr.gov.in", firstName: "Sunil", lastName: "Patil", roleId: 6, orgId: mainOrg.id, district: "Thane", designation: "CSR Relationship Manager", dept: "Konkan Desk", mobile: "+91 98203 34567" },
       
       // District Nodal Consultants (DNCs) - 1 per target district
-      { email: "dnc.pune@mahacsr.gov.in", firstName: "Milind", lastName: "Joshi", roleId: 5, orgId: mainOrg.id, district: "Pune", designation: "District Nodal Consultant", dept: "Collector Office, Pune" },
-      { email: "dnc.thane@mahacsr.gov.in", firstName: "Priya", lastName: "Shinde", roleId: 5, orgId: mainOrg.id, district: "Thane", designation: "District Nodal Consultant", dept: "Collector Office, Thane" },
-      { email: "dnc.nagpur@mahacsr.gov.in", firstName: "Vijay", lastName: "Gawande", roleId: 5, orgId: mainOrg.id, district: "Nagpur", designation: "District Nodal Consultant", dept: "Collector Office, Nagpur" },
-      { email: "dnc.nashik@mahacsr.gov.in", firstName: "Sanjay", lastName: "More", roleId: 5, orgId: mainOrg.id, district: "Nashik", designation: "District Nodal Consultant", dept: "Collector Office, Nashik" },
+      { email: "dnc.pune@mahacsr.gov.in", firstName: "Milind", lastName: "Joshi", roleId: 5, orgId: mainOrg.id, district: "Pune", designation: "District Nodal Consultant", dept: "Collector Office, Pune", mobile: "+91 98204 45678" },
+      { email: "dnc.thane@mahacsr.gov.in", firstName: "Priya", lastName: "Shinde", roleId: 5, orgId: mainOrg.id, district: "Thane", designation: "District Nodal Consultant", dept: "Collector Office, Thane", mobile: "+91 98205 56789" },
+      { email: "dnc.nagpur@mahacsr.gov.in", firstName: "Vijay", lastName: "Gawande", roleId: 5, orgId: mainOrg.id, district: "Nagpur", designation: "District Nodal Consultant", dept: "Collector Office, Nagpur", mobile: "+91 98206 67890" },
+      { email: "dnc.nashik@mahacsr.gov.in", firstName: "Sanjay", lastName: "More", roleId: 5, orgId: mainOrg.id, district: "Nashik", designation: "District Nodal Consultant", dept: "Collector Office, Nashik", mobile: "+91 98207 78901" },
 
       // District Nodal Officers (DNOs)
-      { email: "nodal@mahacsr.gov.in", firstName: "Dr. Bhagwan", lastName: "Pawar", roleId: 4, orgId: seededGovDepts.get("PHD").id, district: "Pune", designation: "District Health Officer (DHO)", dept: "Public Health Department, ZP Pune" },
-      { email: "dno.health.pune@mahacsr.gov.in", firstName: "Dr. Bhagwan", lastName: "Pawar", roleId: 4, orgId: seededGovDepts.get("PHD").id, district: "Pune", designation: "District Health Officer (DHO)", dept: "Public Health Department, ZP Pune" },
-      { email: "dno.edu.pune@mahacsr.gov.in", firstName: "Sunanda", lastName: "Wakhare", roleId: 4, orgId: seededGovDepts.get("SESD").id, district: "Pune", designation: "Education Officer (Primary)", dept: "School Education Department, ZP Pune" },
-      { email: "dno.rural.thane@mahacsr.gov.in", firstName: "Ramesh", lastName: "Bhoir", roleId: 4, orgId: seededGovDepts.get("RDD").id, district: "Thane", designation: "Executive Engineer (Rural Works)", dept: "Rural Development Department, ZP Thane" },
+      { email: "nodal@mahacsr.gov.in", firstName: "Dr. Bhagwan", lastName: "Pawar", roleId: 4, orgId: seededGovDepts.get("PHD").id, district: "Pune", designation: "District Health Officer (DHO)", dept: "Public Health Department, ZP Pune", mobile: "+91 98208 89012" },
+      { email: "dno.health.pune@mahacsr.gov.in", firstName: "Dr. Bhagwan", lastName: "Pawar", roleId: 4, orgId: seededGovDepts.get("PHD").id, district: "Pune", designation: "District Health Officer (DHO)", dept: "Public Health Department, ZP Pune", mobile: "+91 98208 89013" },
+      { email: "dno.edu.pune@mahacsr.gov.in", firstName: "Sunanda", lastName: "Wakhare", roleId: 4, orgId: seededGovDepts.get("SESD").id, district: "Pune", designation: "Education Officer (Primary)", dept: "School Education Department, ZP Pune", mobile: "+91 98208 89014" },
+      { email: "dno.rural.thane@mahacsr.gov.in", firstName: "Ramesh", lastName: "Bhoir", roleId: 4, orgId: seededGovDepts.get("RDD").id, district: "Thane", designation: "Executive Engineer (Rural Works)", dept: "Rural Development Department, ZP Thane", mobile: "+91 98208 89015" },
 
       // Government Department Admins
-      { email: "dept.health@mahacsr.gov.in", firstName: "Dr. Nitin", lastName: "Ambadekar", roleId: 7, orgId: seededGovDepts.get("PHD").id, district: "Mumbai", designation: "Director of Health Services", dept: "Public Health Department, Govt of Maharashtra" },
-      { email: "dept.education@mahacsr.gov.in", firstName: "Suraj", lastName: "Mandhare", roleId: 7, orgId: seededGovDepts.get("SESD").id, district: "Pune", designation: "Education Commissioner", dept: "School Education and Sports Department" },
-      { email: "dept.rural@mahacsr.gov.in", firstName: "Amit", lastName: "Saini", roleId: 7, orgId: seededGovDepts.get("RDD").id, district: "Mumbai", designation: "Joint Secretary", dept: "Rural Development Department" },
+      { email: "dept.health@mahacsr.gov.in", firstName: "Dr. Nitin", lastName: "Ambadekar", roleId: 7, orgId: seededGovDepts.get("PHD").id, district: "Mumbai", designation: "Director of Health Services", dept: "Public Health Department, Govt of Maharashtra", mobile: "+91 98209 90123" },
+      { email: "dept.education@mahacsr.gov.in", firstName: "Suraj", lastName: "Mandhare", roleId: 7, orgId: seededGovDepts.get("SESD").id, district: "Pune", designation: "Education Commissioner", dept: "School Education and Sports Department", mobile: "+91 98209 90124" },
+      { email: "dept.rural@mahacsr.gov.in", firstName: "Amit", lastName: "Saini", roleId: 7, orgId: seededGovDepts.get("RDD").id, district: "Mumbai", designation: "Joint Secretary", dept: "Rural Development Department", mobile: "+91 98209 90125" },
 
       // Corporate & NGO Admins
-      { email: "company.admin@mahacsr.gov.in", firstName: "Aarav", lastName: "Tata", roleId: 8, orgId: companyOrg.id, district: "Mumbai", designation: "Head of CSR", dept: "TATA CSR Foundation" },
-      { email: "ngo.admin@mahacsr.gov.in", firstName: "Zarina", lastName: "Screwvala", roleId: 9, orgId: ngoOrg.id, district: "Raigad", designation: "Managing Trustee", dept: "Swades Foundation" }
+      { email: "company.admin@mahacsr.gov.in", firstName: "Aarav", lastName: "Tata", roleId: 8, orgId: companyOrg.id, district: "Mumbai", designation: "Head of CSR", dept: "TATA CSR Foundation", mobile: "+91 98210 01234" },
+      { email: "ngo.admin@mahacsr.gov.in", firstName: "Zarina", lastName: "Screwvala", roleId: 9, orgId: ngoOrg.id, district: "Raigad", designation: "Managing Trustee", dept: "Swades Foundation", mobile: "+91 98210 01235" }
     ];
 
     const createdUserMap = new Map<string, any>();
@@ -196,6 +196,7 @@ async function main() {
           lastName: user.lastName,
           roleId: user.roleId,
           organizationId: user.orgId,
+          mobile: user.mobile,
           isVerified: true,
           accountStatus: "ACTIVE"
         },
@@ -205,6 +206,7 @@ async function main() {
           lastName: user.lastName,
           roleId: user.roleId,
           organizationId: user.orgId,
+          mobile: user.mobile,
           accountStatus: "ACTIVE",
           isVerified: true
         }
@@ -218,13 +220,15 @@ async function main() {
           fullName: `${user.firstName} ${user.lastName}`,
           designation: user.designation,
           department: user.dept,
-          district: user.district
+          district: user.district,
+          mobile: user.mobile
         },
         update: {
           fullName: `${user.firstName} ${user.lastName}`,
           designation: user.designation,
           department: user.dept,
-          district: user.district
+          district: user.district,
+          mobile: user.mobile
         }
       });
       console.log(`✓ User created/updated: ${user.email} (${user.designation})`);

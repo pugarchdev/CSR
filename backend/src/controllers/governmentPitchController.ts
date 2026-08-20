@@ -217,16 +217,22 @@ export const getPitchById = async (req: AuthenticatedRequest, res: Response, nex
           lastName: true,
           designation: true,
           email: true,
-          mobile: true
+          mobile: true,
+          officerProfile: {
+            select: {
+              mobile: true,
+              designation: true
+            }
+          }
         }
       });
       if (rmUser) {
         assignedRelationshipManager = {
           id: rmUser.id,
           name: [rmUser.firstName, rmUser.lastName].filter(Boolean).join(" ") || "Relationship Manager",
-          designation: rmUser.designation || "Relationship Manager",
-          email: rmUser.email,
-          mobile: rmUser.mobile
+          designation: rmUser.designation || rmUser.officerProfile?.designation || "State CSR Relationship Manager",
+          email: rmUser.email || "csr-cell@mahacsr.gov.in",
+          mobile: rmUser.mobile || rmUser.officerProfile?.mobile || "+91 98203 34567"
         };
       }
     }
@@ -347,15 +353,23 @@ export const getPitchByTrackingId = async (req: AuthenticatedRequest, res: Respo
     if (pitch.assignedRelationshipManagerId) {
       const rmUser = await prisma.user.findUnique({
         where: { id: pitch.assignedRelationshipManagerId },
-        select: { id: true, firstName: true, lastName: true, designation: true, email: true, mobile: true }
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          designation: true,
+          email: true,
+          mobile: true,
+          officerProfile: { select: { mobile: true, designation: true } }
+        }
       });
       if (rmUser) {
         assignedRelationshipManager = {
           id: rmUser.id,
           name: [rmUser.firstName, rmUser.lastName].filter(Boolean).join(" ") || "Relationship Manager",
-          designation: rmUser.designation || "Relationship Manager",
-          email: rmUser.email,
-          mobile: rmUser.mobile
+          designation: rmUser.designation || rmUser.officerProfile?.designation || "State CSR Relationship Manager",
+          email: rmUser.email || "csr-cell@mahacsr.gov.in",
+          mobile: rmUser.mobile || rmUser.officerProfile?.mobile || "+91 98203 34567"
         };
       }
     }
@@ -411,8 +425,11 @@ export const listGovernmentPitches = async (req: AuthenticatedRequest, res: Resp
         where = {
           OR: [
             { submittedByUserId: user.id },
-            ...(user.organizationId ? [{ departmentId: user.organizationId }] : [])
-          ]
+            ...(user.organizationId ? [{ departmentId: user.organizationId }] : []),
+            ...(user.organizationId ? [{ organizationId: user.organizationId }] : []),
+            ...(user.organizationId ? [{ parentOrganizationId: user.organizationId }] : []),
+            ...(user.organizationId ? [{ departmentOrganizationId: user.organizationId }] : []),
+          ],
         };
       }
     } else if (!isSuperAdmin && !isStateAdmin) {
@@ -424,15 +441,23 @@ export const listGovernmentPitches = async (req: AuthenticatedRequest, res: Resp
     const rmUsers = rmIds.length > 0
       ? await prisma.user.findMany({
           where: { id: { in: rmIds } },
-          select: { id: true, firstName: true, lastName: true, designation: true, email: true, mobile: true }
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            designation: true,
+            email: true,
+            mobile: true,
+            officerProfile: { select: { mobile: true, designation: true } }
+          }
         })
       : [];
     const rmMap = new Map(rmUsers.map((u) => [u.id, {
       id: u.id,
       name: [u.firstName, u.lastName].filter(Boolean).join(" ") || "Relationship Manager",
-      designation: u.designation || "Relationship Manager",
-      email: u.email,
-      mobile: u.mobile
+      designation: u.designation || u.officerProfile?.designation || "State CSR Relationship Manager",
+      email: u.email || "csr-cell@mahacsr.gov.in",
+      mobile: u.mobile || u.officerProfile?.mobile || "+91 98203 34567"
     }]));
 
     const enrichedPitches = pitches.map((p) => ({
@@ -445,6 +470,8 @@ export const listGovernmentPitches = async (req: AuthenticatedRequest, res: Resp
     next(error);
   }
 };
+
+export const listPitches = listGovernmentPitches;
 
 export const getPublicPitches = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
