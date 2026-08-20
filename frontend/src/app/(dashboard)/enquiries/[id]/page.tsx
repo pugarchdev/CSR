@@ -572,13 +572,23 @@ export default function EnquiryDetailPage() {
   const preferredTalukas = Array.isArray(enquiry?.preferredTalukas) ? enquiry.preferredTalukas : [];
   const preferredCities = Array.isArray(enquiry?.preferredCities) ? enquiry.preferredCities : [];
 
-  const tabs = [
-    { id: "overview", label: "Overview", icon: Briefcase },
-    { id: "communication", label: "Interaction Log", icon: MessageSquare },
-    { id: "feasibility", label: "13-Point Feasibility", icon: ClipboardCheck },
-    { id: "js", label: isJS ? "Executive Decision" : "JS Decision", icon: ShieldCheck },
-    { id: "assignments", label: "Assignments & Audit", icon: History },
-  ];
+  const canAccessFeasibility = isStateAuthority || hasPermission("assessment:view");
+  const canAccessJSDecision = isJS || isAdmin || (isStateAuthority && !isRM) || (isRM && Boolean(assessment?.jsDecision)) || hasPermission("assessment:review");
+
+  const tabs = useMemo(() => {
+    const list: Array<{ id: "overview" | "communication" | "feasibility" | "js" | "assignments"; label: string; icon: any }> = [
+      { id: "overview", label: "Overview", icon: Briefcase },
+      { id: "communication", label: "Interaction Log", icon: MessageSquare },
+    ];
+    if (canAccessFeasibility) {
+      list.push({ id: "feasibility", label: "13-Point Feasibility", icon: ClipboardCheck });
+    }
+    if (canAccessJSDecision) {
+      list.push({ id: "js", label: isJS ? "Executive Decision" : "JS Decision", icon: ShieldCheck });
+    }
+    list.push({ id: "assignments", label: "Assignments & Audit", icon: History });
+    return list;
+  }, [canAccessFeasibility, canAccessJSDecision, isJS]);
 
   return (
     <GovPortalLayout>
@@ -859,8 +869,12 @@ export default function EnquiryDetailPage() {
                 </h4>
                 <div className="space-y-2">
                   <TabNavButton label="View Interaction Log" icon={MessageSquare} onClick={() => setActiveTab("communication")} count={interactions.length} />
-                  <TabNavButton label="13-Point Feasibility" icon={ClipboardCheck} onClick={() => setActiveTab("feasibility")} />
-                  <TabNavButton label={isJS ? "Joint Secretary Decision Desk" : "JS Decision & Status"} icon={ShieldCheck} onClick={() => setActiveTab("js")} />
+                  {canAccessFeasibility && (
+                    <TabNavButton label="13-Point Feasibility" icon={ClipboardCheck} onClick={() => setActiveTab("feasibility")} />
+                  )}
+                  {canAccessJSDecision && (
+                    <TabNavButton label={isJS ? "Joint Secretary Decision Desk" : "JS Decision & Status"} icon={ShieldCheck} onClick={() => setActiveTab("js")} />
+                  )}
                 </div>
               </div>
 
@@ -949,9 +963,9 @@ export default function EnquiryDetailPage() {
         )}
 
         {/* ────────────────────────────────────────────────────── */}
-        {/* TAB 3: 13-FACTOR FEASIBILITY                          */}
+        {/* TAB 3: 13-FACTOR FEASIBILITY (Restricted to RM, JS, PS, Super Admin) */}
         {/* ────────────────────────────────────────────────────── */}
-        {activeTab === "feasibility" && (
+        {activeTab === "feasibility" && canAccessFeasibility && (
           <FeasibilityWorkspace
             enquiryId={params.id}
             existingAssessment={assessment}
@@ -963,9 +977,9 @@ export default function EnquiryDetailPage() {
         )}
 
         {/* ────────────────────────────────────────────────────── */}
-        {/* TAB 4: JS DECISION                                     */}
+        {/* TAB 4: JS DECISION (Restricted to JS, PS, Super Admin) */}
         {/* ────────────────────────────────────────────────────── */}
-        {activeTab === "js" && (
+        {activeTab === "js" && canAccessJSDecision && (
           <div className="space-y-4">
             {assessment?.id ? (
               <JointSecretaryDecisionPanel

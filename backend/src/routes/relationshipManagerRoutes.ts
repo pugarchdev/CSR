@@ -42,7 +42,14 @@ router.post(
   transferRmPortfolio
 );
 
-router.use(authorizeRoles([ROLE_ID.RELATIONSHIP_MANAGER]));
+router.use(
+  authorizeRoles([
+    ROLE_ID.SUPER_ADMIN,
+    ROLE_ID.PLANNING_SECRETARY,
+    ROLE_ID.JOINT_SECRETARY,
+    ROLE_ID.RELATIONSHIP_MANAGER,
+  ])
+);
 
 router.get("/overview", getRMOverview);
 router.get("/government-departments", listActiveGovernmentDepartments);
