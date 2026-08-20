@@ -1230,7 +1230,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
               <div className="border-t border-white/5">
                 <div className="mx-auto flex max-w-[1380px] flex-col gap-3 px-5 py-4 text-[11px] font-medium text-slate-500 md:flex-row md:items-center md:justify-between md:px-8">
                   <span>&copy; 2026 Government of Maharashtra. All rights reserved.</span>
-                  <span className="hidden md:block">Best viewed in Chrome 90+, Firefox 90+, Edge 90+, Safari 13+</span>
+                
                   <button
                     onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
                     className="inline-flex items-center gap-1.5 text-slate-500 hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0"

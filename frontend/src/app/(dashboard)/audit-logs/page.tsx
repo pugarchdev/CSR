@@ -8,7 +8,7 @@ import GovInput from "@/components/gov/GovInput";
 import GovSelect from "@/components/gov/GovSelect";
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
 import { StatCard } from "@/components/ui/StatCard";
-import { Activity, Users, ShieldCheck } from "lucide-react";
+import { Activity, Users, ShieldCheck, ArrowUp, ArrowDown } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import "@/styles/gov-theme.css";
 
@@ -23,6 +23,32 @@ interface AuditLog {
   user?: { id: string; email: string; role: string } | null;
 }
 
+// 1. Added SortableTh Component
+interface SortableThProps {
+  sortKey: string;
+  currentSortKey: string;
+  currentSortDirection: "asc" | "desc";
+  onSort: (key: string) => void;
+  className?: string;
+  children: React.ReactNode;
+}
+
+function SortableTh({ sortKey, currentSortKey, currentSortDirection, onSort, className, children }: SortableThProps) {
+  return (
+    <th
+      className={`${className} cursor-pointer hover:bg-slate-50 transition-colors select-none`}
+      onClick={() => onSort(sortKey)}
+    >
+      <div className="flex items-center gap-1">
+        {children}
+        {currentSortKey === sortKey && (
+          currentSortDirection === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+        )}
+      </div>
+    </th>
+  );
+}
+
 export default function AuditLogsPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +56,10 @@ export default function AuditLogsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterAction, setFilterAction] = useState("ALL");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // 2. Added Sorting State
+  const [sortKey, setSortKey] = useState<string>("createdAt");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -49,6 +79,16 @@ export default function AuditLogsPage() {
     fetchLogs();
   }, [fetchLogs]);
 
+  // 3. Added Sorting Handler
+  const requestSort = (key: string) => {
+    let direction: "asc" | "desc" = "asc";
+    if (sortKey === key && sortDirection === "asc") {
+      direction = "desc";
+    }
+    setSortKey(key);
+    setSortDirection(direction);
+  };
+
   const actions = Array.from(new Set(logs.map((l) => l.action))).sort();
   const distinctUsers = new Set(logs.map((l) => l.user?.email).filter(Boolean)).size;
 
@@ -62,6 +102,25 @@ export default function AuditLogsPage() {
       (log.entityId || "").toLowerCase().includes(term);
     const matchesAction = filterAction === "ALL" || log.action === filterAction;
     return matchesSearch && matchesAction;
+  });
+
+  // 4. Added sorting computation (sortedLogs)
+  const sortedLogs = [...filtered].sort((a, b) => {
+    let aValue: any = a[sortKey as keyof AuditLog];
+    let bValue: any = b[sortKey as keyof AuditLog];
+
+    // Handle nested or derived sorting keys
+    if (sortKey === "user") {
+      aValue = a.user?.email || "";
+      bValue = b.user?.email || "";
+    } else if (sortKey === "entity") {
+      aValue = a.entityType || "";
+      bValue = b.entityType || "";
+    }
+
+    if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+    if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+    return 0;
   });
 
   const actionVariant = (action: string): "success" | "warning" | "danger" | "info" | "muted" => {
@@ -119,11 +178,10 @@ export default function AuditLogsPage() {
       </div>
 
       {/* Log Search and Filters */}
-<GovCard className="mb-6">
+      <GovCard className="mb-6">
         <GovCardBody className="!p-4 md:!p-5">
           <div className="flex flex-col md:flex-row md:items-end gap-3 md:gap-4 w-full">
-            
-            {/* Search Bar - Takes up remaining space */}
+            {/* Search Bar */}
             <div className="w-full flex-1 min-w-0">
               <label className="block mb-1.5 text-xs font-bold text-slate-700">
                 Search Audit Logs
@@ -136,7 +194,7 @@ export default function AuditLogsPage() {
               />
             </div>
 
-            {/* Dropdown - Increased width to 380px to fit long action names */}
+            {/* Dropdown */}
             <div className="w-full md:w-[380px] shrink-0">
               <GovSelect
                 label="Filter by Action"
@@ -149,13 +207,12 @@ export default function AuditLogsPage() {
                 ))}
               </GovSelect>
             </div>
-            
           </div>
         </GovCardBody>
       </GovCard>
 
       {/* Log Table */}
-   <GovCard>
+      <GovCard>
         <GovCardHeader className="!px-4 !py-4 md:!px-5">
           <GovCardTitle>System Audit Events ({filtered.length})</GovCardTitle>
         </GovCardHeader>
@@ -171,97 +228,231 @@ export default function AuditLogsPage() {
               No audit events found in database.
             </div>
           ) : (
-            <div className="w-full md:overflow-x-auto">
-              <table className="w-full block md:table text-left border-collapse">
-                <thead className="hidden md:table-header-group border-b-2 border-slate-200">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500">TIMESTAMP</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500">USER</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500">ACTION</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500">ENTITY</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500">IP ADDRESS</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500">DETAILS</th>
-                  </tr>
-                </thead>
-                <tbody className="block md:table-row-group divide-y-0 md:divide-y md:divide-slate-100">
-                  {filtered.map((log) => {
-                    const detail = detailText(log.details);
-                    const expanded = expandedId === log.id;
-                    return (
-                      <tr
-                        key={log.id}
-                        className={`block md:table-row mb-4 md:mb-0 bg-white border border-slate-200 md:border-none rounded-xl md:rounded-none shadow-sm md:shadow-none transition-colors hover:bg-slate-50/50 ${detail ? "cursor-pointer" : "cursor-default"}`}
-                        onClick={() => setExpandedId(expanded ? null : log.id)}
+            <div className="w-full">
+              {/* ================= DESKTOP TABLE ================= */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead className="border-b-2 border-slate-200">
+                    <tr>
+                      <SortableTh
+                        sortKey="createdAt"
+                        currentSortKey={sortKey}
+                        currentSortDirection={sortDirection}
+                        onSort={requestSort}
+                        className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500"
                       >
-                        <td 
-                          data-label="TIMESTAMP" 
-                          className="flex md:table-cell justify-between items-center px-4 py-3 border-b border-slate-100 md:border-none text-xs font-semibold text-slate-600 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden whitespace-nowrap"
+                        TIMESTAMP
+                      </SortableTh>
+
+                      <SortableTh
+                        sortKey="user"
+                        currentSortKey={sortKey}
+                        currentSortDirection={sortDirection}
+                        onSort={requestSort}
+                        className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500"
+                      >
+                        USER
+                      </SortableTh>
+
+                      <SortableTh
+                        sortKey="action"
+                        currentSortKey={sortKey}
+                        currentSortDirection={sortDirection}
+                        onSort={requestSort}
+                        className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500"
+                      >
+                        ACTION
+                      </SortableTh>
+
+                      <SortableTh
+                        sortKey="entity"
+                        currentSortKey={sortKey}
+                        currentSortDirection={sortDirection}
+                        onSort={requestSort}
+                        className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500"
+                      >
+                        ENTITY
+                      </SortableTh>
+
+                      <SortableTh
+                        sortKey="ipAddress"
+                        currentSortKey={sortKey}
+                        currentSortDirection={sortDirection}
+                        onSort={requestSort}
+                        className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500"
+                      >
+                        IP ADDRESS
+                      </SortableTh>
+
+                      <th className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500">
+                        DETAILS
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody className="divide-y divide-slate-100">
+                    {sortedLogs.map((log) => {
+                      const detail = detailText(log.details);
+                      const expanded = expandedId === log.id;
+
+                      return (
+                        <tr
+                          key={log.id}
+                          onClick={() => detail && setExpandedId(expanded ? null : log.id)}
+                          className={`transition-colors hover:bg-slate-50/50 ${detail ? "cursor-pointer" : "cursor-default"}`}
                         >
-                          {new Date(log.createdAt).toLocaleString()}
-                        </td>
-                        
-                        <td 
-                          data-label="USER" 
-                          /* FIX: Added md:w-auto to reset cell width on desktop */
-                          className="flex md:table-cell justify-between items-center px-4 py-3 border-b border-slate-100 md:border-none text-[13px] before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden w-full md:w-auto min-w-0"
-                        >
-                          <div className="text-right md:text-left min-w-0">
-                            {/* FIX: Use break-words on desktop, break-all on mobile */}
-                            <div className="font-bold text-slate-900 break-all md:break-words">{log.user?.email || "system"}</div>
-                            <div className="text-[11px] text-slate-500">{log.user?.role || ""}</div>
-                          </div>
-                        </td>
-                        
-                        <td 
-                          data-label="ACTION" 
-                          className="flex md:table-cell justify-between items-center px-4 py-3 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden"
-                        >
-                          <GovStatusBadge variant={actionVariant(log.action)}>
-                            {log.action.replace(/_/g, " ")}
-                          </GovStatusBadge>
-                        </td>
-                        
-                        <td 
-                          data-label="ENTITY" 
-                          /* FIX: Added md:w-auto to reset cell width on desktop */
-                          className="flex md:table-cell justify-between items-center px-4 py-3 border-b border-slate-100 md:border-none text-xs font-semibold text-slate-600 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden w-full md:w-auto min-w-0"
-                        >
-                          <div className="text-right md:text-left min-w-0">
-                            <div className="text-slate-900 break-all md:break-words">{log.entityType || "—"}</div>
+                          <td className="px-4 py-3 text-xs font-semibold text-slate-600 whitespace-nowrap">
+                            {new Date(log.createdAt).toLocaleString()}
+                          </td>
+
+                          <td className="px-4 py-3 text-[13px]">
+                            <div className="font-bold text-slate-900 break-words">
+                              {log.user?.email || "system"}
+                            </div>
+                            <div className="text-[11px] text-slate-500">
+                              {log.user?.role || ""}
+                            </div>
+                          </td>
+
+                          <td className="px-4 py-3">
+                            <GovStatusBadge variant={actionVariant(log.action)}>
+                              {log.action.replace(/_/g, " ")}
+                            </GovStatusBadge>
+                          </td>
+
+                          <td className="px-4 py-3 text-xs font-semibold text-slate-600">
+                            <div className="text-slate-900 break-words">
+                              {log.entityType || "—"}
+                            </div>
                             {log.entityId && (
-                              <div className="text-[11px] text-slate-500 break-all md:break-words">
-                                {log.entityId.length > 18 ? `${log.entityId.slice(0, 18)}…` : log.entityId}
+                              <div className="text-[11px] text-slate-500 break-words">
+                                {log.entityId.length > 18
+                                  ? `${log.entityId.slice(0, 18)}…`
+                                  : log.entityId}
                               </div>
                             )}
+                          </td>
+
+                          <td className="px-4 py-3 text-xs font-semibold text-slate-600">
+                            {log.ipAddress || "—"}
+                          </td>
+
+                          <td className="px-4 py-3 text-xs text-slate-600 max-w-[400px]">
+                            <span title={detail}>
+                              {expanded || detail.length <= 80
+                                ? detail || "—"
+                                : `${detail.slice(0, 80)}…`}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* ================= MOBILE CARD VIEW ================= */}
+              <div className="md:hidden space-y-3">
+                {sortedLogs.map((log) => {
+                  const detail = detailText(log.details);
+                  const expanded = expandedId === log.id;
+
+                  return (
+                    <div
+                      key={log.id}
+                      onClick={() => detail && setExpandedId(expanded ? null : log.id)}
+                      className={`rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden transition-all ${detail ? "cursor-pointer active:scale-[0.99]" : ""}`}
+                    >
+                      <div className="px-4 py-3.5 border-b border-slate-100">
+                        {/* Added flex-wrap and adjusted the gap */}
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+
+                          {/* Changed min-w-0 to min-w-[120px] to prevent crushing */}
+                          <div className="min-w-[120px] flex-1">
+                            <p className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400">
+                              User
+                            </p>
+                            {/* Changed break-all to break-words */}
+                            <p className="mt-1 text-xs font-bold text-slate-900 break-words">
+                              {log.user?.email || "system"}
+                            </p>
+                            {log.user?.role && (
+                              <p className="mt-0.5 text-[10px] font-medium text-slate-500">
+                                {log.user.role}
+                              </p>
+                            )}
                           </div>
-                        </td>
-                        
-                        <td 
-                          data-label="IP ADDRESS" 
-                          className="flex md:table-cell justify-between items-center px-4 py-3 border-b border-slate-100 md:border-none text-xs font-semibold text-slate-600 before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden"
-                        >
-                          {log.ipAddress || "—"}
-                        </td>
-                        
-                        <td 
-                          data-label="DETAILS" 
-                          /* FIX: Added md:w-auto and increased max-w for desktop readability */
-                          className="flex md:table-cell flex-col md:flex-row items-start md:items-center px-4 py-3 md:border-none text-xs text-slate-600 w-full md:w-auto min-w-0 md:max-w-[400px] before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden before:mb-1"
-                        >
-                          {/* FIX: Break-words instead of break-all on desktop so standard text flows naturally */}
-                          <span title={detail} className={`w-full ${expanded ? "break-all" : "break-all md:break-words"}`}>
-                            {expanded || detail.length <= 80 ? detail || "—" : `${detail.slice(0, 80)}…`}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+
+                          {/* Added max-w-full to prevent the badge from overflowing the card */}
+                          <div className="shrink-0 max-w-full">
+                            <GovStatusBadge variant={actionVariant(log.action)}>
+                              {log.action.replace(/_/g, " ")}
+                            </GovStatusBadge>
+                          </div>
+                        </div>
+
+                        {/* Timestamp */}
+                        <div className="mt-2.5 flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
+                          <span>{new Date(log.createdAt).toLocaleDateString()}</span>
+                          <span>•</span>
+                          <span>{new Date(log.createdAt).toLocaleTimeString()}</span>
+                        </div>
+                      </div>
+
+                      <div className="px-4 py-3 grid grid-cols-2 gap-2.5">
+                        <div className="rounded-xl bg-slate-50 px-3 py-2.5 min-w-0">
+                          <p className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400">
+                            Entity
+                          </p>
+                          <p className="mt-1 text-xs font-bold text-slate-800 break-words">
+                            {log.entityType || "—"}
+                          </p>
+                          {log.entityId && (
+                            <p className="mt-0.5 text-[10px] font-medium text-slate-500 break-all">
+                              {log.entityId.length > 18
+                                ? `${log.entityId.slice(0, 18)}…`
+                                : log.entityId}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="rounded-xl bg-slate-50 px-3 py-2.5 min-w-0">
+                          <p className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400">
+                            IP Address
+                          </p>
+                          <p className="mt-1 text-xs font-mono font-semibold text-slate-700 break-all">
+                            {log.ipAddress || "—"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="px-4 pb-3.5">
+                        <div className="rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5">
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <p className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400">
+                              Details
+                            </p>
+                            {detail && detail.length > 80 && (
+                              <span className="text-[9px] font-bold text-blue-600">
+                                {expanded ? "Tap to collapse" : "Tap to expand"}
+                              </span>
+                            )}
+                          </div>
+                          <p className={`text-[11px] leading-relaxed text-slate-600 ${expanded ? "break-words" : "break-words"}`}>
+                            {expanded || detail.length <= 80
+                              ? detail || "—"
+                              : `${detail.slice(0, 80)}…`}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </GovCardBody>
       </GovCard>
     </GovPortalLayout>
   );
-}
+} 
