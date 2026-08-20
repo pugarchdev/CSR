@@ -691,8 +691,8 @@ export const submitFeasibilityAssessment = async (req: AuthenticatedRequest, res
         recipientId: jointSecretary.id,
         templateName: "FEASIBILITY_JS_REVIEW",
         channels: ["IN_APP", "SOCKET", "EMAIL", "SMS"],
-        variables: { title: "Feasibility assessment ready", message: `Assessment for ${id} is ready for a Joint Secretary decision.`, currentStatus: "SUBMITTED_TO_JS" },
-        actionButtonUrl: `/assessments/${assessment.id}`,
+        variables: { title: "Feasibility assessment ready", message: `Assessment for ${id} is ready for a Joint Secretary decision.`, currentStatus: "SUBMITTED_TO_JS", enquiryId: id },
+        actionButtonUrl: `/enquiries/${id}`,
         correlationId: assessment.id,
         notificationType: "FEASIBILITY_JS_REVIEW"
       });

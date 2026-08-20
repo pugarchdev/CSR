@@ -53,7 +53,7 @@ export async function routeApprovedCorporateEnquiry(input: ApprovedProjectInput)
     prisma.corporateEnquiry.findUnique({ where: { id: assessment.enquiryId } }),
     prisma.organization.findFirst({
       where: { id: targetDeptId, kind: "GOVERNMENT_DEPARTMENT", status: "ACTIVE" },
-      select: { id: true, name: true }
+      select: { id: true, name: true, parentOrganizationId: true }
     }),
     prisma.districtDncAssignment.findMany({
       where: { district: { in: districts }, isActive: true, dncUser: { roleId: ROLE_ID.DISTRICT_NODAL_CONSULTANT, accountStatus: "ACTIVE", isVerified: true } },
@@ -71,20 +71,23 @@ export async function routeApprovedCorporateEnquiry(input: ApprovedProjectInput)
 
   if (!enquiry) throw new Error("Corporate enquiry not found");
   if (!department) throw new Error("The selected Government Department is not Super-Admin approved.");
-  const dncByDistrict = new Map(dncMappings.map((mapping) => [mapping.district, mapping]));
-  const unmappedDistricts = districts.filter((district) => !dncByDistrict.has(district));
-  if (unmappedDistricts.length) {
-    // If DNC not configured for district, find any state/district DNC or fallback
-    const fallbackDnc = await prisma.districtDncAssignment.findFirst({
-      where: { isActive: true, dncUser: { roleId: ROLE_ID.DISTRICT_NODAL_CONSULTANT, accountStatus: "ACTIVE", isVerified: true } }
-    });
-    if (!fallbackDnc && !process.env.ALLOW_UNMAPPED_DNC) {
-      throw new Error(`No active DNC is configured for: ${unmappedDistricts.join(", ")}. Configure the district before approving.`);
-    }
-  }
-  if (!departmentAdmin) throw new Error("The selected Government Department has no active Department Admin.");
 
-  const firstDistrict = districts[0];
+  const dncByDistrict = new Map(dncMappings.map((mapping) => [mapping.district, mapping]));
+  // DNC can be created or assigned later by JS, Collector, Commissioner, or CEO - do not block approval
+
+  // Fallback for department admin if not specifically assigned to this department yet
+  const resolvedDeptAdmin = departmentAdmin || await prisma.user.findFirst({
+    where: {
+      OR: [
+        { roleId: ROLE_ID.GOVERNMENT_OFFICER },
+        { roleId: ROLE_ID.SUPER_ADMIN }
+      ],
+      accountStatus: "ACTIVE"
+    },
+    select: { id: true, email: true }
+  });
+
+  const firstDistrict = districts[0] || "Maharashtra";
   const project = await prisma.$transaction(async (tx) => {
     const created = await tx.project.create({
       data: {
@@ -97,51 +100,71 @@ export async function routeApprovedCorporateEnquiry(input: ApprovedProjectInput)
         taluka: enquiry.preferredTalukas[0] || "To be confirmed",
         approvedBudget: enquiry.indicativeBudget || 0,
         organizationId: department.id,
+        parentOrganizationId: department.parentOrganizationId || department.id,
+        departmentOrganizationId: department.id,
+        dncUserId: dncMappings[0]?.dncUserId || null,
         corporatePartnerId: enquiry.organizationId,
         approvalSourceEnquiryId: enquiry.id,
         status: "APPROVED"
       }
     });
 
-    await tx.projectDistrictDncAssignment.createMany({
-      data: districts.map((district) => ({
+    const validDncAssignments = districts
+      .filter((district) => dncByDistrict.has(district))
+      .map((district) => ({
         projectId: created.id,
         district,
         dncUserId: dncByDistrict.get(district)!.dncUserId,
         assignedById: input.actorUserId,
         status: "ACTIVE"
-      }))
-    });
+      }));
 
-    await tx.projectAssignment.createMany({
-      data: [
-        ...districts.map((district) => ({
+    if (validDncAssignments.length > 0) {
+      await tx.projectDistrictDncAssignment.createMany({
+        data: validDncAssignments
+      });
+    }
+
+    const projectAssignments: any[] = [];
+    districts.forEach((district) => {
+      const dnc = dncByDistrict.get(district);
+      if (dnc?.dncUserId) {
+        projectAssignments.push({
           entityType: "PROJECT",
           entityId: created.id,
           assignmentType: "DISTRICT_NODAL_CONSULTANT",
           assignedById: input.actorUserId,
-          assignedToId: dncByDistrict.get(district)!.dncUserId,
+          assignedToId: dnc.dncUserId,
           assignedRoleId: ROLE_ID.DISTRICT_NODAL_CONSULTANT,
           status: "ACTIVE"
-        })),
-        {
-          entityType: "PROJECT",
-          entityId: created.id,
-          assignmentType: "GOVERNMENT_DEPARTMENT_ADMIN",
-          assignedById: input.actorUserId,
-          assignedToId: departmentAdmin.id,
-          assignedRoleId: ROLE_ID.GOVERNMENT_OFFICER,
-          status: "ACTIVE"
-        }
-      ]
+        });
+      }
     });
+
+    if (resolvedDeptAdmin?.id) {
+      projectAssignments.push({
+        entityType: "PROJECT",
+        entityId: created.id,
+        assignmentType: "GOVERNMENT_DEPARTMENT_ADMIN",
+        assignedById: input.actorUserId,
+        assignedToId: resolvedDeptAdmin.id,
+        assignedRoleId: ROLE_ID.GOVERNMENT_OFFICER,
+        status: "ACTIVE"
+      });
+    }
+
+    if (projectAssignments.length > 0) {
+      await tx.projectAssignment.createMany({
+        data: projectAssignments
+      });
+    }
 
     await tx.corporateEnquiry.update({ where: { id: enquiry.id }, data: { status: "JS_APPROVED" } });
     return created;
   });
 
   const dncUserIds = dncMappings.map((mapping) => mapping.dncUserId);
-  await Promise.all([
+  const notifications: Promise<any>[] = [
     ...dncUserIds.map((recipientId) => dispatchNotification({
       recipientId,
       templateName: "PROJECT_DNC_ASSIGNED",
@@ -151,15 +174,6 @@ export async function routeApprovedCorporateEnquiry(input: ApprovedProjectInput)
       correlationId: project.id,
       notificationType: "PROJECT_DNC_ASSIGNED"
     })),
-    dispatchNotification({
-      recipientId: departmentAdmin.id,
-      templateName: "PROJECT_DEPARTMENT_ADMIN_ASSIGNED",
-      channels: ["IN_APP", "SOCKET", "EMAIL", "SMS"],
-      variables: { title: "Assign DNOs", message: `${project.projectCode} is assigned to your department. Assign one or more DNOs.`, currentStatus: project.status },
-      actionButtonUrl: `/projects/${project.id}`,
-      correlationId: project.id,
-      notificationType: "PROJECT_DEPARTMENT_ADMIN_ASSIGNED"
-    }),
     dispatchToContact({
       referenceId: enquiry.trackingId || enquiry.id,
       email: enquiry.contactEmail,
@@ -172,9 +186,23 @@ export async function routeApprovedCorporateEnquiry(input: ApprovedProjectInput)
       correlationId: project.id,
       notificationType: "JS_DECISION"
     })
-  ]);
+  ];
 
-  return { project, created: true, dncAssignments: dncMappings.map(({ district, dncUserId }) => ({ district, dncUserId })), departmentAdminId: departmentAdmin.id };
+  if (resolvedDeptAdmin?.id) {
+    notifications.push(dispatchNotification({
+      recipientId: resolvedDeptAdmin.id,
+      templateName: "PROJECT_DEPARTMENT_ADMIN_ASSIGNED",
+      channels: ["IN_APP", "SOCKET", "EMAIL", "SMS"],
+      variables: { title: "Assign DNOs", message: `${project.projectCode} is assigned to your department. Assign one or more DNOs.`, currentStatus: project.status },
+      actionButtonUrl: `/projects/${project.id}`,
+      correlationId: project.id,
+      notificationType: "PROJECT_DEPARTMENT_ADMIN_ASSIGNED"
+    }));
+  }
+
+  await Promise.all(notifications);
+
+  return { project, created: true, dncAssignments: dncMappings.map(({ district, dncUserId }) => ({ district, dncUserId })), departmentAdminId: resolvedDeptAdmin?.id || null };
 }
 
 export async function routeApprovedGovernmentPitch(input: { pitchId: string; interestId?: string; corporateId?: string; actorUserId: string }) {
@@ -205,7 +233,7 @@ export async function routeApprovedGovernmentPitch(input: { pitchId: string; int
           { kind: "GOVERNMENT_DEPARTMENT", status: "ACTIVE" }
         ]
       },
-      select: { id: true, name: true }
+      select: { id: true, name: true, parentOrganizationId: true }
     }),
     prisma.districtDncAssignment.findFirst({
       where: { district: { equals: district, mode: "insensitive" }, isActive: true, dncUser: { roleId: ROLE_ID.DISTRICT_NODAL_CONSULTANT, accountStatus: "ACTIVE", isVerified: true } },
@@ -229,9 +257,18 @@ export async function routeApprovedGovernmentPitch(input: { pitchId: string; int
   ]);
 
   if (!department) throw new Error("The government department associated with this pitch is not active.");
-  if (!dncMapping) throw new Error(`No active DNC is configured for district '${district}'. Please configure the district DNC first.`);
-  if (!departmentAdmin) throw new Error("The target government department has no active Department Admin.");
   if (!corporateOrg) throw new Error("The expressing corporate partner is not Super-Admin approved (ACTIVE status required).");
+
+  const resolvedDeptAdmin = departmentAdmin || await prisma.user.findFirst({
+    where: {
+      OR: [
+        { roleId: ROLE_ID.GOVERNMENT_OFFICER },
+        { roleId: ROLE_ID.SUPER_ADMIN }
+      ],
+      accountStatus: "ACTIVE"
+    },
+    select: { id: true, email: true }
+  });
 
   const existingProject = await prisma.project.findFirst({
     where: { OR: [{ approvalSourceEnquiryId: pitch.id }, { title: { contains: pitch.pitchReferenceId || pitch.id } }] }
@@ -270,7 +307,7 @@ export async function routeApprovedGovernmentPitch(input: { pitchId: string; int
         organizationId: department.id,
         parentOrganizationId: parentOrgId,
         departmentOrganizationId: department.id,
-        dncUserId: dncMapping.dncUserId,
+        dncUserId: dncMapping?.dncUserId || null,
         nodalOfficerUserId: activeDno?.userId || null,
         departmentAssignmentStatus: "CONFIRMED",
         corporatePartnerId: corporateOrg.id,
@@ -279,47 +316,58 @@ export async function routeApprovedGovernmentPitch(input: { pitchId: string; int
       }
     });
 
-    await tx.projectDistrictDncAssignment.create({
-      data: {
-        projectId: created.id,
-        district: district,
-        dncUserId: dncMapping.dncUserId,
-        assignedById: input.actorUserId,
-        status: "ACTIVE"
-      }
-    });
+    if (dncMapping?.dncUserId) {
+      await tx.projectDistrictDncAssignment.create({
+        data: {
+          projectId: created.id,
+          district: district,
+          dncUserId: dncMapping.dncUserId,
+          assignedById: input.actorUserId,
+          status: "ACTIVE"
+        }
+      });
+    }
 
-    await tx.projectAssignment.createMany({
-      data: [
-        {
-          entityType: "PROJECT",
-          entityId: created.id,
-          assignmentType: "DISTRICT_NODAL_CONSULTANT",
-          assignedById: input.actorUserId,
-          assignedToId: dncMapping.dncUserId,
-          assignedRoleId: ROLE_ID.DISTRICT_NODAL_CONSULTANT,
-          status: "ACTIVE"
-        },
-        {
-          entityType: "PROJECT",
-          entityId: created.id,
-          assignmentType: "GOVERNMENT_DEPARTMENT_ADMIN",
-          assignedById: input.actorUserId,
-          assignedToId: departmentAdmin.id,
-          assignedRoleId: ROLE_ID.GOVERNMENT_OFFICER,
-          status: "ACTIVE"
-        },
-        ...(activeDno && activeDno.userId ? [{
-          entityType: "PROJECT",
-          entityId: created.id,
-          assignmentType: "DISTRICT_NODAL_OFFICER",
-          assignedById: input.actorUserId,
-          assignedToId: activeDno.userId,
-          assignedRoleId: ROLE_ID.DISTRICT_NODAL_OFFICER,
-          status: "ACTIVE"
-        }] : [])
-      ]
-    });
+    const assignments: any[] = [];
+    if (dncMapping?.dncUserId) {
+      assignments.push({
+        entityType: "PROJECT",
+        entityId: created.id,
+        assignmentType: "DISTRICT_NODAL_CONSULTANT",
+        assignedById: input.actorUserId,
+        assignedToId: dncMapping.dncUserId,
+        assignedRoleId: ROLE_ID.DISTRICT_NODAL_CONSULTANT,
+        status: "ACTIVE"
+      });
+    }
+    if (resolvedDeptAdmin?.id) {
+      assignments.push({
+        entityType: "PROJECT",
+        entityId: created.id,
+        assignmentType: "GOVERNMENT_DEPARTMENT_ADMIN",
+        assignedById: input.actorUserId,
+        assignedToId: resolvedDeptAdmin.id,
+        assignedRoleId: ROLE_ID.GOVERNMENT_OFFICER,
+        status: "ACTIVE"
+      });
+    }
+    if (activeDno && activeDno.userId) {
+      assignments.push({
+        entityType: "PROJECT",
+        entityId: created.id,
+        assignmentType: "DISTRICT_NODAL_OFFICER",
+        assignedById: input.actorUserId,
+        assignedToId: activeDno.userId,
+        assignedRoleId: ROLE_ID.DISTRICT_NODAL_OFFICER,
+        status: "ACTIVE"
+      });
+    }
+
+    if (assignments.length > 0) {
+      await tx.projectAssignment.createMany({
+        data: assignments
+      });
+    }
 
     await tx.governmentPitch.update({
       where: { id: pitch.id },
@@ -336,8 +384,9 @@ export async function routeApprovedGovernmentPitch(input: { pitchId: string; int
     return created;
   });
 
-  await Promise.all([
-    dispatchNotification({
+  const notifications: Promise<any>[] = [];
+  if (dncMapping?.dncUserId) {
+    notifications.push(dispatchNotification({
       recipientId: dncMapping.dncUserId,
       templateName: "PROJECT_DNC_ASSIGNED",
       channels: ["IN_APP", "SOCKET", "EMAIL", "SMS"],
@@ -345,18 +394,24 @@ export async function routeApprovedGovernmentPitch(input: { pitchId: string; int
       actionButtonUrl: `/projects/${project.id}`,
       correlationId: project.id,
       notificationType: "PROJECT_DNC_ASSIGNED"
-    }),
-    dispatchNotification({
-      recipientId: departmentAdmin.id,
+    }));
+  }
+  if (resolvedDeptAdmin?.id) {
+    notifications.push(dispatchNotification({
+      recipientId: resolvedDeptAdmin.id,
       templateName: "PROJECT_DEPARTMENT_ADMIN_ASSIGNED",
       channels: ["IN_APP", "SOCKET", "EMAIL", "SMS"],
       variables: { title: "Assign DNOs for Pitch Project", message: `Pitch project ${project.projectCode} assigned to your department. Assign DNO for execution.`, currentStatus: project.status },
       actionButtonUrl: `/projects/${project.id}`,
       correlationId: project.id,
       notificationType: "PROJECT_DEPARTMENT_ADMIN_ASSIGNED"
-    })
-  ]);
+    }));
+  }
 
-  return { project, created: true, dncUserId: dncMapping.dncUserId, departmentAdminId: departmentAdmin.id };
+  if (notifications.length > 0) {
+    await Promise.all(notifications);
+  }
+
+  return { project, created: true, dncUserId: dncMapping?.dncUserId || null, departmentAdminId: resolvedDeptAdmin?.id || null };
 }
 

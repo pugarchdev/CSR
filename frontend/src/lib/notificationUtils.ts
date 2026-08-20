@@ -79,6 +79,8 @@ export function resolveNotificationUrl(
   const quotedEntity = extractQuotedEntity(n.title || "") || extractQuotedEntity(rawMessage);
   const trackingId = queryParams.get("trackingId") || extractTrackingId(rawMessage) || extractTrackingId(n.title || "");
   const uuidInPath = extractUuid(rawPath);
+  const uuidInMessage = extractUuid(rawMessage);
+  const enquiryId = uuidInMessage || uuidInPath || queryParams.get("id") || queryParams.get("enquiryId");
   const orgId = queryParams.get("orgId") || queryParams.get("organizationId") || uuidInPath || queryParams.get("id");
 
   // Helper to build search params without duplicate keys
@@ -104,7 +106,23 @@ export function resolveNotificationUrl(
     message.includes("remarks:") ||
     message.includes("action required");
 
-  // 1. Onboarding notifications
+  // 1. Feasibility Assessment notifications (Direct to exact Enquiry page)
+  const isFeasibility =
+    title.includes("feasibility") ||
+    message.includes("feasibility") ||
+    title.includes("assessment") ||
+    message.includes("assessment") ||
+    rawPath.includes("feasibility") ||
+    rawPath.includes("assessment");
+
+  if (isFeasibility) {
+    if (enquiryId) {
+      return `/enquiries/${enquiryId}`;
+    }
+    return "/enquiries";
+  }
+
+  // 2. Onboarding notifications
   const isOnboarding =
     title.includes("onboarding") ||
     message.includes("onboarding") ||
@@ -132,7 +150,7 @@ export function resolveNotificationUrl(
     return "/organization/onboarding/status";
   }
 
-  // 2. Corporate Enquiry notifications
+  // 3. Corporate Enquiry notifications
   const isEnquiry =
     title.includes("enquiry") ||
     message.includes("enquiry") ||
@@ -141,11 +159,14 @@ export function resolveNotificationUrl(
     rawPath.startsWith("/enquiries");
 
   if (isEnquiry) {
+    if (enquiryId && !trackingId) {
+      return `/enquiries/${enquiryId}`;
+    }
     if (!isAdmin && trackingId) {
       return `/track?trackingId=${encodeURIComponent(trackingId)}`;
     }
     return buildUrlWithParams("/enquiries", {
-      id: queryParams.get("id") || uuidInPath || undefined,
+      id: enquiryId || undefined,
       trackingId: trackingId || undefined,
       highlight: quotedEntity || trackingId || undefined,
       search: quotedEntity || trackingId || undefined,
@@ -202,6 +223,13 @@ export function resolveNotificationUrl(
 
   // 6. Handle rawUrl while guarding non-admin users from admin routes
   if (rawUrl && rawUrl.startsWith("/")) {
+    if (rawUrl.startsWith("/assessments") || rawPath.startsWith("/assessments")) {
+      if (enquiryId) {
+        return `/enquiries/${enquiryId}`;
+      }
+      return "/enquiries";
+    }
+
     if (!isAdmin && (rawUrl.startsWith("/admin") || rawUrl.includes("/admin/"))) {
       if (rawUrl.includes("onboarding") || rawUrl.includes("organization")) {
         return isClarificationAlert

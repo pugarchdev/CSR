@@ -1062,6 +1062,7 @@ export default function EnquiryDetailPage() {
             existingAssessment={assessment}
             enquiryDistricts={preferredDistricts}
             onSubmitted={() => { refetchAssessment(); refetch(); }}
+            onNavigateToDecision={() => setActiveTab("js")}
             isJS={isJS}
             isRM={isRM}
             isAdmin={isAdmin}
@@ -1080,7 +1081,7 @@ export default function EnquiryDetailPage() {
                 existingDecision={assessment.jsDecision}
                 existingReason={assessment.jsDecisionReason}
                 decidedAt={assessment.jsDecidedAt}
-                defaultDistrict={enquiry?.preferredDistricts?.[0] || enquiry?.district || assessment?.targetDistricts?.[0] || "Nagpur"}
+                defaultDistrict={assessment?.targetDistricts?.[0] || enquiry?.preferredDistricts?.[0] || enquiry?.district || "Nagpur"}
                 defaultDepartmentId={assessment?.targetDepartmentId || ""}
                 onDecisionRecorded={() => { refetchAssessment(); refetch(); }}
               />
@@ -1551,6 +1552,7 @@ function FeasibilityWorkspace({
   existingAssessment,
   enquiryDistricts = [],
   onSubmitted,
+  onNavigateToDecision,
   isJS,
   isRM,
   isAdmin
@@ -1559,6 +1561,7 @@ function FeasibilityWorkspace({
   existingAssessment: any;
   enquiryDistricts?: string[];
   onSubmitted: () => void;
+  onNavigateToDecision?: () => void;
   isJS: boolean;
   isRM: boolean;
   isAdmin: boolean;
@@ -2192,19 +2195,34 @@ function FeasibilityWorkspace({
         </div>
       )}
 
-      {/* Joint Secretary Decision Panel (Rendered when viewing as JS) */}
-      {isJS && existingAssessment?.id && (
+      {/* Navigation action to the dedicated Executive Decision tab */}
+      {existingAssessment?.id && (isJS || isAdmin) && onNavigateToDecision && (
         <div className="pt-4 border-t border-slate-200">
-          <JointSecretaryDecisionPanel
-            assessmentId={existingAssessment.id}
-            currentStatus={existingAssessment.status}
-            existingDecision={existingAssessment.jsDecision}
-            existingReason={existingAssessment.jsDecisionReason}
-            decidedAt={existingAssessment.jsDecidedAt}
-            defaultDistrict={selectedDistricts[0] || existingAssessment?.targetDistricts?.[0] || "Nagpur"}
-            defaultDepartmentId={targetOrgId || existingAssessment?.targetDepartmentId || ""}
-            onDecisionRecorded={() => { onSubmitted(); }}
-          />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50/90 via-indigo-50/50 to-white shadow-2xs">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-blue-900 text-white flex items-center justify-center font-bold shrink-0 shadow-2xs">
+                <ShieldCheck size={18} />
+              </div>
+              <div>
+                <h4 className="text-xs font-black text-slate-900">
+                  {existingAssessment.jsDecision ? "Joint Secretary Executive Decision Recorded" : "Feasibility Assessment Ready for Joint Secretary Decision"}
+                </h4>
+                <p className="text-[11px] text-slate-600 font-medium">
+                  {existingAssessment.jsDecision
+                    ? "View sanction status, recorded conditions, and allocated government department in the Executive Decision tab."
+                    : "Review completed. Proceed to the dedicated Executive Decision tab to sanction, route, or return for clarification."}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onNavigateToDecision}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-900 text-white text-xs font-black hover:bg-blue-950 transition-all shadow-xs cursor-pointer shrink-0"
+            >
+              <span>{existingAssessment.jsDecision ? "View Executive Decision" : "Open Executive Decision Desk"}</span>
+              <ArrowRight size={14} />
+            </button>
+          </div>
         </div>
       )}
     </section>
