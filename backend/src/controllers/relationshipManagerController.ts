@@ -498,8 +498,22 @@ export const logEnquiryInteraction = async (req: AuthenticatedRequest, res: Resp
       return res.status(400).json({ error: "Enter an interaction note between 3 and 4,000 characters." });
     }
 
+    const roleIdNum = Number(req.user!.roleId || req.user!.role);
+    const isStateAdmin = ([ROLE_ID.SUPER_ADMIN, ROLE_ID.PLANNING_SECRETARY, ROLE_ID.JOINT_SECRETARY, ROLE_ID.DISTRICT_NODAL_OFFICER, ROLE_ID.DISTRICT_NODAL_CONSULTANT, ROLE_ID.GOVERNMENT_OFFICER] as number[]).includes(roleIdNum);
+    const isRM = roleIdNum === ROLE_ID.RELATIONSHIP_MANAGER;
+
     const assignedEnquiry = await prisma.corporateEnquiry.findFirst({
-      where: { id, assignedRelationshipManagerId: userId },
+      where: isStateAdmin
+        ? { id }
+        : isRM
+        ? { id, assignedRelationshipManagerId: userId }
+        : {
+            id,
+            OR: [
+              { submittedByUserId: userId },
+              ...(req.user!.organizationId ? [{ organizationId: req.user!.organizationId }] : [])
+            ]
+          },
       select: { id: true, status: true }
     });
     if (!assignedEnquiry) return res.status(404).json({ error: "Enquiry not found" });
@@ -693,13 +707,44 @@ export const submitFeasibilityAssessment = async (req: AuthenticatedRequest, res
 export const listRMEnquiryInteractions = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const roleIdNum = Number(req.user!.roleId || req.user!.role);
-    const isStateAdmin = ([ROLE_ID.SUPER_ADMIN, ROLE_ID.PLANNING_SECRETARY, ROLE_ID.JOINT_SECRETARY] as number[]).includes(roleIdNum);
+    const isStateAdmin = ([ROLE_ID.SUPER_ADMIN, ROLE_ID.PLANNING_SECRETARY, ROLE_ID.JOINT_SECRETARY, ROLE_ID.DISTRICT_NODAL_OFFICER, ROLE_ID.DISTRICT_NODAL_CONSULTANT, ROLE_ID.GOVERNMENT_OFFICER] as number[]).includes(roleIdNum);
+    const isRM = roleIdNum === ROLE_ID.RELATIONSHIP_MANAGER;
+
     const enquiry = await prisma.corporateEnquiry.findFirst({
-      where: isStateAdmin ? { id: req.params.id } : { id: req.params.id, assignedRelationshipManagerId: req.user!.id },
+      where: isStateAdmin
+        ? { id: req.params.id }
+        : isRM
+        ? { id: req.params.id, assignedRelationshipManagerId: req.user!.id }
+        : {
+            id: req.params.id,
+            OR: [
+              { submittedByUserId: req.user!.id },
+              ...(req.user!.organizationId ? [{ organizationId: req.user!.organizationId }] : [])
+            ]
+          },
       select: { id: true }
     });
     if (!enquiry) return res.status(404).json({ error: "Enquiry not found" });
-    const data = await prisma.applicationInteraction.findMany({ where: { entityType: "CORPORATE_ENQUIRY", entityId: enquiry.id }, orderBy: { occurredAt: "desc" } });
+
+    const rawInteractions = await prisma.applicationInteraction.findMany({
+      where: { entityType: "CORPORATE_ENQUIRY", entityId: enquiry.id },
+      orderBy: { occurredAt: "desc" }
+    });
+
+    const actorIds = [...new Set(rawInteractions.map(i => i.actorUserId).filter(Boolean))] as string[];
+    const users = actorIds.length > 0
+      ? await prisma.user.findMany({
+          where: { id: { in: actorIds } },
+          select: { id: true, firstName: true, lastName: true, roleId: true, designation: true }
+        })
+      : [];
+    const userMap = new Map(users.map(u => [u.id, u]));
+
+    const data = rawInteractions.map(i => ({
+      ...i,
+      actor: i.actorUserId ? userMap.get(i.actorUserId) || null : null
+    }));
+
     return res.json({ success: true, data });
   } catch (error) { next(error); }
 };

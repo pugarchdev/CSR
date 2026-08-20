@@ -20,12 +20,12 @@ import { MAHARASHTRA_DISTRICTS } from "@/lib/locationData";
 
 /* ─── Constants ─── */
 const INTERACTION_TYPES = [
-  { value: "CALL", label: "Phone Call", icon: PhoneCall, color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
-  { value: "EMAIL", label: "Email", icon: Mail, color: "bg-blue-100 text-blue-800 border-blue-200" },
-  { value: "MEETING", label: "Meeting", icon: Video, color: "bg-purple-100 text-purple-800 border-purple-200" },
-  { value: "PORTAL", label: "Portal Note", icon: Globe, color: "bg-slate-100 text-slate-800 border-slate-200" },
-  { value: "STATUS_CHANGE", label: "Status Change", icon: History, color: "bg-amber-100 text-amber-800 border-amber-200" },
-] as const;
+  { value: "CALL", label: "Phone Call", icon: PhoneCall },
+  { value: "MEETING", label: "Video / Meeting", icon: Video },
+  { value: "SITE_VISIT", label: "Site Inspection", icon: MapPin },
+  { value: "EMAIL", label: "Official Email", icon: Mail },
+  { value: "PORTAL_CLARIFICATION", label: "Clarification Request", icon: HelpCircle },
+];
 
 const CHECKS: Array<[number, string, string, boolean]> = [
   [1, "Schedule VII Compliance", "Proposed activity falls strictly within MCA Schedule VII permissible categories.", true],
@@ -44,7 +44,14 @@ const CHECKS: Array<[number, string, string, boolean]> = [
 ];
 
 function getInteractionMeta(channel: string) {
-  return INTERACTION_TYPES.find((t) => t.value === channel) || INTERACTION_TYPES[3];
+  const c = String(channel || "").toUpperCase();
+  if (c.includes("JS_CLARIF") || c.includes("JS_DECISION") || c.includes("JS_")) return { label: "Joint Secretary Notice", icon: ShieldCheck, color: "border-purple-300 bg-purple-50 text-purple-950" };
+  if (c.includes("PHONE") || c.includes("CALL")) return { label: "Phone Call", icon: PhoneCall, color: "border-emerald-200 bg-emerald-50 text-emerald-800" };
+  if (c.includes("MEET") || c.includes("DISCUSS") || c.includes("VIDEO")) return { label: "Meeting / Discussion", icon: Video, color: "border-purple-200 bg-purple-50 text-purple-800" };
+  if (c.includes("SITE") || c.includes("INSPECT")) return { label: "Site Inspection", icon: MapPin, color: "border-indigo-200 bg-indigo-50 text-indigo-800" };
+  if (c.includes("EMAIL") || c.includes("MAIL")) return { label: "Official Email", icon: Mail, color: "border-blue-200 bg-blue-50 text-blue-800" };
+  if (c.includes("CLARIF") || c.includes("NOTICE") || c.includes("RETURN")) return { label: "Clarification Request", icon: HelpCircle, color: "border-amber-200 bg-amber-50 text-amber-900" };
+  return { label: "Portal Note", icon: FileText, color: "border-slate-200 bg-slate-50 text-slate-800" };
 }
 
 function formatBudget(val: any): string {
@@ -472,45 +479,52 @@ export default function EnquiryDetailPage() {
   };
 
   /* ─── Quick Action: Call Company (RM/State Desk) ─── */
-  const handleCallCompany = useCallback(async () => {
-    if (contactPhone) {
-      window.open(`tel:${contactPhone.replace(/\s/g, "")}`, "_self");
-    }
+  const handleCallCompany = useCallback(async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    if (!contactPhone) return;
+    const phone = contactPhone.replace(/\s/g, "");
+    const refNo = enquiry?.trackingId || params.id;
+    window.open(`tel:${phone}`, "_self");
+
     try {
       await apiFetch(`/rm/enquiries/${params.id}/interactions`, {
         method: "POST",
         body: JSON.stringify({
           channel: "CALL",
-          note: `Outbound call initiated to ${contactName || "corporate contact"} at ${contactPhone || "registered number"}.`
+          note: `Initiated telephone call to corporate contact ${contactName || ""} (${contactPhone}) regarding proposal ${refNo}.`
         })
       });
       refetchInteractions();
     } catch (err) {
       console.warn("Auto-log call failed:", err);
     }
-  }, [params.id, contactPhone, contactName, refetchInteractions]);
+  }, [params.id, contactPhone, contactName, enquiry, refetchInteractions]);
 
   /* ─── Quick Action: Send Email (RM/State Desk) ─── */
-  const handleSendEmail = useCallback(async () => {
-    const subject = encodeURIComponent(`MahaCSR Convergence — Enquiry ${enquiry?.trackingId || params.id}`);
+  const handleSendEmail = useCallback(async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    if (!contactEmail) return;
+    const recipient = contactEmail;
+    const refNo = enquiry?.trackingId || params.id;
+    const subject = encodeURIComponent(`MahaCSR Proposal — Reference ${refNo}`);
     const body = encodeURIComponent(
-      `Dear ${contactName || "Sir/Madam"},\n\nThis is regarding your CSR Convergence enquiry (Tracking ID: ${enquiry?.trackingId || params.id}).\n\nRegards,\n${user?.firstName || "State CSR Cell"} ${user?.lastName || ""}\nMaharashtra CSR Authority`
+      `Dear ${contactName || "Sir/Madam"},\n\nThis is regarding Corporate CSR Proposal "${enquiry?.corporateName || "Proposal"}" (Reference: ${refNo}).\n\nRegards,\n${[user?.firstName, user?.lastName].filter(Boolean).join(" ") || "State CSR Cell"}\nMaharashtra State CSR Authority`
     );
-    window.open(`mailto:${contactEmail}?subject=${subject}&body=${body}`, "_self");
+    window.open(`mailto:${recipient}?subject=${subject}&body=${body}`, "_self");
 
     try {
       await apiFetch(`/rm/enquiries/${params.id}/interactions`, {
         method: "POST",
         body: JSON.stringify({
           channel: "EMAIL",
-          note: `Email sent to ${contactName || "corporate contact"} at ${contactEmail}. Subject: MahaCSR Convergence — Enquiry ${enquiry?.trackingId || params.id}.`
+          note: `Initiated official email communication to submitting contact ${contactName || ""} (${recipient}) regarding proposal ${refNo}.`
         })
       });
       refetchInteractions();
     } catch (err) {
       console.warn("Auto-log email failed:", err);
     }
-  }, [params.id, contactEmail, contactName, enquiry?.trackingId, user, refetchInteractions]);
+  }, [params.id, contactEmail, contactName, enquiry, user, refetchInteractions]);
 
   /* ─── RM Contact Action: Email Relationship Manager (auto-logs to timeline) ─── */
   const handleEmailRM = useCallback(async (e: React.MouseEvent) => {
@@ -721,8 +735,8 @@ export default function EnquiryDetailPage() {
                   <DetailField label="CIN Registration" value={enquiry?.mca21CIN || enquiry?.cin} mono />
                   <DetailField label="Contact Person" value={contactName} />
                   <DetailField label="Designation" value={contactDesignation} />
-                  <DetailField label="Email" value={contactEmail} href={`mailto:${contactEmail}`} />
-                  <DetailField label="Mobile" value={contactPhone} href={`tel:${contactPhone?.replace(/\s/g, "")}`} />
+                  <DetailField label="Email" value={contactEmail} href={`mailto:${contactEmail}`} onClick={handleSendEmail} />
+                  <DetailField label="Mobile" value={contactPhone} href={`tel:${contactPhone?.replace(/\s/g, "")}`} onClick={handleCallCompany} />
                 </div>
               </div>
 
@@ -1118,6 +1132,7 @@ export default function EnquiryDetailPage() {
             contactName={contactName}
             contactEmail={contactEmail}
             trackingId={enquiry?.trackingId || params.id}
+            proposalDescription={enquiry?.proposedCSRWork || enquiry?.projectDescription || enquiry?.summary || enquiry?.corporateName || "Corporate CSR Alignment"}
             onClose={() => setShowMeetingModal(false)}
             onScheduled={() => { refetchInteractions(); setShowMeetingModal(false); }}
           />
@@ -1175,13 +1190,13 @@ function MetricCard({ label, value, color }: { label: string; value: string; col
   );
 }
 
-function DetailField({ label, value, mono, href }: { label: string; value?: string | null; mono?: boolean; href?: string }) {
+function DetailField({ label, value, mono, href, onClick }: { label: string; value?: string | null; mono?: boolean; href?: string; onClick?: (e: React.MouseEvent) => void }) {
   const display = value || "—";
   return (
     <div>
       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{label}</span>
       {href && value ? (
-        <a href={href} className={`block text-sm font-bold text-blue-800 hover:text-blue-950 hover:underline ${mono ? "font-mono" : ""}`}>
+        <a href={href} onClick={onClick} className={`block text-sm font-bold text-blue-800 hover:text-blue-950 hover:underline cursor-pointer ${mono ? "font-mono" : ""}`}>
           {display}
         </a>
       ) : (
@@ -1223,7 +1238,7 @@ function InteractionLogTab({
   refetchInteractions: () => void;
 }) {
   const [note, setNote] = useState("");
-  const [channel, setChannel] = useState("PORTAL");
+  const [channel, setChannel] = useState("CALL");
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
@@ -1244,23 +1259,42 @@ function InteractionLogTab({
   };
 
   return (
-    <div className="space-y-4">
-      {/* Add Interaction Form */}
-      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
-        <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-          <MessageSquare size={16} className="text-blue-800" /> Log New Interaction
-        </h3>
+    <section className="rounded-3xl border border-slate-200/90 bg-white p-6 md:p-7 shadow-2xs space-y-6">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-900 flex items-center justify-center font-bold">
+            <MessageSquare size={18} />
+          </div>
+          <div>
+            <h2 className="text-sm font-extrabold text-slate-900">
+              Corporate Coordination & Interaction Timeline
+            </h2>
+            <p className="text-[11px] text-slate-500">Official log of calls, meetings, site visits, and clarification exchanges between RM, Corporate, and State Authorities.</p>
+          </div>
+        </div>
+        <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg">
+          {interactions.length} Entries
+        </span>
+      </div>
+
+      {/* Add Interaction Log Box */}
+      <div className="rounded-2xl border border-slate-200/90 bg-slate-50/60 p-4 space-y-3">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+          LOG COMMUNICATION / INTERACTION NOTE
+        </span>
+
         <div className="flex flex-wrap gap-2">
-          {INTERACTION_TYPES.filter(t => t.value !== "STATUS_CHANGE").map((type) => {
+          {INTERACTION_TYPES.map((type) => {
             const Icon = type.icon;
             const isActive = channel === type.value;
             return (
               <button
                 key={type.value}
+                type="button"
                 onClick={() => setChannel(type.value)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                   isActive
-                    ? "bg-blue-900 text-white border-blue-900 shadow-sm"
+                    ? "bg-blue-900 text-white border-blue-900 shadow-xs"
                     : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
                 }`}
               >
@@ -1269,80 +1303,83 @@ function InteractionLogTab({
             );
           })}
         </div>
-        <div className="flex gap-2">
+
+        <div className="flex flex-col sm:flex-row gap-2.5">
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
             rows={2}
-            placeholder="Describe the interaction details..."
-            className="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 resize-none"
+            placeholder="Enter discussion notes, call summary, or coordination points..."
+            className="flex-1 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-100 resize-none"
           />
           <button
-            onClick={handleSubmit}
+            type="button"
             disabled={submitting || note.trim().length < 3}
-            className="self-end rounded-xl bg-blue-900 px-5 py-3 text-xs font-extrabold text-white shadow-sm hover:bg-blue-950 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5"
+            onClick={handleSubmit}
+            className="self-end sm:self-center inline-flex items-center gap-1.5 rounded-xl bg-blue-900 px-5 py-3 text-xs font-extrabold text-white shadow-sm hover:bg-blue-950 transition-all disabled:opacity-50 cursor-pointer shrink-0"
           >
-            {submitting ? (
-              <>
-                <Loader2 size={15} className="animate-spin shrink-0" />
-                <span>Logging...</span>
-              </>
-            ) : (
-              <span>Log Interaction</span>
-            )}
+            {submitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+            Log Note
           </button>
         </div>
       </div>
 
-      {/* Interaction Timeline */}
-      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
-        <h3 className="text-sm font-extrabold text-slate-900 border-b border-slate-100 pb-3">
-          Interaction Timeline ({interactions.length} entries)
-        </h3>
-        {interactions.length === 0 ? (
-          <p className="text-sm text-slate-500 italic py-4 text-center">No interactions logged yet.</p>
-        ) : (
-          <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
-            {interactions.map((interaction: any, idx: number) => {
-              const meta = getInteractionMeta(interaction.channel);
-              const Icon = meta.icon;
-              return (
-                <div key={interaction.id || idx} className="flex gap-3 group">
-                  {/* Timeline dot */}
-                  <div className="flex flex-col items-center shrink-0">
-                    <div className={`w-8 h-8 rounded-lg border flex items-center justify-center ${meta.color}`}>
-                      <Icon size={14} />
-                    </div>
-                    {idx < interactions.length - 1 && <div className="w-px flex-1 bg-slate-200 mt-1" />}
-                  </div>
-                  {/* Content */}
-                  <div className="flex-1 pb-4">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-extrabold border ${meta.color} uppercase`}>
+      {/* Chronological Timeline */}
+      {interactions.length === 0 ? (
+        <div className="py-8 text-center border border-dashed border-slate-200 rounded-2xl">
+          <MessageSquare size={28} className="mx-auto text-slate-300 mb-2" />
+          <p className="text-xs font-bold text-slate-600">No communication logs recorded yet.</p>
+          <p className="text-[11px] text-slate-400 mt-0.5">Logged calls, meetings, and clarifications between RM and Corporate will appear here.</p>
+        </div>
+      ) : (
+        <div className="space-y-3.5">
+          {interactions.map((interaction: any, idx: number) => {
+            const meta = getInteractionMeta(interaction.channel);
+            const Icon = meta.icon;
+            return (
+              <div key={interaction.id || idx} className="flex gap-3.5 rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
+                <div className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 ${meta.color}`}>
+                  <Icon size={15} />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-extrabold border ${meta.color} uppercase tracking-wider`}>
                         {meta.label}
                       </span>
-                      <span className="text-[11px] text-slate-500 font-mono">
-                        {formatDateTime(interaction.occurredAt || interaction.createdAt)}
-                      </span>
+                      {interaction.actor && (
+                        <span className="text-xs font-bold text-slate-800">
+                          {[interaction.actor.firstName, interaction.actor.lastName].filter(Boolean).join(" ")}
+                          {interaction.actor.designation && <span className="text-slate-400 font-normal ml-1">({interaction.actor.designation})</span>}
+                        </span>
+                      )}
                     </div>
-                    <p className="text-sm text-slate-700 leading-relaxed mt-1">{interaction.note}</p>
+                    <span className="text-[11px] text-slate-400 font-mono">
+                      {interaction.occurredAt || interaction.createdAt
+                        ? new Date(interaction.occurredAt || interaction.createdAt).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+                        : "—"}
+                    </span>
                   </div>
+                  <p className="text-xs leading-relaxed text-slate-700 font-medium whitespace-pre-wrap pt-0.5">
+                    {interaction.note}
+                  </p>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
   );
 }
 
-/* ─── Schedule Meeting Modal ─── */
+/* ─── Schedule Alignment Meeting Modal ─── */
 function ScheduleMeetingModal({
   enquiryId,
   contactName,
   contactEmail,
-  trackingId: _trackingId,
+  trackingId,
+  proposalDescription,
   onClose,
   onScheduled
 }: {
@@ -1350,11 +1387,13 @@ function ScheduleMeetingModal({
   contactName: string;
   contactEmail: string;
   trackingId: string;
+  proposalDescription?: string;
   onClose: () => void;
   onScheduled: () => void;
 }) {
   const [date, setDate] = useState("");
-  const [time, setTime] = useState("10:00");
+  const [time, setTime] = useState("10:30");
+  const [mode, setMode] = useState("Virtual (Video Call / MahaGov VC)");
   const [purpose, setPurpose] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -1362,12 +1401,13 @@ function ScheduleMeetingModal({
   const handleSchedule = async () => {
     setError("");
     if (!date) return setError("Please select a date.");
-    if (!purpose.trim()) return setError("Please enter the meeting purpose.");
+    if (!purpose.trim()) return setError("Please enter the agenda / discussion purpose.");
 
     const meetingDateTime = new Date(`${date}T${time}`);
     const dayOfWeek = meetingDateTime.toLocaleDateString("en-IN", { weekday: "long" });
+    const formattedDate = meetingDateTime.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 
-    const note = `Meeting scheduled with ${contactName || "corporate contact"} on ${dayOfWeek}, ${meetingDateTime.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })} at ${time}. Purpose: ${purpose.trim()}.`;
+    const note = `Stakeholder alignment meeting scheduled with ${contactName || "corporate contact"}${contactEmail ? ` (${contactEmail})` : ""} for proposal ${trackingId} on ${dayOfWeek}, ${formattedDate} at ${time}. Mode: ${mode}. Agenda: ${purpose.trim()}.`;
 
     setSubmitting(true);
     try {
@@ -1380,7 +1420,7 @@ function ScheduleMeetingModal({
         })
       });
       onScheduled();
-    } catch (err) {
+    } catch (err: any) {
       setError(err instanceof Error ? err.message : "Failed to schedule meeting.");
     } finally {
       setSubmitting(false);
@@ -1390,77 +1430,108 @@ function ScheduleMeetingModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
       <div
-        className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-lg p-6 space-y-5"
+        className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-lg p-6 space-y-4"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-            <CalendarDays size={20} className="text-purple-700" /> Schedule Meeting
-          </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 transition-colors cursor-pointer">
-            <X size={20} />
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-900 flex items-center justify-center font-bold">
+              <CalendarDays size={18} />
+            </div>
+            <div>
+              <h3 className="text-sm font-extrabold text-slate-900">Schedule Alignment Meeting</h3>
+              <p className="text-[11px] text-slate-500">Coordinate proposal details with stakeholder.</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
+            <X size={18} />
           </button>
         </div>
 
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <label className="space-y-1.5">
+        <div className="space-y-3.5">
+          <div className="p-3 rounded-2xl bg-purple-50/70 border border-purple-100 text-xs space-y-1">
+            <p className="font-extrabold text-purple-950">Proposal: {trackingId}</p>
+            {proposalDescription && (
+              <p className="text-purple-800 line-clamp-1">{proposalDescription}</p>
+            )}
+            {contactName && (
+              <p className="text-slate-600 text-[11px] pt-1">
+                <strong>Attendee:</strong> {contactName} {contactEmail && `(${contactEmail})`}
+              </p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <label className="space-y-1 block">
               <span className="text-xs font-bold text-slate-700">Date *</span>
               <input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 min={new Date().toISOString().split("T")[0]}
-                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600/20"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600/20"
               />
             </label>
-            <label className="space-y-1.5">
+            <label className="space-y-1 block">
               <span className="text-xs font-bold text-slate-700">Time *</span>
               <input
                 type="time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600/20"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600/20"
               />
             </label>
           </div>
 
-          <label className="space-y-1.5 block">
-            <span className="text-xs font-bold text-slate-700">Purpose *</span>
+          <label className="space-y-1 block">
+            <span className="text-xs font-bold text-slate-700">Meeting Mode</span>
+            <select
+              value={mode}
+              onChange={(e) => setMode(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600/20"
+            >
+              <option value="Virtual (Video Call / MahaGov VC)">Virtual (Video Call / MahaGov VC)</option>
+              <option value="In-Person (Mantralaya / District HQ)">In-Person (Mantralaya / District HQ)</option>
+              <option value="In-Person (Collectorate Office)">In-Person (Collectorate Office)</option>
+              <option value="In-Person (State CSR Cell, Mantralaya)">In-Person (State CSR Cell, Mantralaya)</option>
+              <option value="Corporate Office Visit">Corporate Office Visit</option>
+              <option value="Telephone Alignment Conference">Telephone Alignment Conference</option>
+              <option value="Field / Site Inspection Meeting">Field / Site Inspection Meeting</option>
+            </select>
+          </label>
+
+          <label className="space-y-1 block">
+            <span className="text-xs font-bold text-slate-700">Agenda / Discussion Purpose *</span>
             <textarea
               value={purpose}
               onChange={(e) => setPurpose(e.target.value)}
               rows={3}
-              placeholder="Describe the meeting agenda and purpose..."
-              className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600/20 resize-none"
+              placeholder="e.g. Feasibility assessment, budget alignment, or DPR review..."
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600/20 resize-none"
             />
           </label>
-
-          {contactName && (
-            <div className="p-3 rounded-lg bg-purple-50 border border-purple-200 text-xs text-purple-900">
-              <strong>Attendee:</strong> {contactName} {contactEmail && `(${contactEmail})`}
-            </div>
-          )}
 
           {error && (
             <p className="text-xs font-bold text-rose-600">{error}</p>
           )}
         </div>
 
-        <div className="flex justify-end gap-3 pt-2">
+        <div className="flex justify-end gap-2.5 pt-2 border-t border-slate-100">
           <button
+            type="button"
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 border border-slate-200 hover:bg-slate-100 transition-colors cursor-pointer"
+            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 border border-slate-200 hover:bg-slate-100 transition-colors cursor-pointer"
           >
             Cancel
           </button>
           <button
+            type="button"
             onClick={handleSchedule}
             disabled={submitting}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-700 text-white text-xs font-extrabold shadow-sm hover:bg-purple-800 transition-all disabled:opacity-50 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-purple-700 text-white text-xs font-extrabold shadow-sm hover:bg-purple-800 transition-all disabled:opacity-50 cursor-pointer"
           >
-            {submitting ? <Loader2 size={15} className="animate-spin" /> : <CalendarDays size={15} />}
-            Schedule Meeting
+            {submitting ? <Loader2 size={14} className="animate-spin" /> : <CalendarDays size={14} />}
+            Confirm & Schedule
           </button>
         </div>
       </div>
