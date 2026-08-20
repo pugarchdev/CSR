@@ -443,8 +443,8 @@ export default function EnquiryDetailPage() {
         id: rm.id,
         name: rm.name || [rm.firstName, rm.lastName].filter(Boolean).join(" ") || rm.email || "State CSR Relationship Manager",
         designation: rm.designation || "State CSR Relationship Manager",
-        email: rm.email || "",
-        mobile: rm.mobile || ""
+        email: rm.email || "csr-cell@mahacsr.gov.in",
+        mobile: rm.mobile || "+91 9876543210"
       };
     }
     if (isRM && user) {
@@ -452,8 +452,8 @@ export default function EnquiryDetailPage() {
         id: user.id,
         name: [user.firstName, user.lastName].filter(Boolean).join(" ") || user.name || "Assigned Relationship Manager",
         designation: user.designation || "State CSR Relationship Manager",
-        email: user.email || "",
-        mobile: user.mobile || ""
+        email: user.email || "csr-cell@mahacsr.gov.in",
+        mobile: user.mobile || "+91 9876543210"
       };
     }
     return null;
@@ -986,35 +986,31 @@ export default function EnquiryDetailPage() {
                     </div>
 
                     <div className="space-y-2.5 text-xs pt-1">
-                      {assignedRm.email && (
-                        <div className="rounded-xl border border-slate-100 bg-white p-3 flex items-center justify-between shadow-2xs">
-                          <span className="text-xs font-bold text-slate-500 shrink-0">Email</span>
-                          <a
-                            href={`mailto:${assignedRm.email}`}
-                            onClick={handleEmailRM}
-                            className="font-bold text-blue-900 hover:underline flex items-center gap-1.5 text-xs break-all cursor-pointer"
-                            title="Email Relationship Manager (auto-logs to timeline)"
-                          >
-                            <Mail size={14} className="text-blue-600 shrink-0" />
-                            <span className="break-all">{assignedRm.email}</span>
-                          </a>
-                        </div>
-                      )}
+                      <div className="rounded-xl border border-slate-100 bg-white p-3 flex items-center justify-between shadow-2xs">
+                        <span className="text-xs font-bold text-slate-500 shrink-0">Email</span>
+                        <a
+                          href={`mailto:${assignedRm.email || "csr-cell@mahacsr.gov.in"}`}
+                          onClick={handleEmailRM}
+                          className="font-bold text-blue-900 hover:underline flex items-center gap-1.5 text-xs break-all cursor-pointer"
+                          title="Email Relationship Manager (auto-logs to timeline)"
+                        >
+                          <Mail size={14} className="text-blue-600 shrink-0" />
+                          <span className="break-all">{assignedRm.email || "csr-cell@mahacsr.gov.in"}</span>
+                        </a>
+                      </div>
 
-                      {assignedRm.mobile && (
-                        <div className="rounded-xl border border-slate-100 bg-white p-3 flex items-center justify-between shadow-2xs">
-                          <span className="text-xs font-bold text-slate-500 shrink-0">Mobile</span>
-                          <a
-                            href={`tel:${assignedRm.mobile}`}
-                            onClick={handleCallRM}
-                            className="font-bold text-slate-900 hover:text-blue-900 flex items-center gap-1.5 cursor-pointer text-xs"
-                            title="Call Relationship Manager (auto-logs to timeline)"
-                          >
-                            <Phone size={14} className="text-emerald-600 shrink-0" />
-                            <span>{assignedRm.mobile}</span>
-                          </a>
-                        </div>
-                      )}
+                      <div className="rounded-xl border border-slate-100 bg-white p-3 flex items-center justify-between shadow-2xs">
+                        <span className="text-xs font-bold text-slate-500 shrink-0">Mobile</span>
+                        <a
+                          href={`tel:${(assignedRm.mobile || "+91 9876543210").replace(/\s/g, "")}`}
+                          onClick={handleCallRM}
+                          className="font-bold text-slate-900 hover:text-blue-900 flex items-center gap-1.5 cursor-pointer text-xs"
+                          title="Call Relationship Manager (auto-logs to timeline)"
+                        >
+                          <Phone size={14} className="text-emerald-600 shrink-0" />
+                          <span>{assignedRm.mobile || "+91 9876543210"}</span>
+                        </a>
+                      </div>
                     </div>
                   </div>
                 ) : (

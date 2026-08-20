@@ -327,8 +327,8 @@ export const getEnquiryById = async (req: AuthenticatedRequest, res: Response, n
           id: rmUser.id,
           name: [rmUser.firstName, rmUser.lastName].filter(Boolean).join(" ") || "Relationship Manager",
           designation: rmUser.designation || "State CSR Relationship Manager",
-          email: rmUser.email,
-          mobile: rmUser.mobile
+          email: rmUser.email || "csr-cell@mahacsr.gov.in",
+          mobile: rmUser.mobile || "+91 9876543210"
         };
       }
     }
@@ -350,8 +350,8 @@ export const getEnquiryById = async (req: AuthenticatedRequest, res: Response, n
           id: fallbackRm.id,
           name: [fallbackRm.firstName, fallbackRm.lastName].filter(Boolean).join(" ") || "State CSR Relationship Manager",
           designation: fallbackRm.designation || "State CSR Relationship Manager",
-          email: fallbackRm.email,
-          mobile: fallbackRm.mobile
+          email: fallbackRm.email || "csr-cell@mahacsr.gov.in",
+          mobile: fallbackRm.mobile || "+91 9876543210"
         };
       }
     }
