@@ -9,7 +9,8 @@ import {
   MessageSquare, History, FileCheck,
   Copy, Check, PhoneCall, Phone, Video, Globe, User, ArrowRight, UserCheck,
   X, CalendarDays, FileImage, ExternalLink, Briefcase, FileCode, Image as ImageIcon,
-  CheckCircle2, AlertCircle, ShieldCheck, FileCheck2, RotateCcw, XCircle, Clock
+  CheckCircle2, AlertCircle, ShieldCheck, FileCheck2, RotateCcw, XCircle, Clock,
+  HelpCircle, Landmark, ChevronDown, Plus, Sparkles, Filter, CheckSquare
 } from "lucide-react";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import { useApiQuery } from "@/lib/apiHooks";
@@ -1045,6 +1046,7 @@ export default function EnquiryDetailPage() {
           <FeasibilityWorkspace
             enquiryId={params.id}
             existingAssessment={assessment}
+            enquiryDistricts={preferredDistricts}
             onSubmitted={() => { refetchAssessment(); refetch(); }}
             isJS={isJS}
             isRM={isRM}
@@ -1466,10 +1468,17 @@ function ScheduleMeetingModal({
   );
 }
 
-/* ─── Feasibility Workspace (Role-Aware) ─── */
+/* ─── Feasibility Workspace (Role-Aware & Enhanced) ─── */
+const MAIN_GOVERNMENT_ORGS = [
+  { id: "ZP", name: "Zilla Parishad (ZP)", subtitle: "Rural Development & District Panchayati Raj", icon: Landmark },
+  { id: "MNC", name: "Municipal Corporation (MNC)", subtitle: "Urban Governance & Municipal Administration", icon: Building2 },
+  { id: "COLLECTORATE", name: "District Collectorate", subtitle: "District Revenue, Magisterial & State Administration", icon: ShieldCheck },
+] as const;
+
 function FeasibilityWorkspace({
   enquiryId,
   existingAssessment,
+  enquiryDistricts = [],
   onSubmitted,
   isJS,
   isRM,
@@ -1477,6 +1486,7 @@ function FeasibilityWorkspace({
 }: {
   enquiryId: string;
   existingAssessment: any;
+  enquiryDistricts?: string[];
   onSubmitted: () => void;
   isJS: boolean;
   isRM: boolean;
@@ -1484,34 +1494,46 @@ function FeasibilityWorkspace({
 }) {
   const [answers, setAnswers] = useState<Record<number, "YES" | "NO" | "NA">>({});
   const [notes, setNotes] = useState<Record<number, string>>({});
-  const [departmentId, setDepartmentId] = useState("");
-  const [districtText, setDistrictText] = useState("");
+  const [openNotes, setOpenNotes] = useState<Record<number, boolean>>({});
+  const [targetOrgId, setTargetOrgId] = useState("");
+  const [selectedDistricts, setSelectedDistricts] = useState<string[]>([]);
+  const [districtSearch, setDistrictSearch] = useState("");
+  const [isDistrictDropdownOpen, setIsDistrictDropdownOpen] = useState(false);
   const [summary, setSummary] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
 
-  const { data: deptData } = useApiQuery<any>(["departments"], "/admin/organizations");
-  const departments = Array.isArray(deptData?.data) ? deptData.data : Array.isArray(deptData) ? deptData : [];
-
+  // Synchronize with existing assessment or auto-fetch enquiry districts
   useEffect(() => {
     if (existingAssessment) {
-      setDepartmentId(existingAssessment.targetDepartmentId || "");
-      setDistrictText(Array.isArray(existingAssessment.targetDistricts) ? existingAssessment.targetDistricts.join(", ") : "");
+      setTargetOrgId(existingAssessment.targetDepartmentId || existingAssessment.targetOrganization || "");
+      if (Array.isArray(existingAssessment.targetDistricts) && existingAssessment.targetDistricts.length > 0) {
+        setSelectedDistricts(existingAssessment.targetDistricts);
+      } else if (enquiryDistricts.length > 0) {
+        setSelectedDistricts(enquiryDistricts);
+      }
       setSummary(existingAssessment.executiveSummary || "");
       if (Array.isArray(existingAssessment.checklist)) {
         const nextAnswers: Record<number, "YES" | "NO" | "NA"> = {};
         const nextNotes: Record<number, string> = {};
+        const nextOpenNotes: Record<number, boolean> = {};
         existingAssessment.checklist.forEach((item: any) => {
           if (item.itemNumber) {
             nextAnswers[item.itemNumber] = item.answer;
-            nextNotes[item.itemNumber] = item.note || "";
+            if (item.note) {
+              nextNotes[item.itemNumber] = item.note;
+              nextOpenNotes[item.itemNumber] = true;
+            }
           }
         });
         setAnswers(nextAnswers);
         setNotes(nextNotes);
+        setOpenNotes(nextOpenNotes);
       }
+    } else if (enquiryDistricts && enquiryDistricts.length > 0) {
+      setSelectedDistricts((prev) => (prev.length > 0 ? prev : enquiryDistricts));
     }
-  }, [existingAssessment]);
+  }, [existingAssessment, enquiryDistricts]);
 
   const isSubmitted = existingAssessment?.status === "SUBMITTED_TO_JS" ||
                       existingAssessment?.status === "JS_APPROVED" ||
@@ -1522,223 +1544,577 @@ function FeasibilityWorkspace({
   const isReturned = existingAssessment?.status === "RETURN_FOR_CLARIFICATION" ||
                      existingAssessment?.status === "RETURN_FOR_CORRECTION";
 
-  // Joint Secretary / Reviewer mode: always read-only checklist
-  // RM mode: editable only when not submitted OR when returned for clarification
   const isReadOnly = isJS || (!isRM && !isAdmin) || (isSubmitted && !isReturned);
 
-  const selectedDepartment = departments.find((d: any) => d.id === departmentId);
-  const deptDisplayName = selectedDepartment?.name || existingAssessment?.targetDepartment?.name || departmentId || "—";
-  const targetDistrictsList = districtText ? districtText.split(",").map((s) => s.trim()).filter(Boolean) : (Array.isArray(existingAssessment?.targetDistricts) ? existingAssessment.targetDistricts : []);
-
-  const completed = Object.keys(answers).length;
+  const completedCount = Object.keys(answers).length;
   const yesCount = Object.values(answers).filter((a) => a === "YES").length;
   const noCount = Object.values(answers).filter((a) => a === "NO").length;
+  const naCount = Object.values(answers).filter((a) => a === "NA").length;
+  const progressPercent = Math.round((completedCount / CHECKS.length) * 100);
+
+  // Multi-district handlers
+  const handleToggleDistrict = (dist: string) => {
+    setSelectedDistricts(prev =>
+      prev.includes(dist) ? prev.filter(d => d !== dist) : [...prev, dist]
+    );
+  };
+
+  const handleRemoveDistrict = (dist: string) => {
+    setSelectedDistricts(prev => prev.filter(d => d !== dist));
+  };
+
+  const handleSelectAllDistricts = () => {
+    setSelectedDistricts([...MAHARASHTRA_DISTRICTS]);
+  };
+
+  const handleClearDistricts = () => {
+    setSelectedDistricts([]);
+  };
+
+  const handleResetToEnquiryDistricts = () => {
+    setSelectedDistricts(enquiryDistricts.length ? [...enquiryDistricts] : []);
+  };
+
+  const filteredDistricts = useMemo(() => {
+    if (!districtSearch.trim()) return MAHARASHTRA_DISTRICTS;
+    return MAHARASHTRA_DISTRICTS.filter(d =>
+      d.toLowerCase().includes(districtSearch.toLowerCase().trim())
+    );
+  }, [districtSearch]);
+
+  // Quick Action Helpers for RM
+  const handleSetAllYes = () => {
+    const allYes: Record<number, "YES" | "NO" | "NA"> = {};
+    CHECKS.forEach(([num]) => {
+      allYes[num] = "YES";
+    });
+    setAnswers(allYes);
+  };
+
+  const handleResetAll = () => {
+    setAnswers({});
+    setNotes({});
+    setOpenNotes({});
+  };
+
+  // Find org display name
+  const matchedMainOrg = MAIN_GOVERNMENT_ORGS.find(o => o.id === targetOrgId);
+  const orgDisplayName = matchedMainOrg?.name || existingAssessment?.targetDepartment?.name || targetOrgId || "Not specified (Optional)";
 
   const submit = async () => {
     setMessage("");
-    if (completed !== CHECKS.length) return setMessage("Answer all 13 checks before submitting.");
-    const targetDistricts = districtText.split(",").map(v => v.trim()).filter(Boolean);
-    if (!departmentId || !targetDistricts.length) return setMessage("Select the target department and district.");
+    if (completedCount !== CHECKS.length) {
+      return setMessage("Please evaluate all 13 feasibility criteria before submitting to Joint Secretary.");
+    }
 
     setSubmitting(true);
     try {
       const response = await apiFetch<any>(`/rm/enquiries/${enquiryId}/feasibility`, {
         method: "POST",
         body: JSON.stringify({
-          executiveSummary: summary,
-          targetDepartmentId: departmentId,
-          targetDistricts,
-          checklist: CHECKS.map(([itemNumber]) => ({ itemNumber, answer: answers[itemNumber], note: notes[itemNumber] || "" }))
+          executiveSummary: summary || "Feasibility assessment completed by Relationship Manager.",
+          targetDepartmentId: targetOrgId || undefined,
+          targetDistricts: selectedDistricts,
+          checklist: CHECKS.map(([itemNumber]) => ({
+            itemNumber,
+            answer: answers[itemNumber],
+            note: notes[itemNumber] || ""
+          }))
         })
       });
-      setMessage(response?.message || "Assessment submitted to Joint Secretary.");
+      setMessage(response?.message || "Assessment submitted to Joint Secretary successfully.");
       onSubmitted();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to submit.");
+      setMessage(error instanceof Error ? error.message : "Unable to submit assessment.");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-5">
+    <section className="rounded-3xl border border-slate-200 bg-white p-6 md:p-7 shadow-xs space-y-6">
       {/* Informative banner when assessment is in progress */}
       {!existingAssessment && (
-        <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-200 bg-amber-50/80 text-xs text-amber-900">
-          <Clock size={18} className="text-amber-700 shrink-0 mt-0.5" />
-          <div>
-            <p className="font-bold">Awaiting Relationship Manager Assessment Submission</p>
-            <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
+        <div className="flex items-start gap-3.5 p-4 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 via-amber-50/70 to-orange-50/50 text-xs text-amber-950 shadow-2xs">
+          <Clock size={19} className="text-amber-700 shrink-0 mt-0.5" />
+          <div className="space-y-0.5">
+            <p className="font-extrabold text-amber-950 text-xs">Awaiting Relationship Manager Assessment Submission</p>
+            <p className="text-[11.5px] text-amber-800 leading-relaxed">
               {isJS
-                ? "The assigned Relationship Manager is currently conducting the 13-Factor Feasibility Evaluation. All 13 evaluation parameters are listed below — once submitted by the RM, their recorded answers, notes, and recommendation will appear here for your sanction."
-                : "Evaluate all 13 compliance and feasibility criteria below, specify the target department and districts, and submit to the Joint Secretary for approval."}
+                ? "The assigned Relationship Manager is evaluating the 13-Factor Feasibility parameters. Once submitted, their verified findings and recommendation will be available here for Joint Secretary sanction."
+                : "Evaluate all 13 compliance and feasibility criteria below, optionally specify the target district(s) and government organization, and submit to the Joint Secretary for approval."}
             </p>
           </div>
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-        <div>
-          <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-            <ClipboardCheck size={16} className="text-blue-800" />
-            13-Point Feasibility Assessment
-            {isReadOnly && (
-              <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                Review Mode
+      {/* Header & Live Progress Scorecard */}
+      <div className="border-b border-slate-100 pb-5 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-900 to-indigo-950 text-white flex items-center justify-center shadow-xs shrink-0">
+              <ClipboardCheck size={20} />
+            </div>
+            <div>
+              <h2 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
+                13-Point Feasibility Assessment
+                {isReadOnly && (
+                  <span className="text-[10px] font-extrabold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+                    Sanction Review Mode
+                  </span>
+                )}
+              </h2>
+              <p className="text-[11.5px] text-slate-500 font-medium mt-0.5">
+                MCA Schedule VII statutory clearances, land availability, and operational sustainability evaluation.
+              </p>
+            </div>
+          </div>
+
+          {/* Status Badges & Metrics */}
+          <div className="flex flex-wrap items-center gap-2">
+            {existingAssessment?.status && (
+              <span className={`rounded-full px-3 py-1 text-[11px] font-black border uppercase tracking-wider ${
+                existingAssessment.status === "JS_APPROVED" ? "bg-emerald-100 text-emerald-900 border-emerald-300" :
+                existingAssessment.status === "JS_REJECTED" ? "bg-rose-100 text-rose-900 border-rose-300" :
+                existingAssessment.status === "RETURN_FOR_CLARIFICATION" ? "bg-amber-100 text-amber-900 border-amber-300" :
+                "bg-blue-100 text-blue-900 border-blue-300"
+              }`}>
+                {existingAssessment.status.replace(/_/g, " ")}
               </span>
             )}
-          </h3>
-          <p className="text-[11px] text-slate-500 mt-0.5">
-            MCA Schedule VII, statutory clearances, land availability, and operational sustainability evaluation.
-          </p>
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3.5 py-1 text-xs font-black text-slate-700 border border-slate-200 shadow-2xs">
+              <span className="text-emerald-700">{yesCount} YES</span>
+              {noCount > 0 && <span className="text-rose-700">• {noCount} NO</span>}
+              {naCount > 0 && <span className="text-slate-500">• {naCount} NA</span>}
+              <span className="text-slate-400 font-normal">({completedCount}/13)</span>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          {existingAssessment?.status && (
-            <span className={`rounded-full px-3 py-0.5 text-xs font-extrabold border ${
-              existingAssessment.status === "JS_APPROVED" ? "bg-emerald-100 text-emerald-900 border-emerald-200" :
-              existingAssessment.status === "JS_REJECTED" ? "bg-rose-100 text-rose-900 border-rose-200" :
-              existingAssessment.status === "RETURN_FOR_CLARIFICATION" ? "bg-amber-100 text-amber-900 border-amber-200" :
-              "bg-blue-100 text-blue-900 border-blue-200"
-            }`}>
-              {existingAssessment.status.replace(/_/g, " ")}
+
+        {/* Progress Bar & RM Quick Actions */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-xs font-bold text-slate-600">
+            <span className="flex items-center gap-1.5">
+              Evaluation Completion: <strong className={completedCount === 13 ? "text-emerald-700 font-black" : "text-blue-900"}>{progressPercent}%</strong>
             </span>
-          )}
-          <span className="rounded-full bg-slate-100 px-3 py-0.5 text-xs font-extrabold text-slate-700 border border-slate-200">
-            {yesCount}/13 YES {noCount > 0 && `• ${noCount} NO`}
-          </span>
+            {!isReadOnly && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSetAllYes}
+                  className="inline-flex items-center gap-1 text-[11px] font-extrabold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-200 transition-colors cursor-pointer"
+                  title="Mark all 13 parameters as Compliant (YES)"
+                >
+                  <Sparkles size={12} className="text-emerald-600" />
+                  Mark All Compliant (All YES)
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResetAll}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 transition-colors cursor-pointer"
+                  title="Clear all recorded answers"
+                >
+                  <RotateCcw size={11} />
+                  Reset
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden border border-slate-200/60 p-0.5">
+            <div
+              className={`h-full rounded-full transition-all duration-300 ${
+                completedCount === 13
+                  ? "bg-gradient-to-r from-emerald-500 to-teal-600"
+                  : "bg-gradient-to-r from-blue-600 to-indigo-600"
+              }`}
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Target Dept & Districts */}
+      {/* Target District(s) (Position FIRST) & Target Organization (Position SECOND) */}
       {isReadOnly ? (
-        <div className="grid gap-3 sm:grid-cols-2 rounded-xl bg-slate-50 border border-slate-200 p-4 text-xs">
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Target Government Department</span>
-            <p className="font-extrabold text-slate-900 mt-1">{deptDisplayName}</p>
-          </div>
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Target District(s)</span>
+        <div className="grid gap-4 sm:grid-cols-2 rounded-2xl bg-gradient-to-br from-slate-50/80 to-blue-50/30 border border-slate-200/80 p-4.5 text-xs shadow-2xs">
+          {/* First: District */}
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <MapPin size={13} className="text-blue-700" /> Target District(s)
+            </span>
             <div className="flex flex-wrap gap-1.5 mt-1">
-              {targetDistrictsList.length > 0 ? targetDistrictsList.map((d: string, i: number) => (
-                <span key={i} className="px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-800 font-bold text-[11px]">
-                  {d}
-                </span>
-              )) : <span className="font-bold text-slate-900">Statewide</span>}
+              {selectedDistricts.length > 0 ? (
+                selectedDistricts.map((d: string, i: number) => (
+                  <span key={i} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-white border border-slate-200 text-slate-900 font-bold text-[11px] shadow-2xs">
+                    <MapPin size={10} className="text-blue-600" /> {d}
+                  </span>
+                ))
+              ) : (
+                <span className="font-bold text-slate-800">Statewide (All Districts)</span>
+              )}
             </div>
+          </div>
+
+          {/* Second: Organization */}
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Landmark size={13} className="text-indigo-700" /> Target Government Organization
+            </span>
+            <p className="font-extrabold text-slate-900 mt-1">{orgDisplayName}</p>
           </div>
         </div>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2">
-          <label className="text-xs font-bold text-slate-700 space-y-1.5">
-            <span>Target Government Department *</span>
-            <select
-              value={departmentId}
-              onChange={(e) => setDepartmentId(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none focus:border-blue-600"
+        <div className="grid gap-4.5 lg:grid-cols-2 rounded-2xl bg-gradient-to-br from-slate-50/60 to-blue-50/20 border border-slate-200/80 p-4.5 shadow-2xs">
+          {/* FIELD 1 (POSITION FIRST): Target District(s) Multi-Select */}
+          <div className="space-y-2 relative">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                <MapPin size={14} className="text-blue-700" />
+                Target District(s)
+                <span className="text-[10px] font-semibold text-slate-400">(Optional • Auto-fetched)</span>
+              </label>
+              <div className="flex items-center gap-2 text-[10.5px]">
+                {enquiryDistricts.length > 0 && selectedDistricts.length !== enquiryDistricts.length && (
+                  <button
+                    type="button"
+                    onClick={handleResetToEnquiryDistricts}
+                    className="font-bold text-blue-700 hover:underline cursor-pointer"
+                  >
+                    Reset to Enquiry
+                  </button>
+                )}
+                {selectedDistricts.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleClearDistricts}
+                    className="font-bold text-rose-600 hover:underline cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Selected District Pills Box */}
+            <div
+              onClick={() => setIsDistrictDropdownOpen(true)}
+              className="min-h-[44px] w-full rounded-xl border border-slate-200 bg-white p-2 flex flex-wrap items-center gap-1.5 cursor-pointer hover:border-blue-400 focus-within:border-blue-600 transition-colors shadow-2xs"
             >
-              <option value="">Select department</option>
-              {departments.map((d: any) => (
-                <option key={d.id} value={d.id}>{d.name}</option>
+              {selectedDistricts.length > 0 ? (
+                selectedDistricts.map((dist) => (
+                  <span
+                    key={dist}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-extrabold bg-blue-50 text-blue-950 border border-blue-200 shadow-2xs"
+                  >
+                    <MapPin size={11} className="text-blue-700 shrink-0" />
+                    <span>{dist}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveDistrict(dist);
+                      }}
+                      className="text-blue-500 hover:text-rose-600 ml-0.5 rounded-full hover:bg-blue-100 p-0.5"
+                      title={`Remove ${dist}`}
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))
+              ) : (
+                <span className="text-xs text-slate-400 font-medium px-1">
+                  Click to select districts (Default: Statewide / Optional)
+                </span>
+              )}
+              <div className="ml-auto flex items-center pr-1 text-slate-400">
+                <ChevronDown size={14} className={`transition-transform ${isDistrictDropdownOpen ? "rotate-180" : ""}`} />
+              </div>
+            </div>
+
+            {/* Multi-select Dropdown Popover */}
+            {isDistrictDropdownOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-20"
+                  onClick={() => setIsDistrictDropdownOpen(false)}
+                />
+                <div className="absolute left-0 right-0 top-full mt-1.5 z-30 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl space-y-2 max-h-72 flex flex-col animate-in fade-in zoom-in-95 duration-100">
+                  <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                    <input
+                      type="text"
+                      value={districtSearch}
+                      onChange={(e) => setDistrictSearch(e.target.value)}
+                      placeholder="Filter Maharashtra districts..."
+                      className="w-full text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-blue-600"
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSelectAllDistricts}
+                      className="text-[11px] font-extrabold text-blue-900 bg-blue-50 hover:bg-blue-100 px-2 py-1.5 rounded-lg border border-blue-200 whitespace-nowrap"
+                    >
+                      Select All 36
+                    </button>
+                  </div>
+
+                  <div className="overflow-y-auto max-h-48 grid grid-cols-2 sm:grid-cols-3 gap-1 pr-1">
+                    {filteredDistricts.map((dist) => {
+                      const isSelected = selectedDistricts.includes(dist);
+                      return (
+                        <button
+                          key={dist}
+                          type="button"
+                          onClick={() => handleToggleDistrict(dist)}
+                          className={`flex items-center gap-1.5 text-left px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            isSelected
+                              ? "bg-blue-900 text-white shadow-2xs"
+                              : "bg-slate-50 text-slate-700 hover:bg-blue-50 hover:text-blue-900 border border-slate-100"
+                          }`}
+                        >
+                          <span className={`w-3.5 h-3.5 rounded flex items-center justify-center shrink-0 border ${
+                            isSelected ? "bg-white text-blue-950 border-white" : "border-slate-300 bg-white"
+                          }`}>
+                            {isSelected && <Check size={10} className="stroke-[3]" />}
+                          </span>
+                          <span className="truncate">{dist}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                    <span>{selectedDistricts.length} selected</span>
+                    <button
+                      type="button"
+                      onClick={() => setIsDistrictDropdownOpen(false)}
+                      className="px-3 py-1 rounded-lg bg-slate-900 text-white font-extrabold text-xs"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* FIELD 2 (POSITION SECOND): Target Government Organization (3 Main Orgs: ZP, MNC, Collectorate) */}
+          <div className="space-y-2">
+            <label className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+              <Landmark size={14} className="text-indigo-700" />
+              Target Government Organization
+              <span className="text-[10px] font-semibold text-slate-400">(Optional)</span>
+            </label>
+
+            <select
+              value={targetOrgId}
+              onChange={(e) => setTargetOrgId(e.target.value)}
+              className="min-h-[44px] w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-900 outline-none focus:border-blue-600 transition-colors shadow-2xs"
+            >
+              <option value="">Select Organization (Optional)</option>
+              {MAIN_GOVERNMENT_ORGS.map((org) => (
+                <option key={org.id} value={org.id}>
+                  {org.name}
+                </option>
               ))}
             </select>
-          </label>
-          <label className="text-xs font-bold text-slate-700 space-y-1.5">
-            <span>Target District(s) *</span>
-            <input
-              value={districtText}
-              onChange={(e) => setDistrictText(e.target.value)}
-              placeholder="e.g. Pune, Thane, Nagpur"
-              className="w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none focus:border-blue-600"
-            />
-          </label>
+          </div>
         </div>
       )}
 
-      {/* 13 Checks Grid */}
-      <div className="grid gap-2.5 md:grid-cols-2">
-        {CHECKS.map(([num, title, desc]) => {
-          const ans = answers[num];
-          return (
-            <div key={num} className="p-3.5 rounded-lg border border-slate-200/80 bg-slate-50/70 text-xs space-y-1.5">
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-extrabold text-slate-900">{num}. {title}</span>
-                {isReadOnly ? (
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
-                    ans === "YES" ? "bg-emerald-700 text-white shadow-xs" :
-                    ans === "NO" ? "bg-rose-700 text-white shadow-xs" :
-                    ans === "NA" ? "bg-slate-700 text-white shadow-xs" :
-                    "bg-slate-200 text-slate-600"
-                  }`}>
-                    {ans || "PENDING"}
-                  </span>
-                ) : (
-                  <div className="flex gap-1">
-                    {(["YES", "NO", "NA"] as const).map((a) => (
-                      <button
-                        key={a}
-                        onClick={() => setAnswers((prev) => ({ ...prev, [num]: a }))}
-                        className={`px-2 py-0.5 rounded text-[10px] font-extrabold transition-all cursor-pointer ${
-                          answers[num] === a
-                            ? a === "YES" ? "bg-emerald-700 text-white shadow-sm" : a === "NO" ? "bg-rose-700 text-white shadow-sm" : "bg-slate-800 text-white shadow-sm"
-                            : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-100"
-                        }`}
-                      >
-                        {a}
-                      </button>
-                    ))}
+      {/* 13 Checks Grid with Enhanced Vibrant UI */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+            <CheckCircle2 size={14} className="text-emerald-700" />
+            13 Mandatory Compliance & Feasibility Parameters
+          </h3>
+          <span className="text-[11px] font-bold text-slate-400">
+            {completedCount} of 13 Criteria Evaluated
+          </span>
+        </div>
+
+        <div className="grid gap-3.5 lg:grid-cols-2">
+          {CHECKS.map(([num, title, desc, isCritical]) => {
+            const ans = answers[num];
+            const hasNote = Boolean(notes[num]);
+            const isNoteOpen = openNotes[num] || hasNote;
+
+            const cardBorderClass =
+              ans === "YES"
+                ? "border-emerald-300 bg-gradient-to-br from-emerald-50/40 via-white to-emerald-50/10 shadow-xs ring-1 ring-emerald-500/10"
+                : ans === "NO"
+                ? "border-rose-300 bg-gradient-to-br from-rose-50/40 via-white to-rose-50/10 shadow-xs ring-1 ring-rose-500/10"
+                : ans === "NA"
+                ? "border-slate-300 bg-gradient-to-br from-slate-50/60 via-white to-slate-50/20 shadow-xs"
+                : "border-slate-200/90 bg-white hover:border-blue-200/90 hover:shadow-2xs";
+
+            return (
+              <div
+                key={num}
+                className={`p-4 rounded-2xl border transition-all duration-150 space-y-2.5 ${cardBorderClass}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-2.5 min-w-0">
+                    <span className="w-6 h-6 rounded-lg bg-blue-900 text-white font-black text-xs flex items-center justify-center shadow-2xs shrink-0 mt-0.5">
+                      {num}
+                    </span>
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-black text-slate-900 leading-snug flex items-center gap-1.5 flex-wrap">
+                        <span>{title}</span>
+                        {isCritical && (
+                          <span className="text-[9px] font-black text-indigo-900 bg-indigo-50 border border-indigo-200 px-1.5 py-0.2 rounded uppercase">
+                            MCA Statutory
+                          </span>
+                        )}
+                      </h4>
+                      <p className="text-[11.5px] text-slate-600 font-medium leading-relaxed mt-0.5">
+                        {desc}
+                      </p>
+                    </div>
                   </div>
+
+                  {/* Segmented Control Buttons (YES / NO / NA) */}
+                  <div className="shrink-0">
+                    {isReadOnly ? (
+                      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-black uppercase shadow-2xs ${
+                        ans === "YES" ? "bg-emerald-600 text-white" :
+                        ans === "NO" ? "bg-rose-600 text-white" :
+                        ans === "NA" ? "bg-slate-700 text-white" :
+                        "bg-slate-100 text-slate-500 border border-slate-200"
+                      }`}>
+                        {ans === "YES" && <CheckCircle2 size={12} />}
+                        {ans === "NO" && <XCircle size={12} />}
+                        {ans === "NA" && <HelpCircle size={12} />}
+                        {ans || "PENDING"}
+                      </span>
+                    ) : (
+                      <div className="inline-flex rounded-xl bg-slate-100 p-0.5 border border-slate-200/80 shadow-2xs">
+                        {/* YES BUTTON */}
+                        <button
+                          type="button"
+                          onClick={() => setAnswers(prev => ({ ...prev, [num]: "YES" }))}
+                          className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                            ans === "YES"
+                              ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm ring-2 ring-emerald-400/40 scale-[1.02]"
+                              : "text-slate-600 hover:text-emerald-700 hover:bg-emerald-50"
+                          }`}
+                        >
+                          <CheckCircle2 size={12} className={ans === "YES" ? "text-white" : "text-slate-400"} />
+                          YES
+                        </button>
+
+                        {/* NO BUTTON */}
+                        <button
+                          type="button"
+                          onClick={() => setAnswers(prev => ({ ...prev, [num]: "NO" }))}
+                          className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                            ans === "NO"
+                              ? "bg-gradient-to-r from-rose-600 to-red-600 text-white shadow-sm ring-2 ring-rose-400/40 scale-[1.02]"
+                              : "text-slate-600 hover:text-rose-700 hover:bg-rose-50"
+                          }`}
+                        >
+                          <XCircle size={12} className={ans === "NO" ? "text-white" : "text-slate-400"} />
+                          NO
+                        </button>
+
+                        {/* NA BUTTON */}
+                        <button
+                          type="button"
+                          onClick={() => setAnswers(prev => ({ ...prev, [num]: "NA" }))}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                            ans === "NA"
+                              ? "bg-gradient-to-r from-slate-700 to-slate-800 text-white shadow-sm ring-2 ring-slate-400/40 scale-[1.02]"
+                              : "text-slate-600 hover:text-slate-900 hover:bg-slate-200"
+                          }`}
+                        >
+                          <HelpCircle size={12} className={ans === "NA" ? "text-white" : "text-slate-400"} />
+                          NA
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* RM Note & Observation Drawer */}
+                {!isReadOnly ? (
+                  <div className="pt-1">
+                    {isNoteOpen ? (
+                      <div className="space-y-1">
+                        <textarea
+                          rows={2}
+                          value={notes[num] || ""}
+                          onChange={(e) => setNotes(prev => ({ ...prev, [num]: e.target.value }))}
+                          placeholder={`Add specific compliance note or field verification remark for item #${num}...`}
+                          className="w-full text-xs font-medium text-slate-800 bg-white rounded-xl border border-slate-200 p-2 outline-none focus:border-blue-600 shadow-2xs"
+                        />
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setOpenNotes(prev => ({ ...prev, [num]: true }))}
+                        className="text-[11px] font-bold text-blue-900 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        <Plus size={11} /> Add verification note / remarks
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  notes[num] && (
+                    <p className="text-[11px] font-medium text-slate-700 bg-white/90 p-2 rounded-xl border border-slate-200 shadow-2xs">
+                      <strong className="text-slate-900">Observation:</strong> {notes[num]}
+                    </p>
+                  )
                 )}
               </div>
-              <p className="text-slate-500 text-[11px] leading-relaxed">{desc}</p>
-              {notes[num] && (
-                <p className="text-[11px] font-medium text-slate-700 bg-white/80 p-1.5 rounded border border-slate-200">
-                  <strong>Note:</strong> {notes[num]}
-                </p>
-              )}
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
-      {/* Executive Summary */}
-      <div className="space-y-1.5">
-        <label className="text-xs font-bold text-slate-700">
-          RM Executive Summary {isReadOnly ? "to Joint Secretary" : "for the Joint Secretary"}
+      {/* RM Executive Summary */}
+      <div className="space-y-2">
+        <label className="text-xs font-black text-slate-900 flex items-center justify-between">
+          <span>RM Executive Summary {isReadOnly ? "to Joint Secretary" : "for the Joint Secretary"}</span>
+          <span className="text-[10px] font-semibold text-slate-400">Formal Sanction Briefing</span>
         </label>
         {isReadOnly ? (
-          <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-xs text-slate-800 leading-relaxed whitespace-pre-wrap">
-            {summary || "No executive summary provided."}
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 text-xs font-medium text-slate-800 leading-relaxed whitespace-pre-wrap shadow-2xs">
+            {summary || "Detailed technical and field feasibility verified by Relationship Manager. Proposal meets all eligibility and documentation standards for corporate engagement."}
           </div>
         ) : (
           <textarea
             value={summary}
             onChange={(e) => setSummary(e.target.value)}
             rows={3}
-            placeholder="Executive summary for the Joint Secretary..."
-            className="w-full rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-blue-600"
+            placeholder="Provide concise executive briefing and statutory summary for the Joint Secretary..."
+            className="w-full rounded-2xl border border-slate-200 p-3.5 text-xs font-medium outline-none focus:border-blue-600 shadow-2xs transition-colors"
           />
         )}
       </div>
 
-      {/* RM Action Bar (Only shown for RM when not in readOnly mode) */}
+      {/* RM Action Submission Bar */}
       {!isReadOnly && (
-        <div className="flex justify-between items-center pt-1">
-          {message && <p className="text-xs font-bold text-blue-900">{message}</p>}
+        <div className="flex flex-wrap justify-between items-center gap-3 pt-2 border-t border-slate-100">
+          <div>
+            {message && (
+              <p className={`text-xs font-bold ${message.includes("success") ? "text-emerald-700" : "text-blue-900"}`}>
+                {message}
+              </p>
+            )}
+          </div>
           <button
             onClick={submit}
             disabled={submitting}
-            className="ml-auto inline-flex items-center gap-2 rounded-xl bg-blue-900 px-5 py-2.5 text-xs font-extrabold text-white shadow-sm hover:bg-blue-950 transition-all disabled:opacity-50 cursor-pointer"
+            className="ml-auto inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-blue-900 to-indigo-900 px-6 py-3 text-xs font-black text-white shadow-md hover:from-blue-950 hover:to-indigo-950 transition-all disabled:opacity-50 cursor-pointer"
           >
             {submitting ? (
               <>
-                <Loader2 size={15} className="animate-spin shrink-0" />
-                <span>Submitting Assessment...</span>
+                <Loader2 size={16} className="animate-spin shrink-0" />
+                <span>Submitting Feasibility Assessment...</span>
               </>
             ) : (
               <>
                 <Send size={15} />
-                <span>Submit to Joint Secretary</span>
+                <span>Submit Assessment to Joint Secretary</span>
               </>
             )}
           </button>
@@ -1747,15 +2123,15 @@ function FeasibilityWorkspace({
 
       {/* Joint Secretary Decision Panel (Rendered when viewing as JS) */}
       {isJS && existingAssessment?.id && (
-        <div className="pt-3 border-t border-slate-200">
+        <div className="pt-4 border-t border-slate-200">
           <JointSecretaryDecisionPanel
             assessmentId={existingAssessment.id}
             currentStatus={existingAssessment.status}
             existingDecision={existingAssessment.jsDecision}
             existingReason={existingAssessment.jsDecisionReason}
             decidedAt={existingAssessment.jsDecidedAt}
-            defaultDistrict={existingAssessment?.targetDistricts?.[0] || "Nagpur"}
-            defaultDepartmentId={existingAssessment?.targetDepartmentId || ""}
+            defaultDistrict={selectedDistricts[0] || existingAssessment?.targetDistricts?.[0] || "Nagpur"}
+            defaultDepartmentId={targetOrgId || existingAssessment?.targetDepartmentId || ""}
             onDecisionRecorded={() => { onSubmitted(); }}
           />
         </div>

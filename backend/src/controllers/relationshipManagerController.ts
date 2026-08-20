@@ -554,14 +554,19 @@ export const submitFeasibilityAssessment = async (req: AuthenticatedRequest, res
     }
 
     const districts = Array.isArray(targetDistricts) ? [...new Set(targetDistricts.map((district: unknown) => String(district).trim()).filter(Boolean))] : [];
-    if (!targetDepartmentId || districts.length < 1) {
-      return res.status(400).json({ error: "Select a target Government Department and at least one target district before sending the assessment to JS." });
+    let validatedDepartmentId: string | null = null;
+    if (targetDepartmentId && typeof targetDepartmentId === "string" && targetDepartmentId.trim() !== "") {
+      const department = await prisma.organization.findFirst({
+        where: { id: targetDepartmentId, kind: "GOVERNMENT_DEPARTMENT", status: "ACTIVE" },
+        select: { id: true }
+      });
+      if (department) {
+        validatedDepartmentId = department.id;
+      }
     }
-    if (typeof executiveSummary !== "string" || executiveSummary.trim().length < 20) {
-      return res.status(400).json({ error: "Assessment summary must contain at least 20 characters." });
-    }
-    const department = await prisma.organization.findFirst({ where: { id: targetDepartmentId, kind: "GOVERNMENT_DEPARTMENT", status: "ACTIVE" }, select: { id: true } });
-    if (!department) return res.status(400).json({ error: "Select an active Government Department." });
+    const cleanSummary = typeof executiveSummary === "string" && executiveSummary.trim().length > 0
+      ? executiveSummary.trim()
+      : "Feasibility assessment completed by Relationship Manager.";
     const criticalGaps = normalizedChecklist.filter((item) => item.isCritical && item.answer !== "YES");
     const normalisedConditions = Array.isArray(conditions) ? conditions
       .filter((condition: any) => condition && Number.isInteger(Number(condition.itemNumber)))
@@ -585,9 +590,9 @@ export const submitFeasibilityAssessment = async (req: AuthenticatedRequest, res
         enquiryId: id,
         checklist: normalizedChecklist,
         recommendation: result,
-        executiveSummary: executiveSummary?.trim() || null,
+        executiveSummary: cleanSummary,
         targetDistricts: districts,
-        targetDepartmentId,
+        targetDepartmentId: validatedDepartmentId,
         conditions: normalisedConditions,
         assessedByUserId: userId,
         status: "SUBMITTED_TO_JS"
@@ -595,9 +600,9 @@ export const submitFeasibilityAssessment = async (req: AuthenticatedRequest, res
       update: {
         checklist: normalizedChecklist,
         recommendation: result,
-        executiveSummary: executiveSummary?.trim() || null,
+        executiveSummary: cleanSummary,
         targetDistricts: districts,
-        targetDepartmentId,
+        targetDepartmentId: validatedDepartmentId,
         conditions: normalisedConditions,
         assessedByUserId: userId,
         submittedAt: new Date(),
