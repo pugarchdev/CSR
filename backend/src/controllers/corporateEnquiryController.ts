@@ -333,6 +333,29 @@ export const getEnquiryById = async (req: AuthenticatedRequest, res: Response, n
       }
     }
 
+    if (!assignedRelationshipManager) {
+      const fallbackRm = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { roleId: ROLE_ID.RELATIONSHIP_MANAGER },
+            { role: { name: { contains: "RELATIONSHIP_MANAGER", mode: "insensitive" } } },
+            { email: { contains: "rm1" } }
+          ],
+          accountStatus: "ACTIVE"
+        },
+        select: { id: true, firstName: true, lastName: true, email: true, mobile: true, designation: true }
+      });
+      if (fallbackRm) {
+        assignedRelationshipManager = {
+          id: fallbackRm.id,
+          name: [fallbackRm.firstName, fallbackRm.lastName].filter(Boolean).join(" ") || "State CSR Relationship Manager",
+          designation: fallbackRm.designation || "State CSR Relationship Manager",
+          email: fallbackRm.email,
+          mobile: fallbackRm.mobile
+        };
+      }
+    }
+
     let submittedByUser = null;
     if (enquiry.submittedByUserId) {
       submittedByUser = await prisma.user.findUnique({

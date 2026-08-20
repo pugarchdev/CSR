@@ -7,8 +7,8 @@ import {
   ArrowLeft, Building2, Loader2, Mail, Send,
   MapPin, FileText, ClipboardCheck,
   MessageSquare, History, FileCheck,
-  Copy, Check, PhoneCall, Video, Globe, User, ArrowRight, UserCheck,
-  X, CalendarDays, FileImage, ExternalLink, Briefcase,
+  Copy, Check, PhoneCall, Phone, Video, Globe, User, ArrowRight, UserCheck,
+  X, CalendarDays, FileImage, ExternalLink, Briefcase, FileCode, Image as ImageIcon,
   CheckCircle2, AlertCircle, ShieldCheck, FileCheck2, RotateCcw, XCircle, Clock
 } from "lucide-react";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
@@ -353,6 +353,7 @@ export default function EnquiryDetailPage() {
   const [phoneCopied, setPhoneCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "communication" | "feasibility" | "js" | "assignments">("overview");
   const [showMeetingModal, setShowMeetingModal] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -556,22 +557,6 @@ export default function EnquiryDetailPage() {
     }
   }, [params.id, assignedRm, enquiry, refetchInteractions]);
 
-  if (!mounted || isLoading) {
-    return (
-      <GovPortalLayout>
-        <div className="flex justify-center items-center min-h-[60vh]">
-          <Loader2 className="animate-spin text-blue-900" size={32} />
-        </div>
-      </GovPortalLayout>
-    );
-  }
-
-  const documents = Array.isArray(enquiry?.documents) ? enquiry.documents : [];
-  const preferredDistricts = Array.isArray(enquiry?.preferredDistricts) ? enquiry.preferredDistricts : [];
-  const preferredDivisions = Array.isArray(enquiry?.preferredDivisions) ? enquiry.preferredDivisions : [];
-  const preferredTalukas = Array.isArray(enquiry?.preferredTalukas) ? enquiry.preferredTalukas : [];
-  const preferredCities = Array.isArray(enquiry?.preferredCities) ? enquiry.preferredCities : [];
-
   const canAccessFeasibility = isStateAuthority || hasPermission("assessment:view");
   const canAccessJSDecision = isJS || isAdmin || (isStateAuthority && !isRM) || (isRM && Boolean(assessment?.jsDecision)) || hasPermission("assessment:review");
 
@@ -589,6 +574,43 @@ export default function EnquiryDetailPage() {
     list.push({ id: "assignments", label: "Assignments & Audit", icon: History });
     return list;
   }, [canAccessFeasibility, canAccessJSDecision, isJS]);
+
+  const documents = useMemo(() => Array.isArray(enquiry?.documents) ? enquiry.documents : [], [enquiry?.documents]);
+  const preferredDistricts = useMemo(() => Array.isArray(enquiry?.preferredDistricts) ? enquiry.preferredDistricts : [], [enquiry?.preferredDistricts]);
+  const preferredDivisions = useMemo(() => Array.isArray(enquiry?.preferredDivisions) ? enquiry.preferredDivisions : [], [enquiry?.preferredDivisions]);
+  const preferredTalukas = useMemo(() => Array.isArray(enquiry?.preferredTalukas) ? enquiry.preferredTalukas : [], [enquiry?.preferredTalukas]);
+  const preferredCities = useMemo(() => Array.isArray(enquiry?.preferredCities) ? enquiry.preferredCities : [], [enquiry?.preferredCities]);
+
+  const isImageFile = useCallback((url: string) => {
+    if (!url || typeof url !== "string") return false;
+    const clean = url.split("?")[0].toLowerCase();
+    return /\.(jpg|jpeg|png|gif|webp|svg|bmp|avif)$/i.test(clean) || url.includes("/image/upload/") || url.includes("images");
+  }, []);
+
+  const photoDocuments = useMemo(() => documents.filter((doc: string) => isImageFile(doc)), [documents, isImageFile]);
+  const supportingDocuments = useMemo(() => documents.filter((doc: string) => !isImageFile(doc)), [documents, isImageFile]);
+
+  const getDocDisplayName = useCallback((url: string, index: number, prefix: string = "Supporting Document"): string => {
+    if (!url) return `${prefix} #${index + 1}`;
+    try {
+      const raw = url.split("/").pop()?.split("?")[0] || "";
+      const decoded = decodeURIComponent(raw);
+      if (decoded && decoded.trim().length > 0) {
+        return decoded;
+      }
+    } catch {}
+    return `${prefix} #${index + 1}`;
+  }, []);
+
+  if (!mounted || isLoading) {
+    return (
+      <GovPortalLayout>
+        <div className="flex justify-center items-center min-h-[60vh]">
+          <Loader2 className="animate-spin text-blue-900" size={32} />
+        </div>
+      </GovPortalLayout>
+    );
+  }
 
   return (
     <GovPortalLayout>
@@ -744,36 +766,94 @@ export default function EnquiryDetailPage() {
                 </p>
               </div>
 
-              {/* Documents & Attachments */}
-              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
-                <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-                  <FileText size={16} className="text-blue-800" /> Submitted Documents & Attachments
-                </h3>
-                {documents.length > 0 ? (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {documents.map((doc: string, idx: number) => {
-                      const isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(doc);
-                      return (
-                        <div key={idx} className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors">
-                          {isImage ? (
-                            <FileImage size={20} className="text-purple-600 shrink-0" />
-                          ) : (
-                            <FileCheck size={20} className="text-blue-600 shrink-0" />
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs font-bold text-slate-900 truncate">{doc.split("/").pop() || `Document ${idx + 1}`}</p>
-                            <p className="text-[10px] text-slate-500">{isImage ? "Image" : "Document"}</p>
-                          </div>
-                          <a href={doc} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:text-blue-900">
-                            <ExternalLink size={14} />
-                          </a>
-                        </div>
-                      );
-                    })}
+              {/* Submitted Field Evidence & Technical Documents */}
+              <div className="rounded-2xl border border-slate-200/90 bg-white p-5 md:p-6 shadow-sm space-y-5">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-900 flex items-center justify-center font-bold">
+                      <FileCode size={18} />
+                    </div>
+                    <h2 className="text-sm font-extrabold text-slate-900">
+                      Submitted Field Evidence & Technical Documents
+                    </h2>
                   </div>
-                ) : (
-                  <p className="text-xs text-slate-500 italic">No documents attached to this enquiry.</p>
-                )}
+                  {documents.length > 0 && (
+                    <span className="text-[11px] font-bold text-slate-500 bg-slate-50 border border-slate-200 px-2.5 py-0.5 rounded-full">
+                      Attachments: <strong className="text-slate-800">{documents.length}</strong>
+                    </span>
+                  )}
+                </div>
+
+                {/* Attached Site Photographs & Evidence */}
+                <div>
+                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                    <ImageIcon size={14} className="text-blue-800" />
+                    GEO-TAGGED SITE PHOTOGRAPHS ({photoDocuments.length})
+                  </h3>
+
+                  {photoDocuments.length > 0 ? (
+                    <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+                      {photoDocuments.map((photoUrl: string, idx: number) => {
+                        const photoName = getDocDisplayName(photoUrl, idx, "Site Evidence");
+                        return (
+                          <div
+                            key={idx}
+                            onClick={() => setSelectedPhoto(photoUrl)}
+                            className="group relative rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden cursor-pointer hover:shadow-md hover:border-blue-300 transition-all aspect-video flex items-center justify-center"
+                          >
+                            <img
+                              src={photoUrl}
+                              alt={photoName}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = "none";
+                              }}
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-transparent to-transparent flex items-end p-2.5">
+                              <span className="text-[11px] font-bold text-white flex items-center gap-1 truncate drop-shadow-xs">
+                                <ImageIcon size={12} className="shrink-0" /> {photoName.length > 25 ? `Site Evidence #${idx + 1}` : photoName}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center text-xs text-slate-500 font-medium">
+                      No geo-tagged photographs submitted.
+                    </div>
+                  )}
+                </div>
+
+                {/* Supporting Documents & Proposals */}
+                <div className="pt-3 border-t border-slate-100">
+                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                    <FileText size={14} className="text-blue-800" />
+                    SUPPORTING PROJECT DOCUMENTS & DPR ({supportingDocuments.length})
+                  </h3>
+
+                  {supportingDocuments.length > 0 ? (
+                    <div className="flex flex-wrap gap-2.5">
+                      {supportingDocuments.map((docUrl: string, idx: number) => (
+                        <a
+                          key={idx}
+                          href={docUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50/80 hover:bg-blue-100 hover:border-blue-300 px-3.5 py-2 text-xs font-bold text-blue-950 transition-all shadow-2xs group"
+                        >
+                          <FileText size={14} className="text-blue-800 shrink-0 group-hover:scale-105 transition-transform" />
+                          <span className="truncate max-w-[280px]">{getDocDisplayName(docUrl, idx, "Supporting Document")}</span>
+                          <ExternalLink size={12} className="text-blue-700 ml-1 shrink-0" />
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-4 text-center text-xs text-slate-500 font-medium">
+                      No separate project document files attached.
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -879,11 +959,11 @@ export default function EnquiryDetailPage() {
               </div>
 
               {/* Assigned Relationship Manager (RM) Card (Matches Pitches View Page) */}
-              <section className="rounded-2xl border border-blue-100 bg-gradient-to-b from-blue-50/50 via-white to-white p-5 shadow-xs space-y-4">
+              <section className="rounded-3xl border border-blue-100 bg-gradient-to-b from-blue-50/50 via-white to-white p-6 shadow-2xs space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <h4 className="text-xs font-extrabold text-slate-900 flex items-center gap-2">
+                  <h2 className="text-xs font-extrabold text-slate-900 flex items-center gap-2">
                     <UserCheck size={16} className="text-blue-900" /> Assigned RM
-                  </h4>
+                  </h2>
                   <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-extrabold ${
                     hasRm
                       ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
@@ -896,42 +976,42 @@ export default function EnquiryDetailPage() {
                 {assignedRm ? (
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-blue-900 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-blue-950 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
                         {assignedRm.name ? assignedRm.name.charAt(0).toUpperCase() : "R"}
                       </div>
                       <div className="min-w-0">
-                        <h4 className="text-xs font-extrabold text-slate-900 truncate">{assignedRm.name}</h4>
+                        <h3 className="text-xs font-extrabold text-slate-900 truncate">{assignedRm.name}</h3>
                         <p className="text-[11px] font-semibold text-blue-900">{assignedRm.designation || "State CSR Relationship Manager"}</p>
                       </div>
                     </div>
 
-                    <div className="space-y-2 text-xs pt-1">
+                    <div className="space-y-2.5 text-xs pt-1">
                       {assignedRm.email && (
-                        <div className="rounded-xl border border-slate-100 bg-white p-2.5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between shadow-2xs">
-                          <span className="text-[10px] font-bold text-slate-400 shrink-0">Email</span>
+                        <div className="rounded-xl border border-slate-100 bg-white p-3 flex items-center justify-between shadow-2xs">
+                          <span className="text-xs font-bold text-slate-500 shrink-0">Email</span>
                           <a
                             href={`mailto:${assignedRm.email}`}
                             onClick={handleEmailRM}
                             className="font-bold text-blue-900 hover:underline flex items-center gap-1.5 text-xs break-all cursor-pointer"
                             title="Email Relationship Manager (auto-logs to timeline)"
                           >
-                            <Mail size={12} className="text-blue-700 shrink-0" />
+                            <Mail size={14} className="text-blue-600 shrink-0" />
                             <span className="break-all">{assignedRm.email}</span>
                           </a>
                         </div>
                       )}
 
                       {assignedRm.mobile && (
-                        <div className="rounded-xl border border-slate-100 bg-white p-2.5 flex items-center justify-between shadow-2xs">
-                          <span className="text-[10px] font-bold text-slate-400">Mobile</span>
+                        <div className="rounded-xl border border-slate-100 bg-white p-3 flex items-center justify-between shadow-2xs">
+                          <span className="text-xs font-bold text-slate-500 shrink-0">Mobile</span>
                           <a
                             href={`tel:${assignedRm.mobile}`}
                             onClick={handleCallRM}
-                            className="font-bold text-slate-900 hover:text-blue-900 flex items-center gap-1.5 cursor-pointer"
+                            className="font-bold text-slate-900 hover:text-blue-900 flex items-center gap-1.5 cursor-pointer text-xs"
                             title="Call Relationship Manager (auto-logs to timeline)"
                           >
-                            <PhoneCall size={12} className="text-emerald-700" />
-                            {assignedRm.mobile}
+                            <Phone size={14} className="text-emerald-600 shrink-0" />
+                            <span>{assignedRm.mobile}</span>
                           </a>
                         </div>
                       )}
@@ -1043,6 +1123,43 @@ export default function EnquiryDetailPage() {
             onClose={() => setShowMeetingModal(false)}
             onScheduled={() => { refetchInteractions(); setShowMeetingModal(false); }}
           />
+        )}
+
+        {/* ─── Photo Lightbox Modal ─── */}
+        {selectedPhoto && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4"
+            onClick={() => setSelectedPhoto(null)}
+          >
+            <div
+              className="relative max-w-4xl max-h-[90vh] bg-transparent rounded-2xl overflow-hidden shadow-2xl flex flex-col items-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={selectedPhoto}
+                alt="Preview"
+                className="max-h-[80vh] w-auto rounded-2xl object-contain shadow-2xl border border-white/20"
+              />
+              <div className="mt-3 flex items-center gap-3">
+                <a
+                  href={selectedPhoto}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="px-4 py-2 rounded-xl bg-white text-slate-900 text-xs font-bold shadow-lg hover:bg-slate-100 transition-colors inline-flex items-center gap-1.5"
+                >
+                  <ExternalLink size={14} /> Open Full Resolution
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setSelectedPhoto(null)}
+                  className="px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold backdrop-blur-sm transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </GovPortalLayout>

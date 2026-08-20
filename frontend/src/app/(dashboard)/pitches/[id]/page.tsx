@@ -1196,7 +1196,7 @@ export default function PitchDetailPage() {
                 <div className="space-y-2">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
                     <FileText size={15} className="text-blue-900" />
-                    RM Assessment Summary & Field Findings (Word-for-Word)
+                    RM Assessment Summary & Field Findings 
                   </h3>
                   <div className="rounded-2xl border border-indigo-100 bg-slate-50/90 p-5 leading-relaxed text-slate-800 text-sm font-medium whitespace-pre-wrap shadow-2xs">
                     {rmVerification?.summary || assessmentSummary || "Detailed technical and field feasibility verified by Relationship Manager. Proposal meets all eligibility and documentation standards for corporate engagement."}
@@ -1208,7 +1208,7 @@ export default function PitchDetailPage() {
                   <div className="space-y-2">
                     <h3 className="text-xs font-black text-amber-950 uppercase tracking-wider flex items-center gap-1.5">
                       <AlertCircle size={15} className="text-amber-700" />
-                      Mandatory Conditions & Compliance Prerequisites (Word-for-Word)
+                      Mandatory Conditions & Compliance Prerequisites
                     </h3>
                     <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-xs font-bold text-amber-950 leading-relaxed whitespace-pre-wrap">
                       {rmVerification?.conditions || conditions}
