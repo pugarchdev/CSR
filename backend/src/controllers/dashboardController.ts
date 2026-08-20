@@ -819,13 +819,25 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
       // 8. COMPANY ADMIN (Role 8 - Corporate Primary Admin)
       // ─────────────────────────────────────────────────────────────────────────────
       else if (roleId === 8) {
+        const corporateProjectWhere = {
+          status: { in: ACTIVE_PROJECTS },
+          OR: [
+            ...(orgId ? [
+              { corporatePartnerId: orgId },
+              { organizationId: orgId },
+              { approvalSourceEnquiry: { organizationId: orgId } }
+            ] : []),
+            { approvalSourceEnquiry: { submittedByUserId: userId } }
+          ]
+        };
+
         const [enquiries, interests, companyProjects, milestoneReviews, ngoMemberships, commitments] = orgId ? await Promise.all([
           prisma.corporateEnquiry.count({ where: { organizationId: orgId, status: { notIn: ["REJECTED", "CLOSED"] } } }),
           prisma.corporatePitchInterest.count({ where: { corporateId: orgId, status: { notIn: ["REJECTED", "CLOSED"] } } }),
-          prisma.project.count({ where: { status: { in: ACTIVE_PROJECTS }, OR: [{ corporatePartnerId: orgId }, { organizationId: orgId }] } }),
-          prisma.projectMilestone.count({ where: { status: "SUBMITTED", project: { OR: [{ corporatePartnerId: orgId }, { organizationId: orgId }] } } }),
+          prisma.project.count({ where: corporateProjectWhere }),
+          prisma.projectMilestone.count({ where: { status: "SUBMITTED", project: corporateProjectWhere } }),
           prisma.corporateNgoMembership.count({ where: { corporateOrganizationId: orgId, status: "APPROVED" } }),
-          prisma.project.aggregate({ where: { OR: [{ corporatePartnerId: orgId }, { organizationId: orgId }] }, _sum: { committedAmount: true, utilizedAmount: true } }),
+          prisma.project.aggregate({ where: corporateProjectWhere, _sum: { committedAmount: true, utilizedAmount: true } }),
         ]) : [0, 0, 0, 0, 0, { _sum: { committedAmount: null, utilizedAmount: null } } as any];
 
         const committedVal = Number(commitments._sum?.committedAmount || 0);
@@ -857,7 +869,7 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
           createKpi("ca_committed_funds", "Total Committed Funds", formatCurrency(committedVal), "currency", "/funds", "Total CSR budget committed across approved projects", "positive", "up"),
           createKpi("ca_released_funds", "Funds Released", formatCurrency(utilizedVal), "currency", "/funds", "Actual tranches disbursed for milestone execution", "positive"),
           createKpi("ca_utilization_rate", "Reported Utilization", `${utilRate}%`, "percentage", "/funds", "Verified fund utilization against released amount", "positive"),
-          createKpi("ca_active_projects", "Active CSR Projects", companyProjects, "number", "/company/projects", "Projects in execution with implementing partners", "positive"),
+          createKpi("ca_active_projects", "Active CSR Projects", companyProjects, "number", "/convergence-projects", "Projects in execution with implementing partners", "positive"),
           createKpi("ca_milestone_pending", "Milestone Plans Due Review", milestoneReviews, "number", "/milestones", "NGO-proposed milestone plans awaiting Corporate approval", milestoneReviews > 0 ? "warning" : "positive"),
           createKpi("ca_active_ngos", "Approved NGO Partners", ngoMemberships, "number", "/implementing-agencies", "Active Corporate-NGO implementation partnerships", "neutral"),
           createKpi("ca_open_pipeline", "Open Enquiries & Interests", enquiries + interests, "number", "/enquiries", "Submitted enquiries & pitch interests in feasibility review", "neutral"),
@@ -866,12 +878,27 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
 
         // Corporate Work Queue
         const pendingMilestones = orgId ? await prisma.projectMilestone.findMany({
-          where: { status: "SUBMITTED", project: { OR: [{ corporatePartnerId: orgId }, { organizationId: orgId }] } },
+          where: { status: "SUBMITTED", project: corporateProjectWhere },
           include: { project: true },
           take: 5,
         }) : [];
 
-        workQueue = pendingMilestones.map(m => ({
+        const activeProjectsList = await prisma.project.findMany({
+          where: corporateProjectWhere,
+          orderBy: { createdAt: "desc" },
+          take: 3
+        });
+
+        const actionableEnquiries = orgId ? await prisma.corporateEnquiry.findMany({
+          where: {
+            organizationId: orgId,
+            status: { in: ["CLARIFICATION_REQUIRED", "RETURN_FOR_CLARIFICATION", "JS_APPROVED", "SUBMITTED_TO_JS", "PENDING"] }
+          },
+          orderBy: { createdAt: "desc" },
+          take: 3
+        }) : [];
+
+        const milestoneWorkItems: WorkQueueItem[] = pendingMilestones.map((m) => ({
           id: m.id,
           refNumber: `MLS-${m.id.slice(0, 6)}`,
           entityType: "Milestone Proposal",
@@ -884,6 +911,34 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
           primaryActionHref: `/milestones?id=${m.id}`,
           statusBadge: "SUBMITTED",
         }));
+
+        const projectWorkItems: WorkQueueItem[] = activeProjectsList.map((p) => ({
+          id: p.id,
+          refNumber: p.projectCode || `PRJ-${p.id.slice(0, 6)}`,
+          entityType: "Active Convergence Project",
+          title: p.title,
+          currentStage: "Approved & Active Execution",
+          assignedDate: p.createdAt.toISOString(),
+          priority: "HIGH",
+          primaryActionLabel: "View Project",
+          primaryActionHref: `/convergence-projects/${p.id}`,
+          statusBadge: p.status,
+        }));
+
+        const enquiryWorkItems: WorkQueueItem[] = actionableEnquiries.map((e) => ({
+          id: e.id,
+          refNumber: e.trackingId || `ENQ-${e.id.slice(0, 6)}`,
+          entityType: "Corporate CSR Enquiry",
+          title: `${e.corporateName} (${e.sector || "General CSR"})`,
+          currentStage: e.status === "JS_APPROVED" ? "Approved by Joint Secretary" : e.status === "SUBMITTED_TO_JS" ? "Under Joint Secretary Review" : "In Progress",
+          assignedDate: e.createdAt.toISOString(),
+          priority: e.status.includes("CLARIFICATION") ? "CRITICAL" : "NORMAL",
+          primaryActionLabel: "View Enquiry",
+          primaryActionHref: `/enquiries/${e.id}`,
+          statusBadge: e.status,
+        }));
+
+        workQueue = [...milestoneWorkItems, ...projectWorkItems, ...enquiryWorkItems].slice(0, 6);
       }
 
       // ─────────────────────────────────────────────────────────────────────────────

@@ -15,14 +15,14 @@ const MAIN_GOV_TYPES = ["COLLECTORATE", "ZILLA_PARISHAD", "MUNICIPAL_CORPORATION
  * Check if an organization is the Collectorate (district boss).
  */
 export function isCollectorOrg(org: { governmentType?: string | null; governmentLevel?: string | null } | null): boolean {
-  return org?.governmentType === "COLLECTORATE" && org?.governmentLevel === "MAIN";
+  return org?.governmentType === "COLLECTORATE";
 }
 
 /**
  * Check if an organization is a main-level ZP or MNC (not a sub-department).
  */
 export function isMainDepartmentOrg(org: { governmentType?: string | null; governmentLevel?: string | null } | null): boolean {
-  return MAIN_GOV_TYPES.includes(org?.governmentType || "") && org?.governmentLevel === "MAIN";
+  return MAIN_GOV_TYPES.includes(org?.governmentType || "");
 }
 
 /**
@@ -47,9 +47,7 @@ export async function getDistrictOrganizationIds(district: string): Promise<stri
   const mainOrgs = await prisma.organization.findMany({
     where: {
       kind: "GOVERNMENT_DEPARTMENT",
-      governmentLevel: "MAIN",
-      governmentType: { in: MAIN_GOV_TYPES as any },
-      district,
+      district: { equals: district, mode: "insensitive" },
       status: { notIn: ["REJECTED", "SUSPENDED"] },
       deletedAt: null,
     },
@@ -62,13 +60,12 @@ export async function getDistrictOrganizationIds(district: string): Promise<stri
   const childOrgs = await prisma.organization.findMany({
     where: {
       parentOrganizationId: { in: mainOrgIds },
-      governmentLevel: "SUB_DEPARTMENT",
       deletedAt: null,
     },
     select: { id: true },
   });
 
-  return [...mainOrgIds, ...childOrgs.map(o => o.id)];
+  return [...new Set([...mainOrgIds, ...childOrgs.map(o => o.id)])];
 }
 
 /**
@@ -79,9 +76,7 @@ export async function getDistrictOrgBreakdown(district: string) {
   const mainOrgs = await prisma.organization.findMany({
     where: {
       kind: "GOVERNMENT_DEPARTMENT",
-      governmentLevel: "MAIN",
-      governmentType: { in: MAIN_GOV_TYPES as any },
-      district,
+      district: { equals: district, mode: "insensitive" },
       status: { notIn: ["REJECTED", "SUSPENDED"] },
       deletedAt: null,
     },
@@ -105,13 +100,13 @@ export async function getDistrictProjectFilter(district: string) {
   return {
     OR: [
       // Projects directly under any district gov org
-      { organizationId: { in: orgIds } },
-      // Projects with parent org in district
-      { parentOrganizationId: { in: orgIds } },
-      // Projects with department org in district
-      { departmentOrganizationId: { in: orgIds } },
+      ...(orgIds.length > 0 ? [
+        { organizationId: { in: orgIds } },
+        { parentOrganizationId: { in: orgIds } },
+        { departmentOrganizationId: { in: orgIds } },
+      ] : []),
       // Fallback: any project located in the district
-      { district },
+      { district: { equals: district, mode: "insensitive" } },
     ],
   };
 }
@@ -119,12 +114,18 @@ export async function getDistrictProjectFilter(district: string) {
 /**
  * For ZP / MNC: Build a Prisma project filter scoped to own organization tree only.
  */
-export function getOrgProjectFilter(orgId: string) {
+export async function getOrgProjectFilter(orgId: string) {
+  const childOrgs = await prisma.organization.findMany({
+    where: { parentOrganizationId: orgId, deletedAt: null },
+    select: { id: true }
+  });
+  const allOrgIds = [orgId, ...childOrgs.map(c => c.id)];
+
   return {
     OR: [
-      { organizationId: orgId },
-      { parentOrganizationId: orgId },
-      { departmentOrganizationId: orgId },
+      { organizationId: { in: allOrgIds } },
+      { parentOrganizationId: { in: allOrgIds } },
+      { departmentOrganizationId: { in: allOrgIds } },
     ],
   };
 }

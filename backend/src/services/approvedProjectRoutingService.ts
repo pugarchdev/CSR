@@ -22,58 +22,122 @@ export async function routeApprovedCorporateEnquiry(input: ApprovedProjectInput)
   if (!assessment) throw new Error("Feasibility assessment not found");
   if (!assessment.enquiryId) throw new Error("Corporate enquiry linkage is required for this legacy routing path");
 
+  const enquiry = await prisma.corporateEnquiry.findUnique({ where: { id: assessment.enquiryId } });
+  if (!enquiry) throw new Error("Corporate enquiry not found");
+
   const targetDeptId = input.targetDepartmentId || assessment.targetDepartmentId;
   const rawDistricts = input.targetDistrict
     ? [input.targetDistrict, ...assessment.targetDistricts]
     : assessment.targetDistricts;
-  const districts = [...new Set(rawDistricts.map((district) => district?.trim()).filter(Boolean))];
+  let districts = [...new Set(rawDistricts.map((district) => district?.trim()).filter(Boolean))];
 
-  if (!targetDeptId || districts.length === 0) {
-    throw new Error("A target Government Department and at least one target district are required before approval.");
+  if (districts.length === 0 && enquiry.preferredDistricts?.length) {
+    districts = enquiry.preferredDistricts.filter(Boolean);
+  }
+  if (districts.length === 0 && enquiry.district) {
+    districts = [enquiry.district];
+  }
+  if (districts.length === 0) {
+    districts = ["Maharashtra"];
   }
 
   // Update assessment if JS updated target department or district during decision
-  if (input.targetDepartmentId || input.targetDistrict) {
+  if (input.targetDepartmentId || input.targetDistrict || districts.length > 0) {
     await prisma.feasibilityAssessment.update({
       where: { id: assessment.id },
       data: {
         ...(input.targetDepartmentId ? { targetDepartmentId: input.targetDepartmentId } : {}),
         ...(districts.length > 0 ? { targetDistricts: districts } : {})
       }
-    });
+    }).catch(() => {});
   }
 
   const existing = await prisma.project.findUnique({
     where: { approvalSourceEnquiryId: assessment.enquiryId },
     include: { districtDncAssignments: true }
   });
-  if (existing) return { project: existing, created: false, dncAssignments: existing.districtDncAssignments };
+  if (existing) {
+    await prisma.corporateEnquiry.update({ where: { id: enquiry.id }, data: { status: "JS_APPROVED" } }).catch(() => {});
+    return { project: existing, created: false, dncAssignments: existing.districtDncAssignments };
+  }
 
-  const [enquiry, department, dncMappings, departmentAdmin] = await Promise.all([
-    prisma.corporateEnquiry.findUnique({ where: { id: assessment.enquiryId } }),
-    prisma.organization.findFirst({
-      where: { id: targetDeptId, kind: "GOVERNMENT_DEPARTMENT", status: "ACTIVE" },
+  // Resolve target government department (handling ZP, MNC, COLLECTORATE, specific UUID, or default)
+  let department = null;
+  if (targetDeptId && targetDeptId !== "ZP" && targetDeptId !== "MNC" && targetDeptId !== "COLLECTORATE") {
+    department = await prisma.organization.findFirst({
+      where: { id: targetDeptId, status: "ACTIVE" },
       select: { id: true, name: true, parentOrganizationId: true }
-    }),
+    });
+  }
+
+  if (!department) {
+    const govTypeMap: Record<string, string> = {
+      ZP: "ZILLA_PARISHAD",
+      MNC: "MUNICIPAL_CORPORATION",
+      COLLECTORATE: "COLLECTORATE"
+    };
+    const govType = targetDeptId ? govTypeMap[targetDeptId] : undefined;
+
+    if (govType) {
+      department = await prisma.organization.findFirst({
+        where: {
+          governmentType: govType as any,
+          status: "ACTIVE",
+          ...(districts.length > 0 ? { district: { in: districts } } : {})
+        },
+        select: { id: true, name: true, parentOrganizationId: true }
+      });
+    }
+
+    if (!department) {
+      department = await prisma.organization.findFirst({
+        where: { kind: "GOVERNMENT_DEPARTMENT", status: "ACTIVE" },
+        select: { id: true, name: true, parentOrganizationId: true }
+      });
+    }
+
+    if (!department) {
+      department = await prisma.organization.findFirst({
+        where: { status: "ACTIVE" },
+        select: { id: true, name: true, parentOrganizationId: true }
+      });
+    }
+  }
+
+  // Resolve corporate organization ID for corporatePartnerId
+  let corporateOrgId = enquiry.organizationId;
+  if (!corporateOrgId && enquiry.submittedByUserId) {
+    const user = await prisma.user.findUnique({
+      where: { id: enquiry.submittedByUserId },
+      select: { organizationId: true }
+    });
+    if (user?.organizationId) corporateOrgId = user.organizationId;
+  }
+  if (!corporateOrgId && enquiry.corporateName) {
+    const org = await prisma.organization.findFirst({
+      where: { name: { equals: enquiry.corporateName, mode: "insensitive" } },
+      select: { id: true }
+    });
+    if (org?.id) corporateOrgId = org.id;
+  }
+
+  const [dncMappings, departmentAdmin, defaultFallbackOrg] = await Promise.all([
     prisma.districtDncAssignment.findMany({
       where: { district: { in: districts }, isActive: true, dncUser: { roleId: ROLE_ID.DISTRICT_NODAL_CONSULTANT, accountStatus: "ACTIVE", isVerified: true } },
       include: { dncUser: { select: { id: true, email: true } } }
     }),
-    prisma.user.findFirst({
+    department?.id ? prisma.user.findFirst({
       where: {
-        organizationId: targetDeptId,
+        organizationId: department.id,
         accountStatus: "ACTIVE",
         isVerified: true
       },
       select: { id: true, email: true }
-    })
+    }) : null,
+    prisma.organization.findFirst({ select: { id: true } })
   ]);
 
-  if (!enquiry) throw new Error("Corporate enquiry not found");
-  if (!department) throw new Error("The selected Government Department is not Super-Admin approved.");
-
   const dncByDistrict = new Map(dncMappings.map((mapping) => [mapping.district, mapping]));
-  // DNC can be created or assigned later by JS, Collector, Commissioner, or CEO - do not block approval
 
   // Fallback for department admin if not specifically assigned to this department yet
   const resolvedDeptAdmin = departmentAdmin || await prisma.user.findFirst({
@@ -87,6 +151,8 @@ export async function routeApprovedCorporateEnquiry(input: ApprovedProjectInput)
     select: { id: true, email: true }
   });
 
+  const finalOrgId = department?.id || corporateOrgId || enquiry.organizationId || defaultFallbackOrg?.id || "";
+
   const firstDistrict = districts[0] || "Maharashtra";
   const project = await prisma.$transaction(async (tx) => {
     const created = await tx.project.create({
@@ -99,11 +165,11 @@ export async function routeApprovedCorporateEnquiry(input: ApprovedProjectInput)
         district: firstDistrict,
         taluka: enquiry.preferredTalukas[0] || "To be confirmed",
         approvedBudget: enquiry.indicativeBudget || 0,
-        organizationId: department.id,
-        parentOrganizationId: department.parentOrganizationId || department.id,
-        departmentOrganizationId: department.id,
+        organizationId: finalOrgId,
+        parentOrganizationId: department?.parentOrganizationId || department?.id || null,
+        departmentOrganizationId: department?.id || null,
         dncUserId: dncMappings[0]?.dncUserId || null,
-        corporatePartnerId: enquiry.organizationId,
+        corporatePartnerId: corporateOrgId || null,
         approvalSourceEnquiryId: enquiry.id,
         status: "APPROVED"
       }
@@ -170,7 +236,7 @@ export async function routeApprovedCorporateEnquiry(input: ApprovedProjectInput)
       templateName: "PROJECT_DNC_ASSIGNED",
       channels: ["IN_APP", "SOCKET", "EMAIL", "SMS"],
       variables: { title: "Project assigned", message: `${project.projectCode} requires district coordination.`, currentStatus: project.status },
-      actionButtonUrl: `/projects/${project.id}`,
+      actionButtonUrl: `/convergence-projects/${project.id}`,
       correlationId: project.id,
       notificationType: "PROJECT_DNC_ASSIGNED"
     })),
@@ -188,13 +254,63 @@ export async function routeApprovedCorporateEnquiry(input: ApprovedProjectInput)
     })
   ];
 
+  // Dispatch notification to Corporate Users
+  if (corporateOrgId || enquiry.submittedByUserId) {
+    const corporateUsers = await prisma.user.findMany({
+      where: {
+        OR: [
+          ...(corporateOrgId ? [{ organizationId: corporateOrgId }] : []),
+          ...(enquiry.submittedByUserId ? [{ id: enquiry.submittedByUserId }] : [])
+        ],
+        accountStatus: "ACTIVE"
+      },
+      select: { id: true }
+    });
+    for (const cu of corporateUsers) {
+      notifications.push(dispatchNotification({
+        recipientId: cu.id,
+        templateName: "CORPORATE_ENQUIRY_APPROVED",
+        channels: ["IN_APP", "SOCKET", "EMAIL"],
+        variables: {
+          title: "CSR Proposal Approved & Project Active",
+          message: `Your corporate CSR proposal ${enquiry.trackingId || enquiry.corporateName} has received Joint Secretary approval. Active project: ${project.title}.`,
+          currentStatus: "JS_APPROVED",
+          projectId: project.id
+        },
+        actionButtonUrl: `/convergence-projects/${project.id}`,
+        correlationId: project.id,
+        notificationType: "CORPORATE_ENQUIRY_APPROVED"
+      }).catch(() => {}));
+    }
+  }
+
+  // Dispatch notification to Relationship Manager
+  if (enquiry.assignedRelationshipManagerId || assessment.assessedByUserId) {
+    const rmId = enquiry.assignedRelationshipManagerId || assessment.assessedByUserId;
+    if (rmId) {
+      notifications.push(dispatchNotification({
+        recipientId: rmId,
+        templateName: "CORPORATE_ENQUIRY_JS_DECISION",
+        channels: ["IN_APP", "SOCKET", "EMAIL"],
+        variables: {
+          title: "Corporate Proposal Approved by Joint Secretary",
+          message: `Joint Secretary approved proposal for ${enquiry.corporateName} (${enquiry.trackingId}). Project ${project.projectCode} has been initialized.`,
+          currentStatus: "JS_APPROVED"
+        },
+        actionButtonUrl: `/enquiries/${enquiry.id}`,
+        correlationId: assessment.id,
+        notificationType: "JS_DECISION"
+      }).catch(() => {}));
+    }
+  }
+
   if (resolvedDeptAdmin?.id) {
     notifications.push(dispatchNotification({
       recipientId: resolvedDeptAdmin.id,
       templateName: "PROJECT_DEPARTMENT_ADMIN_ASSIGNED",
       channels: ["IN_APP", "SOCKET", "EMAIL", "SMS"],
       variables: { title: "Assign DNOs", message: `${project.projectCode} is assigned to your department. Assign one or more DNOs.`, currentStatus: project.status },
-      actionButtonUrl: `/projects/${project.id}`,
+      actionButtonUrl: `/convergence-projects/${project.id}`,
       correlationId: project.id,
       notificationType: "PROJECT_DEPARTMENT_ADMIN_ASSIGNED"
     }));

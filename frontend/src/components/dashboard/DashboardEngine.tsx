@@ -253,7 +253,7 @@ function getInstantFallbackSummary(user: any): any {
       { id: "ca_committed_funds", key: "ca_committed_funds", label: "Total Committed Funds", value: "₹0.00 Cr", format: "currency", href: "/funds", helperText: "Total CSR budget committed across approved projects" },
       { id: "ca_released_funds", key: "ca_released_funds", label: "Funds Released", value: "₹0.00 Cr", format: "currency", href: "/funds", helperText: "Actual tranches disbursed for milestone execution" },
       { id: "ca_utilization_rate", key: "ca_utilization_rate", label: "Reported Utilization", value: "0%", format: "percentage", href: "/funds", helperText: "Verified fund utilization against released amount" },
-      { id: "ca_active_projects", key: "ca_active_projects", label: "Active CSR Projects", value: 0, format: "number", href: "/company/projects", helperText: "Projects in execution with implementing partners" },
+      { id: "ca_active_projects", key: "ca_active_projects", label: "Active CSR Projects", value: 0, format: "number", href: "/convergence-projects", helperText: "Projects in execution with implementing partners" },
       { id: "ca_milestone_pending", key: "ca_milestone_pending", label: "Milestone Plans Due Review", value: 0, format: "number", href: "/milestones", helperText: "NGO-proposed milestone plans awaiting Corporate approval" },
       { id: "ca_active_ngos", key: "ca_active_ngos", label: "Approved NGO Partners", value: 0, format: "number", href: "/implementing-agencies", helperText: "Active Corporate-NGO implementation partnerships" },
       { id: "ca_open_pipeline", key: "ca_open_pipeline", label: "Open Enquiries & Interests", value: 0, format: "number", href: "/enquiries", helperText: "Submitted enquiries & pitch interests in feasibility review" },

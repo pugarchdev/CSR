@@ -28,6 +28,8 @@ export const getProjects = async (req: AuthenticatedRequest, res: Response, next
       } else if (!isSuperAdmin && !isStateAdmin && user.organizationId) {
         filter.OR = [
           { organizationId: user.organizationId },
+          { departmentOrganizationId: user.organizationId },
+          { parentOrganizationId: user.organizationId },
           { implementingAgencyId: user.organizationId },
           { corporatePartnerId: user.organizationId },
           { ngoId: user.organizationId }

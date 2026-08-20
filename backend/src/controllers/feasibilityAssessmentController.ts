@@ -157,7 +157,7 @@ export const submitJSDecision = async (req: AuthenticatedRequest, res: Response,
             jsDecidedAt: new Date()
           }
         }),
-        ...(!isApproved ? [prisma.corporateEnquiry.update({ where: { id: assessment.enquiryId }, data: { status: enquiryStatus } })] : []),
+        prisma.corporateEnquiry.update({ where: { id: assessment.enquiryId }, data: { status: enquiryStatus } }),
         prisma.sLAEscalation.updateMany({
           where: { entityType: "CORPORATE_ENQUIRY", entityId: assessment.enquiryId, stage: "JS_DECISION", isResolved: false },
           data: { isResolved: true, resolvedAt: new Date() }

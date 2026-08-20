@@ -4,16 +4,30 @@ import { AuthenticatedRequest } from "../middlewares/authMiddleware";
 import { successResponse, notFoundResponse } from "../utils/apiResponse";
 import { ROLE_ID } from "../types/role";
 import { dispatchNotification } from "../services/notificationOrchestrator";
-import { isCollectorOrg } from "../services/districtScopeService";
+import { isCollectorOrg, getDistrictProjectFilter } from "../services/districtScopeService";
 
 async function projectAccess(projectId: string, userId: string, organizationId?: string | null) {
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    include: { milestones: true, utilizationCertificates: true, documents: true, districtDncAssignments: true, organization: { select: { id: true, name: true } }, mou: true }
+    include: {
+      milestones: { orderBy: { sequenceOrder: "asc" } },
+      utilizationCertificates: true,
+      documents: true,
+      districtDncAssignments: true,
+      organization: { select: { id: true, name: true, governmentType: true, governmentLevel: true, district: true } },
+      mou: true
+    }
   });
   if (!project) return null;
   const assignment = await prisma.projectAssignment.findFirst({ where: { entityType: "PROJECT", entityId: project.id, assignedToId: userId, status: "ACTIVE" } });
-  const isPartner = Boolean(organizationId && [project.corporatePartnerId, project.implementingAgencyId, project.ngoId, project.organizationId].includes(organizationId));
+  const isPartner = Boolean(organizationId && [
+    project.corporatePartnerId,
+    project.implementingAgencyId,
+    project.ngoId,
+    project.organizationId,
+    project.departmentOrganizationId,
+    project.parentOrganizationId
+  ].filter(Boolean).includes(organizationId));
   return { project, assignment, isPartner };
 }
 
@@ -48,52 +62,152 @@ export const createConvergenceProject = async (req: AuthenticatedRequest, res: R
 export const getConvergenceProjects = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const roleId = Number(req.user?.roleId);
-    const isState = [ROLE_ID.SUPER_ADMIN, ROLE_ID.JOINT_SECRETARY, ROLE_ID.PLANNING_SECRETARY].includes(roleId as any);
+    const userRoleStr = String(req.user?.role || "").toUpperCase();
+    const isState = [ROLE_ID.SUPER_ADMIN, ROLE_ID.JOINT_SECRETARY, ROLE_ID.PLANNING_SECRETARY].includes(roleId as any) ||
+      ["SUPER_ADMIN", "JOINT_SECRETARY", "PLANNING_SECRETARY", "STATE_CSR_CELL"].includes(userRoleStr);
     const deptQuery = String(req.query.dept || "").toLowerCase();
 
     // Check if user is a Collector (district-wide visibility)
     let isDistrictCollector = false;
     let collectorDistrict: string | null = null;
-    if (roleId === 7 && req.user?.organizationId) {
-      const userOrg = await prisma.organization.findUnique({
+    let userOrg: any = null;
+
+    if (req.user?.organizationId) {
+      userOrg = await prisma.organization.findUnique({
         where: { id: req.user.organizationId },
-        select: { governmentType: true, governmentLevel: true, district: true },
+        select: { id: true, name: true, governmentType: true, governmentLevel: true, district: true, parentOrganizationId: true },
       });
-      if (isCollectorOrg(userOrg)) {
+      if (userOrg && (isCollectorOrg(userOrg) || userRoleStr === "DISTRICT_COLLECTOR" || (roleId === 7 && userOrg.governmentType === "COLLECTORATE"))) {
         isDistrictCollector = true;
-        collectorDistrict = userOrg?.district || null;
+        collectorDistrict = userOrg.district || null;
       }
     }
 
-    const assignmentIds = (isState || isDistrictCollector) ? [] : (await prisma.projectAssignment.findMany({ where: { entityType: "PROJECT", assignedToId: req.user?.id, status: "ACTIVE" }, select: { entityId: true } })).map(({ entityId }) => entityId);
+    const isDNO = roleId === ROLE_ID.DISTRICT_NODAL_OFFICER || userRoleStr === "DISTRICT_NODAL_OFFICER";
 
-    const isDNO = roleId === ROLE_ID.DISTRICT_NODAL_OFFICER;
+    let baseWhere: any = { type: "CONVERGENCE_FRAMEWORK" };
 
-    const baseWhere: any = isState ? { type: "CONVERGENCE_FRAMEWORK" } : isDistrictCollector && collectorDistrict ? {
-      type: "CONVERGENCE_FRAMEWORK",
-      district: collectorDistrict,
-    } : isDNO ? {
-      type: "CONVERGENCE_FRAMEWORK",
-      OR: [
-        { nodalOfficerUserId: req.user?.id },
-        { id: { in: assignmentIds } }
-      ]
-    } : {
-      type: "CONVERGENCE_FRAMEWORK",
-      OR: [
-        { organizationId: req.user?.organizationId || "__none__" },
-        { corporatePartnerId: req.user?.organizationId || "__none__" },
-        { implementingAgencyId: req.user?.organizationId || "__none__" },
-        { id: { in: assignmentIds } }
-      ]
-    };
+    if (isState) {
+      // Full statewide visibility
+      baseWhere = { type: "CONVERGENCE_FRAMEWORK" };
+    } else if (isDistrictCollector && collectorDistrict) {
+      // Collectorate: District-wide visibility across all projects in the district
+      const districtFilter = await getDistrictProjectFilter(collectorDistrict);
+      baseWhere = {
+        type: "CONVERGENCE_FRAMEWORK",
+        ...districtFilter
+      };
+    } else if (isDNO) {
+      const assignmentIds = (await prisma.projectAssignment.findMany({
+        where: { entityType: "PROJECT", assignedToId: req.user?.id, status: "ACTIVE" },
+        select: { entityId: true }
+      })).map(({ entityId }) => entityId);
 
+      baseWhere = {
+        type: "CONVERGENCE_FRAMEWORK",
+        OR: [
+          { nodalOfficerUserId: req.user?.id },
+          { id: { in: assignmentIds } }
+        ]
+      };
+    } else {
+      // ZP / MNC / Specific Department: Show ONLY their assigned projects
+      const userOrgId = req.user?.organizationId;
+      const orgIds: string[] = userOrgId ? [userOrgId] : [];
+
+      if (userOrg?.parentOrganizationId) {
+        orgIds.push(userOrg.parentOrganizationId);
+      }
+
+      // If user is a main ZP or MNC, include child sub-departments
+      if (userOrgId && (userOrg?.governmentType === "ZILLA_PARISHAD" || userOrg?.governmentType === "MUNICIPAL_CORPORATION")) {
+        const childOrgs = await prisma.organization.findMany({
+          where: { parentOrganizationId: userOrgId, deletedAt: null },
+          select: { id: true }
+        });
+        childOrgs.forEach(c => orgIds.push(c.id));
+      }
+
+      const assignmentIds = (await prisma.projectAssignment.findMany({
+        where: { entityType: "PROJECT", assignedToId: req.user?.id, status: "ACTIVE" },
+        select: { entityId: true }
+      })).map(({ entityId }) => entityId);
+
+      // Lookup linked corporate enquiries for corporate user
+      const corporateEnquiryIds = (req.user?.organizationId || req.user?.id || req.user?.email) ? (await prisma.corporateEnquiry.findMany({
+        where: {
+          OR: [
+            ...(req.user?.organizationId ? [{ organizationId: req.user.organizationId }] : []),
+            ...(req.user?.id ? [{ submittedByUserId: req.user.id }] : []),
+            ...(req.user?.email ? [{ contactEmail: { equals: req.user.email, mode: "insensitive" as const } }] : [])
+          ]
+        },
+        select: { id: true }
+      })).map((e) => e.id) : [];
+
+      baseWhere = {
+        type: "CONVERGENCE_FRAMEWORK",
+        OR: [
+          ...(orgIds.length > 0 ? [
+            { organizationId: { in: orgIds } },
+            { departmentOrganizationId: { in: orgIds } },
+            { parentOrganizationId: { in: orgIds } },
+            { corporatePartnerId: { in: orgIds } },
+            { implementingAgencyId: { in: orgIds } },
+            { ngoId: { in: orgIds } }
+          ] : []),
+          ...(corporateEnquiryIds.length > 0 ? [{ approvalSourceEnquiryId: { in: corporateEnquiryIds } }] : []),
+          ...(assignmentIds.length > 0 ? [{ id: { in: assignmentIds } }] : [])
+        ]
+      };
+    }
+
+    // Apply department filter query (zp, mnc, collectorate) if provided
     if (deptQuery === "zp") {
-      baseWhere.organization = { governmentType: "ZILLA_PARISHAD" };
+      const zpOrgs = await prisma.organization.findMany({ where: { governmentType: "ZILLA_PARISHAD" }, select: { id: true } });
+      const zpOrgIds = zpOrgs.map(o => o.id);
+      baseWhere = {
+        AND: [
+          baseWhere,
+          {
+            OR: [
+              { organization: { governmentType: "ZILLA_PARISHAD" } },
+              { departmentOrganizationId: { in: zpOrgIds } },
+              { parentOrganizationId: { in: zpOrgIds } }
+            ]
+          }
+        ]
+      };
     } else if (deptQuery === "mnc") {
-      baseWhere.organization = { governmentType: "MUNICIPAL_CORPORATION" };
+      const mncOrgs = await prisma.organization.findMany({ where: { governmentType: "MUNICIPAL_CORPORATION" }, select: { id: true } });
+      const mncOrgIds = mncOrgs.map(o => o.id);
+      baseWhere = {
+        AND: [
+          baseWhere,
+          {
+            OR: [
+              { organization: { governmentType: "MUNICIPAL_CORPORATION" } },
+              { departmentOrganizationId: { in: mncOrgIds } },
+              { parentOrganizationId: { in: mncOrgIds } }
+            ]
+          }
+        ]
+      };
     } else if (deptQuery === "collectorate") {
-      baseWhere.organization = { governmentType: "COLLECTORATE" };
+      const colOrgs = await prisma.organization.findMany({ where: { governmentType: "COLLECTORATE" }, select: { id: true } });
+      const colOrgIds = colOrgs.map(o => o.id);
+      baseWhere = {
+        AND: [
+          baseWhere,
+          {
+            OR: [
+              { organization: { governmentType: "COLLECTORATE" } },
+              { departmentOrganizationId: { in: colOrgIds } },
+              { parentOrganizationId: { in: colOrgIds } }
+            ]
+          }
+        ]
+      };
     }
 
     const projects = await prisma.project.findMany({
@@ -101,11 +215,56 @@ export const getConvergenceProjects = async (req: AuthenticatedRequest, res: Res
       include: {
         organization: {
           select: { id: true, name: true, governmentType: true, governmentLevel: true, district: true }
+        },
+        milestones: {
+          select: { id: true, status: true, utilizedAmount: true }
         }
       },
       orderBy: { createdAt: "desc" }
     });
-    return res.json(projects);
+
+    const enquiryIds = projects.map((p) => p.approvalSourceEnquiryId).filter(Boolean) as string[];
+    const corpPartnerIds = projects.map((p) => p.corporatePartnerId).filter(Boolean) as string[];
+    const agencyIds = projects.map((p) => p.implementingAgencyId).filter(Boolean) as string[];
+
+    const [enquiriesMap, corpOrgsMap, agenciesMap] = await Promise.all([
+      enquiryIds.length > 0 ? prisma.corporateEnquiry.findMany({
+        where: { id: { in: enquiryIds } },
+        select: { id: true, corporateName: true }
+      }) : [],
+      corpPartnerIds.length > 0 ? prisma.organization.findMany({
+        where: { id: { in: corpPartnerIds } },
+        select: { id: true, name: true }
+      }) : [],
+      agencyIds.length > 0 ? prisma.organization.findMany({
+        where: { id: { in: agencyIds } },
+        select: { id: true, name: true }
+      }) : []
+    ]);
+
+    const enqDict = new Map(enquiriesMap.map((e) => [e.id, e.corporateName]));
+    const orgDict = new Map(corpOrgsMap.map((o) => [o.id, o.name]));
+    const agencyDict = new Map(agenciesMap.map((a) => [a.id, a.name]));
+
+    const mappedProjects = projects.map((p: any) => {
+      const compName = (p.approvalSourceEnquiryId ? enqDict.get(p.approvalSourceEnquiryId) : null) ||
+                       (p.corporatePartnerId ? orgDict.get(p.corporatePartnerId) : null) ||
+                       null;
+      const agencyName = (p.implementingAgencyId ? agencyDict.get(p.implementingAgencyId) : null) || null;
+      const deptName = p.organization?.name || null;
+      const govType = p.organization?.governmentType || null;
+
+      return {
+        ...p,
+        corporateName: compName,
+        company: compName,
+        implementingAgencyName: agencyName,
+        department: deptName,
+        governmentType: govType
+      };
+    });
+
+    return res.json(mappedProjects);
   } catch (error) {
     next(error);
   }
@@ -116,21 +275,26 @@ export const getConvergenceProjectById = async (req: AuthenticatedRequest, res: 
     const access = await projectAccess(req.params.id, req.user!.id, req.user?.organizationId);
     if (!access) return notFoundResponse(res, "Project not found");
     const roleId = Number(req.user?.roleId);
-    const isState = [ROLE_ID.SUPER_ADMIN, ROLE_ID.JOINT_SECRETARY, ROLE_ID.PLANNING_SECRETARY].includes(roleId as any);
+    const userRoleStr = String(req.user?.role || "").toUpperCase();
+    const isState = [ROLE_ID.SUPER_ADMIN, ROLE_ID.JOINT_SECRETARY, ROLE_ID.PLANNING_SECRETARY].includes(roleId as any) ||
+      ["SUPER_ADMIN", "JOINT_SECRETARY", "PLANNING_SECRETARY", "STATE_CSR_CELL"].includes(userRoleStr);
 
     // Collector gets read-only access to all projects in their district
     let isDistrictCollector = false;
-    if (!isState && !access.isPartner && !access.assignment && roleId === 7 && req.user?.organizationId) {
+    if (!isState && !access.isPartner && !access.assignment && req.user?.organizationId) {
       const userOrg = await prisma.organization.findUnique({
         where: { id: req.user.organizationId },
         select: { governmentType: true, governmentLevel: true, district: true },
       });
-      if (isCollectorOrg(userOrg) && userOrg?.district && access.project.district === userOrg.district) {
+      if (userOrg && (isCollectorOrg(userOrg) || userRoleStr === "DISTRICT_COLLECTOR" || (roleId === 7 && userOrg.governmentType === "COLLECTORATE")) &&
+          userOrg.district && access.project.district?.toLowerCase() === userOrg.district.toLowerCase()) {
         isDistrictCollector = true;
       }
     }
 
-    if (!isState && !access.isPartner && !access.assignment && !isDistrictCollector) return res.status(403).json({ error: "You are not assigned to this project." });
+    if (!isState && !access.isPartner && !access.assignment && !isDistrictCollector) {
+      return res.status(403).json({ error: "You are not assigned to this project." });
+    }
     return res.json(access.project);
   } catch (error) {
     next(error);
