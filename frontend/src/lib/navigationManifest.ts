@@ -395,7 +395,15 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     navigationLevel: "CHILD",
     parentNavId: "group-projects",
     showInSidebar: true,
-    requiredAnyPermissions: ["project:view", "project:create", "project:update", "project:approve", "project:assign"],
+    requiredAnyPermissions: [
+      "project:view",
+      "project:view_district",
+      "project:view_assigned",
+      "project:create",
+      "project:update",
+      "project:approve",
+      "project:assign"
+    ],
     ordering: 10,
     breadcrumbMetadata: { title: "Projects", parentRoute: "/dashboard" }
   },

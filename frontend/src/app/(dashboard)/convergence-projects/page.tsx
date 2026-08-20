@@ -489,7 +489,6 @@ export default function ProjectsPage() {
                   />
                   <span>{isRefreshing || isFetching ? "Refreshing..." : "Refresh"}</span>
                 </button>
-                <ViewToggle view={viewMode} onChange={setViewMode} />
               </div>
             }
           />
@@ -531,26 +530,25 @@ export default function ProjectsPage() {
           />
         </StatCardGroup>
 
-        {/* ─── REDESIGNED UNIFIED FILTER & SEARCH HUB ─── */}
-        <div className="rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-xs space-y-4">
-          
-          {/* Top Row: Search Input + Status Pills + Mobile Filter Toggle */}
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
-            {/* Search Box with Clear */}
-            <div className="relative flex-1 min-w-0">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+        {/* ─── Standard Clean Filter & Search Workspace ─── */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-4 md:p-5">
+          {/* Top Row: Search Input + Actions (Reset, View Toggle) */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            {/* Search Input with Clear Button */}
+            <div className="relative flex-1 max-w-lg">
+              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search project title, ID, corporate partner, department, district..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50/70 py-2.5 pl-10 pr-9 text-xs font-semibold text-slate-900 placeholder-slate-400 outline-none focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all shadow-2xs"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-9 pr-8 py-2 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-600 focus:outline-none transition-all shadow-2xs"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 rounded-full cursor-pointer"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full cursor-pointer"
                   title="Clear search"
                 >
                   <X size={14} />
@@ -558,287 +556,120 @@ export default function ProjectsPage() {
               )}
             </div>
 
-            {/* Status Segmented Pills (Desktop & Tablet) */}
-            <div className="hidden sm:flex items-center gap-1 bg-slate-100/90 p-1 rounded-2xl border border-slate-200/70 overflow-x-auto shrink-0 scrollbar-none">
-              {statusOptions.map((opt) => {
-                const isSelected = statusFilter === opt.value;
-                const count = opt.value === ""
-                  ? statusCounts.all
-                  : opt.value === "IN_PROGRESS"
-                  ? statusCounts.inProgress
-                  : opt.value === "COMPLETED"
-                  ? statusCounts.completed
-                  : opt.value === "APPROVED"
-                  ? statusCounts.approved
-                  : opt.value === "NOT_STARTED"
-                  ? statusCounts.notStarted
-                  : statusCounts.onHold;
-
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setStatusFilter(opt.value)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
-                      isSelected
-                        ? "bg-blue-900 text-white shadow-xs font-black"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
-                    }`}
-                  >
-                    <span>{opt.label}</span>
-                    {count > 0 && (
-                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
-                        isSelected ? "bg-blue-800 text-blue-100" : "bg-slate-200 text-slate-600"
-                      }`}>
-                        {count}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Mobile Filter Toggle Button */}
-            <div className="flex sm:hidden items-center justify-between gap-2">
-              <button
-                type="button"
-                onClick={() => setShowMobileFilters(!showMobileFilters)}
-                className={`flex-1 inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
-                  hasActiveFilters || showMobileFilters
-                    ? "bg-blue-50 border-blue-300 text-blue-900"
-                    : "bg-slate-50 border-slate-200 text-slate-700"
-                }`}
-              >
-                <SlidersHorizontal size={14} />
-                <span>Filters & Options</span>
-                {activeFiltersCount > 0 && (
-                  <span className="ml-1 bg-blue-900 text-white rounded-full text-[10px] w-5 h-5 flex items-center justify-center font-black">
-                    {activeFiltersCount}
-                  </span>
-                )}
-              </button>
-
-              <div className="shrink-0">
-                <ViewToggle view={viewMode} onChange={setViewMode} />
-              </div>
+            {/* Right Controls: Reset Filters & View Toggle */}
+            <div className="flex items-center gap-2 flex-wrap self-end lg:self-center">
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={handleClearFilters}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 text-xs font-bold transition-all shadow-2xs cursor-pointer"
+                  title="Reset all filters"
+                >
+                  <RotateCcw size={13} />
+                  <span>Reset Filters</span>
+                </button>
+              )}
+              <ViewToggle view={viewMode} onChange={setViewMode} />
             </div>
           </div>
 
-          {/* Department Breakdown Tab Bar (For District Collector & State Admins) */}
-          {(isCollector || isStateAdmin) && (
-            <div className="pt-2">
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 shrink-0 flex items-center gap-1 pr-1">
-                  <Landmark size={13} className="text-blue-700" />
-                  Department:
-                </span>
-                <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
-                  {deptOptions.map((opt) => {
-                    const isSelected = deptFilter === opt.value;
-                    const count = opt.value === ""
-                      ? deptCounts.all
-                      : opt.value === "COLLECTORATE"
-                      ? deptCounts.collectorate
-                      : opt.value === "ZILLA_PARISHAD"
-                      ? deptCounts.zp
-                      : deptCounts.mnc;
-
-                    const IconComponent = opt.icon;
-
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => setDeptFilter(opt.value)}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
-                          isSelected
-                            ? "bg-blue-950 text-white border-blue-950 shadow-2xs font-black"
-                            : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300"
-                        }`}
-                      >
-                        <IconComponent size={12} className={isSelected ? "text-blue-200" : "text-slate-500"} />
-                        <span>{opt.label}</span>
-                        <span className={`text-[10.5px] font-mono px-1.5 py-0.2 rounded-md font-bold ${
-                          isSelected ? "bg-blue-800 text-blue-100" : "bg-slate-200/80 text-slate-600"
-                        }`}>
-                          {count}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Secondary Filters Strip (Dropdowns & Active Chips) */}
-          <div className={`space-y-3 pt-3 border-t border-slate-100 ${showMobileFilters ? "block" : "hidden sm:block"}`}>
-            {/* Status Dropdown on Mobile */}
-            <div className="sm:hidden space-y-1">
-              <label className="text-[11px] font-bold text-slate-500">Status</label>
+          {/* Secondary Filter Dropdowns Row (Clean Responsive Grid) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1">
+            {/* Department Filter (For Collectorate or State Admin) */}
+            {(isCollector || isStateAdmin) && (
               <div className="relative">
                 <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-blue-600 focus:bg-white transition-all cursor-pointer shadow-2xs pr-8"
+                  value={deptFilter}
+                  onChange={(e) => setDeptFilter(e.target.value)}
+                  className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-white focus:bg-white focus:border-blue-600 focus:outline-none transition-all cursor-pointer shadow-2xs pr-8"
                 >
-                  {statusOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
+                  <option value="">All Departments ({deptCounts.all})</option>
+                  <option value="COLLECTORATE">Collectorate ({deptCounts.collectorate})</option>
+                  <option value="ZILLA_PARISHAD">Zilla Parishad ({deptCounts.zp})</option>
+                  <option value="MUNICIPAL_CORPORATION">Municipal Corporation ({deptCounts.mnc})</option>
+                </select>
+                <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              </div>
+            )}
+
+            {/* Status Filter */}
+            <div className="relative">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-white focus:bg-white focus:border-blue-600 focus:outline-none transition-all cursor-pointer shadow-2xs pr-8"
+              >
+                <option value="">All Statuses ({statusCounts.all})</option>
+                <option value="IN_PROGRESS">In Progress ({statusCounts.inProgress})</option>
+                <option value="COMPLETED">Completed ({statusCounts.completed})</option>
+                <option value="APPROVED">Approved ({statusCounts.approved})</option>
+                <option value="NOT_STARTED">Not Started ({statusCounts.notStarted})</option>
+                <option value="ON_HOLD">On Hold ({statusCounts.onHold})</option>
+              </select>
+              <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            </div>
+
+            {/* Sector Filter */}
+            <div className="relative">
+              <select
+                value={sectorFilter}
+                onChange={(e) => setSectorFilter(e.target.value)}
+                className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-white focus:bg-white focus:border-blue-600 focus:outline-none transition-all cursor-pointer shadow-2xs pr-8"
+              >
+                {SECTOR_OPTIONS.map((sec) => (
+                  <option key={sec} value={sec === "All Sectors" ? "" : sec}>
+                    {sec}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            </div>
+
+            {/* District Filter (for State Admins) */}
+            {isStateAdmin && (
+              <div className="relative">
+                <select
+                  value={districtFilter}
+                  onChange={(e) => setDistrictFilter(e.target.value)}
+                  className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-white focus:bg-white focus:border-blue-600 focus:outline-none transition-all cursor-pointer shadow-2xs pr-8"
+                >
+                  <option value="">All 36 Districts</option>
+                  {MAHARASHTRA_DISTRICTS.map((d) => (
+                    <option key={d} value={d}>
+                      {d} District
                     </option>
                   ))}
                 </select>
-                <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
               </div>
+            )}
+
+            {/* Sort Dropdown */}
+            <div className="relative">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-white focus:bg-white focus:border-blue-600 focus:outline-none transition-all cursor-pointer shadow-2xs pr-8"
+              >
+                {SORT_OPTIONS.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
             </div>
+          </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 flex-wrap">
-              {/* Dropdown Selectors Group */}
-              <div className="flex flex-wrap items-center gap-2.5">
-                {/* Sector Dropdown */}
-                <div className="relative min-w-[170px] flex-1 sm:flex-initial">
-                  <select
-                    value={sectorFilter}
-                    onChange={(e) => setSectorFilter(e.target.value)}
-                    className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 hover:bg-white focus:bg-white px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-blue-600 transition-all cursor-pointer shadow-2xs pr-8"
-                  >
-                    {SECTOR_OPTIONS.map((sec) => (
-                      <option key={sec} value={sec === "All Sectors" ? "" : sec}>
-                        {sec}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                </div>
-
-                {/* District Dropdown (for State Admins) */}
-                {isStateAdmin && (
-                  <div className="relative min-w-[170px] flex-1 sm:flex-initial">
-                    <select
-                      value={districtFilter}
-                      onChange={(e) => setDistrictFilter(e.target.value)}
-                      className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 hover:bg-white focus:bg-white px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-blue-600 transition-all cursor-pointer shadow-2xs pr-8"
-                    >
-                      <option value="">All 36 Districts</option>
-                      {MAHARASHTRA_DISTRICTS.map((d) => (
-                        <option key={d} value={d}>
-                          {d} District
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  </div>
-                )}
-
-                {/* Sort Dropdown */}
-                <div className="relative min-w-[170px] flex-1 sm:flex-initial">
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 hover:bg-white focus:bg-white px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-blue-600 transition-all cursor-pointer shadow-2xs pr-8"
-                  >
-                    {SORT_OPTIONS.map((s) => (
-                      <option key={s.value} value={s.value}>
-                        {s.label}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                </div>
-              </div>
-
-              {/* Match Counter & Clear All Button */}
-              <div className="flex items-center gap-3 text-xs text-slate-500 font-medium sm:ml-auto justify-between sm:justify-end">
-                <span>
-                  Showing <strong className="text-slate-900 font-black">{filteredProjects.length}</strong> of {projectsList.length} Projects
-                </span>
-                {hasActiveFilters && (
-                  <button
-                    type="button"
-                    onClick={handleClearFilters}
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 hover:text-rose-900 bg-rose-50 hover:bg-rose-100 border border-rose-200/80 px-2.5 py-1 rounded-xl transition-all cursor-pointer"
-                  >
-                    <RotateCcw size={12} />
-                    <span>Reset Filters</span>
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Active Filter Chips Strip */}
+          {/* Bottom Row: Results Count & Active Filter Indicator */}
+          <div className="flex items-center justify-between text-xs text-slate-500 font-medium pt-2 border-t border-slate-100">
+            <span>
+              Showing <strong className="text-slate-900 font-black">{filteredProjects.length}</strong> of {projectsList.length} Projects
+            </span>
             {hasActiveFilters && (
-              <div className="flex items-center gap-1.5 flex-wrap pt-1 text-xs">
-                <span className="text-[11px] font-bold text-slate-400 mr-1">Active filters:</span>
-
-                {searchQuery && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-900 border border-blue-200 text-xs font-semibold">
-                    <Search size={11} className="text-blue-600" />
-                    <span className="max-w-[120px] truncate">"{searchQuery}"</span>
-                    <button
-                      type="button"
-                      onClick={() => setSearchQuery("")}
-                      className="hover:text-blue-950 p-0.5 rounded-full cursor-pointer ml-0.5"
-                    >
-                      <X size={12} />
-                    </button>
-                  </span>
-                )}
-
-                {statusFilter && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-900 border border-blue-200 text-xs font-semibold">
-                    <span>Status: {statusOptions.find(s => s.value === statusFilter)?.label || statusFilter}</span>
-                    <button
-                      type="button"
-                      onClick={() => setStatusFilter("")}
-                      className="hover:text-blue-950 p-0.5 rounded-full cursor-pointer ml-0.5"
-                    >
-                      <X size={12} />
-                    </button>
-                  </span>
-                )}
-
-                {deptFilter && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-900 border border-blue-200 text-xs font-semibold">
-                    <Landmark size={11} className="text-blue-600" />
-                    <span>Dept: {deptOptions.find(d => d.value === deptFilter)?.label || deptFilter}</span>
-                    <button
-                      type="button"
-                      onClick={() => setDeptFilter("")}
-                      className="hover:text-blue-950 p-0.5 rounded-full cursor-pointer ml-0.5"
-                    >
-                      <X size={12} />
-                    </button>
-                  </span>
-                )}
-
-                {sectorFilter && sectorFilter !== "All Sectors" && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-900 border border-blue-200 text-xs font-semibold">
-                    <Tag size={11} className="text-blue-600" />
-                    <span>{sectorFilter}</span>
-                    <button
-                      type="button"
-                      onClick={() => setSectorFilter("")}
-                      className="hover:text-blue-950 p-0.5 rounded-full cursor-pointer ml-0.5"
-                    >
-                      <X size={12} />
-                    </button>
-                  </span>
-                )}
-
-                {districtFilter && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-900 border border-blue-200 text-xs font-semibold">
-                    <MapPin size={11} className="text-blue-600" />
-                    <span>{districtFilter}</span>
-                    <button
-                      type="button"
-                      onClick={() => setDistrictFilter("")}
-                      className="hover:text-blue-950 p-0.5 rounded-full cursor-pointer ml-0.5"
-                    >
-                      <X size={12} />
-                    </button>
-                  </span>
-                )}
-              </div>
+              <span className="text-[11px] text-blue-800 font-bold bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200/60">
+                {activeFiltersCount} filter{activeFiltersCount > 1 ? "s" : ""} active
+              </span>
             )}
           </div>
         </div>
