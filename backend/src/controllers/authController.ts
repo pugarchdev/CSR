@@ -548,9 +548,16 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     // Both identity types are valid login candidates. Resolve them concurrently so
     // ordinary users do not wait for an irrelevant NGO-access lookup first.
     const [ngoAccess, userRecord] = await Promise.all([
-      prisma.corporateNgoAccess.findUnique({
-        where: { loginIdentifier: suppliedIdentifier },
+      prisma.corporateNgoAccess.findFirst({
+        where: {
+          OR: [
+            { loginIdentifier: suppliedIdentifier },
+            { contactEmail: suppliedIdentifier },
+            { user: { email: suppliedIdentifier } }
+          ]
+        },
         include: { user: { include: { organization: true, role: true } }, membership: true },
+        orderBy: { updatedAt: "desc" }
       }),
       prisma.user.findFirst({
         where: { OR: [{ email: suppliedIdentifier }, { loginIdentifier: suppliedIdentifier }] },
@@ -558,20 +565,44 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       }),
     ]);
     if (ngoAccess) {
-      const valid = await bcrypt.compare(password, ngoAccess.passwordHash);
-      if (!valid) return res.status(401).json({ error: "Invalid login identifier or password" });
-      if (ngoAccess.mustResetPassword) {
+      const validNgo = await bcrypt.compare(password, ngoAccess.passwordHash);
+      const validUser = Boolean(
+        (ngoAccess.user?.passwordHash && await bcrypt.compare(password, ngoAccess.user.passwordHash)) ||
+        (userRecord?.passwordHash && await bcrypt.compare(password, userRecord.passwordHash))
+      );
+      if (!validNgo && !validUser) return res.status(401).json({ error: "Invalid email or password" });
+      if (ngoAccess.mustResetPassword || ngoAccess.user?.mustResetPassword) {
         if (ngoAccess.temporaryPasswordExpiresAt && ngoAccess.temporaryPasswordExpiresAt <= new Date()) return res.status(401).json({ error: "Temporary password expired. Ask the corporate administrator for a new invitation." });
         const resetToken = jwt.sign({ id: ngoAccess.userId, ngoAccessId: ngoAccess.id, purpose: "NGO_CONTEXT_FIRST_LOGIN_RESET", tokenVersion: ngoAccess.tokenVersion }, JWT_SECRET, { expiresIn: "15m" });
         return res.status(428).json({ error: "Password reset required before first login", passwordResetRequired: true, resetToken });
       }
-      if (ngoAccess.status !== "ACTIVE" || ngoAccess.membership.status !== "APPROVED" || ngoAccess.user.accountStatus !== "ACTIVE" || !ngoAccess.user.isVerified) return res.status(401).json({ error: "This Corporate–NGO access context is not active" });
+      if (ngoAccess.status === "REVOKED" || ngoAccess.membership.status === "REJECTED" || ngoAccess.user.accountStatus !== "ACTIVE" || !ngoAccess.user.isVerified) return res.status(401).json({ error: "This Corporate–NGO access context is not active" });
       const tokens = generateTokens(ngoAccess.user, { ngoAccessId: ngoAccess.id, corporateOrganizationId: ngoAccess.membership.corporateOrganizationId });
       primeAuthenticatedUserCache(ngoAccess.user);
       const permissionData = await CacheService.getPermissions(ngoAccess.user.id)
         || await computeUserPermissions({ userId: ngoAccess.user.id, role: ngoAccess.user.role?.name, roleId: ngoAccess.user.roleId, organizationId: ngoAccess.user.organizationId });
       CacheService.setPermissions(ngoAccess.user.id, permissionData).catch(() => {});
-      return res.json({ message: "Login successful", ...tokens, user: { ...ngoAccess.user, ngoAccessId: ngoAccess.id, corporateOrganizationId: ngoAccess.membership.corporateOrganizationId, projectIds: ngoAccess.projectIds }, permissions: permissionData.permissions, roles: permissionData.roles, roleDetails: permissionData.roleDetails, isAdmin: permissionData.isAdmin });
+      const roleName = ngoAccess.user.role?.name || "NGO_ADMIN";
+      const roleSlug = roleName.toLowerCase().replace(/_/g, "-");
+      return res.json({
+        message: "Login successful",
+        ...tokens,
+        user: {
+          ...ngoAccess.user,
+          name: [ngoAccess.user.firstName, ngoAccess.user.lastName].filter(Boolean).join(" ").trim() || "NGO Administrator",
+          orgKind: ngoAccess.user.organization?.kind || "NGO",
+          roleNumericId: ngoAccess.user.roleId,
+          roleSlug,
+          role: roleName,
+          ngoAccessId: ngoAccess.id,
+          corporateOrganizationId: ngoAccess.membership.corporateOrganizationId,
+          projectIds: ngoAccess.projectIds
+        },
+        permissions: permissionData.permissions,
+        roles: permissionData.roles,
+        roleDetails: permissionData.roleDetails,
+        isAdmin: permissionData.isAdmin
+      });
     }
 
     if (!userRecord || userRecord.deletedAt) {
@@ -657,7 +688,31 @@ export const completeFirstLoginReset = async (req: Request, res: Response, next:
     if (payload.purpose === "NGO_CONTEXT_FIRST_LOGIN_RESET") {
       const access = await prisma.corporateNgoAccess.findUnique({ where: { id: payload.ngoAccessId }, include: { membership: true } });
       if (!access || access.userId !== payload.id || !access.mustResetPassword || access.tokenVersion !== payload.tokenVersion) return res.status(401).json({ error: "Reset token is no longer valid" });
-      await prisma.corporateNgoAccess.update({ where: { id: access.id }, data: { passwordHash: await bcrypt.hash(newPassword, 12), mustResetPassword: false, temporaryPasswordExpiresAt: null, tokenVersion: { increment: 1 }, status: access.membership.status === "APPROVED" ? "ACTIVE" : "INVITED" } });
+      const newHash = await bcrypt.hash(newPassword, 12);
+      await prisma.$transaction([
+        prisma.corporateNgoAccess.update({
+          where: { id: access.id },
+          data: {
+            passwordHash: newHash,
+            mustResetPassword: false,
+            temporaryPasswordExpiresAt: null,
+            tokenVersion: { increment: 1 },
+            status: access.membership.status === "APPROVED" ? "ACTIVE" : "INVITED"
+          }
+        }),
+        prisma.user.update({
+          where: { id: access.userId },
+          data: {
+            passwordHash: newHash,
+            mustResetPassword: false,
+            temporaryPasswordExpiresAt: null,
+            passwordChangedAt: new Date(),
+            tokenVersion: { increment: 1 },
+            isVerified: true,
+            accountStatus: "ACTIVE"
+          }
+        })
+      ]);
       return res.json({ success: true, message: access.membership.status === "APPROVED" ? "Password updated. You can now sign in." : "Password updated. Access will activate after Corporate approval." });
     }
     const user = await prisma.user.findUnique({ where: { id: payload.id } });
@@ -683,6 +738,15 @@ export const completeFirstLoginReset = async (req: Request, res: Response, next:
         where: { userId: user.id, status: "PENDING_FIRST_LOGIN" },
         data: { status: "ACTIVE", activatedAt: new Date() },
       }),
+      prisma.corporateNgoAccess.updateMany({
+        where: { userId: user.id, mustResetPassword: true },
+        data: {
+          passwordHash,
+          mustResetPassword: false,
+          temporaryPasswordExpiresAt: null,
+          tokenVersion: { increment: 1 }
+        }
+      })
     ]);
     return res.json({ success: true, message: "Password updated. You can now sign in." });
   } catch (error) {

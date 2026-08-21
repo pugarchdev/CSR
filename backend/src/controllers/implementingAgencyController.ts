@@ -49,33 +49,258 @@ export const inviteImplementingAgency = async (req: AuthenticatedRequest, res: R
     if (!email || (!ngoOrganizationId && !name)) return res.status(400).json({ error: "Select an NGO master or provide a new NGO name and contact email" });
     const password = tempPassword();
     const expiry = new Date(Date.now() + 72 * 60 * 60 * 1000);
+    const passwordHash = await bcrypt.hash(password, 12);
+    const cleanDarpan = String(darpanNumber || "").trim() || null;
+    const cleanName = String(name || "").trim();
+
+    // 1. Resolve existing master user by email outside transaction
+    let existingUser = await prisma.user.findUnique({
+      where: { email },
+      include: { organization: { include: { ngoProfile: true } } }
+    });
+
+    // If user is already registered under a non-NGO entity (Corporate or Government), reject gracefully
+    if (existingUser && existingUser.organization && !["NGO", "IMPLEMENTING_AGENCY"].includes(existingUser.organization.kind)) {
+      return res.status(400).json({ error: `The email "${email}" belongs to a ${existingUser.organization.kind === "CSR_COMPANY" ? "Corporate" : "Government"} account. Please use a dedicated NGO contact email.` });
+    }
+
+    // 2. Resolve NGO Organization outside transaction
+    let existingNgo = ngoOrganizationId
+      ? await prisma.organization.findFirst({ where: { id: ngoOrganizationId, kind: { in: ["NGO", "IMPLEMENTING_AGENCY"] }, deletedAt: null }, include: { ngoProfile: true } })
+      : null;
+
+    if (!existingNgo && existingUser?.organization && ["NGO", "IMPLEMENTING_AGENCY"].includes(existingUser.organization.kind)) {
+      existingNgo = existingUser.organization;
+    }
+
+    if (!existingNgo && cleanDarpan) {
+      existingNgo = await prisma.organization.findFirst({
+        where: {
+          kind: { in: ["NGO", "IMPLEMENTING_AGENCY"] },
+          deletedAt: null,
+          ngoProfile: { darpanNumber: cleanDarpan }
+        },
+        include: { ngoProfile: true }
+      });
+    }
+
+    if (!existingNgo && cleanName) {
+      existingNgo = await prisma.organization.findFirst({
+        where: {
+          kind: { in: ["NGO", "IMPLEMENTING_AGENCY"] },
+          deletedAt: null,
+          name: { equals: cleanName, mode: "insensitive" }
+        },
+        include: { ngoProfile: true }
+      });
+    }
+
+    // 3. Perform write operations inside a fast transaction with ample timeout
     const result = await prisma.$transaction(async tx => {
-      let ngo = ngoOrganizationId ? await tx.organization.findFirst({ where: { id: ngoOrganizationId, kind: { in: ["NGO", "IMPLEMENTING_AGENCY"] }, deletedAt: null } }) : null;
+      let ngo = existingNgo;
+
+      // If still not found, create new NGO Organization & NGO Profile
       if (!ngo) {
-        ngo = await tx.organization.create({ data: { name: String(name).trim(), kind: "NGO", officialEmail: email, officialPhone: mobile || null, officialIdentifierNumber: officialRegNo || null, status: "PROFILE_INCOMPLETE", ngoProfile: { create: { darpanNumber: darpanNumber || null, areasOfOperation: [], csrSectors: [] } } } });
+        ngo = await tx.organization.create({
+          data: {
+            name: cleanName || "Implementing Agency",
+            kind: "NGO",
+            officialEmail: email,
+            officialPhone: mobile || null,
+            officialIdentifierNumber: officialRegNo || null,
+            status: "PROFILE_INCOMPLETE",
+            ngoProfile: {
+              create: {
+                darpanNumber: cleanDarpan,
+                areasOfOperation: [],
+                csrSectors: []
+              }
+            }
+          },
+          include: { ngoProfile: true }
+        });
+      } else {
+        // Update missing NGO fields if provided
+        if (cleanDarpan && !ngo.ngoProfile?.darpanNumber) {
+          await tx.nGOProfile.upsert({
+            where: { organizationId: ngo.id },
+            create: { organizationId: ngo.id, darpanNumber: cleanDarpan, areasOfOperation: [], csrSectors: [] },
+            update: { darpanNumber: cleanDarpan }
+          });
+        }
+        if (cleanName && (!ngo.name || ngo.name === "Implementing Agency")) {
+          await tx.organization.update({ where: { id: ngo.id }, data: { name: cleanName } });
+        }
       }
-      let masterUser = await tx.user.findUnique({ where: { email } });
+
+      // Upsert Master User
+      let masterUser = existingUser;
       if (!masterUser) {
         const names = String(contactPersonName || "NGO Administrator").trim().split(/\s+/);
-        masterUser = await tx.user.create({ data: { email, passwordHash: await bcrypt.hash(tempPassword(), 12), firstName: names.shift() || "NGO", lastName: names.join(" ") || null, roleId: 9, organizationId: ngo.id, accountStatus: "ACTIVE", isVerified: true } });
-      } else if (masterUser.organizationId !== ngo.id) {
-        throw new Error("The contact email belongs to another portal identity; select the matching NGO master or use a different contact email");
+        masterUser = await tx.user.create({
+          data: {
+            email,
+            passwordHash,
+            firstName: names.shift() || "NGO",
+            lastName: names.join(" ") || null,
+            roleId: 9,
+            organizationId: ngo.id,
+            accountStatus: "ACTIVE",
+            isVerified: true,
+            mustResetPassword: true,
+            temporaryPasswordExpiresAt: expiry
+          },
+          include: { organization: { include: { ngoProfile: true } } }
+        });
+      } else {
+        masterUser = await tx.user.update({
+          where: { id: masterUser.id },
+          data: {
+            passwordHash,
+            mustResetPassword: true,
+            temporaryPasswordExpiresAt: expiry,
+            accountStatus: "ACTIVE",
+            isVerified: true,
+            roleId: masterUser.roleId || 9,
+            organizationId: ngo.id
+          },
+          include: { organization: { include: { ngoProfile: true } } }
+        });
       }
-      const membership = await tx.corporateNgoMembership.upsert({ where: { corporateOrganizationId_ngoOrganizationId: { corporateOrganizationId: corporate.id, ngoOrganizationId: ngo.id } }, create: { corporateOrganizationId: corporate.id, ngoOrganizationId: ngo.id, contactEmail: email, invitedByUserId: req.user!.id, status: "INVITED" }, update: { contactEmail: email, status: "INVITED", reviewRemarks: null } });
-      const identifier = loginId(ngo.name, corporate.id);
-      let access = await tx.corporateNgoAccess.findFirst({ where: { membershipId: membership.id, userId: masterUser.id } });
-      if (access) access = await tx.corporateNgoAccess.update({ where: { id: access.id }, data: { projectIds: [...new Set([...access.projectIds, projectId])], passwordHash: await bcrypt.hash(password, 12), mustResetPassword: true, temporaryPasswordExpiresAt: expiry, status: "INVITED", tokenVersion: { increment: 1 } } });
-      else access = await tx.corporateNgoAccess.create({ data: { membershipId: membership.id, userId: masterUser.id, loginIdentifier: identifier, contactEmail: email, passwordHash: await bcrypt.hash(password, 12), temporaryPasswordExpiresAt: expiry, projectIds: [projectId], status: "INVITED" } });
-      const assignment = await tx.projectImplementingAgency.upsert({ where: { projectId_agencyOrganizationId: { projectId, agencyOrganizationId: ngo.id } }, create: { projectId, agencyOrganizationId: ngo.id, invitedByUserId: req.user!.id, status: "INVITED" }, update: { status: "INVITED" } });
+
+      // Corporate-NGO Membership
+      const membership = await tx.corporateNgoMembership.upsert({
+        where: {
+          corporateOrganizationId_ngoOrganizationId: {
+            corporateOrganizationId: corporate.id,
+            ngoOrganizationId: ngo.id
+          }
+        },
+        create: {
+          corporateOrganizationId: corporate.id,
+          ngoOrganizationId: ngo.id,
+          contactEmail: email,
+          invitedByUserId: req.user!.id,
+          status: "INVITED"
+        },
+        update: {
+          contactEmail: email,
+          status: "INVITED",
+          reviewRemarks: null
+        }
+      });
+
+      const identifier = loginId(ngo.name || cleanName || "ngo", corporate.id);
+      let access = await tx.corporateNgoAccess.findFirst({
+        where: { membershipId: membership.id, userId: masterUser.id }
+      });
+
+      if (access) {
+        access = await tx.corporateNgoAccess.update({
+          where: { id: access.id },
+          data: {
+            projectIds: [...new Set([...access.projectIds, projectId])],
+            passwordHash,
+            mustResetPassword: true,
+            temporaryPasswordExpiresAt: expiry,
+            status: "INVITED",
+            tokenVersion: { increment: 1 }
+          }
+        });
+      } else {
+        access = await tx.corporateNgoAccess.create({
+          data: {
+            membershipId: membership.id,
+            userId: masterUser.id,
+            loginIdentifier: identifier,
+            contactEmail: email,
+            passwordHash,
+            temporaryPasswordExpiresAt: expiry,
+            projectIds: [projectId],
+            status: "INVITED"
+          }
+        });
+      }
+
+      const assignment = await tx.projectImplementingAgency.upsert({
+        where: { projectId_agencyOrganizationId: { projectId, agencyOrganizationId: ngo.id } },
+        create: { projectId, agencyOrganizationId: ngo.id, invitedByUserId: req.user!.id, status: "INVITED" },
+        update: { status: "INVITED" }
+      });
+
       const legacyAccess = await tx.agencySubLogin.findFirst({ where: { corporateNgoMembershipId: membership.id } });
-      if (legacyAccess) await tx.agencySubLogin.update({ where: { id: legacyAccess.id }, data: { userId: masterUser.id, loginIdentifier: access.loginIdentifier, assignedProjectId: projectId, status: "INVITE_SENT" } });
-      else await tx.agencySubLogin.create({ data: { organizationId: corporate.id, ngoName: ngo.name, agencyOrganizationId: ngo.id, userId: masterUser.id, createdByUserId: req.user!.id, email, loginIdentifier: access.loginIdentifier, corporateNgoMembershipId: membership.id, contactPerson: contactPersonName || null, phone: mobile || null, assignedProjectId: projectId, status: "INVITE_SENT" } });
-      await tx.auditLog.create({ data: { actorUserId: req.user!.id, userId: req.user!.id, action: "CORPORATE_NGO_INVITED", entityType: "CorporateNgoMembership", entityId: membership.id, details: { corporateOrganizationId: corporate.id, ngoOrganizationId: ngo.id, projectId, accessId: access.id, loginIdentifier: access.loginIdentifier } } });
+      if (legacyAccess) {
+        await tx.agencySubLogin.update({
+          where: { id: legacyAccess.id },
+          data: {
+            userId: masterUser.id,
+            loginIdentifier: access.loginIdentifier,
+            assignedProjectId: projectId,
+            status: "INVITE_SENT"
+          }
+        });
+      } else {
+        await tx.agencySubLogin.create({
+          data: {
+            organizationId: corporate.id,
+            ngoName: ngo.name,
+            agencyOrganizationId: ngo.id,
+            userId: masterUser.id,
+            createdByUserId: req.user!.id,
+            email,
+            loginIdentifier: access.loginIdentifier,
+            corporateNgoMembershipId: membership.id,
+            contactPerson: contactPersonName || null,
+            phone: mobile || null,
+            assignedProjectId: projectId,
+            status: "INVITE_SENT"
+          }
+        });
+      }
+
+      await tx.auditLog.create({
+        data: {
+          actorUserId: req.user!.id,
+          userId: req.user!.id,
+          action: "CORPORATE_NGO_INVITED",
+          entityType: "CorporateNgoMembership",
+          entityId: membership.id,
+          details: {
+            corporateOrganizationId: corporate.id,
+            ngoOrganizationId: ngo.id,
+            projectId,
+            accessId: access.id,
+            loginIdentifier: access.loginIdentifier
+          }
+        }
+      });
+
       return { ngo, membership, access, assignment };
+    }, { maxWait: 15000, timeout: 45000 });
+
+    await sendUserInvitationEmail({
+      to: email,
+      applicantName: contactPersonName || result.ngo.name,
+      roleName: `NGO access for ${corporate.name}`,
+      password,
+      loginIdentifier: result.access.loginIdentifier,
+      loginUrl: "/login",
+      isAutogenerated: true
+    }).catch(err => console.error("NGO invitation email failed", err?.message));
+
+    return res.status(201).json({
+      success: true,
+      message: "NGO invited with a corporate-specific login context",
+      data: {
+        membershipId: result.membership.id,
+        loginIdentifier: result.access.loginIdentifier,
+        projectIds: result.access.projectIds,
+        reusedMaster: Boolean(ngoOrganizationId || existingNgo)
+      }
     });
-    await sendUserInvitationEmail({ to: email, applicantName: contactPersonName || result.ngo.name, roleName: `NGO access for ${corporate.name}`, password, loginUrl: "/login", isAutogenerated: true }).catch(err => console.error("NGO invitation email failed", err?.message));
-    return res.status(201).json({ success: true, message: "NGO invited with a corporate-specific login context", data: { membershipId: result.membership.id, loginIdentifier: result.access.loginIdentifier, projectIds: result.access.projectIds, reusedMaster: Boolean(ngoOrganizationId) } });
-  } catch (error) { next(error); }
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const submitNgoMasterProfile = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {

@@ -819,15 +819,27 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
       // 8. COMPANY ADMIN (Role 8 - Corporate Primary Admin)
       // ─────────────────────────────────────────────────────────────────────────────
       else if (roleId === 8) {
+        const corporateEnquiries = await prisma.corporateEnquiry.findMany({
+          where: {
+            OR: [
+              ...(orgId ? [{ organizationId: orgId }] : []),
+              ...(userId ? [{ submittedByUserId: userId }] : [])
+            ]
+          },
+          select: { id: true }
+        });
+        const corporateEnquiryIds = corporateEnquiries.map(e => e.id);
+
         const corporateProjectWhere = {
           status: { in: ACTIVE_PROJECTS },
           OR: [
             ...(orgId ? [
               { corporatePartnerId: orgId },
-              { organizationId: orgId },
-              { approvalSourceEnquiry: { organizationId: orgId } }
+              { organizationId: orgId }
             ] : []),
-            { approvalSourceEnquiry: { submittedByUserId: userId } }
+            ...(corporateEnquiryIds.length > 0 ? [
+              { approvalSourceEnquiryId: { in: corporateEnquiryIds } }
+            ] : [])
           ]
         };
 

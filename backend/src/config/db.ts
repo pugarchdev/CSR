@@ -16,24 +16,48 @@ if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prismaClient = basePrisma;
 }
 
-// Suppress transient Neon serverless idle connection drop logs (E57P01)
+// Helper to detect transient PostgreSQL / network connection reset errors
+const isConnectionResetError = (err: any): boolean => {
+  const msg = String(err?.message || err || "").toLowerCase();
+  const code = String(err?.code || "");
+  return (
+    code === "P1001" ||
+    code === "P1002" ||
+    code === "P1008" ||
+    code === "P1017" ||
+    code === "P2024" ||
+    msg.includes("10054") ||
+    msg.includes("connectionreset") ||
+    msg.includes("connection reset") ||
+    msg.includes("forcibly closed") ||
+    msg.includes("econnreset") ||
+    msg.includes("e57p01") ||
+    msg.includes("terminating connection") ||
+    msg.includes("closed connection") ||
+    msg.includes("connection closed") ||
+    msg.includes("connection lost") ||
+    msg.includes("can't reach database server") ||
+    msg.includes("server has closed the connection") ||
+    msg.includes("broken pipe") ||
+    msg.includes("socket hang up") ||
+    msg.includes("epipe") ||
+    msg.includes("etimedout")
+  );
+};
+
+// Suppress transient idle socket drop / connection reset logs (handled by query retry middleware)
 (basePrisma as any).$on("error", (e: any) => {
-  const msg = e?.message || "";
-  if (
-    msg.includes("E57P01") ||
-    msg.includes("terminating connection due to administrator command") ||
-    msg.includes("Closed connection")
-  ) {
-    // Transient Neon idle socket drop — automatically retried by query middleware
+  if (isConnectionResetError(e)) {
+    // Transient idle socket drop / remote reset — automatically reconnected and retried
     return;
   }
-  console.error("[Prisma Engine Error]", e.message);
+  console.error("[Prisma Engine Error]", e?.message || e);
 });
 
 /**
  * Resilient DB Query Extension.
- * Automatically catches Neon Serverless connection drop errors (E57P01, P1001, P1017, P2024),
- * reconnects Prisma Client, and retries the query up to 3 times before failing.
+ * Automatically catches serverless / remote connection drop errors (10054 ConnectionReset, E57P01, P1001, P1017, P2024),
+ * reconnects Prisma Client, and retries the query with exponential backoff up to 3 times.
  */
 export const prisma = basePrisma.$extends({
   query: {
@@ -46,26 +70,16 @@ export const prisma = basePrisma.$extends({
           try {
             return await query(args);
           } catch (error: any) {
-            const msg = error?.message || "";
-            const code = error?.code || "";
-
-            const isConnError =
-              msg.includes("E57P01") ||
-              msg.includes("terminating connection due to administrator command") ||
-              msg.includes("Closed connection") ||
-              msg.includes("Connection lost") ||
-              code === "P1001" ||
-              code === "P1017" ||
-              code === "P2024";
-
-            if (isConnError && retries < maxRetries) {
+            const code = String(error?.code || "");
+            // Do not retry P2028 inside an already closed/expired interactive transaction
+            if (code !== "P2028" && isConnectionResetError(error) && retries < maxRetries) {
               retries++;
               try {
-                await basePrisma.$connect();
+                await basePrisma.$connect().catch(() => {});
               } catch {
                 // Suppress error during reconnect attempt
               }
-              await new Promise((resolve) => setTimeout(resolve, 250 * retries));
+              await new Promise((resolve) => setTimeout(resolve, 200 * retries));
               continue;
             }
             throw error;

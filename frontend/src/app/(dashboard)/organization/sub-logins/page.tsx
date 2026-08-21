@@ -26,6 +26,7 @@ export default function AgencySubLoginsPage() {
   const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
+  const [modalError, setModalError] = useState("");
   const [projectSelections, setProjectSelections] = useState<Record<string, string>>({});
   const [form, setForm] = useState({ projectId: "", name: "", darpanNumber: "", contactEmail: "", contactPersonName: "", mobile: "" });
   const stats = useMemo(() => ({
@@ -34,17 +35,35 @@ export default function AgencySubLoginsPage() {
     pending: memberships.filter((item: any) => ["INVITED", "CLARIFICATION_REQUIRED"].includes(item.status)).length,
   }), [memberships]);
 
+  const openInviteModal = () => {
+    setModalError("");
+    setMessage("");
+    setShowInvite(true);
+  };
+
   const invite = async (event: FormEvent) => {
     event.preventDefault();
-    if (!form.projectId) return setMessage("Select the first project for this NGO access.");
-    setSaving(true); setMessage("");
+    if (!form.projectId) {
+      setModalError("Select the initial project for this NGO access.");
+      return;
+    }
+    setSaving(true);
+    setModalError("");
+    setMessage("");
     try {
-      const response: any = await apiFetch(`/implementing-agency/projects/${form.projectId}/invite`, { method: "POST", body: JSON.stringify(form) });
+      const response: any = await apiFetch(`/implementing-agency/projects/${form.projectId}/invite`, {
+        method: "POST",
+        body: JSON.stringify(form)
+      });
       setMessage(response?.message || "NGO invitation and corporate-specific access created.");
       setForm({ projectId: "", name: "", darpanNumber: "", contactEmail: "", contactPersonName: "", mobile: "" });
-      setShowInvite(false); await refetch();
-    } catch (error) { setMessage(error instanceof Error ? error.message : "The invitation could not be created."); }
-    finally { setSaving(false); }
+      setShowInvite(false);
+      await refetch();
+    } catch (error) {
+      setModalError(error instanceof Error ? error.message : "The invitation could not be created.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const decide = async (membershipId: string, action: "APPROVE" | "CLARIFY" | "REJECT") => {
@@ -72,7 +91,7 @@ export default function AgencySubLoginsPage() {
   if (!authorized) return <GovPortalLayout><main className="mx-auto min-h-screen max-w-screen-xl px-4 py-6"><AccessRestricted requiredPermission="ngo_login:create" reason="Corporate–NGO membership and project access can be managed only inside an authorized Corporate organization." /></main></GovPortalLayout>;
 
   return <GovPortalLayout><main className="mx-auto min-h-screen max-w-screen-xl space-y-5 px-4 py-5 md:px-6">
-    <GovPageHeader eyebrow="Corporate implementation governance" title="NGO Memberships & Project Access" description="Invite or reuse an NGO master, review its submitted profile within your Corporate scope, and grant access only to approved projects." actions={<button onClick={() => setShowInvite(true)} className="inline-flex items-center gap-2 rounded-xl bg-blue-950 px-4 py-2 text-xs font-bold text-white"><UserPlus size={15}/>Invite NGO</button>} />
+    <GovPageHeader eyebrow="Corporate implementation governance" title="NGO Memberships & Project Access" description="Invite or reuse an NGO master, review its submitted profile within your Corporate scope, and grant access only to approved projects." actions={<button onClick={openInviteModal} className="inline-flex items-center gap-2 rounded-xl bg-blue-950 px-4 py-2 text-xs font-bold text-white"><UserPlus size={15}/>Invite NGO</button>} />
     <section className="grid gap-3 sm:grid-cols-3"><Metric icon={<CheckCircle2 size={18}/>} label="Approved memberships" value={stats.approved}/><Metric icon={<Clock3 size={18}/>} label="Awaiting corporate decision" value={stats.action}/><Metric icon={<Mail size={18}/>} label="Invited / clarification" value={stats.pending}/></section>
     {message && <p role="status" className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm font-semibold text-blue-900">{message}</p>}
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"><div className="border-b border-slate-100 px-5 py-4"><h2 className="font-extrabold text-slate-950">Corporate–NGO membership register</h2><p className="mt-1 text-xs text-slate-500">The NGO master is reusable; login identifiers and project permissions remain specific to this Corporate relationship.</p></div>
@@ -83,7 +102,7 @@ export default function AgencySubLoginsPage() {
           {approved && <div className="flex flex-col gap-2 rounded-xl bg-slate-50 p-3 sm:flex-row"><select value={projectSelections[item.id] || ""} onChange={(event) => setProjectSelections((current) => ({...current,[item.id]:event.target.value}))} className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white p-2 text-xs"><option value="">Select another scoped project</option>{projects.map((project:any)=><option key={project.id} value={project.id}>{project.projectCode ? `${project.projectCode} — ` : ""}{project.title}</option>)}</select><button disabled={busy===item.id} onClick={() => assign(item.id)} className="rounded-lg bg-blue-950 px-4 py-2 text-xs font-bold text-white">Grant project access</button></div>}
         </article>})}</div>}
     </section>
-    {showInvite && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"><form onSubmit={invite} className="w-full max-w-xl space-y-4 rounded-2xl bg-white p-6"><div><h2 className="font-extrabold text-slate-950">Invite NGO / Implementing Agency</h2><p className="mt-1 text-xs leading-5 text-slate-500">This creates or reuses the NGO master and sends a separate temporary Corporate-context login. The password must be changed on first use.</p></div><label className="block text-xs font-bold">Initial project<select required value={form.projectId} onChange={e=>setForm({...form,projectId:e.target.value})} className="mt-1.5 w-full rounded-xl border p-3"><option value="">Select project</option>{projects.map((p:any)=><option key={p.id} value={p.id}>{p.title}</option>)}</select></label><div className="grid gap-3 sm:grid-cols-2"><Field label="NGO name" required value={form.name} onChange={name=>setForm({...form,name})}/><Field label="Darpan number" value={form.darpanNumber} onChange={darpanNumber=>setForm({...form,darpanNumber})}/><Field label="Contact person" value={form.contactPersonName} onChange={contactPersonName=>setForm({...form,contactPersonName})}/><Field label="Mobile" value={form.mobile} onChange={mobile=>setForm({...form,mobile})}/></div><Field label="Official contact email" type="email" required value={form.contactEmail} onChange={contactEmail=>setForm({...form,contactEmail})}/><div className="flex justify-end gap-2"><button type="button" onClick={()=>setShowInvite(false)} className="rounded-xl border px-4 py-2 text-xs font-bold">Cancel</button><button disabled={saving} className="rounded-xl bg-blue-950 px-4 py-2 text-xs font-bold text-white">{saving?"Creating…":"Create access & email invite"}</button></div></form></div>}
+    {showInvite && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"><form onSubmit={invite} className="w-full max-w-xl space-y-4 rounded-2xl bg-white p-6"><div><h2 className="font-extrabold text-slate-950">Invite NGO / Implementing Agency</h2><p className="mt-1 text-xs leading-5 text-slate-500">This creates or reuses the NGO master and sends a separate temporary Corporate-context login. The password must be changed on first use.</p></div>{modalError && <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-bold text-rose-800 flex items-center gap-2"><AlertCircle size={15}/>{modalError}</div>}<label className="block text-xs font-bold">Initial project<select required value={form.projectId} onChange={e=>setForm({...form,projectId:e.target.value})} className="mt-1.5 w-full rounded-xl border p-3"><option value="">Select project</option>{projects.map((p:any)=><option key={p.id} value={p.id}>{p.title}</option>)}</select></label><div className="grid gap-3 sm:grid-cols-2"><Field label="NGO name" required value={form.name} onChange={name=>setForm({...form,name})}/><Field label="Darpan number" value={form.darpanNumber} onChange={darpanNumber=>setForm({...form,darpanNumber})}/><Field label="Contact person" value={form.contactPersonName} onChange={contactPersonName=>setForm({...form,contactPersonName})}/><Field label="Mobile" value={form.mobile} onChange={mobile=>setForm({...form,mobile})}/></div><Field label="Official contact email" type="email" required value={form.contactEmail} onChange={contactEmail=>setForm({...form,contactEmail})}/><div className="flex justify-end gap-2"><button type="button" onClick={()=>setShowInvite(false)} className="rounded-xl border px-4 py-2 text-xs font-bold">Cancel</button><button disabled={saving} className="rounded-xl bg-blue-950 px-4 py-2 text-xs font-bold text-white">{saving ? <span className="inline-flex items-center gap-1.5"><Loader2 size={13} className="animate-spin"/> Creating…</span> : "Create access & email invite"}</button></div></form></div>}
   </main></GovPortalLayout>;
 }
 
