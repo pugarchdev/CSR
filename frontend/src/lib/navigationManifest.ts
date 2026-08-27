@@ -538,8 +538,8 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
   },
   {
     id: "organization-onboarding",
-    label: "Onboarding Status",
-    formalTitle: "Org Onboarding Status",
+    label: "Start Onboarding",
+    formalTitle: "Organization Onboarding",
     route: "/organization/onboarding",
     iconName: "FileCheck",
     section: "Organizations",
@@ -548,7 +548,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     showInSidebar: true,
     requiredAnyPermissions: ["page:organization/onboarding:view"],
     ordering: 40,
-    breadcrumbMetadata: { title: "Onboarding Status", parentRoute: "/dashboard" }
+    breadcrumbMetadata: { title: "Organization Onboarding", parentRoute: "/dashboard" }
   },
   {
     id: "sub-logins",

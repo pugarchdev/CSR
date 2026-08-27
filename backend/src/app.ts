@@ -39,7 +39,7 @@ ensurePermissionsSeeded();
 
 const app = express();
 // Enable 'trust proxy' so Express & rate limiters accurately identify client IPs behind reverse proxies / API gateways (AWS Lambda, Vercel, Nginx, Cloudflare)
-app.set("trust proxy", 1);
+app.set("trust proxy", true);
 const server = http.createServer(app);
 
 const corsOptions = {

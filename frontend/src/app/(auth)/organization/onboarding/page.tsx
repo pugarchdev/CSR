@@ -83,7 +83,14 @@ export default function OrganizationOnboardingPage() {
         const org = res?.data || res || {};
         
         const currentStatus = (org.onboardingStatus || org.status || "").toUpperCase();
-        if (currentStatus && currentStatus !== "PROFILE_INCOMPLETE" && currentStatus !== "DOCUMENTS_PENDING") {
+        const isDraftOrUnsubmitted =
+          !currentStatus ||
+          currentStatus === "REGISTERED" ||
+          currentStatus === "DRAFT" ||
+          currentStatus === "PROFILE_INCOMPLETE" ||
+          currentStatus === "DOCUMENTS_PENDING";
+
+        if (!isDraftOrUnsubmitted) {
           router.replace("/organization/onboarding/status");
           return;
         }

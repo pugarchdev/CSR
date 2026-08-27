@@ -1061,15 +1061,48 @@ export const getDashboardSummary = async (req: AuthenticatedRequest, res: Respon
         createdAt: item.createdAt.toISOString(),
       }));
 
-      const onboardingStatus = org && org.status !== "ACTIVE" ? {
+      const isUnsubmitted = Boolean(org && ["REGISTERED", "PROFILE_INCOMPLETE", "DOCUMENTS_PENDING", "DRAFT"].includes(org.status));
+      const isClarification = Boolean(org && org.status === "CLARIFICATION_REQUIRED");
+      const isRejected = Boolean(org && org.status === "REJECTED");
+
+      const getOnboardingActionUrl = (orgKind?: string | null) => {
+        const k = (orgKind || "").toUpperCase();
+        if (["CSR_COMPANY", "COMPANY", "CORPORATE"].includes(k)) return "/organization/onboarding/company";
+        if (["GOVERNMENT_DEPARTMENT", "GOVT_DEPARTMENT", "DEPARTMENT"].includes(k)) return "/organization/onboarding/government";
+        return "/organization/onboarding";
+      };
+
+      const onboardingStatus = org && org.status !== "ACTIVE" && (org.status as string) !== "APPROVED" ? {
         isPending: true,
         status: org.status,
         orgName: org.name,
         orgKind: org.kind,
-        title: org.status === "CLARIFICATION_REQUIRED" ? "Onboarding clarification required" : "Organization onboarding in progress",
-        message: `Current status: ${org.status.replace(/_/g, " ")}. Transactional actions remain restricted until approval.`,
-        actionUrl: "/organization/onboarding",
-        actionText: "View onboarding status",
+        title: isUnsubmitted
+          ? "Start Organization Onboarding"
+          : isClarification
+          ? "Onboarding Clarification Required"
+          : isRejected
+          ? "Onboarding Application Rejected"
+          : "Organization Onboarding Under Review",
+        message: isUnsubmitted
+          ? "Your organization is registered. Please complete and submit your official onboarding application to unlock CSR features."
+          : isClarification
+          ? "Administrative review requested clarification on your submitted onboarding application. Please review feedback and resubmit."
+          : isRejected
+          ? "Your onboarding application was rejected. Please review administrative remarks."
+          : `Current status: ${org.status.replace(/_/g, " ")}. Your onboarding application is under administrative review.`,
+        actionUrl: isUnsubmitted
+          ? getOnboardingActionUrl(org.kind)
+          : isClarification
+          ? "/organization/onboarding/status?highlight=clarification"
+          : "/organization/onboarding/status",
+        actionText: isUnsubmitted
+          ? "Start Onboarding"
+          : isClarification
+          ? "Resolve Clarification"
+          : isRejected
+          ? "View Remarks"
+          : "View Onboarding Status",
       } : null;
 
       const isCollector = isCollectorOrg(org);

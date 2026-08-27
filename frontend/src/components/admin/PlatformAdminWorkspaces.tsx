@@ -2290,6 +2290,7 @@ export function OrganizationOnboardingStatusWorkspace() {
   const isClarification = onboardingStatus === "CLARIFICATION_REQUIRED";
   const isRejected = onboardingStatus === "REJECTED";
   const isSuspended = onboardingStatus === "SUSPENDED";
+  const isUnsubmitted = ["REGISTERED", "PROFILE_INCOMPLETE", "DOCUMENTS_PENDING", "DRAFT"].includes(onboardingStatus);
 
   // Auto-scroll to clarification workspace if deep-linked or in clarification status
   useEffect(() => {
@@ -2465,6 +2466,8 @@ export function OrganizationOnboardingStatusWorkspace() {
                 ? "border-rose-200 bg-rose-50/80 text-rose-950"
                 : isSuspended
                 ? "border-slate-300 bg-slate-100 text-slate-900"
+                : isUnsubmitted
+                ? "border-amber-200 bg-amber-50/80 text-amber-950"
                 : "border-sky-200 bg-sky-50/80 text-sky-950"
             }`}
           >
@@ -2485,6 +2488,10 @@ export function OrganizationOnboardingStatusWorkspace() {
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-200 text-slate-700">
                   <ShieldAlert className="h-5 w-5" />
                 </div>
+              ) : isUnsubmitted ? (
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+                  <Clock className="h-5 w-5" />
+                </div>
               ) : (
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-sky-700">
                   <Clock className="h-5 w-5 animate-pulse" />
@@ -2500,6 +2507,8 @@ export function OrganizationOnboardingStatusWorkspace() {
                     ? "Onboarding Rejected — Re-application Available"
                     : isSuspended
                     ? "Account Access Suspended"
+                    : isUnsubmitted
+                    ? "Onboarding Incomplete — Application Required"
                     : "Onboarding Pending Verification"}
                 </h3>
                 <p className="mt-1 text-xs font-medium opacity-90 leading-relaxed">
@@ -2511,6 +2520,8 @@ export function OrganizationOnboardingStatusWorkspace() {
                     ? (organization as any)?.rejectionReason ? `Reason: ${(organization as any).rejectionReason}` : "Your onboarding application was rejected. You may review your profile details and re-apply."
                     : isSuspended
                     ? "Your organization account is currently suspended. Please contact portal support at support.csr@maharashtra.gov.in for reinstatement."
+                    : isUnsubmitted
+                    ? "Your organization is registered. Please complete and submit your official onboarding application to proceed with portal verification."
                     : "Your organization onboarding application is under review by Portal Admin."}
                 </p>
               </div>
@@ -2834,6 +2845,15 @@ export function OrganizationOnboardingStatusWorkspace() {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-3 pt-2">
+            {isUnsubmitted && (
+              <Link
+                href={editRoute}
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-950 hover:from-blue-800 hover:to-indigo-800 px-5 py-2.5 text-xs font-bold text-white shadow-md hover:shadow-lg transition-all cursor-pointer hover:scale-[1.01]"
+              >
+                <ArrowRight className="h-4 w-4 text-amber-400" /> Start / Complete Onboarding Form
+              </Link>
+            )}
+
             {isClarification && (
               <Link
                 href={editRoute}

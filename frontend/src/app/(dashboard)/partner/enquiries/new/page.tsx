@@ -550,6 +550,7 @@ function CreateCorporateEnquiryForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     if (!validateForm()) return;
     setLoading(true);
 
