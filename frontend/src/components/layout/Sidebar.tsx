@@ -73,6 +73,8 @@ interface SidebarProps {
   onCollapseToggle?: () => void;
   hovered?: boolean;
   onHoverChange?: (hovered: boolean) => void;
+  autoCollapseMode?: boolean;
+  onAutoCollapseToggle?: () => void;
   className?: string;
   tenantFeatures?: Record<string, boolean>;
 }
@@ -82,6 +84,8 @@ export function Sidebar({
   onCollapseToggle,
   hovered = false,
   onHoverChange,
+  autoCollapseMode = true,
+  onAutoCollapseToggle,
   className,
   tenantFeatures
 }: SidebarProps) {
@@ -98,6 +102,14 @@ export function Sidebar({
   };
 
   const handleMouseLeave = () => {
+    setInternalHovered(false);
+    if (onHoverChange) onHoverChange(false);
+  };
+
+  const handleNavClick = () => {
+    if (autoCollapseMode && onCollapseToggle && !collapsed) {
+      onCollapseToggle();
+    }
     setInternalHovered(false);
     if (onHoverChange) onHoverChange(false);
   };
@@ -187,6 +199,7 @@ export function Sidebar({
               <Link
                 href={visibleDashboard.route}
                 prefetch={true}
+                onClick={handleNavClick}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all group relative no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600",
                   activeItemId === "dashboard"
@@ -270,6 +283,7 @@ export function Sidebar({
                               key={child.id}
                               href={child.route}
                               prefetch={true}
+                              onClick={handleNavClick}
                               title={child.formalTitle || child.label}
                               className={cn(
                                 "flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600",
@@ -296,23 +310,25 @@ export function Sidebar({
         )}
       </div>
 
-      {/* Secondary Bottom Collapse Control */}
-      <div className="px-3 pt-2 border-t border-slate-200/80">
+      {/* Bottom Controls Area */}
+      <div className="px-3 pt-2 space-y-1.5 border-t border-slate-200/80">
+        
+
         <button
           type="button"
           onClick={onCollapseToggle}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="w-full h-10 flex items-center justify-center gap-2 rounded-xl border border-slate-200/80 bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors text-xs font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 shadow-2xs"
+          className="w-full h-9 flex items-center justify-center gap-2 rounded-xl border border-slate-200/80 bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors text-xs font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 shadow-2xs"
         >
           {collapsed ? (
             <>
               <ChevronRight size={16} />
-              {isEffectiveExpanded && <span>Expand sidebar</span>}
+              {isEffectiveExpanded && <span>Expand</span>}
             </>
           ) : (
             <>
               <ChevronLeft size={16} />
-              {isEffectiveExpanded && <span>Collapse sidebar</span>}
+              {isEffectiveExpanded && <span>Collapse</span>}
             </>
           )}
         </button>

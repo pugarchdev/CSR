@@ -5,7 +5,7 @@ import { auditLog } from "../services/notificationService";
 import { FEASIBILITY_CHECKLIST_SEED } from "../constants/mahacsr-framework";
 import { createSLAEscalation } from "../services/slaEscalationService";
 import { calculateSlaDueDate } from "../services/slaConfigService";
-import { ROLE_ID } from "../types/role";
+import { ROLE_ID, getRoleId } from "../types/role";
 import { dispatchNotification, dispatchToContact } from "../services/notificationOrchestrator";
 import { notifyHierarchy } from "../services/hierarchyNotificationService";
 import { validatePitchVerificationChecklist } from "../utils/workflowValidation";
@@ -489,6 +489,22 @@ export const getRMAssessments = async (req: AuthenticatedRequest, res: Response,
   }
 };
 
+function resolveRoleInfo(user: AuthenticatedRequest["user"]) {
+  if (!user) return { isStateAdmin: false, isRM: false, roleIdNum: 0 };
+  const roleIdNum = getRoleId(user.roleId ?? user.role) || 0;
+  const roleStr = String(user.role || user.roleSlug || "").toUpperCase();
+  const isStateAdmin =
+    ([ROLE_ID.SUPER_ADMIN, ROLE_ID.PLANNING_SECRETARY, ROLE_ID.JOINT_SECRETARY, ROLE_ID.DISTRICT_NODAL_OFFICER, ROLE_ID.DISTRICT_NODAL_CONSULTANT, ROLE_ID.GOVERNMENT_OFFICER] as number[]).includes(roleIdNum) ||
+    roleStr.includes("JOINT") ||
+    roleStr.includes("PLANNING") ||
+    roleStr.includes("SUPER_ADMIN") ||
+    roleStr.includes("STATE") ||
+    roleStr.includes("OFFICER") ||
+    roleStr.includes("CONSULTANT");
+  const isRM = roleIdNum === ROLE_ID.RELATIONSHIP_MANAGER || roleStr.includes("RELATIONSHIP") || roleStr.includes("RM");
+  return { isStateAdmin, isRM, roleIdNum };
+}
+
 export const logEnquiryInteraction = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
@@ -498,9 +514,7 @@ export const logEnquiryInteraction = async (req: AuthenticatedRequest, res: Resp
       return res.status(400).json({ error: "Enter an interaction note between 3 and 4,000 characters." });
     }
 
-    const roleIdNum = Number(req.user!.roleId || req.user!.role);
-    const isStateAdmin = ([ROLE_ID.SUPER_ADMIN, ROLE_ID.PLANNING_SECRETARY, ROLE_ID.JOINT_SECRETARY, ROLE_ID.DISTRICT_NODAL_OFFICER, ROLE_ID.DISTRICT_NODAL_CONSULTANT, ROLE_ID.GOVERNMENT_OFFICER] as number[]).includes(roleIdNum);
-    const isRM = roleIdNum === ROLE_ID.RELATIONSHIP_MANAGER;
+    const { isStateAdmin, isRM } = resolveRoleInfo(req.user);
 
     const assignedEnquiry = await prisma.corporateEnquiry.findFirst({
       where: isStateAdmin
@@ -706,9 +720,7 @@ export const submitFeasibilityAssessment = async (req: AuthenticatedRequest, res
 
 export const listRMEnquiryInteractions = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const roleIdNum = Number(req.user!.roleId || req.user!.role);
-    const isStateAdmin = ([ROLE_ID.SUPER_ADMIN, ROLE_ID.PLANNING_SECRETARY, ROLE_ID.JOINT_SECRETARY, ROLE_ID.DISTRICT_NODAL_OFFICER, ROLE_ID.DISTRICT_NODAL_CONSULTANT, ROLE_ID.GOVERNMENT_OFFICER] as number[]).includes(roleIdNum);
-    const isRM = roleIdNum === ROLE_ID.RELATIONSHIP_MANAGER;
+    const { isStateAdmin, isRM } = resolveRoleInfo(req.user);
 
     const enquiry = await prisma.corporateEnquiry.findFirst({
       where: isStateAdmin
@@ -735,10 +747,13 @@ export const listRMEnquiryInteractions = async (req: AuthenticatedRequest, res: 
     const users = actorIds.length > 0
       ? await prisma.user.findMany({
           where: { id: { in: actorIds } },
-          select: { id: true, firstName: true, lastName: true, roleId: true, designation: true }
+          select: { id: true, firstName: true, lastName: true, roleId: true, designation: true, email: true }
         })
       : [];
-    const userMap = new Map(users.map(u => [u.id, u]));
+    const userMap = new Map(users.map(u => [u.id, {
+      ...u,
+      name: [u.firstName, u.lastName].filter(Boolean).join(" ") || "Official"
+    }]));
 
     const data = rawInteractions.map(i => ({
       ...i,
@@ -754,9 +769,7 @@ export const logPitchInteraction = async (req: AuthenticatedRequest, res: Respon
     const note = typeof req.body.note === "string" ? req.body.note.trim() : "";
     if (note.length < 3 || note.length > 4000) return res.status(400).json({ error: "Enter an interaction note between 3 and 4,000 characters." });
     
-    const roleIdNum = Number(req.user!.roleId || req.user!.role);
-    const isStateAdmin = ([ROLE_ID.SUPER_ADMIN, ROLE_ID.PLANNING_SECRETARY, ROLE_ID.JOINT_SECRETARY] as number[]).includes(roleIdNum);
-    const isRM = roleIdNum === ROLE_ID.RELATIONSHIP_MANAGER;
+    const { isStateAdmin, isRM } = resolveRoleInfo(req.user);
 
     const pitch = await prisma.governmentPitch.findFirst({
       where: isStateAdmin
@@ -806,9 +819,7 @@ export const logPitchInteraction = async (req: AuthenticatedRequest, res: Respon
 
 export const listRMPitchInteractions = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const roleIdNum = Number(req.user!.roleId || req.user!.role);
-    const isStateAdmin = ([ROLE_ID.SUPER_ADMIN, ROLE_ID.PLANNING_SECRETARY, ROLE_ID.JOINT_SECRETARY] as number[]).includes(roleIdNum);
-    const isRM = roleIdNum === ROLE_ID.RELATIONSHIP_MANAGER;
+    const { isStateAdmin, isRM } = resolveRoleInfo(req.user);
 
     const pitch = await prisma.governmentPitch.findFirst({
       where: isStateAdmin
@@ -835,10 +846,13 @@ export const listRMPitchInteractions = async (req: AuthenticatedRequest, res: Re
     const users = actorIds.length > 0
       ? await prisma.user.findMany({
           where: { id: { in: actorIds } },
-          select: { id: true, firstName: true, lastName: true, roleId: true, designation: true }
+          select: { id: true, firstName: true, lastName: true, roleId: true, designation: true, email: true }
         })
       : [];
-    const userMap = new Map(users.map(u => [u.id, u]));
+    const userMap = new Map(users.map(u => [u.id, {
+      ...u,
+      name: [u.firstName, u.lastName].filter(Boolean).join(" ") || "Official"
+    }]));
 
     const data = rawInteractions.map(i => ({
       ...i,

@@ -142,7 +142,11 @@ export function Header({
           </button>
 
           {/* Notifications Icon */}
-          <button className="relative text-slate-500 hover:text-slate-700 transition-colors shrink-0">
+          <button
+            onClick={() => router.push("/notifications")}
+            className="relative text-slate-500 hover:text-slate-700 transition-colors shrink-0"
+            aria-label="Notifications"
+          >
             <Bell size={22} strokeWidth={1.5} />
             <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
           </button>

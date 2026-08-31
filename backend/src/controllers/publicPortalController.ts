@@ -62,11 +62,15 @@ export const getPublicDirectory = async (req: Request, res: Response) => {
 let statsCache: { data: any; expiresAt: number } | null = null;
 const CACHE_TTL_MS = 60 * 1000;
 
+export const clearStatsCache = () => {
+  statsCache = null;
+};
+
 export const getPublicPortalStats = async (req: Request, res: Response) => {
   try {
     const now = Date.now();
     if (statsCache && statsCache.expiresAt > now && req.query.refresh !== "true") {
-      res.setHeader("Cache-Control", "public, max-age=30, s-maxage=60, stale-while-revalidate=120");
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       return successResponse(res, statsCache.data);
     }
 
@@ -127,7 +131,7 @@ export const getPublicPortalStats = async (req: Request, res: Response) => {
       expiresAt: now + CACHE_TTL_MS
     };
 
-    res.setHeader("Cache-Control", "public, max-age=30, s-maxage=60, stale-while-revalidate=120");
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     return successResponse(res, payload);
   } catch (error) {
     return errorResponse(res, "Failed to fetch portal statistics", 500);
@@ -136,6 +140,7 @@ export const getPublicPortalStats = async (req: Request, res: Response) => {
 
 export const getPublicRequirements = async (req: Request, res: Response) => {
   try {
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     const limit = parseInt(req.query.limit as string) || 100;
     const [projects, pitches] = await Promise.all([
       prisma.project.findMany({

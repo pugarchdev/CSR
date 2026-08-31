@@ -158,7 +158,7 @@ export default function NgoSelectionPage() {
 
       <div className="space-y-6">
         {/* KPI Metrics Cards */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <StatCard
             label="Nodal Appointments"
             value={appointments.length}

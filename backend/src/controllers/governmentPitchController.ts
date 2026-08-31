@@ -16,6 +16,8 @@ import { PortalCaseService } from "../services/portalCaseService";
 import { verifyGovernmentPitch } from "./relationshipManagerController";
 import { auditLog } from "../services/notificationService";
 import { isCollectorOrg, getDistrictOrganizationIds } from "../services/districtScopeService";
+import { clearStatsCache } from "./publicPortalController";
+import { clearCachePattern } from "../config/redis";
 
 function normalizeInteractionType(value: unknown): "CALL" | "VIDEO_CALL" | "PHYSICAL_MEETING" | "MESSAGE" {
   const normalized = String(value || "MESSAGE").trim().toUpperCase().replace(/[ -]+/g, "_");
@@ -499,7 +501,7 @@ export const getPublicPitches = async (req: AuthenticatedRequest, res: Response,
       orderBy: { createdAt: "desc" },
       take: 50
     });
-    res.setHeader("Cache-Control", "public, max-age=15, s-maxage=30, stale-while-revalidate=60");
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     return res.json(pitches);
   } catch (error) { next(error); }
 };
@@ -707,6 +709,12 @@ export const approvePitch = async (req: AuthenticatedRequest, res: Response, nex
     }
 
     const published = updated.status === "PUBLIC_LISTED";
+    if (published) {
+      clearStatsCache();
+      clearCachePattern("dashboard:*");
+      clearCachePattern("public:*");
+      clearCachePattern("pitch:*");
+    }
 
     // If JS requests clarification or rejects, notify the assigned Relationship Manager directly
     if (updated.assignedRelationshipManagerId && (decision === "RETURN_FOR_CLARIFICATION" || decision === "RETURN_FOR_CORRECTION" || decision === "REJECT")) {

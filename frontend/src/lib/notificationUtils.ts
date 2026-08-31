@@ -106,6 +106,38 @@ export function resolveNotificationUrl(
     message.includes("remarks:") ||
     message.includes("action required");
 
+  // 0. Handle explicit non-track actionUrls first
+  if (rawUrl && rawUrl.startsWith("/") && !rawUrl.startsWith("/track")) {
+    if (rawUrl.startsWith("/assessments") || rawPath.startsWith("/assessments")) {
+      if (enquiryId) {
+        return `/enquiries/${enquiryId}`;
+      }
+      return "/enquiries";
+    }
+
+    if (!isAdmin && (rawUrl.startsWith("/admin") || rawUrl.includes("/admin/"))) {
+      if (rawUrl.includes("onboarding") || rawUrl.includes("organization")) {
+        return isClarificationAlert
+          ? "/organization/onboarding/status?highlight=clarification"
+          : "/organization/onboarding/status";
+      }
+      if (rawUrl.includes("enquiry")) return enquiryId ? `/enquiries/${enquiryId}` : "/enquiries";
+      if (rawUrl.includes("pitch")) return uuidInMessage || uuidInPath ? `/pitches/${uuidInMessage || uuidInPath}` : "/pitches";
+      if (rawUrl.includes("project")) return uuidInMessage || uuidInPath ? `/convergence-projects/${uuidInMessage || uuidInPath}` : "/convergence-projects";
+      return "/organization/onboarding/status";
+    }
+
+    if (isAdmin && rawUrl === "/organization/onboarding") {
+      return buildUrlWithParams("/admin/onboarding-approvals", {
+        orgId: orgId || undefined,
+        highlight: quotedEntity || undefined,
+        search: quotedEntity || undefined,
+      });
+    }
+
+    return rawUrl;
+  }
+
   // 1. Feasibility Assessment notifications (Direct to exact Enquiry page)
   const isFeasibility =
     title.includes("feasibility") ||
@@ -150,30 +182,28 @@ export function resolveNotificationUrl(
     return "/organization/onboarding/status";
   }
 
-  // 3. Corporate Enquiry notifications
+  // 3. Corporate Enquiry / Application notifications
   const isEnquiry =
     title.includes("enquiry") ||
     message.includes("enquiry") ||
+    title.includes("application") ||
+    message.includes("application") ||
     rawPath.startsWith("/corporate-enquiry") ||
     rawPath.startsWith("/partner/enquiries") ||
     rawPath.startsWith("/enquiries");
 
   if (isEnquiry) {
-    if (enquiryId && !trackingId) {
+    if (enquiryId) {
       return `/enquiries/${enquiryId}`;
     }
-    if (!isAdmin && trackingId) {
-      return `/track?trackingId=${encodeURIComponent(trackingId)}`;
-    }
     return buildUrlWithParams("/enquiries", {
-      id: enquiryId || undefined,
       trackingId: trackingId || undefined,
       highlight: quotedEntity || trackingId || undefined,
       search: quotedEntity || trackingId || undefined,
     });
   }
 
-  // 3. Pitch / Development Need notifications
+  // 4. Pitch / Development Need notifications
   const isPitch =
     title.includes("pitch") ||
     message.includes("pitch") ||
@@ -181,18 +211,18 @@ export function resolveNotificationUrl(
     rawPath.startsWith("/pitches");
 
   if (isPitch) {
-    if (!isAdmin && trackingId) {
-      return `/track?trackingId=${encodeURIComponent(trackingId)}`;
+    const pitchId = uuidInMessage || uuidInPath || queryParams.get("id") || queryParams.get("pitchId");
+    if (pitchId) {
+      return `/pitches/${pitchId}`;
     }
     return buildUrlWithParams("/pitches", {
-      id: queryParams.get("id") || uuidInPath || undefined,
       trackingId: trackingId || undefined,
       highlight: quotedEntity || trackingId || undefined,
       search: quotedEntity || trackingId || undefined,
     });
   }
 
-  // 4. Grievance notifications
+  // 5. Grievance notifications
   const isGrievance =
     title.includes("grievance") ||
     message.includes("grievance") ||
@@ -206,7 +236,7 @@ export function resolveNotificationUrl(
     });
   }
 
-  // 5. Project / Convergence Project notifications
+  // 6. Project / Convergence Project notifications
   const isProject =
     title.includes("project") ||
     message.includes("project") ||
@@ -214,43 +244,18 @@ export function resolveNotificationUrl(
     rawPath.startsWith("/convergence-projects");
 
   if (isProject) {
+    const projId = uuidInMessage || uuidInPath || queryParams.get("id") || queryParams.get("projectId");
+    if (projId) {
+      return `/convergence-projects/${projId}`;
+    }
     return buildUrlWithParams("/convergence-projects", {
-      id: queryParams.get("id") || uuidInPath || undefined,
       highlight: quotedEntity || undefined,
       search: quotedEntity || undefined,
     });
   }
 
-  // 6. Handle rawUrl while guarding non-admin users from admin routes
-  if (rawUrl && rawUrl.startsWith("/")) {
-    if (rawUrl.startsWith("/assessments") || rawPath.startsWith("/assessments")) {
-      if (enquiryId) {
-        return `/enquiries/${enquiryId}`;
-      }
-      return "/enquiries";
-    }
-
-    if (!isAdmin && (rawUrl.startsWith("/admin") || rawUrl.includes("/admin/"))) {
-      if (rawUrl.includes("onboarding") || rawUrl.includes("organization")) {
-        return isClarificationAlert
-          ? "/organization/onboarding/status?highlight=clarification"
-          : "/organization/onboarding/status";
-      }
-      if (rawUrl.includes("enquiry")) return "/enquiries";
-      if (rawUrl.includes("pitch")) return "/pitches";
-      if (rawUrl.includes("project")) return "/convergence-projects";
-      return "/organization/onboarding/status";
-    }
-
-    if (isAdmin && rawUrl === "/organization/onboarding") {
-      return buildUrlWithParams("/admin/onboarding-approvals", {
-        orgId: orgId || undefined,
-        highlight: quotedEntity || undefined,
-        search: quotedEntity || undefined,
-      });
-    }
-
-    // Preserve any existing parameters on rawUrl
+  // 7. Explicit /track actionUrl
+  if (rawUrl && rawUrl.startsWith("/track")) {
     return rawUrl;
   }
 

@@ -1350,7 +1350,7 @@ function InteractionLogTab({
                       </span>
                       {interaction.actor && (
                         <span className="text-xs font-bold text-slate-800">
-                          {[interaction.actor.firstName, interaction.actor.lastName].filter(Boolean).join(" ")}
+                          {interaction.actor.name || [interaction.actor.firstName, interaction.actor.lastName].filter(Boolean).join(" ") || "Official"}
                           {interaction.actor.designation && <span className="text-slate-400 font-normal ml-1">({interaction.actor.designation})</span>}
                         </span>
                       )}

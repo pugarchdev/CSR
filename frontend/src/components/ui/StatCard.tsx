@@ -142,7 +142,7 @@ export function StatCard({
     <article
       onClick={onClick}
       className={cn(
-        "group relative flex flex-col justify-between rounded-xl border p-3.5 shadow-2xs transition-all duration-200 ease-out hover:-translate-y-0.5",
+        "group relative flex flex-col justify-between rounded-xl border p-2.5 sm:p-3.5 shadow-2xs transition-all duration-200 ease-out hover:-translate-y-0.5",
         theme.bg,
         theme.border,
         onClick ? "cursor-pointer" : "cursor-default",
@@ -157,7 +157,7 @@ export function StatCard({
 
         <div className="flex items-center gap-1.5 shrink-0">
           {badge && (
-            <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded-md font-mono border", theme.badge)}>
+            <span className={cn("hidden sm:inline text-[9px] font-bold px-1.5 py-0.5 rounded-md font-mono border", theme.badge)}>
               {badge}
             </span>
           )}
@@ -213,16 +213,16 @@ export function StatCardGroup({
   columns = 4
 }: StatCardGroupProps) {
   const gridCols = {
-    2: "grid-cols-1 sm:grid-cols-2",
-    3: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
-    4: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4",
+    2: "grid-cols-2",
+    3: "grid-cols-2 sm:grid-cols-2 lg:grid-cols-3",
+    4: "grid-cols-2 sm:grid-cols-2 lg:grid-cols-4",
     5: "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5",
     6: "grid-cols-2 sm:grid-cols-3 lg:grid-cols-6",
   };
 
   return (
     <div className={cn(
-      "grid gap-3 sm:gap-3.5",
+      "grid gap-2.5 sm:gap-3.5",
       gridCols[columns],
       className
     )}>

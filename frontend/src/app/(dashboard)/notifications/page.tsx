@@ -24,6 +24,7 @@ interface NotificationItem {
 export default function NotificationsPage() {
   const router = useRouter();
   const toast = useToastActions();
+  const user = useAuthStore((s) => s.user);
   const isAdmin = useAuthStore((s) => s.isAdmin);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,7 +109,7 @@ export default function NotificationsPage() {
 
   const handleCardClick = (n: NotificationItem) => {
     if (!n.isRead) markRead(n.id);
-    const targetUrl = resolveNotificationUrl(n, isAdmin);
+    const targetUrl = resolveNotificationUrl(n, isAdmin, user?.role);
     if (targetUrl) {
       router.push(targetUrl);
     }

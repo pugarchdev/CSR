@@ -93,6 +93,13 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
     return false;
   });
   const [sidebarHovered, setSidebarHovered] = useState(false);
+  const [autoCollapseMode, setAutoCollapseMode] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("mahacsr_sidebar_autocollapse");
+      return stored !== null ? JSON.parse(stored) : true;
+    }
+    return true;
+  });
   const isExpanded = !sidebarCollapsed || sidebarHovered;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -154,6 +161,12 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
       localStorage.setItem("mahacsr_sidebar_collapsed", JSON.stringify(sidebarCollapsed));
     }
   }, [sidebarCollapsed]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("mahacsr_sidebar_autocollapse", JSON.stringify(autoCollapseMode));
+    }
+  }, [autoCollapseMode]);
 
   useEffect(() => {
     if (mobileMenuOpen) {
@@ -330,6 +343,26 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
     setOpenNavGroup(null);
     setMobileOpenNavGroup(null);
   }, [pathname]);
+
+  // Auto-collapse sidebar on route change when in dashboard and autoCollapseMode is active
+  useEffect(() => {
+    if (isDashboard && autoCollapseMode) {
+      setSidebarCollapsed(true);
+      setSidebarHovered(false);
+    }
+  }, [pathname, autoCollapseMode, isDashboard]);
+
+  // Auto-collapse on smaller screen widths (<1280px)
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1280 && autoCollapseMode) {
+        setSidebarCollapsed(true);
+      }
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [autoCollapseMode]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -698,7 +731,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                                 apiFetch(`/notifications/${notification.id}/read`, { method: "PATCH" }).catch(() => {});
                               }
                               setNotificationsOpen(false);
-                              const target = resolveNotificationUrl(notification as any, storeIsAdmin);
+                              const target = resolveNotificationUrl(notification as any, storeIsAdmin, storeUser?.role);
                               router.push(target);
                             }}
                             className={`p-3 rounded-xl border flex flex-col gap-1 text-[11px] transition-colors cursor-pointer hover:border-blue-300 ${
@@ -937,6 +970,8 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
             onCollapseToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
             hovered={sidebarHovered}
             onHoverChange={setSidebarHovered}
+            autoCollapseMode={autoCollapseMode}
+            onAutoCollapseToggle={() => setAutoCollapseMode(!autoCollapseMode)}
             tenantFeatures={tenantFeatures}
           />
         )}

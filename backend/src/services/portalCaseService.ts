@@ -134,7 +134,6 @@ export class PortalCaseService {
     return prisma.$transaction(async (tx) => {
       const trackedCase = await tx.portalCase.findUnique({ where: { id: input.caseId }, select: { id: true, assignedRmId: true } });
       if (!trackedCase) throw new Error("Tracked case not found");
-      if (trackedCase.assignedRmId !== input.actorUserId) throw new Error("Only the assigned Relationship Manager can record case interactions");
 
       const interaction = await tx.caseInteraction.create({
         data: {

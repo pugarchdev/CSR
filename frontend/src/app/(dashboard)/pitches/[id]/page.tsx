@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import { useApiQuery } from "@/lib/apiHooks";
-import { apiFetch, uploadPortalFile } from "@/lib/api";
+import { apiFetch, uploadPortalFile, invalidateCache } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 
 const INTERACTION_TYPES = [
@@ -180,12 +180,12 @@ export default function PitchDetailPage() {
   );
 
   const pitch = response?.data ?? response;
-  const interactions = Array.isArray(pitch?.interactions)
-    ? pitch.interactions
-    : Array.isArray(interactionsResponse?.data)
+  const interactions = Array.isArray(interactionsResponse?.data)
     ? interactionsResponse.data
     : Array.isArray(interactionsResponse)
     ? interactionsResponse
+    : Array.isArray(pitch?.interactions)
+    ? pitch.interactions
     : [];
 
   const toggleCheck = (id: string) => {
@@ -256,6 +256,7 @@ export default function PitchDetailPage() {
       if (decisionToSubmit === "APPROVE" || decisionToSubmit === "APPROVE_WITH_CONDITIONS") {
         setLocalApproved(true);
       }
+      invalidateCache();
       setShowJsDecisionModal(false);
       setReviewMessage(result?.message || `Joint Secretary decision (${decisionToSubmit.replace(/_/g, " ")}) recorded successfully.`);
       refetch();
@@ -345,6 +346,7 @@ export default function PitchDetailPage() {
       });
       setNewInteractionNote("");
       refetchInteractions();
+      refetch();
     } catch (err: any) {
       alert(err.message || "Failed to log interaction.");
     } finally {
@@ -1606,7 +1608,7 @@ export default function PitchDetailPage() {
                                 </span>
                                 {interaction.actor && (
                                   <span className="text-xs font-bold text-slate-800">
-                                    {[interaction.actor.firstName, interaction.actor.lastName].filter(Boolean).join(" ")}
+                                    {interaction.actor.name || [interaction.actor.firstName, interaction.actor.lastName].filter(Boolean).join(" ") || "Official"}
                                     {interaction.actor.designation && <span className="text-slate-400 font-normal ml-1">({interaction.actor.designation})</span>}
                                   </span>
                                 )}

@@ -58,7 +58,12 @@ const isBypassedPath = (path: string): boolean => {
     path.includes("/auth/me") ||
     path.includes("/organizations") ||
     path.includes("/admin/organizations") ||
-    path.includes("/enquiries")
+    path.includes("/enquiries") ||
+    path.includes("/interactions") ||
+    path.includes("/pitches") ||
+    path.includes("/government-pitches") ||
+    path.includes("/rm") ||
+    path.includes("/case")
   );
 };
 

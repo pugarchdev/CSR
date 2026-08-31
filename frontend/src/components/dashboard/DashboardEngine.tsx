@@ -75,7 +75,7 @@ function DashboardSkeleton() {
         </div>
         <div className="h-8 w-36 rounded-lg bg-slate-200" />
       </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 8 }).map((_, index) => (
           <div key={index} className="h-28 rounded-2xl border border-slate-200/80 bg-white shadow-xs" />
         ))}
@@ -481,7 +481,7 @@ export default function DashboardEngine() {
                       {finalCorp.length} Corporate KPIs
                     </span>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
+                  <div className="grid grid-cols-2 gap-3 flex-1">
                     {finalCorp.map((kpi: any, i: number) => renderCard(kpi, i))}
                   </div>
                 </div>
@@ -499,7 +499,7 @@ export default function DashboardEngine() {
                       {finalGov.length} Government KPIs
                     </span>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
+                  <div className="grid grid-cols-2 gap-3 flex-1">
                     {finalGov.map((kpi: any, i: number) => renderCard(kpi, i + finalCorp.length))}
                   </div>
                 </div>
@@ -507,7 +507,7 @@ export default function DashboardEngine() {
             );
           })()
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
             {kpiList.map((kpi: any, idx: number) => {
               const visual = kpiVisual(kpi.key, kpi.label, idx);
               const card = (

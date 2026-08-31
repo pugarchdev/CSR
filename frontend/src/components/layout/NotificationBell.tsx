@@ -21,6 +21,7 @@ interface NotificationItem {
 export function NotificationBell() {
   const router = useRouter();
   const isAdmin = useAuthStore((s) => s.isAdmin);
+  const user = useAuthStore((s) => s.user);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -33,7 +34,7 @@ export function NotificationBell() {
       markAsRead(n.id);
     }
     setIsOpen(false);
-    const targetUrl = resolveNotificationUrl(n, isAdmin);
+    const targetUrl = resolveNotificationUrl(n, isAdmin, user?.role);
     router.push(targetUrl);
   };
 

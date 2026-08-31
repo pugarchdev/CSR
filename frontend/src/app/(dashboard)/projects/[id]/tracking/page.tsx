@@ -319,7 +319,7 @@ export default function ProjectTrackingPage() {
 
       <div className="space-y-6">
         {/* Progress KPI Strip */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <StatCard
             label="Overall Physical Progress"
             value={`${project.physicalProgressPercent}%`}

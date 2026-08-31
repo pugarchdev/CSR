@@ -3,7 +3,7 @@ import prisma from "../config/db";
 import { AuthenticatedRequest } from "../middlewares/authMiddleware";
 import { notFoundResponse } from "../utils/apiResponse";
 import { RmAssignmentService } from "../services/rmAssignmentService";
-import { ROLE_ID } from "../types/role";
+import { ROLE_ID, getRoleId } from "../types/role";
 import { notifyHierarchy } from "../services/hierarchyNotificationService";
 import { generateCorporateEnquiryTrackingId } from "../services/trackingIdService";
 import { createSLAEscalation } from "../services/slaEscalationService";
@@ -298,10 +298,12 @@ export const getEnquiryById = async (req: AuthenticatedRequest, res: Response, n
     const user = req.user;
     if (!user) return res.status(401).json({ error: "Unauthorized" });
 
-    const roleIdNum = Number(user.roleId || user.role);
-    const isRM = roleIdNum === ROLE_ID.RELATIONSHIP_MANAGER || String(user.roleId) === String(ROLE_ID.RELATIONSHIP_MANAGER);
-    const isSuperAdmin = roleIdNum === ROLE_ID.SUPER_ADMIN || String(user.role) === "SUPER_ADMIN";
-    const isGovAdmin = ([ROLE_ID.PLANNING_SECRETARY, ROLE_ID.JOINT_SECRETARY, ROLE_ID.DISTRICT_NODAL_OFFICER, ROLE_ID.DISTRICT_NODAL_CONSULTANT, ROLE_ID.GOVERNMENT_OFFICER] as number[]).includes(roleIdNum);
+    const roleIdNum = getRoleId(user.roleId ?? user.role) || 0;
+    const roleStr = String(user.role || user.roleSlug || "").toUpperCase();
+    const isRM = roleIdNum === ROLE_ID.RELATIONSHIP_MANAGER || roleStr.includes("RELATIONSHIP") || roleStr.includes("RM");
+    const isSuperAdmin = roleIdNum === ROLE_ID.SUPER_ADMIN || roleStr.includes("SUPER_ADMIN");
+    const isGovAdmin = ([ROLE_ID.PLANNING_SECRETARY, ROLE_ID.JOINT_SECRETARY, ROLE_ID.DISTRICT_NODAL_OFFICER, ROLE_ID.DISTRICT_NODAL_CONSULTANT, ROLE_ID.GOVERNMENT_OFFICER] as number[]).includes(roleIdNum) ||
+      roleStr.includes("JOINT") || roleStr.includes("PLANNING") || roleStr.includes("GOVERNMENT");
 
     let where: any = { id: req.params.id };
     if (isRM) {

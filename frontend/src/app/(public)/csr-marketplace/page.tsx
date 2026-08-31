@@ -50,7 +50,7 @@ export default function CSRMarketplace() {
   const fetchMarketplaceRequirements = async () => {
     setLoading(true);
     try {
-      const res = await apiFetch<any>("/government-pitches/public?limit=50");
+      const res = await apiFetch<any>("/government-pitches/public?limit=50", { skipCache: true });
       const pitches = res.data || [];
       setRequirements(pitches.map((pitch: any) => ({
         id: pitch.id,
