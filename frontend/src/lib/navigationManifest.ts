@@ -210,6 +210,19 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     breadcrumbMetadata: { title: "Government Pitches", parentRoute: "/dashboard" }
   },
   {
+    id: "pitch-create",
+    label: "Create Pitch Proposal",
+    formalTitle: "Create Government Pitch Proposal",
+    route: "/pitches/create",
+    iconName: "Plus",
+    section: "Applications",
+    navigationLevel: "HIDDEN",
+    showInSidebar: false,
+    requiredAnyPermissions: ["pitch:create", "pitch:view", "dashboard:view", "enquiry:view"],
+    ordering: 21,
+    breadcrumbMetadata: { title: "Create Pitch Proposal", parentRoute: "/pitches" }
+  },
+  {
     id: "track-pitch",
     label: "Track Application",
     formalTitle: "Track Application Status",

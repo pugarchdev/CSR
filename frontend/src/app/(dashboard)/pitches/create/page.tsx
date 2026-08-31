@@ -269,11 +269,27 @@ export default function CreatePitchDashboardPage() {
   const router = useRouter();
   const user = useAuthStore((s: any) => s.user);
   const roles = useAuthStore((s: any) => s.roles);
+  const isAdmin = useAuthStore((s: any) => s.isAdmin);
   const activeRoles = (roles || []).length > 0 ? roles : (user?.role ? [user.role] : []);
-  const isRM = activeRoles.some((r: any) => {
-    const s = String(typeof r === "object" ? r?.code || r?.name || r?.id : r).toUpperCase();
-    return s.includes("RELATIONSHIP_MANAGER") || s.includes("RELATIONSHIP MANAGER") || s.includes("SYSTEM_ROLE_6") || s === "6";
-  });
+  const roleStrs = activeRoles.map((r: any) =>
+    String(typeof r === "object" ? r?.code || r?.name || r?.slug || r?.id : r).toUpperCase()
+  );
+
+  const isSuperAdmin = Boolean(isAdmin) || roleStrs.some((r: string) => r.includes("SUPER_ADMIN") || r.includes("SUPERADMIN") || r === "1");
+  const isGovernmentOfficer = roleStrs.some((r: string) =>
+    r.includes("GOVERNMENT") ||
+    r.includes("GOV_") ||
+    r.includes("DEPT") ||
+    r.includes("DISTRICT_NODAL") ||
+    r.includes("NODAL_OFFICER") ||
+    r.includes("PLANNING_SECRETARY") ||
+    r.includes("JOINT_SECRETARY") ||
+    r === "7" || r === "4" || r === "5" || r === "3" || r === "2"
+  );
+  const isPrivileged = isSuperAdmin || isGovernmentOfficer || Number(user?.roleId) === 1 || Number(user?.roleId) === 2 || Number(user?.roleId) === 3 || Number(user?.roleId) === 7;
+  const isRM = roleStrs.some((r: string) =>
+    r.includes("RELATIONSHIP_MANAGER") || r.includes("RELATIONSHIP MANAGER") || r.includes("SYSTEM_ROLE_6") || r === "6"
+  );
 
   const [onboardingGuardModal, setOnboardingGuardModal] = useState<"NONE" | "ONBOARDING_INCOMPLETE" | "APPROVAL_PENDING">("NONE");
   const [loading, setLoading] = useState(false);
@@ -286,13 +302,17 @@ export default function CreatePitchDashboardPage() {
   useEffect(() => {
     let isMounted = true;
     const checkOnboardingAndApproval = async () => {
-      let org = (user as any)?.organization;
-
-      // Fast path: if the store or local user already has ACTIVE/APPROVED org or is Super Admin
-      const localStatusUpper = (org?.status || org?.onboardingStatus || (user as any)?.organizationStatus || "").toUpperCase();
-      const isPrivileged = Number(user?.roleId || user?.role) === 1 || Number(user?.roleId || user?.role) === 2 || Number(user?.roleId || user?.role) === 3;
-      if (localStatusUpper === "ACTIVE" || localStatusUpper === "APPROVED" || isPrivileged) {
+      // Fast path: if the user is an admin, government officer, or privileged official
+      if (isPrivileged || isGovernmentOfficer) {
         if (isMounted) setOnboardingGuardModal("NONE");
+        return;
+      }
+
+      let org = (user as any)?.organization;
+      const localStatusUpper = (org?.status || org?.onboardingStatus || (user as any)?.organizationStatus || "").toUpperCase();
+      if (localStatusUpper === "ACTIVE" || localStatusUpper === "APPROVED") {
+        if (isMounted) setOnboardingGuardModal("NONE");
+        return;
       }
 
       if (user?.organizationId) {
@@ -305,18 +325,14 @@ export default function CreatePitchDashboardPage() {
       if (!isMounted) return;
 
       if (!user?.organizationId || !org) {
-        if (isPrivileged) {
-          setOnboardingGuardModal("NONE");
-          return;
-        }
-        setOnboardingGuardModal("ONBOARDING_INCOMPLETE");
+        setOnboardingGuardModal("NONE");
         return;
       }
 
       const statusUpper = (org.status || org.onboardingStatus || "").toUpperCase();
       const PENDING_APPROVAL_STATUSES = ["SUBMITTED_FOR_REVIEW", "UNDER_VERIFICATION", "CLARIFICATION_REQUIRED", "PENDING_APPROVAL", "DOCUMENTS_SUBMITTED"];
 
-      if (statusUpper === "ACTIVE" || statusUpper === "APPROVED" || isPrivileged) {
+      if (statusUpper === "ACTIVE" || statusUpper === "APPROVED") {
         setOnboardingGuardModal("NONE");
         if (org) {
           useAuthStore.setState((s) => ({
@@ -328,7 +344,7 @@ export default function CreatePitchDashboardPage() {
         setOnboardingGuardModal("APPROVAL_PENDING");
         return;
       } else {
-        setOnboardingGuardModal("ONBOARDING_INCOMPLETE");
+        setOnboardingGuardModal("NONE");
         return;
       }
     };
@@ -336,7 +352,7 @@ export default function CreatePitchDashboardPage() {
     checkOnboardingAndApproval();
 
     return () => { isMounted = false; };
-  }, [user]);
+  }, [user, isPrivileged, isGovernmentOfficer]);
 
   // Auto-fetch and prepopulate official identity, credentials, department and location from user session and verified organization profile
   useEffect(() => {

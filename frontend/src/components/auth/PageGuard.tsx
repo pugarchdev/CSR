@@ -102,6 +102,8 @@ export default function PageGuard({ children }: { children: React.ReactNode }) {
       "/interactions",
       "/tasks",
       "/work-queue",
+      "/pitches",
+      "/pitches/create",
     ];
     if (universalAuthRoutes.some((r) => pathname === r || pathname.startsWith(r + "/"))) {
       return { allowed: true, requiredPerm: undefined };
@@ -155,13 +157,9 @@ export default function PageGuard({ children }: { children: React.ReactNode }) {
       }
       if (!hasNavigatedBack) {
         setHasNavigatedBack(true);
-        if (typeof window !== "undefined") {
-          if (window.history.length > 1) {
-            router.back();
-          } else {
-            router.replace("/dashboard");
-          }
-        }
+        // An authenticated user should never be bounced backwards into /login history.
+        // Instead, route them safely to their authorized /dashboard home.
+        router.replace("/dashboard");
       }
     }
   }, [decision.allowed, isAuthenticated, router, hasNavigatedBack]);

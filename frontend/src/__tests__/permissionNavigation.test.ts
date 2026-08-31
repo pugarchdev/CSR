@@ -97,5 +97,14 @@ export function verifyPermissionNavigationLogic() {
     throw new Error("Expected /meetings to be allowed for role possessing meeting:schedule permission");
   }
 
-  return { success: true, totalManifestItems: NAVIGATION_MANIFEST.length, verifiedTestCases: 7 };
+  // Test 8: Corporate Enquiries (/enquiries) is allowed for Government Officer possessing enquiry:view
+  const mockGovPerms = (p: string) => p === "enquiry:view" || p === "dashboard:view" || p === "pitch:view";
+  if (!isNavItemAllowed(enquiriesItem, mockGovPerms, false, ["GOVERNMENT_OFFICER"])) {
+    throw new Error("Expected /enquiries to be allowed for GOVERNMENT_OFFICER possessing enquiry:view");
+  }
+  if (!isNavItemAllowed(enquiriesItem, mockGovPerms, false, ["ROLE_7"])) {
+    throw new Error("Expected /enquiries to be allowed for ROLE_7 possessing enquiry:view");
+  }
+
+  return { success: true, totalManifestItems: NAVIGATION_MANIFEST.length, verifiedTestCases: 8 };
 }

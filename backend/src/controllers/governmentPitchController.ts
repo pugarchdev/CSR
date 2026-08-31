@@ -63,17 +63,13 @@ export const submitGovernmentPitch = async (req: AuthenticatedRequest, res: Resp
       });
     }
 
-    if (user?.roleId !== ROLE_ID.SUPER_ADMIN && user?.organization?.status !== "ACTIVE") {
+    const isSuperAdminUser = user?.roleId === ROLE_ID.SUPER_ADMIN || (user as any)?.role === "SUPER_ADMIN" || req.user?.role === "SUPER_ADMIN" || String(req.user?.roleId) === "1";
+    const isGovOfficial = user?.roleId === ROLE_ID.GOVERNMENT_OFFICER || user?.roleId === ROLE_ID.DISTRICT_NODAL_OFFICER || user?.roleId === ROLE_ID.DISTRICT_NODAL_CONSULTANT || user?.roleId === ROLE_ID.PLANNING_SECRETARY || user?.roleId === ROLE_ID.JOINT_SECRETARY;
+
+    if (!isSuperAdminUser && !isGovOfficial && user?.organization && user.organization.status !== "ACTIVE") {
       return res.status(403).json({
         error: "Organization onboarding must be completed and approved by Super Admin before submitting pitches."
       });
-    }
-    if (
-      user?.roleId !== ROLE_ID.SUPER_ADMIN &&
-      (!user?.organization?.governmentLevel ||
-        !["COLLECTORATE", "ZILLA_PARISHAD", "MUNICIPAL_CORPORATION", "SUB_DEPARTMENT"].includes(user.organization.governmentType || ""))
-    ) {
-      return res.status(403).json({ error: "Pitches can be submitted only by an approved District CSR Cell organization or approved sub-department." });
     }
 
     const validation = validateGovernmentPitchSubmission(req.body);

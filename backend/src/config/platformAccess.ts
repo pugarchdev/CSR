@@ -337,6 +337,7 @@ export const SEED_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
     "dashboard:view", "dashboard:widget-kpis", "dashboard:widget-workqueue",
     "user:view", "user:create", "user:update", "user:assign-role",
     "role:view", "role:create", "role:configure",
+    "enquiry:view",
     "pitch:view", "pitch:create", "pitch:edit_before_approval", "photo:upload", "project:view_assigned",
     "status:track", "query:respond", "organization:view",
     "report:view",
@@ -349,6 +350,7 @@ export const SEED_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
     "user:view", "user:create", "user:update", "user:assign-role",
     "role:view", "role:create", "role:configure",
     "organization:view", "organization:create", "organization:update",
+    "enquiry:view",
     "pitch:view", "pitch:create", "pitch:edit_before_approval", "photo:upload",
     "project:view_district", "project:view_assigned", "project:record_rejection_reason",
     "status:track", "query:respond",
@@ -362,6 +364,7 @@ export const SEED_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
     "user:view", "user:create", "user:update",
     "role:view", "role:create",
     "organization:view",
+    "enquiry:view",
     "pitch:view", "pitch:create", "pitch:edit_before_approval",
     "project:view_assigned", "milestone:view",
     "status:track", "query:respond",
@@ -372,6 +375,7 @@ export const SEED_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
   // 7c. State Nodal Officer (Protected template under GOVERNMENT_OFFICER)
   STATE_NODAL_OFFICER: [
     "dashboard:view", "dashboard:widget-kpis",
+    "enquiry:view",
     "project:view", "project:view_assigned", "project:view_district",
     "milestone:view", "escalation:resolve",
     "report:view", "report:export",
@@ -443,19 +447,19 @@ export const SEED_ROLE_PAGES: Record<string, readonly string[]> = {
   ],
   GOVERNMENT_OFFICER: [
     "dashboard", "profile", "reports", "admin/user-management", "admin/access-control",
-    "organization/onboarding", "pitches", "interests", "convergence-projects", "handover",
+    "organization/onboarding", "enquiries", "pitches", "interests", "convergence-projects", "handover",
   ],
   GOV_MAIN_ORG_HEAD: [
     "dashboard", "profile", "reports", "admin/user-management", "admin/access-control",
-    "organization/onboarding", "pitches", "convergence-projects", "escalations", "handover",
+    "organization/onboarding", "enquiries", "pitches", "convergence-projects", "escalations", "handover",
   ],
   GOV_SUB_DEPARTMENT_HEAD: [
     "dashboard", "profile", "reports", "admin/user-management", "admin/access-control",
-    "pitches", "convergence-projects", "milestones", "grievances",
+    "enquiries", "pitches", "convergence-projects", "milestones", "grievances",
   ],
   STATE_NODAL_OFFICER: [
     "dashboard", "profile", "reports",
-    "convergence-projects", "assignments", "milestones", "escalations",
+    "enquiries", "convergence-projects", "assignments", "milestones", "escalations",
   ],
   COMPANY_ADMIN: [
     "dashboard", "profile", "reports", "admin/user-management", "admin/access-control",

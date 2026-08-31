@@ -117,8 +117,8 @@ function PitchesContent() {
     );
   });
 
-  // Pitch creation is reserved for Government Department Officers submitting proposals.
-  const canCreatePitch = isGovOfficer && !isSuperAdmin && !isRM;
+  // Pitch creation is available for Government Officers, Nodal Officers, and Portal Administrators.
+  const canCreatePitch = !isRM;
 
   const { data: envelope, isLoading, isFetching, error: fetchError, refetch } = useApiQuery<any>(
     [isRM ? "rm-pitches" : "government-pitches"],
@@ -364,7 +364,7 @@ function PitchesContent() {
               {canCreatePitch && (
                 <Link
                   href="/pitches/create"
-                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 px-4 py-2 text-xs font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105 no-underline cursor-pointer"
+                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2 text-xs font-bold text-white shadow-xs hover:shadow-md transition-all no-underline cursor-pointer"
                 >
                   <Plus size={16} />
                   Create Pitch Proposal

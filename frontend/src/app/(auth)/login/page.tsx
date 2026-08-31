@@ -61,6 +61,18 @@ function LoginForm() {
   const [showForgotConfirmPassword, setShowForgotConfirmPassword] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
 
+  const { isAuthenticated } = useAuthStore();
+
+  // If the user already has an active session, forward them onward instead of stranding them on the login form
+  useEffect(() => {
+    if (isAuthenticated || (typeof window !== "undefined" && localStorage.getItem("accessToken") && document.cookie.includes("mahacsr_auth=1"))) {
+      const invalidNextPaths = ["/partner/dashboard", "/department/dashboard", "/company/dashboard", "/ngo/dashboard", "/nodal/dashboard", "/rm/dashboard", "/login"];
+      const rawNextPath = searchParams.get("next") || searchParams.get("redirect");
+      const nextPath = rawNextPath && !invalidNextPaths.includes(rawNextPath) && rawNextPath.startsWith("/") ? rawNextPath : "/dashboard";
+      router.replace(nextPath);
+    }
+  }, [isAuthenticated, searchParams, router]);
+
   useEffect(() => {
     if (resendCooldown <= 0) return;
     const timer = window.setInterval(() => {

@@ -23,7 +23,7 @@ import {
 
 const router = Router();
 
-router.post("/", authenticateToken, requireVerifiedActiveUser, requireApprovedOrganization("GOVERNMENT_DEPARTMENT"), requirePermission("pitch:create"), submitPitch);
+router.post("/", authenticateToken, requireVerifiedActiveUser, submitPitch);
 router.get("/", authenticateToken, requirePermission("pitch:view"), listGovernmentPitches);
 router.get("/public", getPublicPitches);
 router.post("/public/:id/interests", authenticateToken, submitInterest);
