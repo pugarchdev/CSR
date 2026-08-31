@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 
 interface DistrictData {
   name: string;
+  shortName?: string;
   funding: number;
   projects: number;
   ngos: number;
@@ -24,7 +25,7 @@ const districts: DistrictData[] = [
   { name: "Wardha", funding: 9.2, projects: 6, ngos: 5, beneficiaries: 11000, level: "low", coords: { x: 550, y: 15, w: 72, h: 38 } },
   { name: "Palghar", funding: 12, projects: 8, ngos: 6, beneficiaries: 14000, level: "mid", coords: { x: 70, y: 105, w: 72, h: 38 } },
   { name: "Nashik", funding: 24, projects: 15, ngos: 12, beneficiaries: 25000, level: "high", coords: { x: 150, y: 105, w: 72, h: 38 } },
-  { name: "Aurangabad", funding: 21, projects: 13, ngos: 11, beneficiaries: 22000, level: "high", coords: { x: 230, y: 105, w: 72, h: 38 } },
+  { name: "Chhatrapati Sambhajinagar", shortName: "Sambhajinagar", funding: 21, projects: 13, ngos: 11, beneficiaries: 22000, level: "high", coords: { x: 230, y: 105, w: 72, h: 38 } },
   { name: "Jalna", funding: 6.5, projects: 4, ngos: 3, beneficiaries: 7000, level: "low", coords: { x: 310, y: 105, w: 72, h: 38 } },
   { name: "Washim", funding: 5, projects: 3, ngos: 2, beneficiaries: 6000, level: "low", coords: { x: 390, y: 65, w: 72, h: 38 } },
   { name: "Yavatmal", funding: 13.5, projects: 9, ngos: 7, beneficiaries: 18000, level: "mid", coords: { x: 470, y: 65, w: 72, h: 38 } },
@@ -32,7 +33,7 @@ const districts: DistrictData[] = [
   { name: "Gondia", funding: 6.2, projects: 4, ngos: 3, beneficiaries: 8000, level: "low", coords: { x: 630, y: 65, w: 72, h: 38 } },
   { name: "Mumbai Suburban", funding: 65, projects: 34, ngos: 28, beneficiaries: 55000, level: "high", coords: { x: 25, y: 155, w: 92, h: 38 } },
   { name: "Thane", funding: 38, projects: 18, ngos: 15, beneficiaries: 28000, level: "high", coords: { x: 125, y: 155, w: 72, h: 38 } },
-  { name: "Ahmednagar", funding: 15, projects: 10, ngos: 9, beneficiaries: 17500, level: "mid", coords: { x: 205, y: 155, w: 88, h: 38 } },
+  { name: "Ahilyanagar", funding: 15, projects: 10, ngos: 9, beneficiaries: 17500, level: "mid", coords: { x: 205, y: 155, w: 88, h: 38 } },
   { name: "Beed", funding: 10.5, projects: 7, ngos: 6, beneficiaries: 13500, level: "mid", coords: { x: 300, y: 155, w: 72, h: 38 } },
   { name: "Parbhani", funding: 5.8, projects: 4, ngos: 3, beneficiaries: 6500, level: "low", coords: { x: 380, y: 155, w: 72, h: 38 } },
   { name: "Hingoli", funding: 4.2, projects: 3, ngos: 2, beneficiaries: 5000, level: "low", coords: { x: 460, y: 155, w: 72, h: 38 } },
@@ -41,7 +42,7 @@ const districts: DistrictData[] = [
   { name: "Mumbai City", funding: 45, projects: 22, ngos: 18, beneficiaries: 35000, level: "high", coords: { x: 25, y: 205, w: 92, h: 38 } },
   { name: "Raigad", funding: 16, projects: 11, ngos: 9, beneficiaries: 19000, level: "mid", coords: { x: 125, y: 205, w: 72, h: 38 } },
   { name: "Pune", funding: 55, projects: 29, ngos: 24, beneficiaries: 42000, level: "high", coords: { x: 205, y: 205, w: 72, h: 38 } },
-  { name: "Osmanabad", funding: 8.2, projects: 5, ngos: 4, beneficiaries: 9500, level: "low", coords: { x: 285, y: 205, w: 88, h: 38 } },
+  { name: "Dharashiv", funding: 8.2, projects: 5, ngos: 4, beneficiaries: 9500, level: "low", coords: { x: 285, y: 205, w: 88, h: 38 } },
   { name: "Latur", funding: 9.8, projects: 6, ngos: 5, beneficiaries: 11000, level: "low", coords: { x: 380, y: 205, w: 72, h: 38 } },
   { name: "Gadchiroli", funding: 25, projects: 14, ngos: 8, beneficiaries: 32000, level: "high", coords: { x: 620, y: 205, w: 82, h: 38 } },
   { name: "Ratnagiri", funding: 9.5, projects: 6, ngos: 5, beneficiaries: 11000, level: "low", coords: { x: 125, y: 255, w: 72, h: 38 } },
@@ -104,7 +105,7 @@ export default memo(function GisMap() {
                         isSelected ? "fill-white" : district.level === "low" ? "fill-[#10305e]" : "fill-white"
                       )}
                     >
-                      {district.name.split(" ")[0]}
+                      {district.shortName || district.name.split(" ")[0]}
                     </text>
                   </g>
                 );

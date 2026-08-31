@@ -11,9 +11,17 @@ export default function DevEnvironmentGate({
 }: {
   children: React.ReactNode;
 }) {
-  const isDev = process.env.NODE_ENV === "development";
+  // Check if dev gate should be active:
+  // 1. Local Next.js dev server (process.env.NODE_ENV === "development")
+  // 2. Vercel/Cloud environment variable flags (NEXT_PUBLIC_DEV_GATE_ENABLED, NEXT_PUBLIC_ENABLE_DEV_GATE, NEXT_PUBLIC_NODE_ENV, NEXT_PUBLIC_APP_ENV)
+  const isGateEnabled =
+    process.env.NODE_ENV === "development" ||
+    process.env.NEXT_PUBLIC_DEV_GATE_ENABLED === "true" ||
+    process.env.NEXT_PUBLIC_ENABLE_DEV_GATE === "true" ||
+    process.env.NEXT_PUBLIC_NODE_ENV === "development" ||
+    process.env.NEXT_PUBLIC_APP_ENV === "development";
 
-  const [isUnlocked, setIsUnlocked] = useState(!isDev);
+  const [isUnlocked, setIsUnlocked] = useState(!isGateEnabled);
   const [mounted, setMounted] = useState(false);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -22,7 +30,7 @@ export default function DevEnvironmentGate({
 
   useEffect(() => {
     setMounted(true);
-    if (!isDev) {
+    if (!isGateEnabled) {
       setIsUnlocked(true);
       return;
     }
@@ -35,7 +43,7 @@ export default function DevEnvironmentGate({
     } catch {
       // Ignore localStorage errors
     }
-  }, [isDev]);
+  }, [isGateEnabled]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,8 +72,8 @@ export default function DevEnvironmentGate({
     }
   };
 
-  // If in production, render children directly without any gate
-  if (!isDev) {
+  // If gate is not enabled for this environment, render children directly
+  if (!isGateEnabled) {
     return <>{children}</>;
   }
 
@@ -74,7 +82,7 @@ export default function DevEnvironmentGate({
     return null;
   }
 
-  // If unlocked in development mode, show content
+  // If unlocked, show content
   if (isUnlocked) {
     return <>{children}</>;
   }

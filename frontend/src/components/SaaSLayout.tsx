@@ -849,7 +849,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                   Maha<span className="text-blue-600">CSR</span> Setu
                 </span>
                 <span className="text-[8px] font-bold text-blue-600 mt-0.5 uppercase tracking-wider">
-                  महाराष्ट्र CSR सेतु
+                  महाराष्ट्र CSR सेतू
                 </span>
               </Link>
             </div>

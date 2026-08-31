@@ -29,8 +29,8 @@ export const maharashtraDistricts: DistrictData[] = [
     talukas: ["Nashik", "Sinnar", "Igatpuri", "Dindori", "Peth", "Trimbakeshwar", "Kalwan", "Surgana", "Baglan", "Malegaon", "Chandwad", "Nandgaon", "Yeola", "Niphad", "Deola"]
   },
   {
-    district: "Aurangabad",
-    talukas: ["Aurangabad", "Kannad", "Soegaon", "Sillod", "Phulambri", "Khuldabad", "Vaijapur", "Gangapur", "Paithan"]
+    district: "Chhatrapati Sambhajinagar",
+    talukas: ["Chhatrapati Sambhajinagar", "Kannad", "Soegaon", "Sillod", "Phulambri", "Khuldabad", "Vaijapur", "Gangapur", "Paithan"]
   },
   {
     district: "Amravati",

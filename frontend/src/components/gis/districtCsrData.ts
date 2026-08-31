@@ -97,7 +97,10 @@ export const districtCsrData: Record<string, DistrictCsr> = {
   Raigad: district("Raigad", 168.3, 7.2, 156, 132, 38, 74000, sectors(22, 20, 15, 21, 11), [
     { name: "JSW Steel", spend: 26.8 }, { name: "Reliance Industries", spend: 21.2 }, { name: "GAIL India", spend: 11.6 }, { name: "Deepak Fertilisers", spend: 8.9 },
   ]),
-  Aurangabad: district("Aurangabad", 152.7, 6.4, 148, 141, 46, 88000, sectors(29, 18, 15, 13, 14), [
+  "Chhatrapati Sambhajinagar": district("Chhatrapati Sambhajinagar", 152.7, 6.4, 148, 141, 46, 88000, sectors(29, 18, 15, 13, 14), [
+    { name: "Bajaj Auto", spend: 19.6 }, { name: "Videocon", spend: 10.2 }, { name: "Wockhardt", spend: 9.4 }, { name: "Endurance Tech", spend: 8.1 },
+  ]),
+  Aurangabad: district("Chhatrapati Sambhajinagar", 152.7, 6.4, 148, 141, 46, 88000, sectors(29, 18, 15, 13, 14), [
     { name: "Bajaj Auto", spend: 19.6 }, { name: "Videocon", spend: 10.2 }, { name: "Wockhardt", spend: 9.4 }, { name: "Endurance Tech", spend: 8.1 },
   ]),
   Kolhapur: district("Kolhapur", 96.4, 5.8, 102, 118, 41, 67000, sectors(24, 17, 19, 15, 14), [
@@ -112,7 +115,10 @@ export const districtCsrData: Record<string, DistrictCsr> = {
   Palghar: district("Palghar", 88.2, 7.5, 92, 96, 33, 58000, sectors(26, 22, 16, 14, 13), [
     { name: "JNPT", spend: 9.8 }, { name: "Tata Power", spend: 8.4 }, { name: "Viraj Profiles", spend: 5.6 }, { name: "ONGC", spend: 4.9 },
   ]),
-  Ahmednagar: district("Ahmednagar", 84.6, 5.9, 88, 102, 36, 62000, sectors(25, 18, 21, 14, 13), [
+  Ahilyanagar: district("Ahilyanagar", 84.6, 5.9, 88, 102, 36, 62000, sectors(25, 18, 21, 14, 13), [
+    { name: "Kinetic Group", spend: 7.9 }, { name: "Cummins India", spend: 6.8 }, { name: "Ashok Leyland", spend: 5.1 }, { name: "Parner Sugars", spend: 3.6 },
+  ]),
+  Ahmednagar: district("Ahilyanagar", 84.6, 5.9, 88, 102, 36, 62000, sectors(25, 18, 21, 14, 13), [
     { name: "Kinetic Group", spend: 7.9 }, { name: "Cummins India", spend: 6.8 }, { name: "Ashok Leyland", spend: 5.1 }, { name: "Parner Sugars", spend: 3.6 },
   ]),
   Solapur: district("Solapur", 68.9, 5.4, 72, 89, 31, 54000, sectors(26, 19, 20, 12, 14), [
@@ -128,71 +134,76 @@ export const districtCsrData: Record<string, DistrictCsr> = {
     { name: "Jain Irrigation", spend: 9.6 }, { name: "Raymond UCO", spend: 3.8 }, { name: "Supreme Industries", spend: 3.2 }, { name: "WNS Global", spend: 2.4 },
   ]),
   Dhule: district("Dhule", 28.6, 4.8, 31, 42, 16, 21000, sectors(28, 19, 20, 12, 12), [
-    { name: "NTPC", spend: 4.6 }, { name: "Wind World India", spend: 2.8 }, { name: "SVKM Trust", spend: 1.9 }, { name: "Dhule Textiles", spend: 1.2 },
+    { name: "Deesan Group", spend: 4.6 }, { name: "Shirpur Gold", spend: 3.2 }, { name: "VIP Industries", spend: 2.4 }, { name: "MSEB Holding", spend: 1.6 },
   ]),
-  Nandurbar: district("Nandurbar", 22.4, 5.5, 24, 38, 14, 19000, sectors(30, 22, 21, 10, 9), [
-    { name: "NTPC", spend: 3.9 }, { name: "Adani Green", spend: 2.6 }, { name: "SBI Foundation", spend: 1.7 }, { name: "L&T Finance", spend: 1.3 },
+  Nandurbar: district("Nandurbar", 18.2, 4.1, 21, 31, 12, 18000, sectors(31, 22, 18, 14, 15), [
+    { name: "NTPC", spend: 3.8 }, { name: "Suzlon Foundation", spend: 2.1 }, { name: "Tata Trusts", spend: 1.9 }, { name: "Bank of Maharashtra", spend: 1.2 },
   ]),
-  Buldhana: district("Buldhana", 26.2, 4.6, 28, 41, 15, 22000, sectors(28, 20, 22, 11, 10), [
-    { name: "HPCL", spend: 3.4 }, { name: "Bank of Maharashtra", spend: 2.1 }, { name: "Videocon", spend: 1.6 }, { name: "Buldana Urban", spend: 1.4 },
+  Buldhana: district("Buldhana", 26.4, 4.6, 29, 39, 15, 22000, sectors(28, 19, 21, 13, 14), [
+    { name: "Buldana Urban", spend: 3.9 }, { name: "Khamgaon Oil", spend: 2.2 }, { name: "Bajaj Finserv", spend: 1.8 }, { name: "Jindal Saw", spend: 1.4 },
   ]),
-  Akola: district("Akola", 32.6, 5.3, 36, 48, 18, 26000, sectors(27, 21, 20, 12, 11), [
-    { name: "IOCL", spend: 4.2 }, { name: "Manorama Industries", spend: 2.6 }, { name: "Akola Oil Mills", spend: 1.8 }, { name: "PDKV Ventures", spend: 1.3 },
+  Akola: district("Akola", 34.6, 5.1, 38, 51, 19, 28000, sectors(27, 19, 21, 12, 13), [
+    { name: "Ruchi Soya", spend: 4.8 }, { name: "Simplex Mills", spend: 2.4 }, { name: "Berar Finance", spend: 1.8 }, { name: "Shree Renuka", spend: 1.2 },
   ]),
-  Washim: district("Washim", 16.8, 4.2, 19, 29, 11, 14000, sectors(29, 21, 22, 10, 9), [
-    { name: "NABARD", spend: 2.4 }, { name: "SBI Foundation", spend: 1.6 }, { name: "MSEDCL", spend: 1.2 }, { name: "Washim Agro", spend: 0.9 },
+  Washim: district("Washim", 14.8, 3.8, 16, 24, 9, 12000, sectors(30, 22, 20, 12, 16), [
+    { name: "Maha Transco", spend: 2.1 }, { name: "Mahindra Agri", spend: 1.4 }, { name: "SBI Foundation", spend: 1.1 }, { name: "Adani Foundation", spend: 0.9 },
   ]),
-  Amravati: district("Amravati", 46.8, 6.2, 51, 64, 24, 38000, sectors(28, 19, 20, 13, 11), [
-    { name: "Raymond", spend: 5.8 }, { name: "Shyam Indofab", spend: 3.2 }, { name: "VHM Industries", spend: 2.4 }, { name: "Finley Mills", spend: 1.8 },
+  Amravati: district("Amravati", 48.2, 5.4, 52, 68, 25, 38000, sectors(26, 18, 20, 15, 13), [
+    { name: "RattanIndia Power", spend: 7.2 }, { name: "Finolex Cables", spend: 3.4 }, { name: "Raymond", spend: 2.8 }, { name: "Maharashtra Feeds", spend: 1.9 },
   ]),
-  Yavatmal: district("Yavatmal", 34.2, 5.1, 38, 52, 19, 29000, sectors(26, 21, 23, 11, 10), [
-    { name: "Reliance Foundation", spend: 4.8 }, { name: "Raymond", spend: 3.1 }, { name: "WCL", spend: 2.6 }, { name: "ACC Cement", spend: 1.9 },
+  Yavatmal: district("Yavatmal", 38.9, 5.3, 42, 56, 21, 32000, sectors(29, 19, 20, 14, 15), [
+    { name: "Raymond Luxury", spend: 5.6 }, { name: "Grasim Industries", spend: 3.2 }, { name: "Jindal Poly", spend: 2.4 }, { name: "Pusad Sugars", spend: 1.8 },
   ]),
-  Wardha: district("Wardha", 28.9, 4.9, 32, 44, 16, 23000, sectors(27, 20, 21, 13, 10), [
-    { name: "Uttam Galva", spend: 3.6 }, { name: "Lloyds Metals", spend: 2.8 }, { name: "GMR Energy", spend: 2.1 }, { name: "Bajaj Foundation", spend: 1.9 },
+  Wardha: district("Wardha", 32.1, 5.0, 35, 48, 18, 26000, sectors(27, 19, 21, 14, 13), [
+    { name: "Uttam Galva", spend: 5.2 }, { name: "Lloyds Steel", spend: 4.1 }, { name: "Bajaj Auto", spend: 3.2 }, { name: "Wardha Power", spend: 2.4 },
   ]),
-  Bhandara: district("Bhandara", 24.6, 4.7, 27, 39, 14, 20000, sectors(26, 21, 22, 12, 10), [
-    { name: "Ordnance Factory", spend: 3.1 }, { name: "Sunflag Steel", spend: 2.6 }, { name: "MOIL", spend: 2.2 }, { name: "Ashok Leyland", spend: 1.4 },
+  Bhandara: district("Bhandara", 24.2, 4.5, 27, 36, 14, 19000, sectors(27, 20, 21, 13, 12), [
+    { name: "Sunflag Iron & Steel", spend: 4.8 }, { name: "Ordnance Factory", spend: 2.9 }, { name: "Bhandara Sugars", spend: 1.6 }, { name: "MOIL", spend: 1.4 },
   ]),
-  Gondia: district("Gondia", 21.8, 4.4, 23, 36, 13, 18000, sectors(27, 22, 21, 11, 10), [
-    { name: "Adani Power", spend: 3.4 }, { name: "MOIL", spend: 2.2 }, { name: "Gondia Rice Mills", spend: 1.1 }, { name: "BSNL", spend: 0.8 },
+  Gondia: district("Gondia", 22.8, 4.4, 25, 34, 13, 18000, sectors(28, 21, 20, 14, 13), [
+    { name: "Adani Power Maharashtra", spend: 6.2 }, { name: "Gondia Rice Mills", spend: 2.1 }, { name: "MSEB Holding", spend: 1.4 }, { name: "Birla Sun Life", spend: 1.1 },
   ]),
-  Chandrapur: district("Chandrapur", 94.6, 7.9, 86, 108, 34, 71000, sectors(24, 20, 19, 18, 11), [
-    { name: "WCL", spend: 14.6 }, { name: "Ambuja Cement", spend: 8.9 }, { name: "GMR Warora", spend: 6.4 }, { name: "Ballarpur Industries", spend: 4.8 },
+  Chandrapur: district("Chandrapur", 112.4, 6.7, 118, 108, 37, 72000, sectors(24, 21, 18, 16, 11), [
+    { name: "Western Coalfields", spend: 21.4 }, { name: "Chandrapur Super Thermal", spend: 18.2 }, { name: "ACC Cement", spend: 14.6 }, { name: "Ballarpur Industries", spend: 8.9 },
   ]),
-  Gadchiroli: district("Gadchiroli", 78.4, 11.2, 42, 96, 26, 64000, sectors(28, 24, 22, 14, 8), [
-    { name: "Lloyds Metals", spend: 18.6 }, { name: "Tata Steel", spend: 8.2 }, { name: "SBI Foundation", spend: 3.4 }, { name: "NMDC", spend: 2.8 },
+  Gadchiroli: district("Gadchiroli", 42.6, 5.8, 46, 58, 22, 34000, sectors(28, 22, 19, 17, 14), [
+    { name: "Lloyds Metals & Energy", spend: 12.8 }, { name: "MOIL Limited", spend: 4.2 }, { name: "Ballarpur Paper", spend: 3.1 }, { name: "State Mineral Corp", spend: 2.4 },
   ]),
-  Jalna: district("Jalna", 24.8, 4.5, 28, 38, 14, 19000, sectors(27, 19, 22, 12, 11), [
-    { name: "Kalika Steel", spend: 3.2 }, { name: "Rajuri Steels", spend: 2.4 }, { name: "Jalna Siddhivinayak", spend: 1.6 }, { name: "Mahindra EPC", spend: 1.2 },
+  Jalna: district("Jalna", 44.8, 5.2, 48, 62, 23, 36000, sectors(27, 18, 20, 14, 13), [
+    { name: "Kalika Steel", spend: 6.8 }, { name: "SRJ Peety Steels", spend: 5.4 }, { name: "Metarolls", spend: 3.9 }, { name: "Mahyco Seeds", spend: 3.2 },
   ]),
-  Parbhani: district("Parbhani", 18.4, 4.1, 21, 31, 12, 15000, sectors(28, 20, 23, 10, 10), [
-    { name: "NTPC", spend: 2.6 }, { name: "Bank of Maharashtra", spend: 1.4 }, { name: "Parbhani Agro", spend: 1.1 }, { name: "MSEDCL", spend: 0.9 },
+  Parbhani: district("Parbhani", 22.4, 4.3, 25, 35, 13, 18000, sectors(28, 20, 21, 12, 12), [
+    { name: "Gangakhed Sugar", spend: 3.4 }, { name: "Parbhani Dal Mills", spend: 1.8 }, { name: "SBI Foundation", spend: 1.2 }, { name: "MSEDCL", spend: 0.9 },
   ]),
-  Hingoli: district("Hingoli", 12.6, 3.8, 14, 22, 9, 11000, sectors(29, 21, 23, 9, 9), [
-    { name: "NABARD", spend: 1.8 }, { name: "SBI Foundation", spend: 1.2 }, { name: "Hingoli Sugars", spend: 0.8 }, { name: "MSEDCL", spend: 0.6 },
+  Hingoli: district("Hingoli", 16.2, 3.9, 18, 26, 10, 13000, sectors(29, 21, 22, 11, 14), [
+    { name: "Hingoli Agri", spend: 2.1 }, { name: "Kalyani Steels", spend: 1.4 }, { name: "Bank of India", spend: 1.1 }, { name: "Maha Transco", spend: 0.8 },
   ]),
-  Nanded: district("Nanded", 38.6, 5.2, 42, 56, 21, 32000, sectors(27, 20, 21, 12, 11), [
-    { name: "IOCL", spend: 4.8 }, { name: "SGGS Trust", spend: 3.2 }, { name: "Nanded Sugars", spend: 2.1 }, { name: "MSEDCL", spend: 1.6 },
+  Nanded: district("Nanded", 46.5, 5.3, 50, 64, 24, 38000, sectors(27, 18, 21, 13, 14), [
+    { name: "Bhaurao Chavan Sugar", spend: 5.8 }, { name: "Marathwada Gramin", spend: 2.9 }, { name: "Shree Datta Sugars", spend: 2.2 }, { name: "Cipla", spend: 1.8 },
   ]),
-  Beed: district("Beed", 26.4, 4.6, 29, 41, 15, 21000, sectors(27, 20, 23, 11, 10), [
-    { name: "NTPC", spend: 3.6 }, { name: "Vaidyanath Sugars", spend: 2.2 }, { name: "Bank of India", spend: 1.4 }, { name: "Beed Agro", spend: 1.1 },
+  Beed: district("Beed", 28.4, 4.7, 31, 42, 16, 23000, sectors(29, 20, 20, 13, 15), [
+    { name: "Vaidyanath Sugar", spend: 3.9 }, { name: "Pannageshwar Sugars", spend: 2.4 }, { name: "Tata Trusts", spend: 1.8 }, { name: "MSEDCL", spend: 1.2 },
   ]),
   Latur: district("Latur", 31.2, 4.9, 34, 46, 17, 25000, sectors(28, 20, 21, 12, 11), [
     { name: "Manjara Sugars", spend: 3.8 }, { name: "Kirloskar Brothers", spend: 2.9 }, { name: "Latur Dal Mills", spend: 1.8 }, { name: "SBI Foundation", spend: 1.3 },
   ]),
-  Osmanabad: district("Osmanabad", 19.6, 4.2, 22, 32, 12, 16000, sectors(28, 21, 22, 10, 10), [
+  Dharashiv: district("Dharashiv", 19.6, 4.2, 22, 32, 12, 16000, sectors(28, 21, 22, 10, 10), [
+    { name: "Terna Group", spend: 2.4 }, { name: "NTPC", spend: 1.9 }, { name: "Dharashiv Sugars", spend: 1.2 }, { name: "MSEDCL", spend: 0.8 },
+  ]),
+  Osmanabad: district("Dharashiv", 19.6, 4.2, 22, 32, 12, 16000, sectors(28, 21, 22, 10, 10), [
     { name: "Terna Group", spend: 2.4 }, { name: "NTPC", spend: 1.9 }, { name: "Dharashiv Sugars", spend: 1.2 }, { name: "MSEDCL", spend: 0.8 },
   ]),
 };
 
 // Aliases: GeoJSON files differ on renamed districts.
 export const DISTRICT_ALIASES: Record<string, string> = {
-  "Chhatrapati Sambhaji Nagar": "Aurangabad",
-  "Sambhaji Nagar": "Aurangabad",
-  Dharashiv: "Osmanabad",
-  "Ahilyanagar": "Ahmednagar",
-  Ahmadnagar: "Ahmednagar",
+  "Aurangabad": "Chhatrapati Sambhajinagar",
+  "Sambhaji Nagar": "Chhatrapati Sambhajinagar",
+  "Sambhajinagar": "Chhatrapati Sambhajinagar",
+  "Chhatrapati Sambhaji Nagar": "Chhatrapati Sambhajinagar",
+  "Osmanabad": "Dharashiv",
+  "Ahmednagar": "Ahilyanagar",
+  "Ahmadnagar": "Ahilyanagar",
   "Bid": "Beed",
   "Gondiya": "Gondia",
   "Raigarh": "Raigad",

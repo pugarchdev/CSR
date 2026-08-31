@@ -291,7 +291,7 @@ export default function MaharashtraCsrMap() {
                       className="pointer-events-none select-none fill-white text-[10px] font-bold"
                       style={{ paintOrder: "stroke", stroke: "rgba(10,44,96,0.55)", strokeWidth: 2 }}
                     >
-                      {shape.data.name.split(" ")[0]}
+                      {shape.data.name.includes("Sambhajinagar") ? "Sambhajinagar" : shape.data.name.split(" ")[0]}
                     </text>
                   ) : null
                 )}
