@@ -6,6 +6,7 @@ import { QueryProvider } from "@/lib/queryProvider";
 import { ToastProvider } from "@/components/ui/Toast";
 import SessionExpiredModal from "@/components/auth/SessionExpiredModal";
 import { PermissionInitializer } from "@/components/auth/PermissionInitializer";
+import DevEnvironmentGate from "@/components/auth/DevEnvironmentGate";
 import { Suspense } from "react";
 import TopProgressBar from "@/components/ui/TopProgressBar";
 import dynamic from "next/dynamic";
@@ -40,6 +41,7 @@ export default function RootLayout({
         </Suspense>
         <QueryProvider>
           <ToastProvider>
+            <DevEnvironmentGate>
               {/* Fetches /auth/permissions once authenticated and hydrates the
                   auth store (isAdmin, permissions). Without this mounted, the
                   store's isAdmin stays false and permissions stays empty for the
@@ -49,6 +51,7 @@ export default function RootLayout({
                 <SaaSLayout>{children}</SaaSLayout>
               </PermissionInitializer>
               <SessionExpiredModal />
+            </DevEnvironmentGate>
           </ToastProvider>
         </QueryProvider>
       </body>
