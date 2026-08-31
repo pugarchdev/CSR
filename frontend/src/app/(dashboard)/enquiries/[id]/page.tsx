@@ -13,6 +13,7 @@ import {
   HelpCircle, Landmark, ChevronDown, Plus, Sparkles, Filter, CheckSquare
 } from "lucide-react";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
+import SendEmailModal from "@/components/common/SendEmailModal";
 import { useApiQuery } from "@/lib/apiHooks";
 import { apiFetch } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
@@ -362,6 +363,17 @@ export default function EnquiryDetailPage() {
   const [activeTab, setActiveTab] = useState<"overview" | "communication" | "feasibility" | "js" | "assignments">("overview");
   const [showMeetingModal, setShowMeetingModal] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [emailModalConfig, setEmailModalConfig] = useState<{
+    isOpen: boolean;
+    recipientEmail: string;
+    recipientName?: string;
+    recipientDesignation?: string;
+    recipientOrg?: string;
+    defaultSubject: string;
+    defaultBody: string;
+    trackingId?: string;
+    logEndpoint?: string;
+  } | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -501,55 +513,48 @@ export default function EnquiryDetailPage() {
   }, [params.id, contactPhone, contactName, enquiry, refetchInteractions]);
 
   /* ─── Quick Action: Send Email (RM/State Desk) ─── */
-  const handleSendEmail = useCallback(async (e?: React.MouseEvent) => {
+  const handleSendEmail = useCallback((e?: React.MouseEvent) => {
     if (e) e.preventDefault();
     if (!contactEmail) return;
     const recipient = contactEmail;
     const refNo = enquiry?.trackingId || params.id;
-    const subject = encodeURIComponent(`MahaCSR Proposal — Reference ${refNo}`);
-    const body = encodeURIComponent(
-      `Dear ${contactName || "Sir/Madam"},\n\nThis is regarding Corporate CSR Proposal "${enquiry?.corporateName || "Proposal"}" (Reference: ${refNo}).\n\nRegards,\n${[user?.firstName, user?.lastName].filter(Boolean).join(" ") || "State CSR Cell"}\nMaharashtra State CSR Authority`
-    );
-    window.open(`mailto:${recipient}?subject=${subject}&body=${body}`, "_self");
+    const subject = `MahaCSR Proposal — Reference ${refNo}`;
+    const body = `Dear ${contactName || "Sir/Madam"},\n\nThis is regarding Corporate CSR Proposal "${enquiry?.corporateName || "Proposal"}" (Reference: ${refNo}).\n\nRegards,\n${[user?.firstName, user?.lastName].filter(Boolean).join(" ") || "State CSR Cell"}\nMaharashtra State CSR Authority`;
 
-    try {
-      await apiFetch(`/rm/enquiries/${params.id}/interactions`, {
-        method: "POST",
-        body: JSON.stringify({
-          channel: "EMAIL",
-          note: `Initiated official email communication to submitting contact ${contactName || ""} (${recipient}) regarding proposal ${refNo}.`
-        })
-      });
-      refetchInteractions();
-    } catch (err) {
-      console.warn("Auto-log email failed:", err);
-    }
-  }, [params.id, contactEmail, contactName, enquiry, user, refetchInteractions]);
+    setEmailModalConfig({
+      isOpen: true,
+      recipientEmail: recipient,
+      recipientName: contactName,
+      recipientDesignation: contactDesignation,
+      recipientOrg: enquiry?.corporateName || "Corporate Partner",
+      defaultSubject: subject,
+      defaultBody: body,
+      trackingId: refNo,
+      logEndpoint: `/rm/enquiries/${params.id}/interactions`
+    });
+  }, [params.id, contactEmail, contactName, contactDesignation, enquiry, user]);
 
   /* ─── RM Contact Action: Email Relationship Manager (auto-logs to timeline) ─── */
-  const handleEmailRM = useCallback(async (e: React.MouseEvent) => {
-    e.preventDefault();
+  const handleEmailRM = useCallback((e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
     if (!assignedRm?.email) return;
+    const recipient = assignedRm.email;
     const refNo = enquiry?.trackingId || params.id;
-    const subject = encodeURIComponent(`Regarding Corporate CSR Enquiry ${refNo} — ${enquiry?.corporateName || "Convergence Proposal"}`);
-    const body = encodeURIComponent(
-      `Dear ${assignedRm.name || "Relationship Manager"},\n\nThis is regarding Corporate CSR Enquiry "${enquiry?.corporateName || "Proposal"}" (Tracking ID: ${refNo}).\n\nRegards,\n${[user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Corporate Representative"}\n${enquiry?.corporateName || ""}`
-    );
-    window.open(`mailto:${assignedRm.email}?subject=${subject}&body=${body}`, "_self");
+    const subject = `Regarding Corporate CSR Enquiry ${refNo} — ${enquiry?.corporateName || "Convergence Proposal"}`;
+    const body = `Dear ${assignedRm.name || "Relationship Manager"},\n\nThis is regarding Corporate CSR Enquiry "${enquiry?.corporateName || "Proposal"}" (Tracking ID: ${refNo}).\n\nRegards,\n${[user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Corporate Representative"}\n${enquiry?.corporateName || ""}`;
 
-    try {
-      await apiFetch(`/rm/enquiries/${params.id}/interactions`, {
-        method: "POST",
-        body: JSON.stringify({
-          channel: "EMAIL",
-          note: `Initiated email communication to assigned Relationship Manager ${assignedRm.name || ""} (${assignedRm.email}) regarding enquiry ${refNo}.`
-        })
-      });
-      refetchInteractions();
-    } catch (err) {
-      console.warn("Auto-log email to RM failed:", err);
-    }
-  }, [params.id, assignedRm, enquiry, user, refetchInteractions]);
+    setEmailModalConfig({
+      isOpen: true,
+      recipientEmail: recipient,
+      recipientName: assignedRm.name,
+      recipientDesignation: assignedRm.designation,
+      recipientOrg: "State CSR Relationship Desk",
+      defaultSubject: subject,
+      defaultBody: body,
+      trackingId: refNo,
+      logEndpoint: `/rm/enquiries/${params.id}/interactions`
+    });
+  }, [params.id, assignedRm, enquiry, user]);
 
   /* ─── RM Contact Action: Call Relationship Manager (auto-logs to timeline) ─── */
   const handleCallRM = useCallback(async (e: React.MouseEvent) => {
@@ -1136,6 +1141,37 @@ export default function EnquiryDetailPage() {
             proposalDescription={enquiry?.proposedCSRWork || enquiry?.projectDescription || enquiry?.summary || enquiry?.corporateName || "Corporate CSR Alignment"}
             onClose={() => setShowMeetingModal(false)}
             onScheduled={() => { refetchInteractions(); setShowMeetingModal(false); }}
+          />
+        )}
+
+        {/* ─── Send Official Email Modal ─── */}
+        {emailModalConfig?.isOpen && (
+          <SendEmailModal
+            isOpen={emailModalConfig.isOpen}
+            onClose={() => setEmailModalConfig(null)}
+            recipientEmail={emailModalConfig.recipientEmail}
+            recipientName={emailModalConfig.recipientName}
+            recipientDesignation={emailModalConfig.recipientDesignation}
+            recipientOrg={emailModalConfig.recipientOrg}
+            defaultSubject={emailModalConfig.defaultSubject}
+            defaultBody={emailModalConfig.defaultBody}
+            trackingId={emailModalConfig.trackingId}
+            onLogged={async (note) => {
+              if (emailModalConfig.logEndpoint) {
+                try {
+                  await apiFetch(emailModalConfig.logEndpoint, {
+                    method: "POST",
+                    body: JSON.stringify({
+                      channel: "EMAIL",
+                      note
+                    })
+                  });
+                  refetchInteractions();
+                } catch (err) {
+                  console.warn("Failed to auto-log email interaction:", err);
+                }
+              }
+            }}
           />
         )}
 

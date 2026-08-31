@@ -12,6 +12,7 @@ import {
   ArrowRight
 } from "lucide-react";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
+import SendEmailModal from "@/components/common/SendEmailModal";
 import { useApiQuery } from "@/lib/apiHooks";
 import { apiFetch, uploadPortalFile, invalidateCache } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
@@ -132,6 +133,17 @@ export default function PitchDetailPage() {
   const [jsRemarks, setJsRemarks] = useState("");
   const [jsApprovalConditions, setJsApprovalConditions] = useState("");
   const [submittingJsDecision, setSubmittingJsDecision] = useState(false);
+  const [emailModalConfig, setEmailModalConfig] = useState<{
+    isOpen: boolean;
+    recipientEmail: string;
+    recipientName?: string;
+    recipientDesignation?: string;
+    recipientOrg?: string;
+    defaultSubject: string;
+    defaultBody: string;
+    trackingId?: string;
+    logEndpoint?: string;
+  } | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -354,29 +366,25 @@ export default function PitchDetailPage() {
     }
   };
 
-  const handleEmailOfficial = async (e: React.MouseEvent) => {
+  const handleEmailOfficial = (e: React.MouseEvent) => {
     e.preventDefault();
     if (!pitch?.email) return;
     const recipient = pitch.email;
     const refNo = pitch?.pitchReferenceId || params.id;
-    const subject = encodeURIComponent(`MahaCSR Proposal — Reference ${refNo}`);
-    const body = encodeURIComponent(
-      `Dear ${pitch.officialName || "Sir/Madam"},\n\nThis is regarding Government Pitch Proposal "${pitch.title || "CSR Requirement"}" (Reference: ${refNo}).\n\nRegards,\n${[user?.firstName, user?.lastName].filter(Boolean).join(" ") || "State CSR Cell"}\nMaharashtra State CSR Authority`
-    );
-    window.open(`mailto:${recipient}?subject=${subject}&body=${body}`, "_self");
+    const subject = `MahaCSR Proposal — Reference ${refNo}`;
+    const body = `Dear ${pitch.officialName || "Sir/Madam"},\n\nThis is regarding Government Pitch Proposal "${pitch.title || "CSR Requirement"}" (Reference: ${refNo}).\n\nRegards,\n${[user?.firstName, user?.lastName].filter(Boolean).join(" ") || "State CSR Cell"}\nMaharashtra State CSR Authority`;
 
-    try {
-      await apiFetch(`/government-pitches/${pitch.id}/interactions`, {
-        method: "POST",
-        body: JSON.stringify({
-          channel: "EMAIL",
-          note: `Initiated official email communication to submitting officer ${pitch.officialName || ""} (${recipient}) regarding proposal ${refNo}.`
-        })
-      });
-      refetchInteractions();
-    } catch (err) {
-      console.warn("Auto-log email interaction failed:", err);
-    }
+    setEmailModalConfig({
+      isOpen: true,
+      recipientEmail: recipient,
+      recipientName: pitch.officialName,
+      recipientDesignation: pitch.designation,
+      recipientOrg: pitch.department || "Government Department",
+      defaultSubject: subject,
+      defaultBody: body,
+      trackingId: refNo,
+      logEndpoint: `/government-pitches/${pitch.id}/interactions`
+    });
   };
 
   const handleCallOfficial = async (e: React.MouseEvent) => {
@@ -399,29 +407,25 @@ export default function PitchDetailPage() {
     }
   };
 
-  const handleEmailRM = async (e: React.MouseEvent) => {
+  const handleEmailRM = (e: React.MouseEvent) => {
     e.preventDefault();
     if (!assignedRm?.email) return;
     const recipient = assignedRm.email;
     const refNo = pitch?.pitchReferenceId || params.id;
-    const subject = encodeURIComponent(`MahaCSR Proposal Coordination — Reference ${refNo}`);
-    const body = encodeURIComponent(
-      `Dear ${assignedRm.name || "Relationship Manager"},\n\nThis is regarding Government Pitch Proposal "${pitch.title || "CSR Requirement"}" (Reference: ${refNo}).\n\nRegards,\n${[user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Department Official"}\n${pitch.department || "Government Department"}`
-    );
-    window.open(`mailto:${recipient}?subject=${subject}&body=${body}`, "_self");
+    const subject = `MahaCSR Proposal Coordination — Reference ${refNo}`;
+    const body = `Dear ${assignedRm.name || "Relationship Manager"},\n\nThis is regarding Government Pitch Proposal "${pitch.title || "CSR Requirement"}" (Reference: ${refNo}).\n\nRegards,\n${[user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Department Official"}\n${pitch.department || "Government Department"}`;
 
-    try {
-      await apiFetch(`/government-pitches/${pitch.id}/interactions`, {
-        method: "POST",
-        body: JSON.stringify({
-          channel: "EMAIL",
-          note: `Initiated email communication to assigned Relationship Manager ${assignedRm.name || ""} (${recipient}) regarding proposal ${refNo}.`
-        })
-      });
-      refetchInteractions();
-    } catch (err) {
-      console.warn("Auto-log RM email failed:", err);
-    }
+    setEmailModalConfig({
+      isOpen: true,
+      recipientEmail: recipient,
+      recipientName: assignedRm.name,
+      recipientDesignation: assignedRm.designation,
+      recipientOrg: "State CSR Relationship Desk",
+      defaultSubject: subject,
+      defaultBody: body,
+      trackingId: refNo,
+      logEndpoint: `/government-pitches/${pitch.id}/interactions`
+    });
   };
 
   const handleCallRM = async (e: React.MouseEvent) => {
@@ -1838,6 +1842,37 @@ export default function PitchDetailPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Send Official Email Modal */}
+      {emailModalConfig?.isOpen && (
+        <SendEmailModal
+          isOpen={emailModalConfig.isOpen}
+          onClose={() => setEmailModalConfig(null)}
+          recipientEmail={emailModalConfig.recipientEmail}
+          recipientName={emailModalConfig.recipientName}
+          recipientDesignation={emailModalConfig.recipientDesignation}
+          recipientOrg={emailModalConfig.recipientOrg}
+          defaultSubject={emailModalConfig.defaultSubject}
+          defaultBody={emailModalConfig.defaultBody}
+          trackingId={emailModalConfig.trackingId}
+          onLogged={async (note) => {
+            if (emailModalConfig.logEndpoint) {
+              try {
+                await apiFetch(emailModalConfig.logEndpoint, {
+                  method: "POST",
+                  body: JSON.stringify({
+                    channel: "EMAIL",
+                    note
+                  })
+                });
+                refetchInteractions();
+              } catch (err) {
+                console.warn("Failed to auto-log email interaction:", err);
+              }
+            }
+          }}
+        />
       )}
 
       {/* Lightbox Photo Preview Modal */}

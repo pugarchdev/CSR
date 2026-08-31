@@ -109,7 +109,7 @@ export const getAllowedOrigins = () => {
     "http://127.0.0.1:3000",
     "http://127.0.0.1:3001",
     "https://csr-seven.vercel.app",
-    "https://pugarch-csr.vercel.app"
+    "https://pugarch-csr-dev-maha.vercel.app"
   ];
 };
 
