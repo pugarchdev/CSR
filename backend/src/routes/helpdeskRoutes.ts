@@ -17,6 +17,7 @@ router.get("/track/:trackingId", asyncHandler(getQueryByTrackingId));
 
 // Staff
 router.get("/", authenticateToken, asyncHandler(listQueries));
+router.get("/:trackingId", asyncHandler(getQueryByTrackingId));
 router.patch("/:id", authenticateToken, asyncHandler(resolveQuery));
 router.put("/:id", authenticateToken, asyncHandler(resolveQuery));
 router.patch("/:id/resolve", authenticateToken, asyncHandler(resolveQuery));

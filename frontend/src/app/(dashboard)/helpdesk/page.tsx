@@ -220,22 +220,24 @@ export default function HelpdeskPage() {
 
   const handleTrackSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!trackInputId.trim()) return;
+    const cleanId = trackInputId.trim();
+    if (!cleanId) return;
 
     setTrackLoading(true);
     setTrackError("");
     setTrackResult(null);
 
     try {
-      const res = await apiFetch<any>(`/helpdesk/${encodeURIComponent(trackInputId.trim())}`);
+      const res = await apiFetch<any>(`/helpdesk/${encodeURIComponent(cleanId)}`);
       const data = res?.data || res;
       if (data && (data.trackingId || data.id)) {
         setTrackResult(data);
       } else {
-        setTrackError("No support ticket found with this tracking ID.");
+        setTrackError(`No support ticket found with tracking ID: ${cleanId}`);
       }
-    } catch (err: unknown) {
-      setTrackError(err instanceof Error ? err.message : "Ticket not found or network error.");
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.response?.data?.error || err?.message || `No support ticket found for ${cleanId}.`;
+      setTrackError(msg);
     } finally {
       setTrackLoading(false);
     }

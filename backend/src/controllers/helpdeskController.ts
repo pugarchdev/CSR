@@ -110,17 +110,28 @@ export const submitQuery = async (req: AuthenticatedRequest, res: Response): Pro
 // ─── Public: check query status by tracking ID ──────────────────────
 export const getQueryByTrackingId = async (req: AuthenticatedRequest, res: Response): Promise<Response | void> => {
   try {
-    const { trackingId } = req.params;
-    const query = await prisma.helpdeskQuery.findUnique({
-      where: { trackingId },
+    const trackingIdOrId = req.params.trackingId || req.params.id;
+    if (!trackingIdOrId) return validationErrorResponse(res, "Tracking ID is required");
+
+    const query = await prisma.helpdeskQuery.findFirst({
+      where: {
+        OR: [
+          { trackingId: trackingIdOrId },
+          { id: trackingIdOrId }
+        ]
+      },
       select: {
+        id: true,
         trackingId: true,
         subject: true,
+        message: true,
         status: true,
         resolution: true,
         resolutionDueAt: true,
         resolvedAt: true,
         createdAt: true,
+        name: true,
+        email: true
       },
     });
     if (!query) return notFoundResponse(res, "Helpdesk query not found");
