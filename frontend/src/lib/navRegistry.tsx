@@ -6,7 +6,7 @@ import {
   Clock, Users, Globe2, LayoutDashboard, User, Settings, Bell,
   ListTodo, Store, AlertTriangle, Briefcase, UserCheck, Flag, Search,
   CheckCircle, Building, FileCheck, UserPlus, UserCog, Sliders, CheckSquare, Send,
-  Calendar
+  Calendar, IndianRupee
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { NAVIGATION_MANIFEST, isNavItemAllowed } from "./navigationManifest";
@@ -47,7 +47,8 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Users,
   FileCheck,
   UserPlus,
-  DollarSign: Coins,
+  IndianRupee,
+  DollarSign: IndianRupee,
   BarChart3,
   ShieldAlert,
   UserCog,

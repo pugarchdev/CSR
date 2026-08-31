@@ -67,7 +67,7 @@ export const NAVIGATION_GROUPS: NavGroupDef[] = [
   {
     id: "group-finance",
     label: "Finance & Monitoring",
-    iconName: "DollarSign",
+    iconName: "IndianRupee",
     section: "Finance and Monitoring",
     ordering: 50,
     childIds: ["fund-releases", "reports", "audit-logs"]
@@ -323,7 +323,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     label: "Funds",
     formalTitle: "Funds & Disbursements",
     route: "/funds",
-    iconName: "DollarSign",
+    iconName: "IndianRupee",
     section: "Finance and Monitoring",
     navigationLevel: "HIDDEN",
     showInSidebar: false,
@@ -584,7 +584,7 @@ export const NAVIGATION_MANIFEST: NavItemDef[] = [
     label: "Fund Monitoring",
     formalTitle: "CSR Fund Monitoring",
     route: "/fund-releases",
-    iconName: "DollarSign",
+    iconName: "IndianRupee",
     section: "Finance and Monitoring",
     navigationLevel: "CHILD",
     parentNavId: "group-finance",
