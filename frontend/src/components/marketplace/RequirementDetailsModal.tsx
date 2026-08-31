@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -40,9 +41,23 @@ interface RequirementDetailsModalProps {
 
 export default function RequirementDetailsModal({ item, onClose }: RequirementDetailsModalProps) {
   const pathname = usePathname() || "";
+  const [mounted, setMounted] = useState(false);
   const [fullData, setFullData] = useState<any>(item);
   const [loading, setLoading] = useState(false);
   const [activePhoto, setActivePhoto] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!item) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [item]);
 
   useEffect(() => {
     if (!item?.id) return;
@@ -84,7 +99,7 @@ export default function RequirementDetailsModal({ item, onClose }: RequirementDe
     };
   }, [item, onClose, activePhoto]);
 
-  if (!item) return null;
+  if (!mounted || !item) return null;
 
   const data = fullData || item;
   const sector = data.sector || data.category || data.focusArea || "General Development";
@@ -107,8 +122,8 @@ export default function RequirementDetailsModal({ item, onClose }: RequirementDe
   const hodDoc = data.hodCertificationDocument || null;
   const supportingDocs = Array.isArray(data.supportingDocuments) ? data.supportingDocuments : [];
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-5 bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-200">
       {/* Click outside backdrop */}
       <div className="fixed inset-0" onClick={onClose} />
 
@@ -422,7 +437,7 @@ export default function RequirementDetailsModal({ item, onClose }: RequirementDe
       {/* Lightbox photo preview */}
       {activePhoto && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+          className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
           onClick={() => setActivePhoto(null)}
         >
           <div className="relative max-w-4xl max-h-[90vh] bg-transparent" onClick={(e) => e.stopPropagation()}>
@@ -437,6 +452,7 @@ export default function RequirementDetailsModal({ item, onClose }: RequirementDe
         </div>
       )}
 
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -2,7 +2,18 @@
 
 import { useMemo, useState } from "react";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
-import { GovCard, GovCardBody } from "@/components/gov/GovCard";
+import {
+  Search,
+  X,
+  FileText,
+  CheckCircle2,
+  ShieldCheck,
+  Building2,
+  Layers,
+  Award,
+  ChevronRight,
+  ExternalLink
+} from "lucide-react";
 
 interface StaticPdfSectionPageProps {
   title: string;
@@ -15,8 +26,18 @@ interface StaticPdfSectionPageProps {
   table?: { columns: string[]; rows: string[][] };
 }
 
-export default function StaticPdfSectionPage({ title, description, items, eyebrow, metrics = [], sections = [], records = [], table }: StaticPdfSectionPageProps) {
+export default function StaticPdfSectionPage({
+  title,
+  description,
+  items,
+  eyebrow,
+  metrics = [],
+  sections = [],
+  records = [],
+  table
+}: StaticPdfSectionPageProps) {
   const [recordSearch, setRecordSearch] = useState("");
+
   const filteredRecords = useMemo(() => {
     const query = recordSearch.trim().toLowerCase();
     if (!query) return records;
@@ -31,126 +52,212 @@ export default function StaticPdfSectionPage({ title, description, items, eyebro
 
   return (
     <GovPortalLayout showSidebar={false}>
-      <div className="gov-public-main">
-        <div className="gov-page-header">
-          <div className="gov-breadcrumb">Home / {title}</div>
-          {eyebrow && (
-            <div style={{ color: "var(--gov-saffron)", fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>
-              {eyebrow}
+      <div className="w-full min-w-0 max-w-7xl mx-auto px-4 py-8 sm:px-6 md:py-10 text-slate-900 space-y-6">
+        
+        {/* Header Banner */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2 border-b border-slate-200/80">
+          <div>
+            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+              <span>Public Portal</span>
+              <span>/</span>
+              <span className="text-blue-600 font-extrabold">{eyebrow || "Documentation"}</span>
             </div>
-          )}
-          <h1 className="gov-page-title">{title}</h1>
-          <p className="gov-page-description">{description}</p>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+              {title}
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-3xl leading-relaxed">
+              {description}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 self-start md:self-auto">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-50 text-blue-800 text-xs font-bold border border-blue-200">
+              <ShieldCheck size={14} className="text-blue-600" />
+              <span>Government of Maharashtra</span>
+            </span>
+          </div>
         </div>
 
+        {/* Metrics Row */}
         {metrics.length > 0 && (
-          <div className="gov-grid-auto-sm" style={{ marginBottom: 16 }}>
-            {metrics.map((metric) => (
-              <GovCard key={metric.label}>
-                <GovCardBody>
-                  <div style={{ fontSize: 11, color: "var(--gov-text-muted)", fontWeight: 800, textTransform: "uppercase" }}>{metric.label}</div>
-                  <div style={{ marginTop: 6, color: "var(--gov-primary-dark)", fontSize: 22, fontWeight: 800 }}>{metric.value}</div>
-                  {metric.note && <div style={{ marginTop: 4, color: "var(--gov-text-secondary)", fontSize: 12 }}>{metric.note}</div>}
-                </GovCardBody>
-              </GovCard>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5">
+            {metrics.map((metric, idx) => (
+              <div key={metric.label || idx} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 block">
+                  {metric.label}
+                </span>
+                <div className="mt-1 text-xl sm:text-2xl font-black text-slate-900 font-mono">
+                  {metric.value}
+                </div>
+                {metric.note && (
+                  <p className="text-[11px] font-semibold text-slate-500 mt-0.5">{metric.note}</p>
+                )}
+              </div>
             ))}
           </div>
         )}
 
-        <GovCard>
-          <GovCardBody>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              {items.map((item) => (
-                <div key={item} className="rounded border border-slate-200 bg-white p-4 text-sm font-semibold leading-6 text-slate-700">
-                  {item}
+        {/* Primary Items / Key Highlights Grid */}
+        {items.length > 0 && (
+          <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-7 shadow-xs space-y-4">
+            <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+              <FileText size={16} className="text-blue-600" />
+              Core Framework Provisions &amp; Principles
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              {items.map((item, index) => (
+                <div
+                  key={index}
+                  className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-xs sm:text-sm font-medium text-slate-700 leading-relaxed flex items-start gap-3 hover:border-blue-200 hover:bg-blue-50/30 transition-all"
+                >
+                  <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center shrink-0 mt-0.5 text-[11px] font-bold">
+                    {index + 1}
+                  </div>
+                  <span>{item}</span>
                 </div>
               ))}
             </div>
-          </GovCardBody>
-        </GovCard>
+          </div>
+        )}
 
+        {/* Thematic Sections */}
         {sections.length > 0 && (
-          <div className="gov-grid-auto-lg" style={{ marginTop: 16 }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {sections.map((section) => (
-              <GovCard key={section.title}>
-                <GovCardBody>
-                  <h2 style={{ margin: "0 0 12px", fontSize: 16, color: "var(--gov-primary-dark)", fontWeight: 800 }}>{section.title}</h2>
-                  <div style={{ display: "grid", gap: 10 }}>
-                    {section.items.map((item) => (
-                      <div key={item} style={{ borderLeft: "3px solid var(--gov-saffron)", paddingLeft: 10, fontSize: 13, lineHeight: 1.6, color: "var(--gov-text-secondary)" }}>
-                        {item}
-                      </div>
-                    ))}
-                  </div>
-                </GovCardBody>
-              </GovCard>
-            ))}
-          </div>
-        )}
-
-        {records.length > 0 && (
-          <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
-            <GovCard>
-              <GovCardBody>
-                <label className="gov-label" htmlFor={`${title.replace(/\s+/g, "-").toLowerCase()}-search`}>
-                  Search records
-                </label>
-                <input
-                  id={`${title.replace(/\s+/g, "-").toLowerCase()}-search`}
-                  className="gov-input"
-                  value={recordSearch}
-                  onChange={(event) => setRecordSearch(event.target.value)}
-                  placeholder="Search by title, district, department, tag or keyword"
-                />
-                <div className="gov-help">
-                  Showing {filteredRecords.length} of {records.length} record{records.length === 1 ? "" : "s"}.
-                </div>
-              </GovCardBody>
-            </GovCard>
-            {filteredRecords.map((record) => (
-              <GovCard key={record.title}>
-                <GovCardBody>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
-                    <div>
-                      <h2 style={{ margin: 0, fontSize: 16, color: "var(--gov-primary-dark)", fontWeight: 800 }}>{record.title}</h2>
-                      <p style={{ margin: "6px 0 0", fontSize: 13, lineHeight: 1.65, color: "var(--gov-text-secondary)" }}>{record.detail}</p>
-                      {record.meta && <div style={{ marginTop: 8, fontSize: 12, color: "var(--gov-text-muted)", fontWeight: 700 }}>{record.meta}</div>}
+              <div key={section.title} className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs space-y-3.5">
+                <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                  <Layers size={16} className="text-amber-600" />
+                  {section.title}
+                </h3>
+                <div className="space-y-2.5">
+                  {section.items.map((item, i) => (
+                    <div
+                      key={i}
+                      className="p-3 rounded-xl border border-slate-100 bg-slate-50/50 text-xs text-slate-700 font-medium leading-relaxed flex items-start gap-2.5"
+                    >
+                      <CheckCircle2 size={14} className="text-emerald-600 shrink-0 mt-0.5" />
+                      <span>{item}</span>
                     </div>
-                    {record.tag && (
-                      <span className="gov-status gov-status-info">{record.tag}</span>
-                    )}
-                  </div>
-                </GovCardBody>
-              </GovCard>
+                  ))}
+                </div>
+              </div>
             ))}
-            {filteredRecords.length === 0 && (
-              <GovCard>
-                <GovCardBody>
-                  <div style={{ color: "var(--gov-text-muted)", fontSize: 13 }}>No records match the current search.</div>
-                </GovCardBody>
-              </GovCard>
-            )}
           </div>
         )}
 
-        {table && (
-          <GovCard className="gov-mt-2">
-            <GovCardBody style={{ padding: 0 }}>
-              <div className="gov-table-container">
-                <table className="gov-table">
-                  <thead>
-                    <tr>{table.columns.map((column) => <th key={column}>{column}</th>)}</tr>
-                  </thead>
-                  <tbody>
-                    {table.rows.map((row) => (
-                      <tr key={row.join("|")}>{row.map((cell, index) => <td key={`${cell}-${index}`}>{cell}</td>)}</tr>
-                    ))}
-                  </tbody>
-                </table>
+        {/* Searchable Records / Notices / Circulars */}
+        {records.length > 0 && (
+          <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-7 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
+              <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                <Award size={16} className="text-purple-600" />
+                Official Records &amp; Advisories
+              </h2>
+
+              {/* Search Box */}
+              <div className="relative min-w-[260px]">
+                <input
+                  type="text"
+                  value={recordSearch}
+                  onChange={(e) => setRecordSearch(e.target.value)}
+                  placeholder="Search by title, tag, or keyword..."
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50/50 py-1.5 pl-8 pr-7 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-2xs"
+                />
+                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                {recordSearch && (
+                  <button
+                    onClick={() => setRecordSearch("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-0.5"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
               </div>
-            </GovCardBody>
-          </GovCard>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredRecords.map((record) => (
+                <div
+                  key={record.title}
+                  className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4.5 space-y-2 hover:border-slate-300 hover:bg-white transition-all shadow-2xs flex flex-col justify-between"
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="text-xs sm:text-sm font-extrabold text-slate-900 leading-snug">
+                        {record.title}
+                      </h3>
+                      {record.tag && (
+                        <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[10px] font-extrabold shrink-0">
+                          {record.tag}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                      {record.detail}
+                    </p>
+                  </div>
+
+                  {record.meta && (
+                    <div className="pt-2 border-t border-slate-100 text-[11px] font-semibold text-slate-400 flex items-center gap-1.5">
+                      <ChevronRight size={12} className="text-blue-500" />
+                      <span>{record.meta}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {filteredRecords.length === 0 && (
+                <div className="col-span-full py-8 text-center text-xs font-semibold text-slate-400">
+                  No records match "{recordSearch}". Try a different keyword.
+                </div>
+              )}
+            </div>
+          </div>
         )}
+
+        {/* Structured Reference Table */}
+        {table && (
+          <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-7 shadow-xs space-y-4 overflow-hidden">
+            <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+              <Layers size={16} className="text-blue-600" />
+              Operational Roles &amp; Responsibilities Reference
+            </h2>
+
+            <div className="overflow-x-auto rounded-2xl border border-slate-200">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-100/80 border-b border-slate-200">
+                    {table.columns.map((col, index) => (
+                      <th
+                        key={col}
+                        className={`py-3 px-4 font-extrabold text-slate-800 uppercase tracking-wider text-[11px] ${
+                          index === 0 ? "rounded-tl-xl" : index === table.columns.length - 1 ? "rounded-tr-xl" : ""
+                        }`}
+                      >
+                        {col}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {table.rows.map((row, rIdx) => (
+                    <tr key={rIdx} className="hover:bg-slate-50/70 transition-colors">
+                      {row.map((cell, cIdx) => (
+                        <td
+                          key={`${cell}-${cIdx}`}
+                          className={`py-3 px-4 text-slate-700 font-medium ${cIdx === 0 ? "font-bold text-slate-900" : ""}`}
+                        >
+                          {cell}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
       </div>
     </GovPortalLayout>
   );

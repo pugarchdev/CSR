@@ -233,62 +233,89 @@ export default function PublicDevelopmentNeedsPage() {
   };
 
   return (
-    <GovPortalLayout>
-      <div className="mx-auto flex min-h-screen max-w-screen-2xl flex-col gap-4 px-3 py-4 sm:px-6 md:py-6">
+    <GovPortalLayout showSidebar={false}>
+      <div className="w-full min-w-0 max-w-7xl mx-auto px-4 py-8 sm:px-6 md:py-10 text-slate-900 space-y-6">
         
-        {/* Compact Light Portal Header */}
-        <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-r from-blue-50/70 via-white to-slate-50 p-4 sm:p-5 shadow-xs">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1 font-mono text-[11px] font-extrabold text-blue-950 bg-blue-100/80 px-2.5 py-0.5 rounded-md border border-blue-200">
-                  <HeartHandshake size={13} className="text-blue-700" /> STATE CSR MARKETPLACE
-                </span>
-                <span className="rounded-md bg-emerald-100 px-2.5 py-0.5 text-[10px] font-extrabold text-emerald-800 border border-emerald-200 flex items-center gap-1">
-                  <CheckCircle2 size={11} className="text-emerald-600" /> JS APPROVED & PUBLISHED
-                </span>
-              </div>
-              <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
-                Public Development Needs (Live)
-              </h1>
-              <p className="text-xs text-slate-600 font-medium">
-                Official Maharashtra departmental proposals sanctioned by Joint Secretary & open for corporate CSR funding.
-              </p>
+        {/* Header Banner */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2 border-b border-slate-200/80">
+          <div>
+            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+              <span>Public Portal</span>
+              <span>/</span>
+              <span className="text-blue-600 font-extrabold">Opportunities Marketplace</span>
             </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+              Public Development Needs (Live)
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-3xl leading-relaxed">
+              Official Government of Maharashtra departmental proposals reviewed for feasibility, verified under MCA Schedule VII, and sanctioned by the Joint Secretary for corporate CSR funding.
+            </p>
+          </div>
 
-            {/* Compact Header Metrics Strip */}
-            <div className="flex items-center gap-2 shrink-0">
-              <div className="rounded-xl border border-slate-200/90 bg-white px-3.5 py-2 text-center shadow-xs">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Live Pitches</span>
-                <p className="text-xs sm:text-sm font-extrabold text-slate-900 mt-0.5">{needs.length} Published</p>
-              </div>
-              <div className="rounded-xl border border-slate-200/90 bg-white px-3.5 py-2 text-center shadow-xs">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Outlay</span>
-                <p className="text-xs sm:text-sm font-extrabold text-blue-950 mt-0.5">{money(totalEstimatedOutlay)}</p>
-              </div>
-              <div className="rounded-xl border border-slate-200/90 bg-white px-3.5 py-2 text-center shadow-xs">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Coverage</span>
-                <p className="text-xs sm:text-sm font-extrabold text-emerald-800 mt-0.5">
-                  {districts.length || (needs.length ? 1 : 0)} Districts
-                </p>
-              </div>
-            </div>
+          <div className="flex items-center gap-2 self-start md:self-auto">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-50 text-blue-800 text-xs font-bold border border-blue-200">
+              <ShieldCheck size={14} className="text-blue-600" />
+              <span>Government of Maharashtra</span>
+            </span>
           </div>
         </div>
 
-        {/* Filter & Search Bar */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-xs">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        {/* 4 Metric Overview Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-2xs space-y-1.5">
+            <div className="flex items-center justify-between text-slate-400">
+              <span className="text-[11px] font-bold uppercase tracking-wider">Live Pitches</span>
+              <HeartHandshake size={16} className="text-blue-600" />
+            </div>
+            <p className="text-xl sm:text-2xl font-extrabold text-slate-900">{needs.length}</p>
+            <p className="text-[11px] text-slate-500 font-medium">JS Approved &amp; Published</p>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-2xs space-y-1.5">
+            <div className="flex items-center justify-between text-slate-400">
+              <span className="text-[11px] font-bold uppercase tracking-wider">Approved Outlay</span>
+              <Coins size={16} className="text-emerald-600" />
+            </div>
+            <p className="text-xl sm:text-2xl font-extrabold text-emerald-900">{money(totalEstimatedOutlay)}</p>
+            <p className="text-[11px] text-slate-500 font-medium">Total CSR Capital Required</p>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-2xs space-y-1.5">
+            <div className="flex items-center justify-between text-slate-400">
+              <span className="text-[11px] font-bold uppercase tracking-wider">Districts</span>
+              <MapPin size={16} className="text-purple-600" />
+            </div>
+            <p className="text-xl sm:text-2xl font-extrabold text-slate-900">
+              {districts.length || (needs.length ? 1 : 0)}
+            </p>
+            <p className="text-[11px] text-slate-500 font-medium">Districts with Active Needs</p>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-2xs space-y-1.5">
+            <div className="flex items-center justify-between text-slate-400">
+              <span className="text-[11px] font-bold uppercase tracking-wider">Focus Sectors</span>
+              <Building2 size={16} className="text-amber-600" />
+            </div>
+            <p className="text-xl sm:text-2xl font-extrabold text-slate-900">
+              {sectors.length || (needs.length ? 1 : 0)}
+            </p>
+            <p className="text-[11px] text-slate-500 font-medium">Development Themes</p>
+          </div>
+        </div>
+
+        {/* Compact Single-Row Filter Toolbar */}
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-3.5 shadow-xs space-y-2.5">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
             
             {/* Search Input */}
-            <div className="relative flex-1 max-w-md w-full">
-              <Search className="absolute left-3.5 top-2.5 text-slate-400" size={15} />
+            <div className="relative flex-1 min-w-[240px]">
+              <Search className="absolute left-3 top-2.5 text-slate-400" size={15} />
               <input
                 type="text"
-                placeholder="Search title, tracking ID, department, or district..."
+                placeholder="Search by need title, tracking ID, department, or district..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50/80 py-2 pl-10 pr-8 text-xs font-medium text-slate-900 focus:border-blue-600 focus:bg-white focus:outline-none transition-all"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/70 py-2 pl-9 pr-8 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-2xs"
               />
               {searchTerm && (
                 <button
@@ -300,87 +327,92 @@ export default function PublicDevelopmentNeedsPage() {
               )}
             </div>
 
-            {/* Filter Dropdowns & View Mode */}
-            <div className="flex flex-wrap items-center justify-between md:justify-end gap-2.5 w-full md:w-auto">
+            {/* Filter Dropdowns & View Toggle */}
+            <div className="flex flex-wrap items-center gap-2">
               
               {/* District Filter */}
-              <div className="flex items-center gap-1.5">
-                <Filter size={14} className="text-slate-400 shrink-0" />
-                <select
-                  value={selectedDistrict}
-                  onChange={(e) => setSelectedDistrict(e.target.value)}
-                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:border-blue-600 cursor-pointer"
-                >
-                  <option value="All Districts">All Districts ({districts.length})</option>
-                  {districts.map((dist) => (
-                    <option key={dist} value={dist}>{dist}</option>
-                  ))}
-                </select>
-              </div>
+              <select
+                value={selectedDistrict}
+                onChange={(e) => setSelectedDistrict(e.target.value)}
+                className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 cursor-pointer shadow-2xs"
+              >
+                <option value="All Districts">All Districts ({districts.length})</option>
+                {districts.map((dist) => (
+                  <option key={dist} value={dist}>{dist}</option>
+                ))}
+              </select>
 
               {/* Sector Filter */}
               <select
                 value={selectedSector}
                 onChange={(e) => setSelectedSector(e.target.value)}
-                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:border-blue-600 cursor-pointer"
+                className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 cursor-pointer shadow-2xs"
               >
-                <option value="All Sectors">All Sectors</option>
+                <option value="All Sectors">All Sectors ({sectors.length})</option>
                 {sectors.map((s) => (
                   <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
                 ))}
               </select>
 
-              <ViewToggle view={viewMode} onChange={setViewMode} />
+              <div className="shrink-0">
+                <ViewToggle view={viewMode} onChange={setViewMode} />
+              </div>
+
+              {(searchTerm || selectedDistrict !== "All Districts" || selectedSector !== "All Sectors") && (
+                <button
+                  onClick={() => {
+                    setSearchTerm("");
+                    setSelectedDistrict("All Districts");
+                    setSelectedSector("All Sectors");
+                  }}
+                  className="px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                >
+                  Reset
+                </button>
+              )}
             </div>
           </div>
 
-          <div className="mt-2.5 flex items-center justify-between border-t border-slate-100 pt-2 text-[11px] font-semibold text-slate-500">
+          <div className="flex items-center justify-between border-t border-slate-100 pt-2 text-[11px] font-semibold text-slate-500">
             <div>
-              Showing <strong className="text-slate-900">{filteredNeeds.length}</strong> of <strong className="text-slate-900">{needs.length}</strong> live published needs
+              Showing <strong className="text-slate-900">{filteredNeeds.length}</strong> of <strong className="text-slate-900">{needs.length}</strong> published needs
             </div>
-            {(searchTerm || selectedDistrict !== "All Districts" || selectedSector !== "All Sectors") && (
-              <button
-                onClick={() => {
-                  setSearchTerm("");
-                  setSelectedDistrict("All Districts");
-                  setSelectedSector("All Sectors");
-                }}
-                className="text-xs font-bold text-rose-700 hover:underline"
-              >
-                Clear Filters
-              </button>
-            )}
+            <div className="flex items-center gap-1.5 text-blue-700 font-bold">
+              <CheckCircle2 size={13} className="text-emerald-600" />
+              <span>Government Verified &amp; Ready for CSR Allocation</span>
+            </div>
           </div>
         </div>
 
-        {/* Loading Spinner */}
+        {/* Content Section */}
         {loading ? (
           <div className="py-16 flex justify-center">
             <div className="flex flex-col items-center gap-2">
-              <Loader2 className="animate-spin text-blue-900" size={32} />
-              <span className="text-xs font-bold text-slate-600">Loading Live Published Pitches from Database...</span>
+              <Loader2 className="animate-spin text-blue-600" size={32} />
+              <span className="text-xs font-bold text-slate-600">Loading Live Published Pitches...</span>
             </div>
           </div>
         ) : error ? (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-8 text-center text-xs font-bold text-rose-800">
-            {error}
-            <div className="mt-3">
-              <button onClick={fetchNeeds} className="inline-flex items-center gap-1 px-4 py-1.5 rounded-lg bg-rose-700 text-white text-xs font-bold">
-                <RefreshCcw size={13} /> Retry
-              </button>
-            </div>
+          <div className="rounded-3xl border border-rose-200 bg-rose-50 p-8 text-center text-xs font-bold text-rose-800 space-y-3">
+            <p>{error}</p>
+            <button
+              onClick={fetchNeeds}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-700 hover:bg-rose-800 text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+            >
+              <RefreshCcw size={13} /> Retry
+            </button>
           </div>
         ) : filteredNeeds.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-xs">
-            <HeartHandshake className="mx-auto text-slate-300 mb-3" size={48} />
-            <h3 className="text-base font-bold text-slate-800">No Development Needs Found</h3>
-            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+          <div className="rounded-3xl border border-slate-200/90 bg-white p-12 text-center shadow-xs space-y-2">
+            <HeartHandshake className="mx-auto text-slate-300 mb-2" size={44} />
+            <h3 className="text-sm font-extrabold text-slate-800">No Development Needs Found</h3>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto font-medium">
               There are currently no published development needs matching your search query or filter selection.
             </p>
           </div>
         ) : viewMode === "grid" ? (
           /* ========================================================================= */
-          /* GRID VIEW LAYOUT: Clean, responsive, even-height cards with non-overflowing CTA */
+          /* GRID VIEW LAYOUT                                                          */
           /* ========================================================================= */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredNeeds.map((item, idx) => {
@@ -402,71 +434,73 @@ export default function PublicDevelopmentNeedsPage() {
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.2, delay: idx * 0.03 }}
-                  className="group flex flex-col h-full rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-xs hover:border-blue-400 hover:shadow-md transition-all duration-300 overflow-hidden"
+                  className="group flex flex-col h-full rounded-3xl border border-slate-200/90 bg-white p-5 shadow-2xs hover:border-blue-300 hover:shadow-md transition-all duration-200 overflow-hidden justify-between"
                 >
                   {/* Top Line */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide truncate ${sectorStyle}`}>
-                        {itemSector.replace(/_/g, " ")}
-                      </span>
-                      <span className="text-[11px] font-bold text-slate-400 font-mono shrink-0">
-                        {reqCode}
+                  <div>
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide truncate ${sectorStyle}`}>
+                          {itemSector.replace(/_/g, " ")}
+                        </span>
+                        <span className="text-[11px] font-bold text-slate-400 font-mono shrink-0">
+                          {reqCode}
+                        </span>
+                      </div>
+
+                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 shrink-0">
+                        <CheckCircle2 size={11} className="text-emerald-600" />
+                        JS APPROVED
                       </span>
                     </div>
 
-                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 shrink-0">
-                      <CheckCircle2 size={11} className="text-emerald-600" />
-                      JS APPROVED
-                    </span>
-                  </div>
+                    {/* Body Content */}
+                    <div className="my-3 space-y-2.5">
+                      <button
+                        type="button"
+                        onClick={() => setViewingNeed(item)}
+                        className="text-left w-full group-hover:text-blue-600 transition-colors"
+                      >
+                        <h2 className="text-sm font-extrabold text-slate-900 group-hover:text-blue-600 transition-colors leading-snug line-clamp-2 break-words">
+                          {title}
+                        </h2>
+                      </button>
 
-                  {/* Body Content */}
-                  <div className="flex-1 my-3 space-y-2.5">
-                    <button
-                      type="button"
-                      onClick={() => setViewingNeed(item)}
-                      className="text-left w-full group-hover:text-blue-900 transition-colors"
-                    >
-                      <h2 className="text-sm font-bold text-slate-900 group-hover:text-blue-900 transition-colors leading-snug line-clamp-2 break-words">
-                        {title}
-                      </h2>
-                    </button>
+                      <p className="text-xs text-slate-500 leading-relaxed line-clamp-3 break-words font-medium">
+                        {desc}
+                      </p>
 
-                    <p className="text-xs text-slate-600 leading-relaxed line-clamp-3 break-words font-normal">
-                      {desc}
-                    </p>
-
-                    <div className="space-y-1.5 pt-1 text-xs text-slate-700">
-                      <div className="flex items-center gap-1.5 text-slate-600">
-                        <MapPin size={13} className="text-slate-400 shrink-0" />
-                        <span className="font-semibold text-slate-800 truncate">{districtNames}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-slate-600">
-                        <Building2 size={13} className="text-slate-400 shrink-0" />
-                        <span className="font-semibold text-slate-800 truncate">{deptName}</span>
-                      </div>
-
-                      {(hasPhotos || hasHodDoc) && (
-                        <div className="flex flex-wrap gap-1.5 pt-1">
-                          {hasPhotos && (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
-                              <ImageIcon size={10} /> Photos Attached
-                            </span>
-                          )}
-                          {hasHodDoc && (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
-                              <FileCheck2 size={10} /> HOD Certified
-                            </span>
-                          )}
+                      <div className="space-y-1.5 pt-1 text-xs text-slate-700">
+                        <div className="flex items-center gap-1.5 text-slate-600">
+                          <MapPin size={13} className="text-slate-400 shrink-0" />
+                          <span className="font-semibold text-slate-800 truncate">{districtNames}</span>
                         </div>
-                      )}
+                        <div className="flex items-center gap-1.5 text-slate-600">
+                          <Building2 size={13} className="text-slate-400 shrink-0" />
+                          <span className="font-semibold text-slate-800 truncate">{deptName}</span>
+                        </div>
+
+                        {(hasPhotos || hasHodDoc) && (
+                          <div className="flex flex-wrap gap-1.5 pt-1">
+                            {hasPhotos && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
+                                <ImageIcon size={10} /> Photos Attached
+                              </span>
+                            )}
+                            {hasHodDoc && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                <FileCheck2 size={10} /> HOD Certified
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
                   {/* Footer Area: 2-Column Metrics + Actions */}
-                  <div className="mt-auto pt-3 border-t border-slate-100 space-y-2.5">
-                    <div className="grid grid-cols-2 gap-2 rounded-lg bg-slate-50/80 p-2.5 border border-slate-100">
+                  <div className="pt-3 border-t border-slate-100 space-y-2.5">
+                    <div className="grid grid-cols-2 gap-2 rounded-2xl bg-slate-50/80 p-2.5 border border-slate-100">
                       <div>
                         <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Requested Outlay</p>
                         <p className="mt-0.5 text-xs sm:text-sm font-extrabold text-slate-900 truncate">
@@ -485,7 +519,7 @@ export default function PublicDevelopmentNeedsPage() {
                       <button
                         type="button"
                         onClick={() => setViewingNeed(item)}
-                        className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs"
+                        className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
                       >
                         <Eye size={13} className="text-slate-500" />
                         <span>Details</span>
@@ -495,10 +529,10 @@ export default function PublicDevelopmentNeedsPage() {
                         type="button"
                         onClick={() => openInterestDialog(item)}
                         disabled={isInterestSubmitted}
-                        className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold text-white transition-all shadow-xs ${
+                        className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold text-white transition-all shadow-xs ${
                           isInterestSubmitted
                             ? "bg-slate-400 cursor-not-allowed"
-                            : "bg-[#14274e] hover:bg-blue-900 cursor-pointer"
+                            : "bg-blue-600 hover:bg-blue-700 cursor-pointer"
                         }`}
                       >
                         <HeartHandshake size={13} />
@@ -512,7 +546,7 @@ export default function PublicDevelopmentNeedsPage() {
           </div>
         ) : (
           /* ========================================================================= */
-          /* LIST VIEW LAYOUT: Spacious, aligned rows with full metadata and actions   */
+          /* LIST VIEW LAYOUT                                                          */
           /* ========================================================================= */
           <div className="flex flex-col gap-3.5">
             {filteredNeeds.map((item, idx) => {
@@ -531,7 +565,7 @@ export default function PublicDevelopmentNeedsPage() {
               return (
                 <article
                   key={item.id || idx}
-                  className="group rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-xs transition-all duration-200 hover:border-blue-400 hover:shadow-md"
+                  className="group rounded-3xl border border-slate-200/90 bg-white p-5 shadow-2xs transition-all duration-200 hover:border-blue-300 hover:shadow-md"
                 >
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     
@@ -563,14 +597,14 @@ export default function PublicDevelopmentNeedsPage() {
                       <button
                         type="button"
                         onClick={() => setViewingNeed(item)}
-                        className="text-left w-full group-hover:text-blue-900 transition-colors"
+                        className="text-left w-full group-hover:text-blue-600 transition-colors"
                       >
-                        <h2 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-blue-900 transition-colors leading-snug break-words">
+                        <h2 className="text-sm sm:text-base font-extrabold text-slate-900 group-hover:text-blue-600 transition-colors leading-snug break-words">
                           {title}
                         </h2>
                       </button>
 
-                      <p className="text-xs text-slate-600 leading-relaxed font-normal break-words line-clamp-2">
+                      <p className="text-xs text-slate-500 leading-relaxed font-medium break-words line-clamp-2">
                         {desc}
                       </p>
 
@@ -608,7 +642,7 @@ export default function PublicDevelopmentNeedsPage() {
                         <button
                           type="button"
                           onClick={() => setViewingNeed(item)}
-                          className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs"
+                          className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
                         >
                           <Eye size={13} />
                           <span>Details</span>
@@ -618,10 +652,10 @@ export default function PublicDevelopmentNeedsPage() {
                           type="button"
                           onClick={() => openInterestDialog(item)}
                           disabled={isInterestSubmitted}
-                          className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold text-white transition-all shadow-xs ${
+                          className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-white transition-all shadow-xs ${
                             isInterestSubmitted
                               ? "bg-slate-400 cursor-not-allowed"
-                              : "bg-[#14274e] hover:bg-blue-900 cursor-pointer"
+                              : "bg-blue-600 hover:bg-blue-700 cursor-pointer"
                           }`}
                         >
                           <HeartHandshake size={13} />
@@ -647,9 +681,9 @@ export default function PublicDevelopmentNeedsPage() {
 
         {/* Corporate Login Required Modal */}
         {loginRequiredNeed && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
-            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl space-y-4 text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-100/80 text-blue-900 border border-blue-200">
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-md">
+            <div className="w-full max-w-md rounded-3xl bg-white p-6 sm:p-7 shadow-2xl space-y-4 text-center">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-200">
                 <Lock size={26} />
               </div>
 
@@ -657,18 +691,18 @@ export default function PublicDevelopmentNeedsPage() {
                 <h3 className="text-base font-extrabold text-slate-900">
                   Corporate Login Required
                 </h3>
-                <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                <p className="text-xs text-slate-500 leading-relaxed font-medium">
                   To submit a corporate expression of interest for this development pitch, please log in with your verified Corporate CSR account.
                 </p>
               </div>
 
               {/* Pitch Summary Box */}
-              <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-3 text-left space-y-1 text-xs">
+              <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3.5 text-left space-y-1 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-[10px] font-bold text-purple-900 bg-purple-100 px-2 py-0.5 rounded">
+                  <span className="font-mono text-[10px] font-bold text-blue-900 bg-blue-100 px-2 py-0.5 rounded">
                     {loginRequiredNeed.trackingId || loginRequiredNeed.pitchReferenceId || "GP-PITCH"}
                   </span>
-                  <span className="font-extrabold text-blue-950">{money(loginRequiredNeed.approvedBudget || loginRequiredNeed.estimatedCost)}</span>
+                  <span className="font-extrabold text-slate-900">{money(loginRequiredNeed.approvedBudget || loginRequiredNeed.estimatedCost)}</span>
                 </div>
                 <p className="font-extrabold text-slate-900 line-clamp-1">{loginRequiredNeed.title}</p>
                 <p className="text-[11px] text-slate-500 font-medium">{loginRequiredNeed.department} · {loginRequiredNeed.district}</p>
@@ -677,7 +711,7 @@ export default function PublicDevelopmentNeedsPage() {
               <div className="flex flex-col gap-2 pt-2">
                 <Link
                   href={`/login?next=${encodeURIComponent("/public-development-needs")}`}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-900 px-5 py-2.5 text-xs font-extrabold text-white shadow-sm hover:bg-blue-950 transition-all no-underline"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-extrabold text-white shadow-sm hover:bg-blue-700 transition-all no-underline"
                 >
                   <LogIn size={15} /> Login to Express Interest
                 </Link>
@@ -686,14 +720,14 @@ export default function PublicDevelopmentNeedsPage() {
                   href="/organization/onboarding"
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-extrabold text-slate-700 shadow-2xs hover:bg-slate-50 transition-all no-underline"
                 >
-                  <UserPlus size={15} className="text-blue-900" /> Register Corporate Account
+                  <UserPlus size={15} className="text-blue-600" /> Register Corporate Account
                 </Link>
 
                 <button
                   onClick={() => setLoginRequiredNeed(null)}
-                  className="mt-1 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors"
+                  className="mt-1 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
                 >
-                  Cancel & Dismiss
+                  Cancel &amp; Dismiss
                 </button>
               </div>
             </div>
@@ -702,8 +736,8 @@ export default function PublicDevelopmentNeedsPage() {
 
         {/* Organization Under Verification Modal */}
         {unverifiedOrgNeed && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs animate-in fade-in">
-            <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl space-y-4 border border-amber-200">
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-md animate-in fade-in">
+            <div className="w-full max-w-lg rounded-3xl bg-white p-6 sm:p-7 shadow-2xl space-y-4 border border-amber-200">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2.5">
                   <div className="p-2 rounded-xl bg-amber-100 text-amber-800 border border-amber-300">
@@ -722,7 +756,7 @@ export default function PublicDevelopmentNeedsPage() {
                 </button>
               </div>
 
-              <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 space-y-2 text-xs text-amber-950">
+              <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 space-y-2 text-xs text-amber-950">
                 <p className="font-extrabold text-sm text-amber-900 flex items-center gap-1.5">
                   <Building2 size={16} className="text-amber-800 shrink-0" />
                   {interestForm.companyName || user?.organization?.name || "Your Organization"}
@@ -738,13 +772,13 @@ export default function PublicDevelopmentNeedsPage() {
               <div className="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
                 <button
                   onClick={() => setUnverifiedOrgNeed(null)}
-                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-100 transition-all"
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-100 transition-all cursor-pointer"
                 >
-                  Close & Dismiss
+                  Close &amp; Dismiss
                 </button>
                 <Link
                   href="/organization/onboarding/status"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-blue-900 text-xs font-extrabold text-white hover:bg-blue-950 transition-all shadow-xs"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-blue-600 text-xs font-extrabold text-white hover:bg-blue-700 transition-all shadow-xs"
                 >
                   Check Onboarding Status <ArrowRight size={14} />
                 </Link>
@@ -755,27 +789,27 @@ export default function PublicDevelopmentNeedsPage() {
 
         {/* Express Interest Modal (For Authenticated Corporate Users) */}
         {selectedNeed && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
-            <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-md">
+            <div className="w-full max-w-xl rounded-3xl bg-white p-6 sm:p-7 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div>
                   <h2 className="text-base font-extrabold text-slate-900">Express Corporate CSR Interest</h2>
                   <p className="text-xs text-slate-500 font-medium">Pitch ID: {selectedNeed.trackingId || selectedNeed.pitchReferenceId} — {selectedNeed.title}</p>
                 </div>
-                <button onClick={() => setSelectedNeed(null)} className="text-slate-400 hover:text-slate-700">
+                <button onClick={() => setSelectedNeed(null)} className="text-slate-400 hover:text-slate-700 cursor-pointer">
                   <X size={20} />
                 </button>
               </div>
 
               {interestError && (
-                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-bold text-rose-700 flex items-center gap-2">
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-xs font-bold text-rose-700 flex items-center gap-2">
                   <AlertCircle size={15} className="shrink-0" />
                   <span>{interestError}</span>
                 </div>
               )}
 
               {interestResult ? (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-center space-y-3">
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center space-y-3">
                   <CheckCircle2 size={40} className="mx-auto text-emerald-600" />
                   <h3 className="text-base font-extrabold text-emerald-950">Expression of Interest Submitted</h3>
                   <p className="text-xs text-emerald-800 font-medium">
@@ -783,7 +817,7 @@ export default function PublicDevelopmentNeedsPage() {
                   </p>
                   <button
                     onClick={() => setSelectedNeed(null)}
-                    className="inline-flex items-center gap-1 px-5 py-2 rounded-xl bg-emerald-800 text-xs font-extrabold text-white hover:bg-emerald-900"
+                    className="inline-flex items-center gap-1 px-5 py-2 rounded-xl bg-emerald-800 text-xs font-extrabold text-white hover:bg-emerald-900 cursor-pointer"
                   >
                     Done
                   </button>
@@ -791,9 +825,9 @@ export default function PublicDevelopmentNeedsPage() {
               ) : (
                 <div className="space-y-3 text-xs">
                   {/* Verified Corporate Linkage Banner */}
-                  <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3 flex items-start gap-2.5">
-                    <Building2 size={16} className="text-blue-900 shrink-0 mt-0.5" />
-                    <p className="text-[11px] text-blue-950 leading-relaxed">
+                  <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-3 flex items-start gap-2.5">
+                    <Building2 size={16} className="text-blue-600 shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-blue-950 leading-relaxed font-medium">
                       This submission will be auto-linked with your verified corporate profile (<strong>CIN: {interestForm.mca21Cin || "On Record"}</strong>). Your assigned CSR Relationship Manager will review MCA Schedule VII eligibility, budget adequacy, and contact you for MoU coordination.
                     </p>
                   </div>
@@ -836,7 +870,7 @@ export default function PublicDevelopmentNeedsPage() {
                         placeholder={`e.g. ${selectedNeed.approvedBudget || selectedNeed.estimatedCost}`}
                         value={interestForm.indicativeBudget}
                         onChange={(e) => setInterestForm({ ...interestForm, indicativeBudget: e.target.value })}
-                        className="w-full rounded-xl border border-slate-200 p-2.5 outline-none focus:border-blue-600 font-bold text-blue-950"
+                        className="w-full rounded-xl border border-slate-200 p-2.5 outline-none focus:border-blue-600 font-bold text-slate-900"
                       />
                     </div>
                   </div>
@@ -878,14 +912,14 @@ export default function PublicDevelopmentNeedsPage() {
                   <div className="flex items-center justify-end gap-2 border-t border-slate-100 pt-3">
                     <button
                       onClick={() => setSelectedNeed(null)}
-                      className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-all"
+                      className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-all cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleExpressInterest}
                       disabled={expressingInterest === selectedNeed.id}
-                      className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-blue-900 text-xs font-extrabold text-white hover:bg-blue-950 transition-all disabled:opacity-60"
+                      className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-extrabold text-white transition-all disabled:opacity-60 cursor-pointer shadow-xs"
                     >
                       {expressingInterest === selectedNeed.id ? <Loader2 size={14} className="animate-spin" /> : <HeartHandshake size={14} />}
                       Submit Interest

@@ -55,9 +55,11 @@ const recommendations = [
 ];
 
 const notices = [
-  ["CSR convergence framework guidelines issued by the State CSR Coordinating Unit", "Policy Notice", "Official", "15 May 2025"],
-  ["Standard MoU template and 13-point feasibility checklist for convergence projects", "Reference", "Workflow", "10 May 2025"],
-  ["Guidelines for government pitches to ensure convergence, avoid duplication, and ensure sustainability", "Guidelines", "Workflow", "08 May 2025"],
+  { title: "CSR convergence framework guidelines issued by the State CSR Coordinating Unit", category: "Policy Notice", filterType: "policy" as const, date: "15 May 2025" },
+  { title: "Standard MoU template and 13-point feasibility checklist for convergence projects", category: "Reference", filterType: "gr" as const, date: "10 May 2025" },
+  { title: "Guidelines for government pitches to ensure convergence, avoid duplication, and ensure sustainability", category: "Guidelines", filterType: "gr" as const, date: "08 May 2025" },
+  { title: "Mandatory use of portal for all MCA-registered corporate CSR fund disbursements above ₹1 Cr", category: "Policy Notice", filterType: "policy" as const, date: "02 May 2025" },
+  { title: "Government Resolution on CSR convergence criteria for Zilla Parishad and Municipal Corporation projects", category: "GR", filterType: "gr" as const, date: "28 Apr 2025" },
 ];
 
 const pillars = [
@@ -159,6 +161,7 @@ function Parallax3DSection({ children, className }: { children: React.ReactNode;
 export default function LandingPageClient() {
   const cursorRef = useRef<HTMLDivElement>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [noticeFilter, setNoticeFilter] = useState<"all" | "policy" | "gr">("all");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -486,9 +489,24 @@ export default function LandingPageClient() {
                   </h3>
                 </div>
                 <div className="mt-4 sm:mt-5 flex flex-wrap gap-1.5 sm:gap-2 border-b border-slate-200/60 pb-3 text-xs font-bold">
-                  <span className="rounded-full bg-blue-600 px-3.5 py-1 text-white shadow-sm shadow-blue-500/20 text-xs">All</span>
-                  <span className="px-3 py-1 rounded-full text-slate-600 hover:bg-white hover:text-slate-900 cursor-pointer transition-colors text-xs">Policy Notices</span>
-                  <span className="px-3 py-1 rounded-full text-slate-600 hover:bg-white hover:text-slate-900 cursor-pointer transition-colors text-xs">GRs</span>
+                  {(["all", "policy", "gr"] as const).map((key) => {
+                    const label = key === "all" ? "All" : key === "policy" ? "Policy Notices" : "GRs";
+                    const isActive = noticeFilter === key;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setNoticeFilter(key)}
+                        className={`rounded-full px-3.5 py-1 text-xs font-bold transition-all cursor-pointer focus:outline-none ${
+                          isActive
+                            ? "bg-blue-600 text-white shadow-sm shadow-blue-500/20"
+                            : "text-slate-600 hover:bg-white hover:text-slate-900"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
                 </div>
                 <div className="mt-3.5 sm:mt-4 overflow-x-auto rounded-xl sm:rounded-2xl border border-slate-200/80 bg-white/70 backdrop-blur-md">
                   <table className="w-full min-w-[360px] sm:min-w-[500px] border-collapse text-left text-xs">
@@ -500,13 +518,22 @@ export default function LandingPageClient() {
                       </tr>
                     </thead>
                     <tbody className="text-slate-600">
-                      {notices.map(([title, category, _type, date]) => (
-                        <tr key={title} className="hover:bg-blue-50/40 transition-colors border-b border-slate-100/80">
-                          <td className="px-3 py-2.5 sm:px-3.5 sm:py-3.5 font-bold text-slate-800 text-[11px] sm:text-xs leading-snug">{title}</td>
-                          <td className="px-2.5 py-2.5 sm:px-3.5 sm:py-3.5 font-semibold text-blue-600 text-[10px] sm:text-xs">{category}</td>
-                          <td className="px-2.5 py-2.5 sm:px-3.5 sm:py-3.5 whitespace-nowrap font-medium text-[10px] sm:text-xs text-slate-500">{date}</td>
+                      {notices
+                        .filter((n) => noticeFilter === "all" || n.filterType === noticeFilter)
+                        .map((n) => (
+                          <tr key={n.title} className="hover:bg-blue-50/40 transition-colors border-b border-slate-100/80 last:border-b-0">
+                            <td className="px-3 py-2.5 sm:px-3.5 sm:py-3.5 font-bold text-slate-800 text-[11px] sm:text-xs leading-snug">{n.title}</td>
+                            <td className="px-2.5 py-2.5 sm:px-3.5 sm:py-3.5 font-semibold text-blue-600 text-[10px] sm:text-xs whitespace-nowrap">{n.category}</td>
+                            <td className="px-2.5 py-2.5 sm:px-3.5 sm:py-3.5 whitespace-nowrap font-medium text-[10px] sm:text-xs text-slate-500">{n.date}</td>
+                          </tr>
+                        ))}
+                      {notices.filter((n) => noticeFilter === "all" || n.filterType === noticeFilter).length === 0 && (
+                        <tr>
+                          <td colSpan={3} className="px-3.5 py-6 text-center text-xs font-medium text-slate-400">
+                            No notices found for this category.
+                          </td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                   </table>
                 </div>

@@ -1,470 +1,399 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import GovPortalLayout from "@/components/layout/GovPortalLayout";
-import GovButton from "@/components/gov/GovButton";
-import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
+import {
+  FileText,
+  ShieldCheck,
+  CheckCircle2,
+  Clock,
+  ArrowRight,
+  Send,
+  Building2,
+  Layers,
+  Award,
+  ExternalLink,
+  ChevronRight,
+  AlertCircle
+} from "lucide-react";
 
 const corporateSteps = [
-  ["1", "Corporate Enquiry Form", "Company details, sector, geography, optional budget, CSR contact, OTP-verified mobile and email, MCA21 CIN, and proposed CSR work."],
-  ["2", "Unique Tracking ID", "Tracking ID is generated instantly and sent by SMS and email for live status tracking."],
-  ["3", "RM Response", "A dedicated CSR Relationship Manager responds within 5 days and records every interaction."],
-  ["4", "Assessment to JS", "RM submits the assessment report and 13-point feasibility checklist to the Joint Secretary."],
-  ["5", "JS Decision", "JS approves, approves with conditions, or records a reason for not proceeding. If approved, a District Nodal Officer is appointed."],
-  ["6-8", "Dialogue, MoU, Onboarding", "Nodal officer and corporate finalize the project, execute the standard MoU, and onboard the project with a Project ID."],
+  { step: "1", title: "Corporate Enquiry Form", detail: "Company details, sector, geography, optional budget, CSR contact, OTP-verified mobile and email, MCA21 CIN, and proposed CSR work." },
+  { step: "2", title: "Unique Tracking ID", detail: "Tracking ID is generated instantly (e.g. CSR-MH-2026-000001) and sent by SMS and email for live status tracking." },
+  { step: "3", title: "RM Response (5-Day SLA)", detail: "A dedicated CSR Relationship Manager responds within 5 days, holds an exploratory discussion, and records every interaction." },
+  { step: "4", title: "Assessment to Joint Secretary", detail: "RM conducts 13-point statutory feasibility review and submits formal Assessment Report to Joint Secretary." },
+  { step: "5", title: "Joint Secretary Decision", detail: "JS approves, approves with conditions, or records reasons. On approval, a District Nodal Officer (DNO) is appointed." },
+  { step: "6-8", title: "Dialogue, MoU & Onboarding", detail: "DNO and corporate finalize scope, execute standard tripartite MoU, issue unique Project Code (PRJ-MH-XXXX), and initialize implementation." },
 ];
 
 const guarantees = [
-  "RM response: 5 days",
-  "RM silence: escalates to Joint Secretary for action within 3 days",
-  "JS silence after escalation: escalates to Planning Secretary within 2 days",
-  "JS decision SLA: 5 days, then Secretary decision within 2 days",
+  { label: "RM Response SLA", value: "5 Working Days", desc: "Dedicated CSR Relationship Manager contacts company" },
+  { label: "First Escalation", value: "3 Days", desc: "Auto-escalation to Joint Secretary if RM is silent" },
+  { label: "Apex Escalation", value: "2 Days", desc: "Auto-escalation to Planning Secretary if JS is silent" },
+  { label: "JS Decision SLA", value: "5 Days", desc: "Statutory decision on RM assessment report" },
 ];
 
 const implementationSteps = [
-  ["Sub-Login", "Corporates using their own NGO or foundation can use an implementing-agency sub-login. The agency updates progress while the corporate remains accountable."],
-  ["Simple Statuses", "Every deliverable uses only NOT STARTED, IN PROGRESS, or COMPLETED."],
-  ["Evidence", "Against each milestone, the agency records funds utilized and attaches geo-tagged photo evidence."],
-  ["UC and Verification", "The agency uploads the Utilisation Certificate. The District Nodal Officer verifies completion and UC evidence."],
-  ["Optional M&E", "Independent third-party monitoring and evaluation reports can be linked as supporting documents."],
+  { title: "Agency Sub-Login", detail: "Corporates deploying through their own foundation or NGO partner can grant implementing-agency sub-logins. The agency updates physical progress while the corporate retains executive governance." },
+  { title: "Standard 3-Stage Milestone Tracking", detail: "Every deliverable uses strictly NOT STARTED, IN PROGRESS, or COMPLETED for unequivocal state audit clarity." },
+  { title: "Geotagged Photo Evidence", detail: "Against each physical milestone, the agency records fund outlay and uploads verified geo-tagged photo evidence." },
+  { title: "UC Upload & DNO Verification", detail: "The agency uploads the statutory Utilisation Certificate (UC). The District Nodal Officer conducts physical inspection and certifies UC acceptance." },
+  { title: "Independent Third-Party M&E", detail: "For large projects, independent third-party monitoring & evaluation (M&E) reports can be linked directly to the project record." },
 ];
 
 const governmentPitchSteps = [
-  ["1", "Government Pitch Form", "Name & Details of Official, Service Class, OTP-verified Mobile & Email, District & Location, CSR Requirement, Estimated Cost, Govt Fund Declaration, Geo-tagged Site Photos, and Certification."],
-  ["2", "Relationship Manager Verification", "The Relationship Manager verifies genuineness, Schedule VII eligibility, and government-fund non-availability within the same 5-3-2 day escalation timeline."],
-  ["3", "JS Approval & Public Listing", "A verification report goes to the JS. On JS approval, the pitch is onboarded and made PUBLIC on the portal."],
-  ["4", "I am Interested", "An interested corporate clicks I am Interested and submits the crisp pop-up form with Pitch Reference ID, CIN, contact, budget, timeline, implementation mode, and declaration."],
-  ["5", "Coordination, MoU & Tracking", "The Relationship Manager coordinates between the government official and corporate, brings in the District Nodal Officer, and on MoU signing the project is onboarded for tracking."],
-];
-
-const governmentPitchFields = [
-  ["Name & Details of Official", "Name, designation, department, office", "Mandatory"],
-  ["Service Class", "Class-1 / Class-2 / below Class-2", "Mandatory"],
-  ["Mobile & Email", "Contact details", "OTP verification"],
-  ["District & Location", "District, taluka, exact location", "Mandatory"],
-  ["CSR Requirement", "The development need", "200 words max"],
-  ["Estimated Cost", "Approximate cost", "Mandatory"],
-  ["Govt Fund Declaration", "Declaration that the work cannot be funded through available government funds", "Mandatory declaration"],
-  ["Geo-tagged Site Photos", "Photos of the actual site", "Min 2, geo-tagged"],
-  ["Certification", "Self (Class-2 & above) OR HOD certification (below Class-2)", "Conditional on rank"],
-];
-
-const interestFields = [
-  ["Pitch Reference ID", "The ID of the pitch they are interested in", "Auto-filled by portal"],
-  ["Company Name", "Name of the interested corporate", "Mandatory"],
-  ["MCA21 CIN", "Corporate Identity Number", "Mandatory"],
-  ["Contact Person & Designation", "Who to coordinate with", "Mandatory"],
-  ["Mobile Number", "Contact mobile", "OTP verification"],
-  ["Email", "Contact email", "OTP verification"],
-  ["Indicative Budget", "How much CSR they can commit to this need", "Mandatory"],
-  ["Preferred Start Timeline", "When they would like to begin", "Dropdown (this quarter / next quarter / this FY)"],
-  ["Implementation Mode", "How they will implement", "Self / Own Foundation / NGO Partner"],
-  ["Message to Government", "Optional short note", "Optional, max 100 words"],
-  ["Declaration", "Genuine interest; authorise State CSR Cell to contact", "Mandatory checkbox"],
+  { step: "1", title: "Government Pitch Submission", detail: "Official submits department need: designation, OTP verification, district/location, 200-word CSR requirement, estimated cost, govt fund non-availability declaration, and minimum 2 geo-tagged site photos." },
+  { step: "2", title: "Relationship Manager Verification", detail: "Relationship Manager verifies authenticity, Schedule VII eligibility, and non-duplication within the same 5-3-2 day escalation window." },
+  { step: "3", title: "JS Approval & Public Listing", detail: "Verification report submitted to Joint Secretary. Upon approval, pitch is published LIVE on the Maharashtra CSR Opportunity Marketplace." },
+  { step: "4", title: "Corporate Matching ('I am Interested')", detail: "Interested corporate submits the matching pop-up form with Pitch Reference ID, MCA CIN, contact, budget commitment, and timeline." },
+  { step: "5", title: "Tripartite MoU & Execution", detail: "Relationship Manager coordinates between department and corporate, maps DNO, executes standard MoU, and onboards project for tracking." },
 ];
 
 const grievanceRows = [
-  ["Raise", "Corporate / Implementing Agency", "Instant acknowledgement", "Raised from dashboard; auto-acknowledgement with grievance ID via SMS + Email"],
-  ["Level 1", "District Nodal Officer", "15 days", "First responder for all project-level issues"],
-  ["Level 2", "State CSR Cell", "30 days", "Escalated if Nodal Officer does not resolve in 15 days; inter-departmental coordination"],
-  ["Final", "JS / Planning Secretary", "Senior review", "For issues unresolved at Level 2; binding resolution"],
+  { level: "Level 1: District Redressal", authority: "District Nodal Officer (DNO)", time: "15 Days", scope: "First responder for all on-ground site, clearance, and coordination issues." },
+  { level: "Level 2: State Coordination", authority: "State CSR Cell (Member Secretary)", time: "30 Days", scope: "Inter-departmental alignment if unresolved at District level within 15 days." },
+  { level: "Level 3: Apex Decision", authority: "Joint Secretary / Planning Secretary", time: "Senior Review", scope: "Final binding statutory decision on contentious matters." },
 ];
 
 const slaRows = [
-  ["Initial response to corporate enquiry", "CSR Relationship Manager", "5 days", "Joint Secretary (3 days)", "Planning Secretary (2 days)"],
-  ["Decision on report & Nodal Officer appointment", "Joint Secretary", "5 days", "Planning Secretary (2 days)", "-"],
-  ["Government pitch verification", "CSR Relationship Manager", "5 days", "Joint Secretary (3 days)", "Planning Secretary (2 days)"],
-  ["Grievance resolution", "District Nodal Officer", "15 days", "State CSR Cell (30 days)", "JS / Planning Secretary"],
-  ["Static helpdesk query", "Helpdesk", "2 days", "-", "-"],
-];
-
-const assessmentFields = [
-  ["Report Reference & Date", "Auto-generated"],
-  ["Corporate Tracking ID", "Unique ID from enquiry"],
-  ["Company Name & CIN", "MCA21-verified"],
-  ["Sector & Contact (verified)", "From enquiry form, OTP-verified"],
-  ["Proposed CSR Work (summary)", "Relationship Manager's summary"],
-  ["Proposed Location / District", "Where the corporate wants to work"],
-  ["Indicative Budget", "If provided"],
-  ["Development Need Addressed", "The genuine, verified need the project addresses"],
-  ["Date of First Contact", "Confirms the 5-day response time was met"],
-  ["Summary of Interaction", "Brief dialogue record"],
-  ["Feasibility Result", "FEASIBLE / PROCEED WITH CONDITIONS / NOT FEASIBLE"],
-  ["Recommendation", "Proceed / Proceed with conditions / Do Not Proceed, with reasons"],
-  ["Suggested Nodal Officer Domain", "Education Officer, District Health Officer, Executive Engineer, etc."],
+  { stage: "Initial response to corporate enquiry", responsible: "CSR Relationship Manager", time: "5 Days", first: "Joint Secretary (3 days)", second: "Planning Secretary (2 days)" },
+  { stage: "Decision on assessment report & DNO mapping", responsible: "Joint Secretary", time: "5 Days", first: "Planning Secretary (2 days)", second: "-" },
+  { stage: "Government development pitch verification", responsible: "CSR Relationship Manager", time: "5 Days", first: "Joint Secretary (3 days)", second: "Planning Secretary (2 days)" },
+  { stage: "Public grievance resolution", responsible: "District Nodal Officer", time: "15 Days", first: "State CSR Cell (30 days)", second: "Planning Secretary" },
+  { stage: "Helpdesk support query resolution", responsible: "Public IT Helpdesk", time: "2 Days", first: "State Helpdesk Lead", second: "-" },
 ];
 
 const feasibilityChecklist = [
-  [1, "Mandate & Legal [C]", "Activity falls within Schedule VII of the Companies Act", "Yes / No"],
-  [2, "Mandate & Legal [C]", "Not a prohibited CSR activity (not employee-only, not political, not normal course of business)", "Yes / No"],
-  [3, "Need & Alignment [C]", "Addresses a genuine, verified development need", "Yes / No"],
-  [4, "Need & Alignment [C]", "Does NOT duplicate an existing government scheme or ongoing project in the same location", "Yes / No"],
-  [5, "Site & Govt Support [C]", "For construction/renovation: site/land is available, clear, and in government ownership/control", "Yes / No / NA"],
-  [6, "Site & Govt Support [C]", "Required permissions/clearances are obtainable within a reasonable time", "Yes / No"],
-  [7, "Site & Govt Support [C]", "Required government support (personnel, access) is confirmed", "Yes / No"],
-  [8, "Financial", "Indicative budget is adequate for the proposed scope", "Yes / No"],
-  [9, "Financial", "Cost estimate is realistic (benchmarked against similar works)", "Yes / No"],
-  [10, "Implementation", "Implementing capacity exists (corporate/foundation/NGO is capable)", "Yes / No"],
-  [11, "Implementation", "Timeline is realistic for the scope", "Yes / No"],
-  [12, "Sustainability [C]", "Post-completion ownership of the asset is clear", "Yes / No"],
-  [13, "Sustainability [C]", "Maintenance / recurring-cost responsibility is identified", "Yes / No"],
+  { id: 1, dim: "Mandate & Legal [C]", check: "Activity falls within Schedule VII of the Companies Act, 2013", answer: "Yes / No" },
+  { id: 2, dim: "Mandate & Legal [C]", check: "Not a prohibited CSR activity (not employee-only, political, or normal course of business)", answer: "Yes / No" },
+  { id: 3, dim: "Need & Alignment [C]", check: "Addresses a genuine, verified development need", answer: "Yes / No" },
+  { id: 4, dim: "Need & Alignment [C]", check: "Does NOT duplicate an existing government scheme or ongoing project in the same location", answer: "Yes / No" },
+  { id: 5, dim: "Site & Govt Support [C]", check: "For civil/renovation work: site/land is available, clear, and in government ownership/control", answer: "Yes / No / NA" },
+  { id: 6, dim: "Site & Govt Support [C]", check: "Required permissions and clearances are obtainable within a reasonable time", answer: "Yes / No" },
+  { id: 7, dim: "Site & Govt Support [C]", check: "Required government support (personnel, access, utility) is confirmed", answer: "Yes / No" },
+  { id: 8, dim: "Financial Viability", check: "Indicative budget is adequate for the proposed physical scope", answer: "Yes / No" },
+  { id: 9, dim: "Financial Viability", check: "Cost estimate is realistic and benchmarked against similar public works", answer: "Yes / No" },
+  { id: 10, dim: "Implementation Capacity", check: "Executing capacity exists (corporate / foundation / NGO is capable)", answer: "Yes / No" },
+  { id: 11, dim: "Implementation Capacity", check: "Timeline is realistic for the proposed physical deliverables", answer: "Yes / No" },
+  { id: 12, dim: "Sustainability [C]", check: "Post-completion asset ownership is explicitly assigned to government department", answer: "Yes / No" },
+  { id: 13, dim: "Sustainability [C]", check: "Operation & maintenance (O&M) / recurring-cost responsibility is identified", answer: "Yes / No" },
 ];
 
 export default function WorkflowPage() {
+  const [activeTab, setActiveTab] = useState<"corporate" | "pitch" | "implementation" | "feasibility" | "slas">("corporate");
+
   return (
     <GovPortalLayout showSidebar={false}>
-      <div className="gov-public-main">
-        <div className="gov-page-header">
-          <div className="gov-breadcrumb">Home / Workflow</div>
-          <h1 className="gov-page-title">Maharashtra CSR Portal — Complete End-to-End Workflow</h1>
-          <p className="gov-page-description">
-            A single view of both entry points, time-bound escalations, and the common implementation and tracking flow into which both paths converge.
-          </p>
+      <div className="w-full min-w-0 max-w-7xl mx-auto px-4 py-8 sm:px-6 md:py-10 text-slate-900 space-y-6">
+        
+        {/* Header Banner */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2 border-b border-slate-200/80">
+          <div>
+            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+              <span>Public Portal</span>
+              <span>/</span>
+              <span className="text-blue-600 font-extrabold">Workflow Architecture</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+              MahaCSR End-to-End Operating Workflow
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-3xl leading-relaxed">
+              Unified architecture bridging Corporate CSR Enquiries, Government Department Pitches, Time-bound SLA Escalations, Feasibility Checks, and Convergence Milestone Tracking.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 self-start md:self-auto">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-50 text-blue-800 text-xs font-bold border border-blue-200">
+              <ShieldCheck size={14} className="text-blue-600" />
+              <span>Government of Maharashtra</span>
+            </span>
+          </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 2fr) minmax(280px, 1fr)", gap: 16 }}>
-          <GovCard>
-            <GovCardHeader>
-              <GovCardTitle>Partner with Maharashtra Journey</GovCardTitle>
-            </GovCardHeader>
-            <GovCardBody>
-              <div style={{ display: "grid", gap: 12 }}>
-                {corporateSteps.map(([number, title, detail]) => (
-                  <div
-                    key={number}
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "56px minmax(0, 1fr)",
-                      gap: 14,
-                      padding: 14,
-                      border: "1px solid var(--gov-border)",
-                      borderLeft: "4px solid var(--gov-primary)",
-                      background: number === "2" || number === "5" || number === "6-8" ? "#e8f5e9" : "#e3f0fa",
-                    }}
-                  >
-                    <div style={{ fontWeight: 800, color: "var(--gov-primary)" }}>Step {number}</div>
-                    <div>
-                      <div style={{ fontWeight: 800 }}>{title}</div>
-                      <div style={{ marginTop: 4, color: "var(--gov-text-secondary)", fontSize: 13 }}>{detail}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </GovCardBody>
-          </GovCard>
+        {/* Quick Tabs Navigation Bar */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none border-b border-slate-200">
+          {[
+            { id: "corporate", label: "1. Corporate Enquiry Flow" },
+            { id: "pitch", label: "2. Government Pitch Flow" },
+            { id: "implementation", label: "3. Implementation & UC" },
+            { id: "feasibility", label: "4. 13-Point Feasibility Check" },
+            { id: "slas", label: "5. Grievance & SLA Rules" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`px-4 py-2.5 rounded-t-xl text-xs font-extrabold transition-all cursor-pointer border-b-2 shrink-0 ${
+                activeTab === tab.id
+                  ? "border-blue-600 text-blue-600 bg-blue-50/50"
+                  : "border-transparent text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-          <div style={{ display: "grid", gap: 16, alignContent: "start" }}>
-            <GovCard>
-              <GovCardHeader>
-                <GovCardTitle>Time-Bound Guarantee</GovCardTitle>
-              </GovCardHeader>
-              <GovCardBody>
-                <div style={{ display: "grid", gap: 10 }}>
-                  {guarantees.map((item) => (
-                    <div key={item} style={{ padding: 12, border: "1px solid var(--gov-border)", background: "#fff7ed", fontSize: 13, fontWeight: 700 }}>
-                      {item}
+        {/* Tab 1: Corporate Journey */}
+        {activeTab === "corporate" && (
+          <div className="space-y-6 animate-fadeIn">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+              
+              {/* Steps (8 Cols) */}
+              <div className="lg:col-span-8 rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-7 shadow-xs space-y-4">
+                <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                  <Building2 size={16} className="text-blue-600" />
+                  Partner with Maharashtra Corporate Journey
+                </h2>
+
+                <div className="space-y-3">
+                  {corporateSteps.map((step) => (
+                    <div
+                      key={step.step}
+                      className="p-4 rounded-2xl border border-slate-100 bg-slate-50/60 hover:bg-blue-50/30 hover:border-blue-200 transition-all flex items-start gap-4"
+                    >
+                      <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xs font-extrabold shrink-0 shadow-2xs">
+                        {step.step}
+                      </div>
+                      <div className="space-y-1">
+                        <h3 className="text-xs sm:text-sm font-extrabold text-slate-900">
+                          {step.title}
+                        </h3>
+                        <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                          {step.detail}
+                        </p>
+                      </div>
                     </div>
                   ))}
                 </div>
-              </GovCardBody>
-            </GovCard>
+              </div>
 
-            <GovCard>
-              <GovCardHeader>
-                <GovCardTitle>Access Points</GovCardTitle>
-              </GovCardHeader>
-              <GovCardBody>
-                <div style={{ display: "grid", gap: 10 }}>
-                  <Link href="/partner-with-maharashtra">
-                    <GovButton style={{ width: "100%" }}>Start Corporate Enquiry</GovButton>
-                  </Link>
-                  <Link href="/track">
-                    <GovButton variant="secondary" style={{ width: "100%" }}>Track with ID</GovButton>
-                  </Link>
+              {/* Sidebar Guarantees (4 Cols) */}
+              <div className="lg:col-span-4 space-y-4">
+                <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs space-y-4">
+                  <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                    <Clock size={16} className="text-amber-600" />
+                    Time-Bound SLA Guarantees
+                  </h2>
+
+                  <div className="space-y-3">
+                    {guarantees.map((g) => (
+                      <div key={g.label} className="p-3.5 rounded-2xl border border-amber-100 bg-amber-50/50 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-amber-900">{g.label}</span>
+                          <span className="font-mono text-xs font-extrabold text-amber-950 px-2 py-0.5 rounded-md bg-amber-200/60">{g.value}</span>
+                        </div>
+                        <p className="text-[11px] text-slate-600 font-medium">{g.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-100 space-y-2">
+                    <Link
+                      href="/partner-with-maharashtra"
+                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition-all"
+                    >
+                      <span>Submit Corporate Enquiry</span>
+                      <ArrowRight size={14} />
+                    </Link>
+
+                    <Link
+                      href="/track"
+                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-all"
+                    >
+                      <span>Track Existing Enquiry</span>
+                    </Link>
+                  </div>
                 </div>
-              </GovCardBody>
-            </GovCard>
-          </div>
-        </div>
+              </div>
 
-        <div style={{ marginTop: 18 }}>
-          <GovCard>
-            <GovCardHeader>
-              <GovCardTitle>Implementation, Tracking & Monitoring</GovCardTitle>
-            </GovCardHeader>
-            <GovCardBody>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
-                {implementationSteps.map(([title, detail]) => (
-                  <div key={title} style={{ padding: 14, border: "1px solid var(--gov-border)", background: "#f8fafc" }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: "var(--gov-primary)" }}>{title}</div>
-                    <div style={{ marginTop: 6, fontSize: 13, color: "var(--gov-text-secondary)", lineHeight: 1.55 }}>{detail}</div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 2: Pitch Flow */}
+        {activeTab === "pitch" && (
+          <div className="space-y-6 animate-fadeIn">
+            <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-7 shadow-xs space-y-4">
+              <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                <Send size={16} className="text-emerald-600" />
+                Government Development Pitch Lifecycle
+              </h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {governmentPitchSteps.map((step) => (
+                  <div
+                    key={step.step}
+                    className="p-4 rounded-2xl border border-slate-100 bg-slate-50/60 hover:bg-emerald-50/30 hover:border-emerald-200 transition-all flex items-start gap-3.5"
+                  >
+                    <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xs font-extrabold shrink-0 shadow-2xs">
+                      {step.step}
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="text-xs sm:text-sm font-extrabold text-slate-900">
+                        {step.title}
+                      </h3>
+                      <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                        {step.detail}
+                      </p>
+                    </div>
                   </div>
                 ))}
               </div>
 
-            </GovCardBody>
-          </GovCard>
-        </div>
-
-   <div style={{ marginTop: 18 }}>
-  <GovCard>
-    <GovCardHeader>
-      <GovCardTitle>Government Pitch Flow (Pitch a Development Need)</GovCardTitle>
-    </GovCardHeader>
-    <GovCardBody>
-      <div className="grid gap-3">
-        {governmentPitchSteps.map(([number, title, detail]) => (
-          <div
-            key={number}
-            style={{
-              display: "grid",
-              gridTemplateColumns: "56px minmax(0, 1fr)",
-              gap: 14,
-              padding: 14,
-              border: "1px solid var(--gov-border)",
-              borderLeft: "4px solid var(--gov-saffron)",
-              background: number === "3" || number === "5" ? "#e8f5e9" : "#fef3e0",
-            }}
-          >
-            <div style={{ fontWeight: 800, color: "var(--gov-warning)" }}>Step {number}</div>
-            <div>
-              <div style={{ fontWeight: 800 }}>{title}</div>
-              <div style={{ marginTop: 4, color: "var(--gov-text-secondary)", fontSize: 13, lineHeight: 1.55 }}>{detail}</div>
+              <div className="p-4 rounded-2xl border border-emerald-200 bg-emerald-50 text-xs font-semibold text-emerald-950 flex items-center gap-3">
+                <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                <span>On submission, a unique Government Pitch Reference ID (e.g. GP-MH-2026-000001) is issued. Only verified pitches are publicly listed on the Opportunity Marketplace.</span>
+              </div>
             </div>
           </div>
-        ))}
-      </div>
+        )}
 
-      <h3 className=" mt-6 mb-3 font-semibold text-gray-800 ">9.1 The Government Pitch Form</h3>
-      
-      {/* Wrapper added for rounded corners on desktop */}
-      <div className="w-full md:border md:border-gray-200 md:rounded-xl md:overflow-hidden bg-white">
-        <table className="w-full block md:table text-left border-collapse">
-          <thead className="hidden md:table-header-group bg-gray-50/50 border-b border-gray-200">
-            <tr>
-              <th className="p-3 md:px-6 md:py-4 font-semibold text-gray-700 text-sm">Field</th>
-              <th className="p-3 md:px-6 md:py-4 font-semibold text-gray-700 text-sm">Description</th>
-              <th className="p-3 md:px-6 md:py-4 font-semibold text-gray-700 text-sm">Validation</th>
-            </tr>
-          </thead>
-          <tbody className="block md:table-row-group">
-            {governmentPitchFields.map(([field, description, validation]) => (
-              <tr 
-                key={field} 
-                className="block md:table-row mb-4 md:mb-0 border border-gray-200 md:border-0 md:border-b md:border-gray-200 last:border-b-0 rounded-lg md:rounded-none"
-              >
-                <td 
-                  data-label="Field" 
-                  className="block md:table-cell relative py-3 pr-4 pl-[40%] md:px-6 md:py-4 border-b md:border-none last:border-b-0 break-words font-bold md:font-normal text-sm text-gray-800 before:content-[attr(data-label)] before:absolute before:left-4 before:top-3 before:font-semibold before:text-gray-500 md:before:hidden"
-                >
-                  {field}
-                </td>
-                <td 
-                  data-label="Description" 
-                  className="block md:table-cell relative py-3 pr-4 pl-[40%] md:px-6 md:py-4 border-b md:border-none last:border-b-0 break-words text-sm text-gray-600 before:content-[attr(data-label)] before:absolute before:left-4 before:top-3 before:font-semibold before:text-gray-500 md:before:hidden"
-                >
-                  {description}
-                </td>
-                <td 
-                  data-label="Validation" 
-                  className="block md:table-cell relative py-3 pr-4 pl-[40%] md:px-6 md:py-4 border-b md:border-none last:border-b-0 break-words text-sm text-gray-600 before:content-[attr(data-label)] before:absolute before:left-4 before:top-3 before:font-semibold before:text-gray-500 md:before:hidden"
-                >
-                  {validation}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+        {/* Tab 3: Implementation */}
+        {activeTab === "implementation" && (
+          <div className="space-y-6 animate-fadeIn">
+            <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-7 shadow-xs space-y-4">
+              <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                <Layers size={16} className="text-purple-600" />
+                Implementation, Milestones &amp; Utilisation Certificate (UC)
+              </h2>
 
-      <h3 className=" mt-4 mb-3 font-semibold text-gray-800">9.3 The I am Interested Pop-Up Form</h3>
-      
-      {/* Wrapper added for rounded corners on desktop */}
-      <div className="w-full md:border md:border-gray-200 md:rounded-xl md:overflow-hidden bg-white">
-        <table className="w-full block md:table text-left border-collapse">
-          <thead className="hidden md:table-header-group bg-gray-50/50 border-b border-gray-200">
-            <tr>
-              <th className="p-3 md:px-6 md:py-4 font-semibold text-gray-700 text-sm">Field</th>
-              <th className="p-3 md:px-6 md:py-4 font-semibold text-gray-700 text-sm">Description</th>
-              <th className="p-3 md:px-6 md:py-4 font-semibold text-gray-700 text-sm">Validation</th>
-            </tr>
-          </thead>
-          <tbody className="block md:table-row-group">
-            {interestFields.map(([field, description, validation]) => (
-              <tr 
-                key={field} 
-                className="block md:table-row mb-4 md:mb-0 border border-gray-200 md:border-0 md:border-b md:border-gray-200 last:border-b-0 rounded-lg md:rounded-none"
-              >
-                <td 
-                  data-label="Field" 
-                  className="block md:table-cell relative py-3 pr-4 pl-[40%] md:px-6 md:py-4 border-b md:border-none last:border-b-0 break-words font-bold md:font-normal text-sm text-gray-800 before:content-[attr(data-label)] before:absolute before:left-4 before:top-3 before:font-semibold before:text-gray-500 md:before:hidden"
-                >
-                  {field}
-                </td>
-                <td 
-                  data-label="Description" 
-                  className="block md:table-cell relative py-3 pr-4 pl-[40%] md:px-6 md:py-4 border-b md:border-none last:border-b-0 break-words text-sm text-gray-600 before:content-[attr(data-label)] before:absolute before:left-4 before:top-3 before:font-semibold before:text-gray-500 md:before:hidden"
-                >
-                  {description}
-                </td>
-                <td 
-                  data-label="Validation" 
-                  className="block md:table-cell relative py-3 pr-4 pl-[40%] md:px-6 md:py-4 border-b md:border-none last:border-b-0 break-words text-sm text-gray-600 before:content-[attr(data-label)] before:absolute before:left-4 before:top-3 before:font-semibold before:text-gray-500 md:before:hidden"
-                >
-                  {validation}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="mt-5 p-4 border border-emerald-200 bg-emerald-50 text-sm text-gray-700 rounded-lg leading-relaxed">
-        On submission, a Unique Tracking ID is generated and SMS + Email are sent, exactly as in the corporate enquiry flow. The Relationship Manager then coordinates between the two parties.
-      </div>
-    </GovCardBody>
-  </GovCard>
-</div>
-
-        <div style={{ marginTop: 18 }}>
-          <GovCard>
-            <GovCardHeader>
-              <GovCardTitle>Grievance Redressal Mechanism</GovCardTitle>
-            </GovCardHeader>
-            <GovCardBody>
-              <div className="gov-table-container">
-                <table className="gov-table">
-                  <thead>
-                    <tr>
-                      <th>Level</th>
-                      <th>Authority</th>
-                      <th>Resolution Time</th>
-                      <th>Scope</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {grievanceRows.map(([level, authority, time, scope]) => (
-                      <tr key={level}>
-                        <td style={{ fontWeight: 700 }}>{level}</td>
-                        <td>{authority}</td>
-                        <td>{time}</td>
-                        <td>{scope}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </GovCardBody>
-          </GovCard>
-        </div>
-
-        <div style={{ marginTop: 18 }}>
-          <GovCard>
-            <GovCardHeader>
-              <GovCardTitle>Complete Escalation & Response-Time Summary</GovCardTitle>
-            </GovCardHeader>
-            <GovCardBody>
-              <div className="gov-table-container">
-                <table className="gov-table">
-                  <thead>
-                    <tr>
-                      <th>Stage</th>
-                      <th>Primary Responsible</th>
-                      <th>Time</th>
-                      <th>First Escalation</th>
-                      <th>Second Escalation</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {slaRows.map(([stage, responsible, time, first, second]) => (
-                      <tr key={stage}>
-                        <td style={{ fontWeight: 700 }}>{stage}</td>
-                        <td>{responsible}</td>
-                        <td>{time}</td>
-                        <td>{first}</td>
-                        <td>{second}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div style={{ marginTop: 14, padding: 14, border: "1px solid var(--gov-border)", background: "#fff7ed", fontSize: 13, lineHeight: 1.6 }}>
-                <strong>Worst-case guarantee:</strong> a corporate enquiry receives a response within a maximum of 10 days even if every level misses its deadline.
-              </div>
-            </GovCardBody>
-          </GovCard>
-        </div>
-
-        <div style={{ marginTop: 18 }}>
-          <GovCard>
-            <GovCardHeader>
-              <GovCardTitle>Annexure A: Assessment Report + 13-Point Feasibility Checklist</GovCardTitle>
-            </GovCardHeader>
-            <GovCardBody>
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                <div>
-                  <h3 className="gov-section-title">A.1 Assessment Report Format</h3>
-                  <div className="gov-table-container">
-                    <table className="gov-table">
-                      <tbody>
-                        {assessmentFields.map(([field, content]) => (
-                          <tr key={field}>
-                            <td style={{ width: 260, fontWeight: 700 }}>{field}</td>
-                            <td>{content}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {implementationSteps.map((item) => (
+                  <div
+                    key={item.title}
+                    className="p-4.5 rounded-2xl border border-slate-100 bg-slate-50/60 space-y-1.5 hover:border-slate-300 transition-all"
+                  >
+                    <h3 className="text-xs sm:text-sm font-extrabold text-slate-900">
+                      {item.title}
+                    </h3>
+                    <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                      {item.detail}
+                    </p>
                   </div>
-                </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
+        {/* Tab 4: 13-Point Feasibility Checklist */}
+        {activeTab === "feasibility" && (
+          <div className="space-y-6 animate-fadeIn">
+            <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-7 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                  <FileText size={16} className="text-blue-600" />
+                  Annexure A: 13-Point Statutory Feasibility Checklist
+                </h2>
+                <span className="text-[11px] font-extrabold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
+                  [C] = Critical Mandatory Gate
+                </span>
               </div>
 
-              <h3 className="gov-section-title" style={{ marginTop: 18 }}>A.2 13-Point Project Feasibility Checklist</h3>
-              <div className="gov-table-container">
-                <table className="gov-table">
+              <div className="overflow-x-auto rounded-2xl border border-slate-200">
+                <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Dimension</th>
-                      <th>Check</th>
-                      <th>Answer</th>
+                    <tr className="bg-slate-100/80 border-b border-slate-200">
+                      <th className="py-3 px-3 font-extrabold text-slate-800 uppercase tracking-wider text-[11px] w-12 text-center">#</th>
+                      <th className="py-3 px-4 font-extrabold text-slate-800 uppercase tracking-wider text-[11px] w-48">Dimension</th>
+                      <th className="py-3 px-4 font-extrabold text-slate-800 uppercase tracking-wider text-[11px]">Feasibility Verification Item</th>
+                      <th className="py-3 px-4 font-extrabold text-slate-800 uppercase tracking-wider text-[11px] w-28 text-center">Standard</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {feasibilityChecklist.map(([number, dimension, check, answer]) => (
-                      <tr key={number}>
-                        <td>{number}</td>
-                        <td style={{ fontWeight: 700 }}>{dimension}</td>
-                        <td>{check}</td>
-                        <td>{answer}</td>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {feasibilityChecklist.map((row) => (
+                      <tr key={row.id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="py-3 px-3 font-mono font-bold text-slate-600 text-center">{row.id}</td>
+                        <td className="py-3 px-4 font-bold text-slate-900">{row.dim}</td>
+                        <td className="py-3 px-4 text-slate-700 font-medium">{row.check}</td>
+                        <td className="py-3 px-4 text-center">
+                          <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-mono text-[10px] font-extrabold">
+                            {row.answer}
+                          </span>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <div style={{ marginTop: 14, padding: 14, border: "1px solid var(--gov-border)", background: "#f8fafc", fontSize: 13, lineHeight: 1.65 }}>
-                <strong>Decision Rule:</strong> all critical checks (items 1-7, 12, 13) must be YES for FEASIBLE. If a critical gap can be fixed, use PROCEED WITH CONDITIONS and state the condition. If it cannot be fixed, use NOT FEASIBLE and record the reason.
-              </div>
-            </GovCardBody>
-          </GovCard>
-        </div>
 
-        <div style={{ marginTop: 18 }}>
-          <GovCard>
-            <GovCardHeader>
-              <GovCardTitle>Annexure B: Standard MoU Template</GovCardTitle>
-            </GovCardHeader>
-            <GovCardBody>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 260px), 1fr))", gap: 16, alignItems: "center" }}>
-                <div style={{ fontSize: 14, lineHeight: 1.7, color: "var(--gov-text-secondary)" }}>
-                  The standard MoU is pre-loaded on the portal for all CSR convergence projects. Corporates may propose changes, incorporated by mutual agreement before signing. It covers purpose, location, deliverables, timeline, contribution, implementation, monitoring, UC, ownership, grievance, recognition, termination, dispute resolution and signatures.
-                </div>
-                <Link href="/standard-mou-template">
-                  <GovButton style={{ width: "100%" }}>Open Standard MoU</GovButton>
-                </Link>
+              <div className="p-4 rounded-2xl border border-blue-200 bg-blue-50/60 text-xs font-semibold text-blue-950 leading-relaxed">
+                <strong>Statutory Decision Rule:</strong> All 9 critical checks (items 1–7, 12, 13) must be verified YES by the Relationship Manager for FEASIBLE rating. If conditional, state specific mitigation. If failed, recorded as NOT FEASIBLE.
               </div>
-            </GovCardBody>
-          </GovCard>
-        </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 5: Grievances & SLAs */}
+        {activeTab === "slas" && (
+          <div className="space-y-6 animate-fadeIn">
+            {/* SLAs Table */}
+            <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-7 shadow-xs space-y-4">
+              <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                <Clock size={16} className="text-blue-600" />
+                Statutory Service Level Agreements (SLAs) &amp; Escalation Matrix
+              </h2>
+
+              <div className="overflow-x-auto rounded-2xl border border-slate-200">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100/80 border-b border-slate-200">
+                      <th className="py-3 px-4 font-extrabold text-slate-800 uppercase tracking-wider text-[11px]">Workflow Stage</th>
+                      <th className="py-3 px-4 font-extrabold text-slate-800 uppercase tracking-wider text-[11px]">Primary Authority</th>
+                      <th className="py-3 px-4 font-extrabold text-slate-800 uppercase tracking-wider text-[11px]">Response SLA</th>
+                      <th className="py-3 px-4 font-extrabold text-slate-800 uppercase tracking-wider text-[11px]">Level 1 Escalation</th>
+                      <th className="py-3 px-4 font-extrabold text-slate-800 uppercase tracking-wider text-[11px]">Apex Escalation</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {slaRows.map((row, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="py-3 px-4 font-bold text-slate-900">{row.stage}</td>
+                        <td className="py-3 px-4 text-slate-700 font-medium">{row.responsible}</td>
+                        <td className="py-3 px-4 font-mono font-extrabold text-emerald-700">{row.time}</td>
+                        <td className="py-3 px-4 text-slate-600 font-medium">{row.first}</td>
+                        <td className="py-3 px-4 text-slate-600 font-medium">{row.second}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Grievance Table */}
+            <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-7 shadow-xs space-y-4">
+              <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                <ShieldCheck size={16} className="text-amber-600" />
+                3-Tier Public Grievance Redressal Architecture
+              </h2>
+
+              <div className="overflow-x-auto rounded-2xl border border-slate-200">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100/80 border-b border-slate-200">
+                      <th className="py-3 px-4 font-extrabold text-slate-800 uppercase tracking-wider text-[11px]">Tier</th>
+                      <th className="py-3 px-4 font-extrabold text-slate-800 uppercase tracking-wider text-[11px]">Competent Authority</th>
+                      <th className="py-3 px-4 font-extrabold text-slate-800 uppercase tracking-wider text-[11px]">Statutory SLA</th>
+                      <th className="py-3 px-4 font-extrabold text-slate-800 uppercase tracking-wider text-[11px]">Jurisdiction Scope</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {grievanceRows.map((row, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="py-3 px-4 font-bold text-slate-900">{row.level}</td>
+                        <td className="py-3 px-4 text-slate-700 font-medium">{row.authority}</td>
+                        <td className="py-3 px-4 font-mono font-extrabold text-amber-800">{row.time}</td>
+                        <td className="py-3 px-4 text-slate-600 font-medium leading-relaxed">{row.scope}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </GovPortalLayout>
   );

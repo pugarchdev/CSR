@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -269,7 +269,7 @@ export function MouWorkflowManager({
 
       {/* Record Signature Modal */}
       {showSignModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl space-y-4 border border-slate-200">
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <ShieldCheck className="text-emerald-600" size={20} />

@@ -192,7 +192,7 @@ export default function AdminRelationshipsPage() {
 
       {/* Verification Modal */}
       {verifyModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl border border-slate-200 max-w-lg w-full p-6 space-y-4 shadow-xl text-xs">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>

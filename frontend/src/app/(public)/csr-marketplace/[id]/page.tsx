@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter, useParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import { apiFetch, API_BASE_URL, getAccessToken } from "@/lib/api";
+import GovPortalLayout from "@/components/layout/GovPortalLayout";
 import { GovCard, GovCardHeader, GovCardTitle, GovCardBody } from "@/components/gov/GovCard";
 import GovStatusBadge from "@/components/gov/GovStatusBadge";
 import { Button } from "@/components/ui/Button";
@@ -608,22 +609,32 @@ export default function CSRRequirementDetail() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-900"></div>
-      </div>
+      <GovPortalLayout showSidebar={false}>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-600"></div>
+        </div>
+      </GovPortalLayout>
     );
   }
 
   if (error || !requirement) {
     return (
-      <div className="p-8 max-w-4xl mx-auto text-center space-y-4">
-        <XCircle className="mx-auto text-rose-500" size={48} />
-        <h2 className="text-xl font-bold text-slate-800">Requirement Not Found</h2>
-        <p className="text-slate-600 text-sm">{error || "The requested development requirement could not be retrieved."}</p>
-        <Link href="/marketplace">
-          <Button className="bg-blue-900 text-white font-bold">Back to Marketplace</Button>
-        </Link>
-      </div>
+      <GovPortalLayout showSidebar={false}>
+        <div className="p-8 max-w-xl mx-auto my-12 text-center space-y-4 rounded-3xl border border-slate-200/90 bg-white shadow-xs">
+          <XCircle className="mx-auto text-rose-500" size={48} />
+          <h2 className="text-xl font-extrabold text-slate-800">Requirement Not Found</h2>
+          <p className="text-slate-600 text-xs">{error || "The requested development requirement could not be retrieved."}</p>
+          <div className="pt-2">
+            <Link
+              href="/marketplace"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-5 py-2.5 shadow-xs transition-all no-underline"
+            >
+              <ArrowLeft size={14} />
+              <span>Back to Marketplace</span>
+            </Link>
+          </div>
+        </div>
+      </GovPortalLayout>
     );
   }
 
@@ -649,213 +660,226 @@ export default function CSRRequirementDetail() {
   const selectedNGO = data.ngoApplications?.find((a: any) => a.status === "SELECTED_BY_COMPANY")?.ngo;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-300">
-      {/* Top Navigation & Breadcrumbs */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button
-          onClick={() => {
-            if (pathname.includes("/csr-marketplace")) {
-              router.push("/csr-marketplace");
-            } else {
-              router.push("/marketplace");
-            }
-          }}
-          className="bg-white hover:bg-slate-100 text-slate-800 font-bold border border-slate-200 py-1.5 px-3 flex items-center gap-1.5 text-xs shadow-xs rounded-lg transition"
-        >
-          <ArrowLeft size={14} /> Back to Marketplace
-        </Button>
+    <GovPortalLayout showSidebar={false}>
+      <div className="w-full min-w-0 max-w-7xl mx-auto px-4 py-8 sm:px-6 md:py-10 text-slate-900 space-y-6">
+        
+        {/* Top Navigation & Breadcrumbs */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              if (pathname.includes("/csr-marketplace")) {
+                router.push("/csr-marketplace");
+              } else {
+                router.push("/marketplace");
+              }
+            }}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs border border-slate-200 shadow-2xs transition-all cursor-pointer"
+          >
+            <ArrowLeft size={14} className="text-slate-500" />
+            <span>Back to Marketplace</span>
+          </button>
 
-        <div className="flex items-center gap-1.5 text-xs text-slate-500">
-          <Link href="/" className="hover:text-blue-900 transition">Portal</Link>
-          <span>/</span>
-          <Link href="/marketplace" className="hover:text-blue-900 transition">Marketplace</Link>
-          <span>/</span>
-          <span className="font-semibold text-slate-700 truncate max-w-[220px]">{trackingId}</span>
-        </div>
-      </div>
-
-      {/* Main Title Banner */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="space-y-2 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-blue-100 text-blue-900 border border-blue-200">
-              {sector.replace(/_/g, " ")}
-            </span>
-            <span className="font-mono text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-              {trackingId}
-            </span>
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-              <CheckCircle2 size={12} className="text-emerald-600" />
-              JS APPROVED & VERIFIED
-            </span>
-            <GovStatusBadge variant={getStatusVariant(data.status || "MARKETPLACE_LISTED")}>
-              {(data.status || "MARKETPLACE_LISTED").replace(/_/g, " ")}
-            </GovStatusBadge>
+          <div className="flex items-center gap-1.5 text-xs text-slate-500">
+            <Link href="/" className="hover:text-blue-600 transition">Portal</Link>
+            <span>/</span>
+            <Link href="/marketplace" className="hover:text-blue-600 transition">Marketplace</Link>
+            <span>/</span>
+            <span className="font-semibold text-slate-700 truncate max-w-[220px]">{trackingId}</span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 leading-snug break-words">
-            {title}
-          </h1>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
-            <div className="flex items-center gap-1.5">
-              <Building2 size={14} className="text-slate-400 shrink-0" />
-              <span>Organization: <strong className="text-slate-800">{departmentName}</strong></span>
+        </div>
+
+        {/* Main Title Banner */}
+        <div className="bg-white border border-slate-200/90 rounded-3xl p-5 sm:p-7 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="space-y-2 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-blue-50 text-blue-800 border border-blue-200">
+                {sector.replace(/_/g, " ")}
+              </span>
+              <span className="font-mono text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+                {trackingId}
+              </span>
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                <CheckCircle2 size={12} className="text-emerald-600" />
+                JS APPROVED &amp; VERIFIED
+              </span>
+              <GovStatusBadge variant={getStatusVariant(data.status || "MARKETPLACE_LISTED")}>
+                {(data.status || "MARKETPLACE_LISTED").replace(/_/g, " ")}
+              </GovStatusBadge>
             </div>
-            {officeName && officeName !== departmentName && (
-              <div className="text-slate-500">
-                ({officeName})
+
+            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 leading-snug break-words">
+              {title}
+            </h1>
+
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
+              <div className="flex items-center gap-1.5">
+                <Building2 size={14} className="text-slate-400 shrink-0" />
+                <span>Organization: <strong className="text-slate-800">{departmentName}</strong></span>
               </div>
+              {officeName && officeName !== departmentName && (
+                <div className="text-slate-500">
+                  ({officeName})
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Action buttons on overview */}
+          <div className="shrink-0 flex flex-wrap gap-2 w-full md:w-auto">
+            {user?.role === "NGO_ADMIN" && !data.ngoApplications?.some((a: any) => a.ngoId === user.ngoId) && (
+              <button
+                type="button"
+                onClick={() => setShowApplyModal(true)}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-5 py-2.5 shadow-xs transition-all cursor-pointer"
+              >
+                <Handshake size={15} />
+                <span>Apply as Implementation Partner</span>
+              </button>
+            )}
+
+            {(user?.role === "COMPANY_ADMIN" || user?.role === "COMPANY_MEMBER" || user?.role === "CORPORATE_USER" || user?.role === "CORPORATE_PARTNER" || user?.role === "CSR_ADMIN" || user?.companyId || user?.kind === "CSR_COMPANY") && (
+              <button
+                type="button"
+                onClick={handleExpressInterest}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-5 py-2.5 shadow-xs transition-all cursor-pointer"
+              >
+                <Handshake size={15} />
+                <span>Express CSR Interest</span>
+              </button>
+            )}
+
+            {!user && (
+              <Link
+                href={`/login?next=${encodeURIComponent(buildEnquiryUrl(data))}`}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-5 py-2.5 shadow-xs transition-all no-underline cursor-pointer"
+              >
+                <Handshake size={15} />
+                <span>Sign in to Express CSR Interest</span>
+              </Link>
             )}
           </div>
         </div>
 
-        {/* Action buttons on overview */}
-        <div className="shrink-0 flex flex-wrap gap-2 w-full md:w-auto">
-          {user?.role === "NGO_ADMIN" && !data.ngoApplications?.some((a: any) => a.ngoId === user.ngoId) && (
-            <Button
-              onClick={() => setShowApplyModal(true)}
-              className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-6 shadow-sm"
-            >
-              Apply as Implementation Partner
-            </Button>
-          )}
-
-          {(user?.role === "COMPANY_ADMIN" || user?.role === "COMPANY_MEMBER" || user?.role === "CORPORATE_USER" || user?.role === "CORPORATE_PARTNER" || user?.role === "CSR_ADMIN" || user?.companyId || user?.kind === "CSR_COMPANY") && (
-            <Button
-              onClick={handleExpressInterest}
-              className="bg-blue-900 hover:bg-blue-950 text-white font-bold px-6 shadow-sm flex items-center gap-2"
-            >
-              <Handshake size={16} />
-              Express CSR Interest
-            </Button>
-          )}
-
-          {!user && (
-            <Link
-              href={`/login?next=${encodeURIComponent(buildEnquiryUrl(data))}`}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-900 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-blue-950 hover:no-underline"
-            >
-              <Handshake size={15} />
-              Sign in to Express CSR Interest
-            </Link>
-          )}
-        </div>
-      </div>
-
-      {/* Key Metrics Strip (Reflecting Exact Submitted Pitch Data) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-        {/* Card 1: Requested Outlay */}
-        <div className="bg-blue-50/70 border border-blue-100/90 rounded-xl p-4 shadow-2xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center gap-1.5 text-blue-800 text-[11px] font-bold uppercase tracking-wider">
-              <Coins size={15} /> Requested Outlay
-            </div>
-            <p className="mt-1 text-base sm:text-lg lg:text-xl font-black text-blue-950 break-words leading-tight">
-              {money(budget)}
-            </p>
-          </div>
-          <span className="text-[10px] font-medium text-blue-700/80 mt-1">Convergence Gap Grant</span>
-        </div>
-
-        {/* Card 2: Target Region */}
-        <div className="bg-purple-50/70 border border-purple-100/90 rounded-xl p-4 shadow-2xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center gap-1.5 text-purple-800 text-[11px] font-bold uppercase tracking-wider">
-              <MapPin size={15} /> Target Region
-            </div>
-            <p className="mt-1 text-sm sm:text-base lg:text-lg font-black text-purple-950 line-clamp-2 break-words leading-tight" title={`${taluka}, ${district}`}>
-              {district}
-            </p>
-          </div>
-          <span className="text-[10px] font-medium text-purple-700/80 line-clamp-1 break-words mt-1">{taluka}</span>
-        </div>
-
-        {/* Card 3: Sponsoring Organization */}
-        <div className="bg-emerald-50/70 border border-emerald-100/90 rounded-xl p-4 shadow-2xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center gap-1.5 text-emerald-800 text-[11px] font-bold uppercase tracking-wider">
-              <Building2 size={15} /> Organization
-            </div>
-            <p className="mt-1 text-sm sm:text-base font-black text-emerald-950 capitalize line-clamp-2 break-words leading-tight" title={departmentName}>
-              {departmentName}
-            </p>
-          </div>
-          <span className="text-[10px] font-medium text-emerald-700/80 mt-1">Authority</span>
-        </div>
-
-        {/* Card 4: Governance & Audit */}
-        <div className="bg-amber-50/70 border border-amber-100/90 rounded-xl p-4 shadow-2xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center gap-1.5 text-amber-800 text-[11px] font-bold uppercase tracking-wider">
-              <ShieldCheck size={15} /> Governance & Audit
-            </div>
-            <p className="mt-1 text-sm sm:text-base font-black text-amber-950 line-clamp-2 break-words leading-tight" title={data.certificationType || "HOD Endorsed"}>
-              {data.certificationType || "HOD Endorsed"}
-            </p>
-          </div>
-          <span className="text-[10px] font-medium text-amber-700/80 line-clamp-1 break-words mt-1">
-            {photos.length > 0 ? `${photos.length} Field Media Attached` : "Non-Budgeted Gap Certified"}
-          </span>
-        </div>
-      </div>
-
-      {/* Tab bar (Discovery Tabs + Role-Gated Management Tabs) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-px bg-white p-2 rounded-xl border border-slate-200/90 shadow-sm">
-        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5">
-          {/* Public Discovery Tabs */}
-          {publicTabs.map(tab => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-3.5 py-2 text-xs font-bold rounded-lg transition-colors whitespace-nowrap flex items-center gap-1.5 ${
-                  isActive
-                    ? "bg-blue-900 text-white shadow-sm"
-                    : "text-slate-650 hover:text-blue-900 hover:bg-slate-50"
-                }`}
-              >
-                <Icon size={14} className={isActive ? "text-white" : "text-slate-400"} />
-                {tab.label}
-              </button>
-            );
-          })}
-
-          {/* Role-Gated Management Tabs Divider */}
-          {managementTabs.length > 0 && (
-            <>
-              <div className="h-6 w-px bg-slate-200 mx-1.5 shrink-0" />
-              <div className="flex items-center gap-1">
-                {managementTabs.map(tab => {
-                  const Icon = tab.icon;
-                  const isActive = activeTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`px-3.5 py-2 text-xs font-bold rounded-lg transition-colors whitespace-nowrap flex items-center gap-1.5 ${
-                        isActive
-                          ? "bg-emerald-800 text-white shadow-sm"
-                          : "text-emerald-900 bg-emerald-50/60 hover:bg-emerald-100/70 border border-emerald-200/60"
-                      }`}
-                    >
-                      <Lock size={12} className={isActive ? "text-white" : "text-emerald-700"} />
-                      <Icon size={14} className={isActive ? "text-white" : "text-emerald-700"} />
-                      {tab.label}
-                    </button>
-                  );
-                })}
+        {/* Key Metrics Strip (Reflecting Exact Submitted Pitch Data) */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {/* Card 1: Requested Outlay */}
+          <div className="rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-2xs space-y-1.5 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between text-slate-400">
+                <span className="text-[11px] font-bold uppercase tracking-wider">Requested Outlay</span>
+                <Coins size={16} className="text-blue-600" />
               </div>
-            </>
-          )}
+              <p className="mt-1 text-base sm:text-lg lg:text-xl font-extrabold text-slate-900 break-words leading-tight">
+                {money(budget)}
+              </p>
+            </div>
+            <span className="text-[11px] font-medium text-slate-500">Convergence Gap Grant</span>
+          </div>
+
+          {/* Card 2: Target Region */}
+          <div className="rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-2xs space-y-1.5 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between text-slate-400">
+                <span className="text-[11px] font-bold uppercase tracking-wider">Target Region</span>
+                <MapPin size={16} className="text-purple-600" />
+              </div>
+              <p className="mt-1 text-sm sm:text-base lg:text-lg font-extrabold text-slate-900 line-clamp-2 break-words leading-tight" title={`${taluka}, ${district}`}>
+                {district}
+              </p>
+            </div>
+            <span className="text-[11px] font-medium text-slate-500 line-clamp-1 break-words">{taluka}</span>
+          </div>
+
+          {/* Card 3: Sponsoring Organization */}
+          <div className="rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-2xs space-y-1.5 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between text-slate-400">
+                <span className="text-[11px] font-bold uppercase tracking-wider">Organization</span>
+                <Building2 size={16} className="text-emerald-600" />
+              </div>
+              <p className="mt-1 text-sm sm:text-base font-extrabold text-slate-900 capitalize line-clamp-2 break-words leading-tight" title={departmentName}>
+                {departmentName}
+              </p>
+            </div>
+            <span className="text-[11px] font-medium text-slate-500">Authority</span>
+          </div>
+
+          {/* Card 4: Governance & Audit */}
+          <div className="rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-2xs space-y-1.5 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between text-slate-400">
+                <span className="text-[11px] font-bold uppercase tracking-wider">Governance &amp; Audit</span>
+                <ShieldCheck size={16} className="text-amber-600" />
+              </div>
+              <p className="mt-1 text-sm sm:text-base font-extrabold text-slate-900 line-clamp-2 break-words leading-tight" title={data.certificationType || "HOD Endorsed"}>
+                {data.certificationType || "HOD Endorsed"}
+              </p>
+            </div>
+            <span className="text-[11px] font-medium text-slate-500 line-clamp-1 break-words">
+              {photos.length > 0 ? `${photos.length} Field Media Attached` : "Non-Budgeted Gap Certified"}
+            </span>
+          </div>
         </div>
 
-        {/* Status Indicator */}
-        <div className="hidden lg:flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-lg border border-slate-200/60 text-[11px] text-slate-600 font-medium shrink-0">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span>Marketplace Listing Active</span>
+        {/* Tab bar (Discovery Tabs + Role-Gated Management Tabs) */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-px bg-white p-2 rounded-2xl border border-slate-200/90 shadow-xs">
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
+            {/* Public Discovery Tabs */}
+            {publicTabs.map(tab => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+                    isActive
+                      ? "bg-blue-600 text-white shadow-2xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                  }`}
+                >
+                  <Icon size={14} className={isActive ? "text-white" : "text-slate-400"} />
+                  {tab.label}
+                </button>
+              );
+            })}
+
+            {/* Role-Gated Management Tabs Divider */}
+            {managementTabs.length > 0 && (
+              <>
+                <div className="h-6 w-px bg-slate-200 mx-1.5 shrink-0" />
+                <div className="flex items-center gap-1.5">
+                  {managementTabs.map(tab => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+                          isActive
+                            ? "bg-emerald-600 text-white shadow-2xs"
+                            : "text-emerald-900 bg-emerald-50/60 hover:bg-emerald-100/70 border border-emerald-200/60"
+                        }`}
+                      >
+                        <Lock size={12} className={isActive ? "text-white" : "text-emerald-700"} />
+                        <Icon size={14} className={isActive ? "text-white" : "text-emerald-700"} />
+                        {tab.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Status Indicator */}
+          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-200/60 text-[11px] text-slate-600 font-medium shrink-0">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Marketplace Listing Active</span>
+          </div>
         </div>
-      </div>
 
       {/* Tab Panels */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
@@ -1367,12 +1391,12 @@ export default function CSRRequirementDetail() {
                     </div>
 
                     <div className="flex justify-end gap-2 pt-2">
-                      <Button type="button" onClick={() => setShowAgreementForm(false)} className="bg-slate-200 text-slate-800">
+                      <button type="button" onClick={() => setShowAgreementForm(false)} className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer">
                         Cancel
-                      </Button>
-                      <Button type="submit" disabled={creatingAgreement} className="bg-blue-900 text-white font-bold">
+                      </button>
+                      <button type="submit" disabled={creatingAgreement} className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs cursor-pointer disabled:opacity-50">
                         {creatingAgreement ? "Generating..." : "Generate & Share"}
-                      </Button>
+                      </button>
                     </div>
                   </form>
                 )}
@@ -1413,7 +1437,7 @@ export default function CSRRequirementDetail() {
                               Once all three parties (Beneficiary, Company, NGO) execute the agreement, scan and upload the signed PDF.
                             </p>
 
-                            <div className="relative cursor-pointer bg-blue-900 text-white hover:bg-blue-950 font-bold px-6 py-2 rounded shadow-sm text-center">
+                            <div className="relative cursor-pointer bg-blue-600 text-white hover:bg-blue-700 font-bold px-6 py-2 rounded-xl shadow-xs text-center transition-all">
                               <input
                                 type="file"
                                 className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
@@ -1463,12 +1487,12 @@ export default function CSRRequirementDetail() {
                           </GovStatusBadge>
 
                           {ms.status !== "FM_RELEASED" && (isCompanyLinkedToThis || isSuperAdmin) && (
-                            <Button
+                            <button
                               onClick={() => handleReleaseMilestone(ms.id)}
-                              className="bg-blue-900 hover:bg-blue-950 text-white font-bold text-[10px] py-1 px-3"
+                              className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] py-1.5 px-3 rounded-lg shadow-2xs cursor-pointer transition-all"
                             >
                               Release payment
-                            </Button>
+                            </button>
                           )}
                         </div>
                       </div>
@@ -1485,12 +1509,12 @@ export default function CSRRequirementDetail() {
               <GovCardHeader className="bg-slate-50 border-b flex justify-between items-center">
                 <GovCardTitle>Field Progress Reports</GovCardTitle>
                 {(isNgoLinkedToThis || isGovAuthority) && !showProgressForm && (
-                  <Button
+                  <button
                     onClick={() => setShowProgressForm(true)}
-                    className="bg-blue-900 text-white font-bold text-xs"
+                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs cursor-pointer transition-all"
                   >
                     Submit Field Progress
-                  </Button>
+                  </button>
                 )}
               </GovCardHeader>
               <GovCardBody className="space-y-6 text-xs">
@@ -1597,12 +1621,12 @@ export default function CSRRequirementDetail() {
                     </div>
 
                     <div className="flex justify-end gap-2 pt-2 border-t">
-                      <Button type="button" onClick={() => setShowProgressForm(false)} className="bg-slate-200 text-slate-800">
+                      <button type="button" onClick={() => setShowProgressForm(false)} className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer">
                         Cancel
-                      </Button>
-                      <Button type="submit" disabled={submittingProgress} className="bg-blue-900 text-white font-bold">
+                      </button>
+                      <button type="submit" disabled={submittingProgress} className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs cursor-pointer disabled:opacity-50">
                         {submittingProgress ? "Submitting..." : "Submit Progress Log"}
-                      </Button>
+                      </button>
                     </div>
                   </form>
                 )}
@@ -1731,12 +1755,12 @@ export default function CSRRequirementDetail() {
                     </div>
 
                     <div className="flex justify-end gap-2 pt-2 border-t">
-                      <Button type="button" onClick={() => setShowCompletionForm(false)} className="bg-slate-200 text-slate-800">
+                      <button type="button" onClick={() => setShowCompletionForm(false)} className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer">
                         Cancel
-                      </Button>
-                      <Button type="submit" disabled={submittingCompletion} className="bg-blue-900 text-white font-bold">
+                      </button>
+                      <button type="submit" disabled={submittingCompletion} className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs cursor-pointer disabled:opacity-50">
                         {submittingCompletion ? "Submitting..." : "Submit Report"}
-                      </Button>
+                      </button>
                     </div>
                   </form>
                 )}
@@ -1873,7 +1897,7 @@ export default function CSRRequirementDetail() {
                 <button
                   type="button"
                   onClick={handleEmailShare}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-blue-900 hover:bg-blue-950 active:bg-blue-900 text-white font-bold text-xs shadow-2xs transition-all duration-150 cursor-pointer"
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs shadow-2xs transition-all duration-150 cursor-pointer"
                   title="Compose Email to CSR Committee"
                 >
                   <Mail size={14} />
@@ -2027,10 +2051,10 @@ export default function CSRRequirementDetail() {
               </div>
 
               <div className="flex justify-end gap-2 pt-2 border-t">
-                <Button type="button" onClick={() => setShowApplyModal(false)} className="bg-slate-200 text-slate-800">Cancel</Button>
-                <Button type="submit" disabled={submittingNgo} className="bg-blue-900 text-white font-bold">
+                <button type="button" onClick={() => setShowApplyModal(false)} className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer">Cancel</button>
+                <button type="submit" disabled={submittingNgo} className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs cursor-pointer disabled:opacity-50">
                   {submittingNgo ? "Submitting..." : "Submit Bidding proposal"}
-                </Button>
+                </button>
               </div>
             </form>
           </div>
@@ -2055,6 +2079,7 @@ export default function CSRRequirementDetail() {
         </div>
       )}
 
-    </div>
+      </div>
+    </GovPortalLayout>
   );
 }
