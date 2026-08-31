@@ -135,9 +135,14 @@ export const listOrganizations = async (req: AuthenticatedRequest, res: Response
         {
           OR: [
             { name: { contains: q, mode: "insensitive" } },
+            { legalName: { contains: q, mode: "insensitive" } },
             { code: { contains: q, mode: "insensitive" } },
             { cin: { contains: q, mode: "insensitive" } },
-            { registrationNumber: { contains: q, mode: "insensitive" } }
+            { registrationNumber: { contains: q, mode: "insensitive" } },
+            { ngoProfile: { darpanNumber: { contains: q, mode: "insensitive" } } },
+            { ngoProfile: { csr1Number: { contains: q, mode: "insensitive" } } },
+            { csrCompanyProfile: { cin: { contains: q, mode: "insensitive" } } },
+            { csrCompanyProfile: { csrRegistrationNumber: { contains: q, mode: "insensitive" } } }
           ]
         }
       ];

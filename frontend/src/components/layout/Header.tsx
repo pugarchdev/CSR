@@ -124,7 +124,7 @@ export function Header({
           >
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-blue-600 transition-colors" size={18} />
             <div className="w-full h-10 pl-10 pr-14 bg-slate-50 group-hover:bg-slate-100/80 border border-slate-200 group-hover:border-slate-300 rounded-lg text-sm text-slate-400 transition-colors flex items-center shadow-2xs">
-              <span>Search proposals, NGOs, or metrics...</span>
+              <span>Search proposals, NGOs, projects, or metrics...</span>
             </div>
             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-0.5 pointer-events-none select-none text-[10px] font-semibold text-slate-400 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">
               <span>⌘K</span>

@@ -333,15 +333,15 @@ export default function ImplementingAgencyRegistryPage() {
                           </td>
                           <td 
                             data-label="Accreditation" 
-                            className="flex md:table-cell justify-between items-center px-4 md:px-4 py-2.5 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
+                            className="flex md:table-cell justify-between items-center px-4 md:px-4 py-2.5 md:py-4 border-b border-slate-100 md:border-none whitespace-nowrap align-middle before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
                           >
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-200 whitespace-nowrap inline-flex items-center">
                               Verified NGO
                             </span>
                           </td>
                           <td 
                             data-label="Status" 
-                            className="flex md:table-cell justify-between items-center px-4 md:px-4 py-2.5 md:py-4 border-b border-slate-100 md:border-none before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
+                            className="flex md:table-cell justify-between items-center px-4 md:px-4 py-2.5 md:py-4 border-b border-slate-100 md:border-none whitespace-nowrap align-middle before:content-[attr(data-label)] before:text-[10px] before:uppercase before:font-extrabold before:text-slate-400 before:md:hidden text-right md:text-left"
                           >
                             <GovStatusBadge variant={ngo.statusVariant}>{ngo.status}</GovStatusBadge>
                           </td>

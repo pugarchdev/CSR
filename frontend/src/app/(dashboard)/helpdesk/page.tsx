@@ -256,8 +256,8 @@ export default function HelpdeskPage() {
 
   const handleSubmitResolve = async () => {
     if (!resolvingTicket) return;
-    if (!resolutionText.trim() && resolutionStatus === "RESOLVED") {
-      setActionError("Please provide resolution notes before marking as resolved.");
+    if ((resolutionStatus === "RESOLVED" || resolutionStatus === "CLOSED") && (!resolutionText.trim() || resolutionText.trim().length < 10)) {
+      setActionError("Resolution remarks must be at least 10 characters long describing the action taken.");
       return;
     }
 
@@ -275,8 +275,9 @@ export default function HelpdeskPage() {
 
       queryClient.invalidateQueries({ queryKey: ["helpdesk-tickets"] });
       handleCloseResolve();
-    } catch (err: unknown) {
-      setActionError(err instanceof Error ? err.message : "Failed to update resolution status.");
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.response?.data?.error || err?.message || "Failed to update resolution status.";
+      setActionError(msg);
     } finally {
       setIsSubmittingResolve(false);
     }

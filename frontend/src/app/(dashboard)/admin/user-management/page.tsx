@@ -838,18 +838,45 @@ export default function AdminUserManagementPage() {
 
   const handleToggleStatus = async (user: UserRow) => {
     const nextStatus = user.accountStatus === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+    const prevStatus = user.accountStatus;
     setTogglingId(user.id);
     setError("");
     setSuccess("");
+
+    // ⚡ Instant Optimistic Update in Query Cache (0ms response)
+    queryClient.setQueriesData({ queryKey: ["admin", "users"] }, (oldData: any) => {
+      if (!oldData) return oldData;
+      const updateList = (list: any[]) =>
+        list.map((u) => (u.id === user.id ? { ...u, accountStatus: nextStatus } : u));
+
+      if (Array.isArray(oldData)) return updateList(oldData);
+      if (Array.isArray(oldData.data)) {
+        return { ...oldData, data: updateList(oldData.data) };
+      }
+      return oldData;
+    });
+
     try {
-      await apiFetch(`/admin/users/${user.id}/role`, {
+      await apiFetch(`/admin/users/${user.id}`, {
         method: "PATCH",
         body: JSON.stringify({ accountStatus: nextStatus }),
       });
-      setSuccess(`${user.email} is now ${nextStatus}.`);
-      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update status");
+      setSuccess(`${user.email} status updated to ${nextStatus}.`);
+    } catch (err: any) {
+      // Rollback on failure
+      queryClient.setQueriesData({ queryKey: ["admin", "users"] }, (oldData: any) => {
+        if (!oldData) return oldData;
+        const rollbackList = (list: any[]) =>
+          list.map((u) => (u.id === user.id ? { ...u, accountStatus: prevStatus } : u));
+
+        if (Array.isArray(oldData)) return rollbackList(oldData);
+        if (Array.isArray(oldData.data)) {
+          return { ...oldData, data: rollbackList(oldData.data) };
+        }
+        return oldData;
+      });
+      const msg = err?.response?.data?.error || err?.response?.data?.message || err?.message || "Failed to update account status";
+      setError(msg);
     } finally {
       setTogglingId("");
     }
@@ -912,8 +939,9 @@ export default function AdminUserManagementPage() {
     return r.includes("ADMIN") || r.includes("RELATIONSHIP") || r.includes("MANAGER");
   }).length;
 
-  return (    <GovPortalLayout>
-      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 text-slate-900">
+  return (
+    <GovPortalLayout>
+      <div className="w-full min-w-0 max-w-7xl mx-auto flex flex-col gap-5 px-3 py-4 sm:px-5 sm:py-6 md:px-6 text-slate-900">
         {/* Page Title & Actions */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
           <div>
@@ -1025,9 +1053,9 @@ export default function AdminUserManagementPage() {
         )}
 
         {/* User Directory Table Card */}
-        <div className="rounded-2xl border border-slate-200/90 bg-white shadow-xs">
+        <div className="w-full min-w-0 rounded-2xl border border-slate-200/90 bg-white shadow-xs overflow-hidden">
           {/* Card Filter Toolbar */}
-          <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="p-3.5 sm:p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <h2 className="font-heading font-extrabold text-sm sm:text-base text-slate-900">
                 Official User Directory
@@ -1055,7 +1083,7 @@ export default function AdminUserManagementPage() {
               </select>
 
               {/* Search Bar */}
-              <div className="relative min-w-[240px] sm:min-w-[280px]">
+              <div className="relative min-w-[220px] sm:min-w-[260px]">
                 <input
                   type="text"
                   className="w-full bg-white border border-slate-300 rounded-xl py-2 pl-9 pr-8 text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-2xs font-medium"
@@ -1097,24 +1125,24 @@ export default function AdminUserManagementPage() {
           </div>
 
           {/* Table Body */}
-          <div className="p-0 w-full overflow-visible">
+          <div className="w-full min-w-0 overflow-x-auto">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-20 gap-3 w-full bg-white">
                 <div className="w-9 h-9 rounded-full border-3 border-blue-600 border-t-transparent animate-spin" />
                 <span className="text-xs text-slate-500 font-bold">Loading user directory...</span>
               </div>
             ) : filteredUsers.length > 0 ? (
-              <div className="w-full">
-                <table className="w-full text-left border-collapse table-fixed">
+              <div className="w-full min-w-0 overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[700px]">
                   <thead>
                     <tr className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-extrabold uppercase tracking-wider text-slate-600">
-                      <SortableTh sortKey="name" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="py-3 px-3 w-[20%]">User</SortableTh>
-                      <SortableTh sortKey="email" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="py-3 px-3 w-[18%] hidden lg:table-cell">Email</SortableTh>
-                      <SortableTh sortKey="designation" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="py-3 px-3 w-[12%] hidden xl:table-cell">Designation</SortableTh>
-                      <SortableTh sortKey="role" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="py-3 px-3 w-[14%]">Role</SortableTh>
-                      <SortableTh sortKey="district" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="py-3 px-3 w-[12%] hidden md:table-cell">District</SortableTh>
-                      <SortableTh sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="py-3 px-3 w-[10%]">Status</SortableTh>
-                      <th className="py-3 px-3 w-[14%] text-right">Actions</th>
+                      <SortableTh sortKey="name" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="py-3 px-3">User</SortableTh>
+                      <SortableTh sortKey="email" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="py-3 px-3 hidden lg:table-cell">Email</SortableTh>
+                      <SortableTh sortKey="designation" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="py-3 px-3 hidden xl:table-cell">Designation</SortableTh>
+                      <SortableTh sortKey="role" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="py-3 px-3">Role</SortableTh>
+                      <SortableTh sortKey="district" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="py-3 px-3 hidden md:table-cell">District</SortableTh>
+                      <SortableTh sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={requestSort} className="py-3 px-3">Status</SortableTh>
+                      <th className="py-3 px-3 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -1136,15 +1164,15 @@ export default function AdminUserManagementPage() {
                           className="hover:bg-slate-50/70 transition-colors"
                         >
                           {/* Official Name & Avatar */}
-                          <td className="py-3.5 px-3 align-middle">
+                          <td className="py-2.5 px-2.5 sm:px-3 align-middle">
                             <div className="flex items-center gap-2.5">
                               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-heading font-extrabold text-[10px] flex items-center justify-center shrink-0 shadow-2xs shadow-blue-500/20">
                                 {initials}
                               </div>
                               <div className="min-w-0">
-                                <div className="font-bold text-slate-900 text-xs leading-tight truncate max-w-[160px]" title={fullName}>{fullName}</div>
+                                <div className="font-bold text-slate-900 text-xs leading-tight truncate max-w-[150px]" title={fullName}>{fullName}</div>
                                 {(u.ngo?.name || u.company?.name || u.organization?.name || u.officerProfile?.department) && (
-                                  <div className="text-[10px] text-slate-500 font-medium truncate max-w-[160px] mt-0.5" title={u.ngo?.name || u.company?.name || u.organization?.name || u.officerProfile?.department || ""}>
+                                  <div className="text-[10px] text-slate-500 font-medium truncate max-w-[150px] mt-0.5" title={u.ngo?.name || u.company?.name || u.organization?.name || u.officerProfile?.department || ""}>
                                     {u.ngo?.name || u.company?.name || u.organization?.name || u.officerProfile?.department}
                                   </div>
                                 )}
@@ -1153,9 +1181,9 @@ export default function AdminUserManagementPage() {
                           </td>
 
                           {/* Email & Mobile */}
-                          <td className="py-3.5 px-3 align-middle hidden lg:table-cell">
+                          <td className="py-2.5 px-2.5 sm:px-3 align-middle hidden lg:table-cell">
                             <div className="flex flex-col gap-0.5 min-w-0">
-                              <span className="font-mono text-xs text-slate-800 font-semibold select-all truncate block" title={u.email}>
+                              <span className="font-mono text-xs text-slate-800 font-semibold select-all truncate block max-w-[170px]" title={u.email}>
                                 {u.email}
                               </span>
                               {(u.mobile || u.officerProfile?.mobile) && (
@@ -1168,26 +1196,29 @@ export default function AdminUserManagementPage() {
                           </td>
 
                           {/* Designation */}
-                          <td className="py-3.5 px-3 align-middle hidden xl:table-cell">
-                            <span className="text-xs font-semibold text-slate-800 block truncate" title={u.officerProfile?.designation || u.designation || "N/A"}>
+                          <td className="py-2.5 px-2.5 sm:px-3 align-middle hidden xl:table-cell">
+                            <span className="text-xs font-semibold text-slate-800 block truncate max-w-[140px]" title={u.officerProfile?.designation || u.designation || "N/A"}>
                               {u.officerProfile?.designation || u.designation || "N/A"}
                             </span>
                           </td>
 
                           {/* Role */}
-                          <td className="py-3.5 px-3 align-middle">
+                          <td className="py-2.5 px-2.5 sm:px-3 align-middle">
                             <div className="flex flex-col gap-1 items-start">
                               {roleString ? (
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border leading-tight ${
-                                  roleString.includes("ADMIN")
-                                    ? "bg-purple-50 text-purple-800 border-purple-200"
-                                    : roleString.includes("RELATIONSHIP")
-                                    ? "bg-blue-50 text-blue-800 border-blue-200"
-                                    : roleString.includes("NODAL")
-                                    ? "bg-amber-50 text-amber-800 border-amber-200"
-                                    : "bg-slate-100 text-slate-700 border-slate-200"
-                                }`}>
-                                  {roleString}
+                                <span
+                                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold border leading-tight whitespace-nowrap max-w-[130px] truncate ${
+                                    roleString.includes("ADMIN")
+                                      ? "bg-purple-50 text-purple-800 border-purple-200"
+                                      : roleString.includes("RELATIONSHIP")
+                                      ? "bg-blue-50 text-blue-800 border-blue-200"
+                                      : roleString.includes("NODAL")
+                                      ? "bg-amber-50 text-amber-800 border-amber-200"
+                                      : "bg-slate-100 text-slate-700 border-slate-200"
+                                  }`}
+                                  title={roleString}
+                                >
+                                  {roleString.replace(/_/g, " ")}
                                 </span>
                               ) : (
                                 <span className="text-slate-400 text-[11px] italic">No role</span>
@@ -1198,7 +1229,7 @@ export default function AdminUserManagementPage() {
                                   {u.dynamicRoles.map((dr) => (
                                     <span
                                       key={dr.roleId}
-                                      className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 text-[9px] font-bold border border-slate-200"
+                                      className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 text-[9px] font-bold border border-slate-200 whitespace-nowrap"
                                     >
                                       +{dr.roleName}
                                     </span>
@@ -1209,19 +1240,19 @@ export default function AdminUserManagementPage() {
                           </td>
 
                           {/* Assigned District */}
-                          <td className="py-3.5 px-3 align-middle hidden md:table-cell">
+                          <td className="py-2.5 px-2.5 sm:px-3 align-middle hidden md:table-cell">
                             {u.assignedDistrict ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 text-slate-800 text-[11px] font-bold border border-slate-200">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 text-slate-800 text-[11px] font-bold border border-slate-200 whitespace-nowrap">
                                 <MapPin size={11} className="text-blue-600 shrink-0" />
                                 <span className="truncate max-w-[80px]">{u.assignedDistrict}</span>
                               </span>
                             ) : (
-                              <span className="text-slate-400 text-[11px] italic">State level</span>
+                              <span className="text-slate-400 text-[11px] italic whitespace-nowrap">State level</span>
                             )}
                           </td>
 
                           {/* Status */}
-                          <td className="py-3.5 px-3 align-middle">
+                          <td className="py-2.5 px-2.5 sm:px-3 align-middle whitespace-nowrap">
                             {(() => {
                               const orgStatus = (u.organization?.status || "").toUpperCase();
                               const isGovUser = String(u.role || "").includes("GOVERNMENT") || String(u.role || "").includes("NODAL") || Number(u.roleId) === 7;
@@ -1234,7 +1265,7 @@ export default function AdminUserManagementPage() {
                               const statusLabel = isPendingOnboardingApproval && !hasActivatedPassword ? "PENDING" : u.accountStatus || "ACTIVE";
 
                               return (
-                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold border whitespace-nowrap ${
                                   isPendingOnboardingApproval && !hasActivatedPassword
                                     ? "bg-amber-50 text-amber-800 border-amber-200"
                                     : isActive
@@ -1259,8 +1290,8 @@ export default function AdminUserManagementPage() {
                           </td>
 
                           {/* Actions */}
-                          <td className="py-3.5 px-3 align-middle text-right">
-                            <div className="inline-flex items-center justify-end gap-1 flex-wrap">
+                          <td className="py-2.5 px-2.5 sm:px-3 align-middle text-right whitespace-nowrap">
+                            <div className="inline-flex items-center justify-end gap-1.5 flex-nowrap shrink-0">
                               {/* Send Invitation Button */}
                               {(() => {
                                 const orgStatus = (u.organization?.status || "").toUpperCase();

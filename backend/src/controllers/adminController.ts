@@ -441,7 +441,7 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response, next:
     const effectiveRoleId = resolvedRoleId || existingUser.roleId;
     const effectiveDistrict = district !== undefined ? String(district || "").trim() : (existingUser.officerProfile?.district || "");
 
-    if ((effectiveRoleId === ROLE_ID.DISTRICT_NODAL_OFFICER || effectiveRoleId === ROLE_ID.DISTRICT_NODAL_CONSULTANT) && !effectiveDistrict) {
+    if (resolvedRoleId && (resolvedRoleId === ROLE_ID.DISTRICT_NODAL_OFFICER || resolvedRoleId === ROLE_ID.DISTRICT_NODAL_CONSULTANT) && !effectiveDistrict) {
       return res.status(400).json({ error: "A district is required for district nodal officers and consultants." });
     }
 
@@ -503,37 +503,51 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response, next:
     });
 
     if (accountStatus && accountStatus !== "ACTIVE") {
-      await Promise.all([
+      Promise.all([
         prisma.session.updateMany({ where: { userId: id, isRevoked: false }, data: { isRevoked: true, revokedByUserId: req.user!.id } }),
         prisma.organizationMembership.updateMany({ where: { userId: id, status: "ACTIVE" }, data: { status: "SUSPENDED" } }),
         prisma.corporateNgoAccess.updateMany({ where: { userId: id, status: "ACTIVE" }, data: { status: "SUSPENDED", tokenVersion: { increment: 1 } } }),
-      ]);
+      ]).catch((err) => console.error("Error revoking sessions/memberships on deactivate:", err));
     }
-    await prisma.auditLog.create({ data: { actorUserId: req.user!.id, userId: req.user!.id, action: "USER_UPDATED", entityType: "User", entityId: id, details: { before: { accountStatus: existingUser.accountStatus, roleId: existingUser.roleId, email: existingUser.email }, after: { accountStatus: accountStatus || existingUser.accountStatus, roleId: effectiveRoleId, email: email || existingUser.email } } } });
 
-    if (effectiveDistrict) {
-      if (effectiveRoleId === ROLE_ID.DISTRICT_NODAL_CONSULTANT) {
-        const existingDncLink = await prisma.districtDncAssignment.findFirst({
-          where: { district: effectiveDistrict, organizationId: existingUser.organizationId || null, dncUserId: user.id }
-        });
-        if (existingDncLink) {
-          await prisma.districtDncAssignment.update({
-            where: { id: existingDncLink.id },
-            data: { assignedById: req.user!.id, isActive: true }
-          }).catch((err) => console.error("Error updating DistrictDncAssignment:", err));
-        } else {
-          await prisma.districtDncAssignment.create({
-            data: {
-              district: effectiveDistrict,
-              organizationId: existingUser.organizationId || null,
-              dncUserId: user.id,
-              assignedById: req.user!.id,
-              isActive: true
-            }
-          }).catch((err) => console.error("Error creating DistrictDncAssignment:", err));
+    prisma.auditLog.create({
+      data: {
+        actorUserId: req.user!.id,
+        userId: req.user!.id,
+        action: "USER_UPDATED",
+        entityType: "User",
+        entityId: id,
+        details: {
+          before: { accountStatus: existingUser.accountStatus, roleId: existingUser.roleId, email: existingUser.email },
+          after: { accountStatus: accountStatus || existingUser.accountStatus, roleId: effectiveRoleId, email: email || existingUser.email }
         }
+      }
+    }).catch((err) => console.error("Audit log error:", err));
+
+    if ((district !== undefined || resolvedRoleId !== undefined) && effectiveDistrict) {
+      if (effectiveRoleId === ROLE_ID.DISTRICT_NODAL_CONSULTANT) {
+        prisma.districtDncAssignment.findFirst({
+          where: { district: effectiveDistrict, organizationId: existingUser.organizationId || null, dncUserId: user.id }
+        }).then(async (existingDncLink) => {
+          if (existingDncLink) {
+            await prisma.districtDncAssignment.update({
+              where: { id: existingDncLink.id },
+              data: { assignedById: req.user!.id, isActive: true }
+            });
+          } else {
+            await prisma.districtDncAssignment.create({
+              data: {
+                district: effectiveDistrict,
+                organizationId: existingUser.organizationId || null,
+                dncUserId: user.id,
+                assignedById: req.user!.id,
+                isActive: true
+              }
+            });
+          }
+        }).catch((err) => console.error("Error updating DistrictDncAssignment:", err));
       } else if (effectiveRoleId === ROLE_ID.DISTRICT_NODAL_OFFICER) {
-        await prisma.districtNodalMapping.create({
+        prisma.districtNodalMapping.create({
           data: {
             district: effectiveDistrict,
             userId: user.id,

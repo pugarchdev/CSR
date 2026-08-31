@@ -826,10 +826,13 @@ textarea {
 .gov-status {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  white-space: nowrap;
   border-radius: 9999px; /* Rounded pill style */
-  padding: 4px 10px;
+  padding: 3px 9px;
   font-size: 11px;
   font-weight: 700;
+  line-height: 1.2;
   border: 1px solid transparent;
   text-transform: uppercase;
   letter-spacing: 0.03em;

@@ -626,7 +626,7 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
               className="hidden md:flex items-center gap-2 max-w-sm w-full relative group text-left cursor-pointer"
             >
               <div className="w-full bg-slate-50/70 group-hover:bg-slate-100/90 group-hover:border-slate-300 border border-slate-200/80 rounded-xl py-2 pl-10 pr-16 text-xs text-slate-400 font-sans transition-all flex items-center shadow-2xs">
-                <span>Search proposals, NGOs, or metrics...</span>
+                <span>Search proposals, NGOs, projects, or metrics...</span>
               </div>
               <Search size={14} className="absolute left-3 text-slate-400 group-hover:text-blue-600 transition-colors" />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-0.5 pointer-events-none select-none text-[9px] font-semibold text-slate-400 bg-slate-100 border border-slate-200/80 px-1.5 py-0.5 rounded-md">
@@ -1215,9 +1215,9 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                 <span>Government of Maharashtra Enterprise CSR Platform. Approved under MCA Section 135.</span>
               </div>
               <div className="flex gap-6">
-                <Link href="#" className="hover:text-[#14274e] transition-colors">Privacy Policy</Link>
-                <Link href="#" className="hover:text-[#14274e] transition-colors">Compliance Audits</Link>
-                <Link href="#" className="hover:text-[#14274e] transition-colors">Support Center</Link>
+                <Link href="/privacy-policy" className="hover:text-[#14274e] transition-colors">Privacy Policy</Link>
+                <Link href="/compliance/audits" className="hover:text-[#14274e] transition-colors">Compliance Audits</Link>
+                <Link href="/helpdesk" className="hover:text-[#14274e] transition-colors">Support Center</Link>
               </div>
             </footer>
           ) : (
@@ -1285,11 +1285,11 @@ export default function SaaSLayout({ children }: SaaSLayoutProps) {
                     <h3 className="text-xs font-bold uppercase tracking-widest text-slate-300">Information</h3>
                     <div className="mt-5 flex flex-col gap-3">
                       {[
-                        { label: "Privacy Policy", href: "#" },
-                        { label: "Terms of Use", href: "#" },
-                        { label: "Compliance Audits", href: "#" },
-                        { label: "Sitemap", href: "#" },
-                        { label: "Accessibility", href: "#" },
+                        { label: "Privacy Policy", href: "/privacy-policy" },
+                        { label: "Terms of Use", href: "/about" },
+                        { label: "Compliance Audits", href: "/compliance/audits" },
+                        { label: "Sitemap", href: "/about" },
+                        { label: "Accessibility", href: "/about" },
                       ].map((link) => (
                         <Link key={link.label} href={link.href} className="text-xs text-slate-400 hover:text-white transition-colors hover:no-underline">
                           {link.label}
